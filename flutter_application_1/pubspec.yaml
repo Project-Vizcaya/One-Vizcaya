@@ -30,12 +30,11 @@ flutter:
   uses-material-design: true
   
   assets:
-    - assets/images/logo.jpg
     - assets/images/Seal_of_Nueva_Vizcaya.svg.png
 
 # Configuration for the App Icon
 flutter_launcher_icons:
   android: "launcher_icon"
   ios: true
-  image_path: "assets/images/logo.jpg" # This must match your file path
+  image_path: "assets/images/Seal_of_Nueva_Vizcaya.svg.png" # This must match your file path
   min_sdk_android: 21
