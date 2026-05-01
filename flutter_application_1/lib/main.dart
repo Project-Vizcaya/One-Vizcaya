@@ -25,20 +25,24 @@ class MunicipalityState {
   final Map<String, dynamic> municipalityThemes = {
     'Bambang': {
       'appBarColor': const Color(0xFFE2725B), // Terracotta or Earthy Brown
-      'welcomeMsg': 'Welcome to Bambang, The Argricultural Hub of Nueva Vizcaya!',
+      'welcomeMsg':
+          'Welcome to Bambang, The Argricultural Hub of Nueva Vizcaya!',
     },
     'Solano': {
       'appBarColor': const Color(0xFFFF4500), // Bright Red or Orange
-      'welcomeMsg': 'Welcome to Solano, The Commercial Center of Nueva Vizcaya!',
+      'welcomeMsg':
+          'Welcome to Solano, The Commercial Center of Nueva Vizcaya!',
     },
     'Bayombong': {
       'appBarColor': const Color(0xFF228B22), // Forest Green
-      'welcomeMsg': 'Welcome to Bayombong, The Institutional Capital of Nueva Vizcaya!',
+      'welcomeMsg':
+          'Welcome to Bayombong, The Institutional Capital of Nueva Vizcaya!',
     },
     'Bagabag': {
       'appBarColor': const Color(0xFFFFD12A), // Pineapple Gold
       'secondaryColor': const Color(0xFF007FFF), // Azure Blue
-      'welcomeMsg': 'Welcome to Bagabag, The Gateway to the World-Famous Rice Terraces!',
+      'welcomeMsg':
+          'Welcome to Bagabag, The Gateway to the World-Famous Rice Terraces!',
     },
     'Diadi': {
       'appBarColor': const Color(0xFF004B49), // Deep Teal
@@ -68,7 +72,8 @@ class MunicipalityState {
     'Alfonso Castañeda': {
       'appBarColor': const Color(0xFF4A5D23), // Dark Moss
       'secondaryColor': const Color(0xFF0B3B60), // Deep River Blue
-      'welcomeMsg': 'Welcome to Alfonso Castañeda, The Last Frontier of Nueva Vizcaya!',
+      'welcomeMsg':
+          'Welcome to Alfonso Castañeda, The Last Frontier of Nueva Vizcaya!',
     },
     'Kayapa': {
       'appBarColor': const Color(0xFFF28500), // Tangerine
@@ -318,7 +323,10 @@ class _LoginScreenState extends State<LoginScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Image.asset('assets/images/Seal_of_Nueva_Vizcaya.svg.png', height: 120),
+                Image.asset(
+                  'assets/images/Seal_of_Nueva_Vizcaya.svg.png',
+                  height: 120,
+                ),
                 const SizedBox(height: 16),
                 Text(
                   'Welcome to\nOne Vizcaya',
@@ -871,13 +879,37 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
   bool _isOffline = false;
 
   final List<String> _categories = [
-    'Waste Management',
-    'Broken Streetlight',
-    'Pothole/Road Damage',
-    'Water Leakage',
-    'Noise Complaint',
-    'Other',
+    'Environmental & Sanitation',
+    'Infrastructure & Roads',
+    'Public Lighting & Utilities',
+    'Water & Sewage Systems',
+    'Health & Public Safety',
+    'Peace & Order Disturbance',
+    'Disaster & Risk Management',
+    'Social & Community Services',
+    'General Inquiries & Others',
   ];
+
+  final Map<String, String> _categoryDescriptions = {
+    'Environmental & Sanitation':
+        'Includes: Improper Waste Management, Solid Waste Issues, Dirty/Clogged Canals, Illegal Dumping.',
+    'Infrastructure & Roads':
+        'Includes: Potholes, Damaged Roads/Bridges, Road Maintenance Needed, Broken Sidewalks.',
+    'Public Lighting & Utilities':
+        'Includes: Broken Streetlights, Electrical Repairs, Power Outages, Fallen Poles.',
+    'Water & Sewage Systems':
+        'Includes: Water Leakage, Water Supply Issues, Pipe Bursts, Sewage Overflow.',
+    'Health & Public Safety':
+        'Includes: Stray Animals, Unsanitary Food Establishments, Dengue Concerns, Stagnant Water, Fire Hazards.',
+    'Peace & Order Disturbance':
+        'Includes: Noise Complaints, Suspicious Activities, Traffic Violations, Public Nuisance.',
+    'Disaster & Risk Management':
+        'Includes: Flooding, Landslides, Fallen Trees, Natural Disaster Damage.',
+    'Social & Community Services':
+        'Includes: PWD/Senior Citizen Concerns, Child Welfare, Social Welfare Assistance.',
+    'General Inquiries & Others':
+        'Includes: Miscellaneous Reports, General Concerns, Feedback.',
+  };
 
   void _submitReport() {
     if (_formKey.currentState!.validate()) {
@@ -1072,6 +1104,22 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
                   labelStyle: TextStyle(color: primaryLguColor),
                 ),
               ),
+              if (_selectedCategory != null)
+                Padding(
+                  padding: const EdgeInsets.only(
+                    top: 8.0,
+                    left: 12.0,
+                    right: 12.0,
+                  ),
+                  child: Text(
+                    _categoryDescriptions[_selectedCategory!] ?? '',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey[700],
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ),
               const SizedBox(height: 16),
 
               TextFormField(
