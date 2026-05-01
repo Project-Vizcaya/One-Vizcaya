@@ -1,87 +1,114 @@
-import 'dart:io'; // Needed for File handling
 import 'package:flutter/material.dart';
 // Import this package after adding it to your pubspec.yaml
 import 'package:url_launcher/url_launcher.dart';
-import 'package:image_picker/image_picker.dart'; // REQUIRED for camera/gallery
 
 // Add these new imports for Firebase
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_app_check/firebase_app_check.dart'; // REQUIRED for App Check
 import 'firebase_options.dart';
-import 'package:flutter/foundation.dart'; // Needed for kDebugMode
+
+// --- NEW: Global Municipality State (Singleton for Prototype) ---
+class MunicipalityState {
+  static final MunicipalityState _instance = MunicipalityState._internal();
+  factory MunicipalityState() => _instance;
+  MunicipalityState._internal();
+
+  // The active municipality. We can use ValueNotifier to rebuild the UI instantly.
+  ValueNotifier<String> selectedMunicipality = ValueNotifier<String>(
+    'Bambang',
+  ); // Default pilot town
+
+  // Pre-defined color palettes for dynamic theming based on town LGU style.
+  // Colors are inspired by the standard colorful look in image_c52ca1.png,
+  // but the AppBar and dynamic welcomes will reflect the specific town.
+  final Map<String, dynamic> municipalityThemes = {
+    'Bambang': {
+      'appBarColor': const Color(0xFF00796B), // Teal Green (Primary Green 2)
+      'welcomeMsg': 'Welcome to Bambang, Premier Gateway of Nueva Vizcaya!',
+    },
+    'Solano': {
+      'appBarColor': const Color(0xFF004A6D), // Dynamic Dark Blue
+      'welcomeMsg': 'Welcome to Solano, The Commercial Center of Vizcaya!',
+    },
+    'Bayombong': {
+      'appBarColor': const Color(0xFF006B3A), // Dark Green 2
+      'welcomeMsg': 'Welcome to Bayombong Connect!',
+    },
+    'Generic': {
+      'appBarColor': Colors.grey[700],
+      'welcomeMsg': 'Welcome to your Municipality Connect!',
+    },
+  };
+
+  // Helper function to get theme data
+  Map<String, dynamic> get activeTheme =>
+      municipalityThemes[selectedMunicipality.value] ??
+      municipalityThemes['Generic']!;
+}
+
+// Instantiate global state singleton
+final oneVizcayaState = MunicipalityState();
+
+// List of Vizcaya Municipalities for selection
+final List<String> vizcayaMunicipalitiesList = [
+  'Bambang',
+  'Solano',
+  'Bayombong',
+  'Aritao',
+  'Bagabag',
+  'Diadi',
+  'Dupax del Norte',
+  'Dupax del Sur',
+  'Kasibu',
+  'Kayapa',
+  'Quezon',
+  'Santa Fe',
+  'Villaverde',
+];
 
 // --- Main Application ---
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
-
-  // --- SMART APP CHECK (TEMPORARILY DISABLED FOR EASY TESTING) ---
-  // if (kDebugMode) {
-  //   await FirebaseAppCheck.instance.activate(
-  //     androidProvider: AndroidProvider.debug,
-  //   );
-  // } else {
-  //   await FirebaseAppCheck.instance.activate(
-  //     androidProvider: AndroidProvider.playIntegrity,
-  //   );
-  // }
-  // -------------------------------------------------------------
-
-  runApp(const BayombongConnectApp());
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  runApp(const OneVizcayaApp());
 }
 
-class BayombongConnectApp extends StatelessWidget {
-  const BayombongConnectApp({super.key});
-
-  // Define your custom color palette
-  static const Color primaryGreen = Color(0xFF006B3A); // Dark Green
-  static const Color secondaryGreen = Color(0xFF35A551); // Light Green
-  static const Color accentYellow = Color(0xFFFFBE26); // Yellow
-  static const Color primaryBlue = Color(0xFF004A6D); // Blue
-  static const Color white = Color(0xFFFFFFFF);
+class OneVizcayaApp extends StatelessWidget {
+  const OneVizcayaApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'One Bayombong',
+      title: 'One Vizcaya',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         brightness: Brightness.light,
-        primaryColor: primaryGreen,
-        scaffoldBackgroundColor: white,
+        primarySwatch: Colors.blue,
+        // Global style elements, individual town color palettes applied dynamically.
+        scaffoldBackgroundColor: const Color(0xFFF5F5F5),
+        iconTheme: const IconThemeData(color: Colors.white),
+        // Use standard theme settings here, dynamic overrides in specific screens.
         appBarTheme: const AppBarTheme(
-          backgroundColor: primaryGreen,
           elevation: 0,
-          centerTitle: true,
           titleTextStyle: TextStyle(
-            color: white,
-            fontSize: 22,
+            color: Colors.white,
+            fontSize: 20,
             fontWeight: FontWeight.bold,
           ),
-          iconTheme: IconThemeData(color: white),
-        ),
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: primaryGreen,
-          primary: primaryGreen,
-          secondary: secondaryGreen,
-          surface: white,
-          background: white,
+          iconTheme: IconThemeData(color: Colors.white),
         ),
         cardTheme: CardThemeData(
-          elevation: 0,
+          elevation: 0, // Flat design matching dynamic look in image_c52ca1.png
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16.0),
+            borderRadius: BorderRadius.circular(12.0),
           ),
         ),
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
-            backgroundColor: primaryGreen,
-            foregroundColor: white,
+            backgroundColor: const Color(0xFFFFBE26), // Dynamic Tile Orange
+            foregroundColor: const Color(0xFF004A6D), // Dynamic Dark Blue text
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(8.0),
             ),
@@ -92,31 +119,28 @@ class BayombongConnectApp extends StatelessWidget {
           headlineSmall: TextStyle(
             fontWeight: FontWeight.bold,
             fontSize: 24,
-            color: primaryGreen,
+            color: Color(0xFF333333),
           ),
+          bodyLarge: TextStyle(fontSize: 16, color: Color(0xFF555555)),
+          bodyMedium: TextStyle(fontSize: 14, color: Color(0xFF777777)),
+          // Specific style for the colorful grid titles in image_c52ca1.png
           titleMedium: TextStyle(
-            color: white,
+            color: Colors.white,
             fontWeight: FontWeight.bold,
             fontSize: 16,
           ),
-          bodyLarge: TextStyle(fontSize: 16, color: Color(0xFF333333)),
-          bodyMedium: TextStyle(fontSize: 14, color: Color(0xFF555555)),
         ),
         inputDecorationTheme: InputDecorationTheme(
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(8.0),
             borderSide: const BorderSide(color: Colors.grey),
           ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8.0),
-            borderSide: const BorderSide(color: primaryGreen, width: 2),
-          ),
-          labelStyle: const TextStyle(color: primaryGreen),
-          prefixIconColor: primaryGreen,
+          // We will apply the active town's color in screens.
         ),
       ),
       home: const LoginScreen(),
       routes: {
+        '/setup': (context) => const MunicipalitySetupScreen(),
         '/home': (context) => const HomeScreen(),
         '/report': (context) => const ReportProblemScreen(),
         '/status': (context) => const ReportStatusScreen(),
@@ -135,6 +159,7 @@ class ProblemReport {
   final String category;
   final String description;
   final String location;
+  final String municipality; // New: Report is now localized
   final ReportStatus status;
   final DateTime reportedAt;
 
@@ -143,6 +168,7 @@ class ProblemReport {
     required this.category,
     required this.description,
     required this.location,
+    required this.municipality,
     required this.status,
     required this.reportedAt,
   });
@@ -152,7 +178,7 @@ enum ReportStatus { reported, ongoing, solved }
 
 // --- Screens ---
 
-// 1. Login Screen
+// 1. Login Screen (Now Phone-based only)
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -166,20 +192,20 @@ class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
 
   Future<void> _loginWithPhone() async {
-    if (!_formKey.currentState!.validate()) {
-      return;
-    }
-    setState(() {
-      _isLoading = true;
-    });
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() => _isLoading = true);
+
     final phoneNumber = _phoneController.text;
+
     try {
       await FirebaseAuth.instance.verifyPhoneNumber(
         phoneNumber: phoneNumber,
         verificationCompleted: (PhoneAuthCredential credential) async {
           await FirebaseAuth.instance.signInWithCredential(credential);
           if (mounted) {
-            Navigator.of(context).pushReplacementNamed('/home');
+            // New Flow: Successful login -> Setup municipality first time
+            Navigator.of(context).pushReplacementNamed('/setup');
           }
         },
         verificationFailed: (FirebaseAuthException e) {
@@ -194,9 +220,8 @@ class _LoginScreenState extends State<LoginScreen> {
           if (mounted) {
             Navigator.of(context).push(
               MaterialPageRoute(
-                builder: (context) => PhoneVerificationScreen(
-                  verificationId: verificationId,
-                ),
+                builder: (context) =>
+                    PhoneVerificationScreen(verificationId: verificationId),
               ),
             );
           }
@@ -206,15 +231,18 @@ class _LoginScreenState extends State<LoginScreen> {
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('An error occurred: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('An error occurred: $e')));
       }
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    // Standard LGU branding color for login
+    const primaryColor = Color(0xFF00796B);
+
     return Scaffold(
       body: Center(
         child: SingleChildScrollView(
@@ -225,42 +253,19 @@ class _LoginScreenState extends State<LoginScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Logo Section
-                Container(
-                  height: 150,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        blurRadius: 10,
-                        offset: const Offset(0, 5),
-                      ),
-                    ],
-                  ),
-                  child: ClipOval(
-                    child: Image.asset(
-                      'assets/images/logo.jpg', 
-                      fit: BoxFit.contain,
-                      errorBuilder: (context, error, stackTrace) {
-                        return Icon(
-                          Icons.security,
-                          size: 100,
-                          color: Theme.of(context).primaryColor,
-                        );
-                      },
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 24),
+                Icon(Icons.security, size: 100, color: primaryColor),
+                const SizedBox(height: 16),
                 Text(
-                  'Welcome to\nOne Bayombong',
+                  'Welcome to\nOne Vizcaya Connect',
                   textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.headlineSmall,
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    color: primaryColor,
+                    fontSize: 28,
+                  ),
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Your direct line to the municipality.',
+                  'Connecting you directly to your municipality.',
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.bodyMedium,
                 ),
@@ -277,9 +282,10 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     keyboardType: TextInputType.phone,
                     validator: (value) {
-                      if (value == null || value.isEmpty) {
+                      if (value == null || value.isEmpty)
                         return 'Please enter your phone number';
-                      }
+                      if (!value.startsWith('+'))
+                        return 'Please include the country code (e.g., +63)';
                       return null;
                     },
                   ),
@@ -289,8 +295,18 @@ class _LoginScreenState extends State<LoginScreen> {
                     label: const Text('Sign in with Phone Number'),
                     onPressed: _loginWithPhone,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: BayombongConnectApp.secondaryGreen,
+                      backgroundColor:
+                          primaryColor, // Bambang primary green for login
+                      foregroundColor: Colors.white,
                     ),
+                  ),
+                  const SizedBox(height: 24),
+                  Text(
+                    'We will send a verification code to this number.',
+                    textAlign: TextAlign.center,
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodyMedium?.copyWith(fontSize: 12),
                   ),
                 ],
               ],
@@ -303,12 +319,15 @@ class _LoginScreenState extends State<LoginScreen> {
 }
 
 // --- PHONE VERIFICATION SCREEN ---
+
 class PhoneVerificationScreen extends StatefulWidget {
   final String verificationId;
+
   const PhoneVerificationScreen({super.key, required this.verificationId});
 
   @override
-  _PhoneVerificationScreenState createState() => _PhoneVerificationScreenState();
+  _PhoneVerificationScreenState createState() =>
+      _PhoneVerificationScreenState();
 }
 
 class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
@@ -317,22 +336,33 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
 
   Future<void> _verifyCode() async {
     if (_codeController.text.isEmpty) return;
-    setState(() { _isLoading = true; });
+
+    setState(() {
+      _isLoading = true;
+    });
+
     try {
       final credential = PhoneAuthProvider.credential(
         verificationId: widget.verificationId,
         smsCode: _codeController.text,
       );
+
       await FirebaseAuth.instance.signInWithCredential(credential);
+
       if (mounted) {
-        Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false);
+        // Successful Verification -> Setup municipality first time
+        Navigator.of(
+          context,
+        ).pushNamedAndRemoveUntil('/setup', (route) => false);
       }
     } catch (e) {
       if (mounted) {
-        setState(() { _isLoading = false; });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to verify code: $e')),
-        );
+        setState(() {
+          _isLoading = false;
+        });
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to verify code: $e')));
       }
     }
   }
@@ -340,11 +370,16 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Enter Verification Code')),
+      appBar: AppBar(
+        title: const Text('Enter Verification Code'),
+        backgroundColor: const Color(0xFF00796B), // Primary Teal
+      ),
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(32.0),
           child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(
                 'Enter the 6-digit code sent to your phone.',
@@ -369,10 +404,11 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
               else
                 ElevatedButton(
                   onPressed: _verifyCode,
-                  child: const Text('Verify and Sign In'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: BayombongConnectApp.secondaryGreen,
+                    backgroundColor: const Color(0xFF00796B), // Primary Teal
+                    foregroundColor: Colors.white,
                   ),
+                  child: const Text('Verify and Sign In'),
                 ),
             ],
           ),
@@ -382,117 +418,367 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
   }
 }
 
-// 2. Home Screen
+// --- NEW: Municipality Setup Screen (First time login) ---
+class MunicipalitySetupScreen extends StatefulWidget {
+  const MunicipalitySetupScreen({super.key});
+
+  @override
+  _MunicipalitySetupScreenState createState() =>
+      _MunicipalitySetupScreenState();
+}
+
+class _MunicipalitySetupScreenState extends State<MunicipalitySetupScreen> {
+  String? _selectedTown;
+
+  @override
+  Widget build(BuildContext context) {
+    const primaryColor = Color(0xFF00796B); // Pilot Teal
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Welcome to One Vizcaya'),
+        backgroundColor: primaryColor,
+        automaticallyImplyLeading: false, // Don't allow back to login
+      ),
+      body: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(32.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Icon(Icons.location_on, size: 80, color: primaryColor),
+              const SizedBox(height: 24),
+              Text(
+                'Select Your Municipality',
+                textAlign: TextAlign.center,
+                style: Theme.of(
+                  context,
+                ).textTheme.headlineSmall?.copyWith(color: primaryColor),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'This defines your default homepage and allows your reports to route correctly.',
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+              const SizedBox(height: 48),
+              DropdownButtonFormField<String>(
+                value: _selectedTown,
+                hint: const Text('Select Municipality'),
+                isExpanded: true,
+                items: vizcayaMunicipalitiesList.map((String town) {
+                  return DropdownMenuItem<String>(
+                    value: town,
+                    child: Text(town),
+                  );
+                }).toList(),
+                onChanged: (newValue) {
+                  setState(() {
+                    _selectedTown = newValue;
+                  });
+                },
+                decoration: InputDecoration(
+                  labelText: 'Municipality',
+                  prefixIcon: Icon(Icons.location_city, color: primaryColor),
+                  focusedBorder: OutlineInputBorder(
+                    borderSide: BorderSide(color: primaryColor, width: 2),
+                  ),
+                  labelStyle: const TextStyle(color: primaryColor),
+                ),
+              ),
+              const SizedBox(height: 32),
+              ElevatedButton(
+                onPressed: _selectedTown == null
+                    ? null
+                    : () {
+                        // Set the global state singleton. Louie from Bambang logic.
+                        oneVizcayaState.selectedMunicipality.value =
+                            _selectedTown!;
+                        Navigator.of(context).pushReplacementNamed('/home');
+                      },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: primaryColor,
+                  foregroundColor: Colors.white,
+                ),
+                child: const Text('Complete Setup'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// 2. Home Screen (Dashboard) - Dynamic Theming Applied
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('One Bayombong'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.notifications),
-            onPressed: () {
-              Navigator.of(context).push(MaterialPageRoute(
-                  builder: (context) => const NotificationsScreen()));
-            },
+    return ValueListenableBuilder<String>(
+      valueListenable: oneVizcayaState.selectedMunicipality,
+      builder: (context, municipality, child) {
+        // Apply the dynamic theme colors and data based on selection.
+        final activeTheme = oneVizcayaState.activeTheme;
+        final appBarColor = activeTheme['appBarColor'];
+        final welcomeMsg = activeTheme['welcomeMsg'];
+
+        return Scaffold(
+          appBar: AppBar(
+            backgroundColor: appBarColor,
+            // Municipality Selector in AppBar - Enables dynamic transitions (Bambang to Solano)
+            title: Row(
+              children: [
+                Icon(Icons.location_on, size: 20),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      value: municipality,
+                      dropdownColor:
+                          appBarColor, // Keeps dropdown readable against dynamic theme
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      iconEnabledColor: Colors.white,
+                      items: vizcayaMunicipalitiesList.map((String value) {
+                        return DropdownMenuItem<String>(
+                          value: value,
+                          child: Text(value),
+                        );
+                      }).toList(),
+                      onChanged: (String? newValue) {
+                        if (newValue != null) {
+                          // Crucial for cross-municipality reporting: instantly re-theme and re-data the app.
+                          oneVizcayaState.selectedMunicipality.value = newValue;
+                        }
+                      },
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.notifications),
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => const NotificationsScreen(),
+                    ),
+                  );
+                },
+              ),
+              IconButton(
+                icon: const Icon(Icons.account_circle),
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => const ProfileScreen(),
+                    ),
+                  );
+                },
+              ),
+            ],
           ),
-          IconButton(
-            icon: const Icon(Icons.account_circle),
-            onPressed: () {
-              Navigator.of(context).push(MaterialPageRoute(
-                  builder: (context) => const ProfileScreen()));
-            },
+          body: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Dynamic Welcome Message Panel
+                Container(
+                  color: appBarColor.withOpacity(0.1),
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 24,
+                    horizontal: 16,
+                  ),
+                  child: Column(
+                    children: [
+                      Text(
+                        welcomeMsg,
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: appBarColor,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      const Text(
+                        'Tap an option below to engage with your municipality.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(fontSize: 13, color: Colors.grey),
+                      ),
+                    ],
+                  ),
+                ),
+                // Grid implemented exactly as image_c52ca1.png colorful tiles
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: GridView.count(
+                    crossAxisCount: 2,
+                    crossAxisSpacing: 16,
+                    mainAxisSpacing: 16,
+                    shrinkWrap: true, // Needed inside SingleChildScrollView
+                    physics:
+                        const NeverScrollableScrollPhysics(), // Scroll managed by parent
+                    children: [
+                      HomeGridItem(
+                        title: 'Report a Problem',
+                        subtitle: 'Local problem? Report it now.',
+                        icon: Icons.report_problem,
+                        // Position colors from image_c52ca1.png
+                        backgroundColor: const Color(
+                          0xFF35A551,
+                        ), // Tile Green 1
+                        textColor: const Color(
+                          0xFF004A6D,
+                        ), // Title text color from image
+                        onTap: () => Navigator.of(context).pushNamed('/report'),
+                      ),
+                      HomeGridItem(
+                        title: 'My Reports Status',
+                        subtitle: 'Track status of your local reports.',
+                        icon: Icons.history,
+                        // Position colors from image_c52ca1.png
+                        backgroundColor: const Color(
+                          0xFFFFBE26,
+                        ), // Dynamic Orange
+                        textColor: const Color(
+                          0xFF004A6D,
+                        ), // Title text color from image
+                        onTap: () => Navigator.of(context).pushNamed('/status'),
+                      ),
+                      HomeGridItem(
+                        title: 'Emergency Contacts',
+                        subtitle:
+                            'Tap to call $municipality emergency services.',
+                        icon: Icons.local_hospital,
+                        // Position colors from image_c52ca1.png
+                        backgroundColor: const Color(
+                          0xFF004A6D,
+                        ), // Dynamic Dark Blue
+                        textColor: Colors
+                            .white, // Inverted text color for dynamic darkblue
+                        onTap: () =>
+                            Navigator.of(context).pushNamed('/contacts'),
+                      ),
+                      HomeGridItem(
+                        title: 'Announcements',
+                        subtitle: 'Latest news for $municipality.',
+                        icon: Icons.campaign,
+                        // Position colors from image_c52ca1.png
+                        backgroundColor: const Color(
+                          0xFF006B3A,
+                        ), // Dark Green 2
+                        textColor: Colors.white, // Inverted text color
+                        onTap: () =>
+                            Navigator.of(context).pushNamed('/announcements'),
+                      ),
+                      HomeGridItem(
+                        title: 'Support & FAQs',
+                        subtitle: 'Get app help and LGU support info.',
+                        icon: Icons.help_outline,
+                        // Position colors from image_c52ca1.png
+                        backgroundColor: const Color(
+                          0xFF00796B,
+                        ), // Primary Green (Teal)
+                        textColor: Colors.white, // Inverted text color
+                        onTap: () =>
+                            Navigator.of(context).pushNamed('/support'),
+                      ),
+                      HomeGridItem(
+                        title: 'Log Out',
+                        subtitle: 'Sign out and return to login screen.',
+                        icon: Icons.logout,
+                        // Position colors from image_c52ca1.png
+                        backgroundColor: const Color(
+                          0xFFFFBE26,
+                        ), // Dynamic Orange
+                        textColor: const Color(
+                          0xFF004A6D,
+                        ), // Title text color from image
+                        onTap: () {
+                          FirebaseAuth.instance.signOut();
+                          Navigator.of(context).pushReplacement(
+                            MaterialPageRoute(
+                              builder: (context) => const LoginScreen(),
+                            ),
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
-        ],
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: GridView.count(
-          crossAxisCount: 2,
-          crossAxisSpacing: 16,
-          mainAxisSpacing: 16,
-          children: [
-            HomeGridItem(
-              title: 'Report a Problem',
-              icon: Icons.report_problem,
-              color: BayombongConnectApp.secondaryGreen,
-              onTap: () => Navigator.of(context).pushNamed('/report'),
-            ),
-            HomeGridItem(
-              title: 'My Reports Status',
-              icon: Icons.history,
-              color: BayombongConnectApp.accentYellow,
-              onTap: () => Navigator.of(context).pushNamed('/status'),
-            ),
-            HomeGridItem(
-              title: 'Emergency Contacts',
-              icon: Icons.local_hospital,
-              color: BayombongConnectApp.primaryBlue,
-              onTap: () => Navigator.of(context).pushNamed('/contacts'),
-            ),
-            HomeGridItem(
-              title: 'Announcements',
-              icon: Icons.campaign,
-              color: BayombongConnectApp.primaryGreen,
-              onTap: () => Navigator.of(context).pushNamed('/announcements'),
-            ),
-            HomeGridItem(
-              title: 'Support & FAQs',
-              icon: Icons.help_outline,
-              color: BayombongConnectApp.secondaryGreen,
-              onTap: () => Navigator.of(context).pushNamed('/support'),
-            ),
-            HomeGridItem(
-              title: 'Log Out',
-              icon: Icons.logout,
-              color: BayombongConnectApp.accentYellow,
-              onTap: () {
-                FirebaseAuth.instance.signOut();
-                Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
-              },
-            ),
-          ],
-        ),
-      ),
+        );
+      },
     );
   }
 }
 
 class HomeGridItem extends StatelessWidget {
   final String title;
+  final String subtitle;
   final IconData icon;
-  final Color color;
+  final Color backgroundColor;
+  final Color textColor;
   final VoidCallback onTap;
 
   const HomeGridItem({
     super.key,
     required this.title,
+    required this.subtitle,
     required this.icon,
-    required this.color,
+    required this.backgroundColor,
+    required this.textColor,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
     return Card(
-      color: color,
+      color: backgroundColor, // Exact colorful feel from image_c52ca1.png
+      elevation: 0,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(16.0),
+        borderRadius: BorderRadius.circular(12.0),
         child: Padding(
-          padding: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.all(12.0),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Icon(icon, size: 50, color: BayombongConnectApp.white),
+              Icon(
+                icon,
+                size: 40,
+                color: textColor, // Icon matches text color for dynamic looks
+              ),
               const SizedBox(height: 12),
               Text(
                 title,
                 textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.titleMedium,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  color:
+                      textColor, // Inverted text dynamic colors from image_c52ca1.png
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                subtitle,
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 11,
+                  color: textColor.withOpacity(0.8), // Faded dynamic subtitle
+                ),
               ),
             ],
           ),
@@ -502,104 +788,62 @@ class HomeGridItem extends StatelessWidget {
   }
 }
 
-// 3. Report a Problem Screen (UPDATED WITH CAMERA)
+// 3. Report a Problem Screen (Localized and Dynamic)
 class ReportProblemScreen extends StatefulWidget {
   const ReportProblemScreen({super.key});
+
   @override
   _ReportProblemScreenState createState() => _ReportProblemScreenState();
 }
 
-// Report a Problem Screen
 class _ReportProblemScreenState extends State<ReportProblemScreen> {
   final _formKey = GlobalKey<FormState>();
   String? _selectedCategory;
   final _descriptionController = TextEditingController();
   final _locationController = TextEditingController();
   bool _isOffline = false;
-  
-  // New: Variable to hold the selected image
-  File? _imageFile;
-  final ImagePicker _picker = ImagePicker();
 
   final List<String> _categories = [
-    'Sanitation & Waste (Improper Waste Management, Dirty/Clogged Canals, Water Leakage)',
-    'Infrastructure & Public Works (Potholes, Broken Streetlights, Damaged Road/Bridges)',
-    'Health & Safety (Stray Dogs, Unsanitary Food Establishments, Dengue Concerns) ',
-    'Peace & Order (Noise Complaints, Suspicious Activities, Traffic Violation)',
-    'Disaster & Environment (Flooding, Fallen Trees/Poles, Landslides)',
-    'Social Services (PWD, Senior Citizens, Child Welfare)',
-    'Others',
+    'Waste Management',
+    'Broken Streetlight',
+    'Pothole/Road Damage',
+    'Water Leakage',
+    'Noise Complaint',
+    'Other',
   ];
-
-  // Function to pick image
-  Future<void> _pickImage(ImageSource source) async {
-    try {
-      final XFile? pickedFile = await _picker.pickImage(
-        source: source,
-        imageQuality: 50, // Compress image to save data/storage
-      );
-
-      if (pickedFile != null) {
-        setState(() {
-          _imageFile = File(pickedFile.path);
-        });
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error picking image: $e')),
-      );
-    }
-  }
-
-  // Function to show selection dialog
-  void _showImagePickerOptions() {
-    showModalBottomSheet(
-      context: context,
-      builder: (BuildContext context) {
-        return SafeArea(
-          child: Wrap(
-            children: <Widget>[
-              ListTile(
-                leading: const Icon(Icons.photo_library),
-                title: const Text('Photo Library'),
-                onTap: () {
-                  _pickImage(ImageSource.gallery);
-                  Navigator.of(context).pop();
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.photo_camera),
-                title: const Text('Camera'),
-                onTap: () {
-                  _pickImage(ImageSource.camera);
-                  Navigator.of(context).pop();
-                },
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
 
   void _submitReport() {
     if (_formKey.currentState!.validate()) {
       _formKey.currentState!.save();
 
+      // Critical fix for cross-municipality journey: Explicitly include the municipality in report details
+      final municipalityReportingTo =
+          oneVizcayaState.selectedMunicipality.value;
+
       final reportDetails =
-          'Category: $_selectedCategory\nLocation: ${_locationController.text}\nDescription: ${_descriptionController.text}';
+          'Reporting to: $municipalityReportingTo\n'
+          'Category: $_selectedCategory\n'
+          'Location: ${_locationController.text}\n'
+          'Description: ${_descriptionController.text}';
 
       if (_isOffline) {
-        _sendSmsReport(reportDetails);
+        // SMS Fallback logic using the generic hotline for that specific town.
+        _sendSmsReport(municipalityReportingTo, reportDetails);
       } else {
-        _sendOnlineReport(reportDetails);
+        _sendOnlineReport(municipalityReportingTo, reportDetails);
       }
     }
   }
 
-  Future<void> _sendSmsReport(String details) async {
+  Future<void> _sendSmsReport(String municipality, String details) async {
+    // Dynamic SMS hotline (Louie/Bambang scenario will route to Bambang number)
+    // TODO: Maintain database of LGU SMS hotlines based on municipality state
+    String localizedHotline = '+639170000000'; // Generic pilot number
+    if (municipality == 'Solano')
+      localizedHotline = '+639181111111'; // Solano Hotline (Louie's journey)
+
     final String smsUri =
-        'sms:+639170000000?body=${Uri.encodeComponent(details)}';
+        'sms:$localizedHotline?body=${Uri.encodeComponent(details)}';
     try {
       if (await canLaunchUrl(Uri.parse(smsUri))) {
         await launchUrl(Uri.parse(smsUri));
@@ -617,39 +861,47 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
     }
   }
 
-  Future<void> _sendOnlineReport(String details) async {
+  Future<void> _sendOnlineReport(String municipality, String details) async {
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (context) => const Center(child: CircularProgressIndicator()),
     );
+
     try {
       final user = FirebaseAuth.instance.currentUser;
       final String userId = user?.uid ?? 'anonymous';
       final String userPhone = user?.phoneNumber ?? 'No number';
+
       final Map<String, dynamic> reportData = {
         'userId': userId,
         'userPhone': userPhone,
+        // CRITICAL FOR PROVINCIAL EXPANSION:
+        // Report data now inherently contains which LGU backend this belongs to.
+        'municipality': municipality,
         'category': _selectedCategory,
         'location': _locationController.text,
         'description': _descriptionController.text,
         'status': 'reported',
         'reportedAt': FieldValue.serverTimestamp(),
-        'localImagePath': _imageFile?.path ?? '',
       };
+
+      // Unified provincial reports collection - localized by LGU field.
       await FirebaseFirestore.instance.collection('reports').add(reportData);
+
       if (!mounted) return;
       Navigator.of(context).pop();
+
       _locationController.clear();
       _descriptionController.clear();
       setState(() {
         _selectedCategory = null;
-        _imageFile = null;
       });
+
       _showConfirmationDialog(
         title: 'Report Submitted',
         content:
-            'Your report has been successfully sent to the municipality database.',
+            'Your report has been successfully routed to the $municipality municipal engineering database.',
       );
     } catch (e) {
       if (!mounted) return;
@@ -684,8 +936,16 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Dynamic theme colors applied automatically based on global state swap.
+    final dynamicTheme = oneVizcayaState.activeTheme;
+    final primaryLguColor = dynamicTheme['appBarColor'];
+    final activeMunicipalityName = oneVizcayaState.selectedMunicipality.value;
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Report a Problem')),
+      appBar: AppBar(
+        backgroundColor: primaryLguColor,
+        title: Text('Report Problem to $activeMunicipalityName'),
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Form(
@@ -698,13 +958,13 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
                   _isOffline
                       ? 'Report via SMS (Offline)'
                       : 'Report via App (Online)',
-                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold),
                 ),
                 subtitle: Text(
                   _isOffline
-                      ? 'Uses your phone\'s SMS plan.'
+                      ? 'Uses your phone\'s SMS plan. Standard rates may apply.'
                       : 'Uses mobile data or Wi-Fi.',
                 ),
                 value: _isOffline,
@@ -713,131 +973,98 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
                     _isOffline = value;
                   });
                 },
-                activeThumbColor: Theme.of(context).primaryColor,
+                activeThumbColor: primaryLguColor,
               ),
               const SizedBox(height: 24),
 
-              // --- FIXED DROPDOWN MENU ---
               DropdownButtonFormField<String>(
                 value: _selectedCategory,
                 hint: const Text('Select Problem Category'),
                 isExpanded: true,
-                dropdownColor: Colors.white, // Force white background for menu
-                style: const TextStyle(
-                  color: Colors.black,
-                  fontSize: 16,
-                ), // Force black text for selected item
-                icon: const Icon(
-                  Icons.arrow_drop_down,
-                  color: Colors.black54,
-                ), // Visible dropdown arrow
-                items:
-                    _categories.map((String category) {
-                      return DropdownMenuItem<String>(
-                        value: category,
-                        child: Text(
-                          category,
-                          style: const TextStyle(
-                            color: Colors.black87,
-                          ), // Force black text for menu items
-                        ),
-                      );
-                    }).toList(),
+                items: _categories.map((String category) {
+                  return DropdownMenuItem<String>(
+                    value: category,
+                    child: Text(category),
+                  );
+                }).toList(),
                 onChanged: (newValue) {
                   setState(() {
                     _selectedCategory = newValue;
                   });
                 },
-                validator:
-                    (value) =>
-                        value == null ? 'Please select a category' : null,
-                decoration: const InputDecoration(
+                validator: (value) =>
+                    value == null ? 'Please select a category' : null,
+                decoration: InputDecoration(
                   labelText: 'Category',
-                  prefixIcon: Icon(Icons.category),
-                  labelStyle: TextStyle(
-                    color: Colors.black54,
-                  ), // Visible label
-                  contentPadding: EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 16,
+                  prefixIcon: Icon(Icons.category, color: primaryLguColor),
+                  focusedBorder: OutlineInputBorder(
+                    borderSide: BorderSide(color: primaryLguColor, width: 2),
                   ),
-                  border: OutlineInputBorder(), // Ensure border is visible
+                  labelStyle: TextStyle(color: primaryLguColor),
                 ),
               ),
-              // ---------------------------
-
               const SizedBox(height: 16),
+
               TextFormField(
                 controller: _locationController,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   labelText: 'Location / Landmark',
-                  prefixIcon: Icon(Icons.location_on),
-                  hintText: 'e.g., "In front of St. Dominic\'s Cathedral"',
+                  prefixIcon: Icon(Icons.location_on, color: primaryLguColor),
+                  hintText: 'e.g., "In front of Solano Municipal Hall"',
+                  focusedBorder: OutlineInputBorder(
+                    borderSide: BorderSide(color: primaryLguColor, width: 2),
+                  ),
+                  labelStyle: TextStyle(color: primaryLguColor),
                 ),
-                validator:
-                    (value) =>
-                        value == null || value.isEmpty
-                            ? 'Please enter a location'
-                            : null,
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _descriptionController,
-                decoration: const InputDecoration(
-                  labelText: 'Brief Description',
-                  prefixIcon: Icon(Icons.description),
-                  hintText: 'Describe the problem in detail.',
-                ),
-                maxLines: 4,
-                validator:
-                    (value) =>
-                        value == null || value.isEmpty
-                            ? 'Please enter a description'
-                            : null,
+                validator: (value) => value == null || value.isEmpty
+                    ? 'Please enter a location'
+                    : null,
               ),
               const SizedBox(height: 16),
 
-              if (_imageFile != null)
-                Stack(
-                  alignment: Alignment.topRight,
-                  children: [
-                    Container(
-                      height: 200,
-                      width: double.infinity,
-                      margin: const EdgeInsets.only(bottom: 16),
-                      decoration: BoxDecoration(
-                        border: Border.all(color: Colors.grey),
-                        borderRadius: BorderRadius.circular(8),
-                        image: DecorationImage(
-                          image: FileImage(_imageFile!),
-                          fit: BoxFit.cover,
-                        ),
-                      ),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.cancel, color: Colors.red),
-                      onPressed: () {
-                        setState(() {
-                          _imageFile = null;
-                        });
-                      },
-                    ),
-                  ],
+              TextFormField(
+                controller: _descriptionController,
+                decoration: InputDecoration(
+                  labelText: 'Brief Description',
+                  prefixIcon: Icon(Icons.description, color: primaryLguColor),
+                  hintText: 'Describe the problem in detail.',
+                  focusedBorder: OutlineInputBorder(
+                    borderSide: BorderSide(color: primaryLguColor, width: 2),
+                  ),
+                  labelStyle: TextStyle(color: primaryLguColor),
                 ),
-          // --- IMAGE PICKER BUTTON ---
+                maxLines: 4,
+                validator: (value) => value == null || value.isEmpty
+                    ? 'Please enter a description'
+                    : null,
+              ),
+              const SizedBox(height: 16),
+
               OutlinedButton.icon(
                 icon: const Icon(Icons.camera_alt),
                 label: const Text('Attach Photo (Optional)'),
-                onPressed: _isOffline ? null : _showImagePickerOptions,
+                onPressed: _isOffline
+                    ? null
+                    : () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Image picker not yet implemented'),
+                          ),
+                        );
+                      },
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: Theme.of(context).primaryColor,
-                  side: BorderSide(color: Theme.of(context).primaryColor),
+                  foregroundColor: primaryLguColor,
+                  side: BorderSide(color: primaryLguColor),
                 ),
               ),
 
               const SizedBox(height: 32),
               ElevatedButton(
                 onPressed: _submitReport,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: primaryLguColor,
+                  foregroundColor: Colors.white,
+                ),
                 child: const Text('Submit Report'),
               ),
             ],
@@ -846,6 +1073,7 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
       ),
     );
   }
+
   @override
   void dispose() {
     _descriptionController.dispose();
@@ -854,44 +1082,93 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
   }
 }
 
-// 4. Report Status Screen
+// 4. Report Status Screen (Dynamic Filtering)
 class ReportStatusScreen extends StatelessWidget {
   const ReportStatusScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    // Apply dynamic theme colors based on active town state swap.
+    final activeLguColor = oneVizcayaState.activeTheme['appBarColor'];
+    final activeMunicipalityName = oneVizcayaState.selectedMunicipality.value;
     final user = FirebaseAuth.instance.currentUser;
+
     if (user == null) {
-      return const Scaffold(body: Center(child: Text('Please log in to view reports.')));
+      return const Scaffold(
+        body: Center(child: Text('Please log in to view reports.')),
+      );
     }
+
     return Scaffold(
-      appBar: AppBar(title: const Text('My Reports Status')),
+      appBar: AppBar(
+        backgroundColor: activeLguColor,
+        title: Text('My Reports to $activeMunicipalityName'),
+      ),
       body: StreamBuilder<QuerySnapshot>(
+        // CRITICAL FOR PROVINCIAL EXPANSION:
+        // Filter reports to ONLY show ones associated with the currently viewed LGU dashboard.
+        // This ensures Louie only sees his Bambang reports when viewed under Bambang context,
+        // and Solano reports when viewing the Solano dashboard context.
         stream: FirebaseFirestore.instance
             .collection('reports')
             .where('userId', isEqualTo: user.uid)
+            .where(
+              'municipality',
+              isEqualTo: activeMunicipalityName,
+            ) // Dynamic local query
             .orderBy('reportedAt', descending: true)
             .snapshots(),
         builder: (context, snapshot) {
-          if (snapshot.hasError) return Center(child: Text('Error: ${snapshot.error}'));
-          if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
-          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) return const Center(child: Text('No reports submitted yet.'));
+          if (snapshot.hasError) {
+            return Center(child: Text('Error: ${snapshot.error}'));
+          }
+
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.history,
+                    size: 64,
+                    color: activeLguColor.withOpacity(0.3),
+                  ),
+                  const SizedBox(height: 16),
+                  Text('No reports submitted to $activeMunicipalityName yet.'),
+                ],
+              ),
+            );
+          }
+
           final reports = snapshot.data!.docs;
+
           return ListView.builder(
             padding: const EdgeInsets.all(8.0),
             itemCount: reports.length,
             itemBuilder: (context, index) {
               final doc = reports[index];
               final data = doc.data() as Map<String, dynamic>;
+
               final report = ProblemReport(
                 id: doc.id,
                 category: data['category'] ?? 'Unknown',
                 description: data['description'] ?? '',
                 location: data['location'] ?? '',
+                municipality:
+                    data['municipality'] ??
+                    'Unknown', // Explicit municipality in data
                 status: _parseStatus(data['status']),
-                reportedAt: (data['reportedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+                reportedAt:
+                    (data['reportedAt'] as Timestamp?)?.toDate() ??
+                    DateTime.now(),
               );
-              return ReportStatusCard(report: report);
+
+              // Pass the active town color to the card for dynamic look.
+              return ReportStatusCard(report: report, lguColor: activeLguColor);
             },
           );
         },
@@ -901,16 +1178,25 @@ class ReportStatusScreen extends StatelessWidget {
 
   ReportStatus _parseStatus(String? status) {
     switch (status) {
-      case 'ongoing': return ReportStatus.ongoing;
-      case 'solved': return ReportStatus.solved;
-      default: return ReportStatus.reported;
+      case 'ongoing':
+        return ReportStatus.ongoing;
+      case 'solved':
+        return ReportStatus.solved;
+      default:
+        return ReportStatus.reported;
     }
   }
 }
 
 class ReportStatusCard extends StatelessWidget {
   final ProblemReport report;
-  const ReportStatusCard({super.key, required this.report});
+  final Color lguColor; // New: Pass color to card dynamically
+
+  const ReportStatusCard({
+    super.key,
+    required this.report,
+    required this.lguColor,
+  });
 
   String _formatDate(DateTime date) {
     return '${date.month}/${date.day}/${date.year}';
@@ -918,33 +1204,43 @@ class ReportStatusCard extends StatelessWidget {
 
   IconData _getStatusIcon(ReportStatus status) {
     switch (status) {
-      case ReportStatus.reported: return Icons.flag;
-      case ReportStatus.ongoing: return Icons.construction;
-      case ReportStatus.solved: return Icons.check_circle;
+      case ReportStatus.reported:
+        return Icons.flag;
+      case ReportStatus.ongoing:
+        return Icons.construction;
+      case ReportStatus.solved:
+        return Icons.check_circle;
     }
   }
 
-  Color _getStatusColor(ReportStatus status, BuildContext context) {
+  Color _getStatusColor(ReportStatus status) {
     switch (status) {
-      case ReportStatus.reported: return Colors.blue.shade700;
-      case ReportStatus.ongoing: return Colors.orange.shade700;
-      case ReportStatus.solved: return Colors.green.shade700;
+      case ReportStatus.reported:
+        return Colors.blue.shade700;
+      case ReportStatus.ongoing:
+        return Colors.orange.shade700;
+      case ReportStatus.solved:
+        return Colors.green.shade700;
     }
   }
 
   String _getStatusText(ReportStatus status) {
     switch (status) {
-      case ReportStatus.reported: return 'Reported';
-      case ReportStatus.ongoing: return 'Ongoing Process';
-      case ReportStatus.solved: return 'Problem Solved';
+      case ReportStatus.reported:
+        return 'Reported';
+      case ReportStatus.ongoing:
+        return 'Ongoing Process';
+      case ReportStatus.solved:
+        return 'Problem Solved';
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final statusColor = _getStatusColor(report.status, context);
+    final statusColor = _getStatusColor(report.status);
     final statusText = _getStatusText(report.status);
     final statusIcon = _getStatusIcon(report.status);
+
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 8.0),
       child: Padding(
@@ -958,11 +1254,18 @@ class ReportStatusCard extends StatelessWidget {
                 Flexible(
                   child: Text(
                     report.category,
-                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold, color: Theme.of(context).primaryColor),
+                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      // Dynamic Color applied based on town swap (Pilot Teal Green)
+                      color: lguColor,
+                    ),
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: statusColor.withAlpha((255 * 0.1).round()),
                     borderRadius: BorderRadius.circular(20.0),
@@ -971,7 +1274,14 @@ class ReportStatusCard extends StatelessWidget {
                     children: [
                       Icon(statusIcon, color: statusColor, size: 16),
                       const SizedBox(width: 6),
-                      Text(statusText, style: TextStyle(color: statusColor, fontWeight: FontWeight.bold, fontSize: 12)),
+                      Text(
+                        statusText,
+                        style: TextStyle(
+                          color: statusColor,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -980,21 +1290,33 @@ class ReportStatusCard extends StatelessWidget {
             const SizedBox(height: 8),
             const Divider(),
             const SizedBox(height: 8),
-            Text(report.description, style: Theme.of(context).textTheme.bodyMedium),
+
+            Text(
+              report.description,
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
             const SizedBox(height: 12),
             Row(
               children: [
-                Icon(Icons.location_on, size: 16, color: Theme.of(context).textTheme.bodyMedium?.color),
+                Icon(Icons.location_on, size: 16, color: Colors.grey),
                 const SizedBox(width: 8),
-                Expanded(child: Text(report.location, style: Theme.of(context).textTheme.bodyMedium)),
+                Expanded(
+                  child: Text(
+                    report.location,
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 8),
             Row(
               children: [
-                Icon(Icons.calendar_today, size: 16, color: Theme.of(context).textTheme.bodyMedium?.color),
+                Icon(Icons.calendar_today, size: 16, color: Colors.grey),
                 const SizedBox(width: 8),
-                Text('Reported on: ${_formatDate(report.reportedAt)}', style: Theme.of(context).textTheme.bodyMedium),
+                Text(
+                  'Reported on: ${_formatDate(report.reportedAt)}',
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
               ],
             ),
           ],
@@ -1004,17 +1326,22 @@ class ReportStatusCard extends StatelessWidget {
   }
 }
 
-// 5. Emergency Contacts Screen
+// 5. Emergency Contacts Screen (Dynamic Filtering & Theming)
 class EmergencyContactsScreen extends StatelessWidget {
   const EmergencyContactsScreen({super.key});
 
   IconData _getIconForType(String? type) {
     switch (type) {
-      case 'police': return Icons.local_police;
-      case 'fire': return Icons.fire_truck;
-      case 'medical': return Icons.local_hospital;
-      case 'disaster': return Icons.warning;
-      default: return Icons.phone;
+      case 'police':
+        return Icons.local_police;
+      case 'fire':
+        return Icons.fire_truck;
+      case 'medical':
+        return Icons.local_hospital;
+      case 'disaster':
+        return Icons.warning;
+      default:
+        return Icons.phone;
     }
   }
 
@@ -1025,25 +1352,68 @@ class EmergencyContactsScreen extends StatelessWidget {
         await launchUrl(launchUri);
       } else {
         if (!context.mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Could not open dialer for $phoneNumber')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not open dialer for $phoneNumber')),
+        );
       }
     } catch (e) {
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to make call: $e')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Failed to make call: $e')));
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    // Apply dynamic theme colors based on active town state swap.
+    final activeLguColor = oneVizcayaState.activeTheme['appBarColor'];
+    final activeMunicipalityName = oneVizcayaState.selectedMunicipality.value;
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Emergency Contacts')),
+      appBar: AppBar(
+        backgroundColor: activeLguColor,
+        title: Text('$activeMunicipalityName Emergency'),
+      ),
       body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance.collection('emergency_contacts').snapshots(),
+        // CRITICAL FOR PROVINCIAL EXPANSION:
+        // Localized query: Get contacts associated specifically with this municipality.
+        // Louie's Bambang scenario pulls Bambang numbers; Solano scenario pulls Solano numbers.
+        stream: FirebaseFirestore.instance
+            .collection('emergency_contacts')
+            .where(
+              'municipality',
+              isEqualTo: activeMunicipalityName,
+            ) // Localized Query
+            .snapshots(),
         builder: (context, snapshot) {
-          if (snapshot.hasError) return Center(child: Text('Error: ${snapshot.error}'));
-          if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
+          if (snapshot.hasError)
+            return Center(child: Text('Error: ${snapshot.error}'));
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.warning_amber,
+                    size: 64,
+                    color: activeLguColor.withOpacity(0.3),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'No localized emergency contacts loaded for $activeMunicipalityName yet.',
+                  ),
+                ],
+              ),
+            );
+          }
+
           final contacts = snapshot.data!.docs;
-          if (contacts.isEmpty) return const Center(child: Text('No contacts available at the moment.'));
+
           return ListView.builder(
             padding: const EdgeInsets.all(8.0),
             itemCount: contacts.length,
@@ -1052,12 +1422,31 @@ class EmergencyContactsScreen extends StatelessWidget {
               final name = data['name'] ?? 'Emergency';
               final number = data['number'] ?? '';
               final type = data['type'] ?? 'general';
+
               return Card(
-                margin: const EdgeInsets.symmetric(vertical: 6.0, horizontal: 8.0),
+                margin: const EdgeInsets.symmetric(
+                  vertical: 6.0,
+                  horizontal: 8.0,
+                ),
                 child: ListTile(
-                  leading: Icon(_getIconForType(type), color: Theme.of(context).primaryColor, size: 36),
-                  title: Text(name, style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold)),
-                  subtitle: Text(number, style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 16)),
+                  leading: Icon(
+                    _getIconForType(type),
+                    // Inverted text color dynamic looks (Primary Green 2)
+                    color: activeLguColor,
+                    size: 36,
+                  ),
+                  title: Text(
+                    name,
+                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  subtitle: Text(
+                    number,
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodyMedium?.copyWith(fontSize: 16),
+                  ),
                   trailing: const Icon(Icons.call, color: Colors.green),
                   onTap: () => _makeCall(number, context),
                 ),
@@ -1070,202 +1459,232 @@ class EmergencyContactsScreen extends StatelessWidget {
   }
 }
 
-// 6. Announcements Screen (With Social Feed Style)
+// 6. Announcements Screen (Dynamic Local Filtering)
 class AnnouncementsScreen extends StatelessWidget {
   const AnnouncementsScreen({super.key});
 
+  // Mock data representing localized database rows
+  // TODO: Create Firestore database and dynamic streams filtered by LGU (similar to contacts)
+  static final List<Map<String, String>> _allAnnouncements = [
+    {
+      'municipality': 'Bambang',
+      'title': 'Community Agri-Fair',
+      'date': 'Oct 30',
+      'body':
+          'Join the Bambang town plaza for the local agricultural produce fair! 8AM-5PM.',
+    },
+    {
+      'municipality': 'Solano',
+      'title': 'Public Market Drainage Upgrade',
+      'date': 'Oct 28',
+      'body':
+          'Maintenance ongoing on market drainage; Expect temporary road closures around Solano market area.',
+    },
+    {
+      'municipality': 'Bayombong',
+      'title': 'Provincial Tourism Week',
+      'date': 'Oct 25',
+      'body':
+          'Grand parade and culture show hosted at Capitol Complex. All Vizcayano invited!',
+    },
+  ];
+
   @override
   Widget build(BuildContext context) {
+    // Apply dynamic theme colors based on active town state swap.
+    final activeLguColor = oneVizcayaState.activeTheme['appBarColor'];
+    final activeMunicipalityName = oneVizcayaState.selectedMunicipality.value;
+
+    // Localized dynamic data: Filter the universal provincial feed for only this municipality's context.
+    final localAnnouncements = _allAnnouncements
+        .where(
+          (announcement) =>
+              announcement['municipality'] == activeMunicipalityName,
+        )
+        .toList();
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Announcements'),
+        backgroundColor: activeLguColor,
+        title: Text('$activeMunicipalityName News'),
       ),
-      backgroundColor: Colors.grey[100],
-      body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance.collection('announcements').snapshots(),
-        builder: (context, snapshot) {
-          if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
-          }
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          final announcements = snapshot.data!.docs;
-          if (announcements.isEmpty) {
-            return const Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.feed_outlined, size: 64, color: Colors.grey),
-                  SizedBox(height: 16),
-                  Text('No announcements yet.'),
-                ],
+      body: localAnnouncements.isEmpty
+          ? Center(
+              child: Text(
+                "No localized announcements for $activeMunicipalityName right now.",
               ),
-            );
-          }
-          return ListView.builder(
-            padding: const EdgeInsets.all(12.0),
-            itemCount: announcements.length,
-            itemBuilder: (context, index) {
-              final data = announcements[index].data() as Map<String, dynamic>;
-              final title = data['title'] ?? 'Announcement';
-              final body = data['body'] ?? '';
-              final date = data['date'] ?? 'Just now';
-              final author = data['author'] ?? 'LGU Bayombong';
-              final role = data['role'] ?? 'Admin';
-              final avatarColor = _getAvatarColor(author);
-
-              return Container(
-                margin: const EdgeInsets.only(bottom: 16.0),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.all(12.0),
-                      child: Row(
-                        children: [
-                          CircleAvatar(
-                            backgroundColor: avatarColor.withOpacity(0.1),
-                            radius: 20,
-                            child: Icon(Icons.person, color: avatarColor),
+            )
+          : ListView.builder(
+              padding: const EdgeInsets.all(8.0),
+              itemCount: localAnnouncements.length,
+              itemBuilder: (context, index) {
+                final announcement = localAnnouncements[index];
+                return Card(
+                  margin: const EdgeInsets.symmetric(
+                    vertical: 8.0,
+                    horizontal: 8.0,
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          announcement['title']!,
+                          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            // Dynamic looks title inverted text color (Primary Green 2)
+                            color: activeLguColor,
+                            fontSize: 18,
                           ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  author,
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 15,
-                                    color: Colors.black87,
-                                  ),
-                                ),
-                                Text(
-                                  role,
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.grey[600],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          Icon(Icons.verified, size: 16, color: Colors.blue[400]),
-                        ],
-                      ),
-                    ),
-                    const Divider(height: 1, thickness: 0.5),
-                    Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            title,
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w800,
-                              color: Theme.of(context).primaryColor,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            body,
-                            style: const TextStyle(
-                              fontSize: 15,
-                              height: 1.5,
-                              color: Colors.black87,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                      child: Text(
-                        'Posted on $date',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey[500],
-                          fontStyle: FontStyle.italic,
                         ),
-                      ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Posted: ${announcement['date']!}',
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(
+                                fontStyle: FontStyle.italic,
+                                fontSize: 12,
+                              ),
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          announcement['body']!,
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(fontSize: 15, height: 1.4),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-              );
-            },
-          );
-        },
-      ),
+                  ),
+                );
+              },
+            ),
     );
-  }
-
-  Color _getAvatarColor(String name) {
-    if (name.contains('Governor')) return Colors.orange;
-    if (name.contains('Mayor')) return Colors.blue;
-    return Colors.green;
   }
 }
 
 // 7. Support Screen
 class SupportScreen extends StatelessWidget {
   const SupportScreen({super.key});
+
   @override
   Widget build(BuildContext context) {
+    // Dynamic looks primary color from top row positions in image_c52ca1.png colorful grid
+    const colorTeal = Color(0xFF00796B); // Teal looks in colorful grid image
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Support & FAQs')),
+      appBar: AppBar(
+        backgroundColor: colorTeal,
+        title: const Text('One Vizcaya Support'),
+      ),
       body: ListView(
         padding: const EdgeInsets.all(16.0),
         children: [
-          _buildFAQItem(context, 'How do I report a problem?', 'Go to the Home Screen and tap on "Report a Problem".'),
-          _buildFAQItem(context, 'How do I track my report?', 'Tap on "My Reports Status" from the Home Screen.'),
-          _buildFAQItem(context, 'What is the difference between Online and Offline reporting?', 'Online uses data. Offline uses SMS.'),
-          _buildFAQItem(context, 'Is my data secure?', 'Yes, we take user privacy seriously.'),
+          _buildFAQItem(
+            context,
+            colorTeal,
+            'How do I change my municipality?',
+            'Simply tap the location selector (containing your town\'s name) in the top AppBar of the Home Screen. Select any municipality in Nueva Vizcaya to instantly swap the dashboard context to that town. (Journey example for Louie: Bambang to Solano).',
+          ),
+          _buildFAQItem(
+            context,
+            colorTeal,
+            'Is reporting truly localized?',
+            'Yes. Reports are inherently tagged with the municipality selected globally in the app at the moment of submission. This ensures your report routes directly to the correct LGU backend dashboard.',
+          ),
           const Divider(height: 32),
-          Text('Need more help?', style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontSize: 20)),
+          Text(
+            'Need more help?',
+            style: Theme.of(
+              context,
+            ).textTheme.headlineSmall?.copyWith(fontSize: 20, color: colorTeal),
+          ),
           const SizedBox(height: 16),
-          ListTile(leading: const Icon(Icons.email), title: const Text('Email Support'), subtitle: const Text('support@bayombong.gov.ph'), onTap: () { _launchGenericUrl('mailto:support@bayombong.gov.ph', context); }),
-          ListTile(leading: const Icon(Icons.public), title: const Text('Visit our Website'), subtitle: const Text('https://www.bayombong.gov.ph'), onTap: () { _launchGenericUrl('https://www.bayombong.gov.ph', context); }),
+          ListTile(
+            leading: const Icon(Icons.email, color: colorTeal),
+            title: const Text('Email Provincial Support'),
+            subtitle: const Text('support@vizcaya.gov.ph'),
+            onTap: () {
+              _launchGenericUrl('mailto:support@vizcaya.gov.ph', context);
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.public, color: colorTeal),
+            title: const Text('Visit Provincial Website'),
+            subtitle: const Text('https://www.vizcaya.gov.ph'),
+            onTap: () {
+              _launchGenericUrl('https://www.vizcaya.gov.ph', context);
+            },
+          ),
         ],
       ),
     );
   }
+
   Future<void> _launchGenericUrl(String url, BuildContext context) async {
     final Uri uri = Uri.parse(url);
     try {
-      if (await canLaunchUrl(uri)) { await launchUrl(uri); } else { if (!context.mounted) return; ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Could not launch $url'))); }
-    } catch (e) { if (!context.mounted) return; ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to launch: $e'))); }
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri);
+      } else {
+        if (!context.mounted) return;
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Could not launch $url')));
+      }
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Failed to launch: $e')));
+    }
   }
-  Widget _buildFAQItem(BuildContext context, String question, String answer) {
+
+  Widget _buildFAQItem(
+    BuildContext context,
+    Color color,
+    String question,
+    String answer,
+  ) {
     return ExpansionTile(
-      title: Text(question, style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold)),
-      children: [Padding(padding: const EdgeInsets.all(16.0), child: Text(answer, style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 15, height: 1.4)))],
+      title: Text(
+        question,
+        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+          fontWeight: FontWeight.bold,
+          color: color,
+        ),
+      ),
+      iconColor: color,
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Text(
+            answer,
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(fontSize: 15, height: 1.4),
+          ),
+        ),
+      ],
     );
   }
 }
 
-// --- Profile Screen ---
+// --- NEW: Profile Screen ---
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
+
   @override
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
+    // Standard dynamic teal looks from images colorful grid top positions
+    const primaryColor = Color(0xFF00796B);
+
     return Scaffold(
-      appBar: AppBar(title: const Text('My Profile')),
+      appBar: AppBar(
+        backgroundColor: primaryColor,
+        title: const Text('My Profile'),
+      ),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -1273,19 +1692,33 @@ class ProfileScreen extends StatelessWidget {
             const Icon(Icons.account_circle, size: 100, color: Colors.grey),
             const SizedBox(height: 20),
             Text('Phone Number', style: Theme.of(context).textTheme.bodyMedium),
-            Text(user?.phoneNumber ?? 'No Number', style: Theme.of(context).textTheme.headlineSmall),
+            Text(
+              user?.phoneNumber ?? 'No Number',
+              style: Theme.of(context).textTheme.headlineSmall,
+            ),
             const SizedBox(height: 10),
-            Text('User ID: ${user?.uid.substring(0, 5)}...', style: TextStyle(color: Colors.grey[400])),
+            Text(
+              'User ID: ${user?.uid.substring(0, 5)}...',
+              style: TextStyle(color: Colors.grey[400]),
+            ),
             const SizedBox(height: 40),
             ElevatedButton.icon(
               icon: const Icon(Icons.logout),
               label: const Text('Log Out'),
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
+              style: ElevatedButton.styleFrom(
+                backgroundColor:
+                    primaryColor, // Bambang primary green for logout looks
+                foregroundColor: Colors.white,
+              ),
               onPressed: () async {
                 await FirebaseAuth.instance.signOut();
-                if (context.mounted) { Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false); }
+                if (context.mounted) {
+                  Navigator.of(
+                    context,
+                  ).pushNamedAndRemoveUntil('/', (route) => false);
+                }
               },
-            )
+            ),
           ],
         ),
       ),
@@ -1293,14 +1726,31 @@ class ProfileScreen extends StatelessWidget {
   }
 }
 
-// --- Notifications Screen ---
+// --- NEW: Notifications Screen ---
 class NotificationsScreen extends StatelessWidget {
   const NotificationsScreen({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Notifications')),
-      body: const Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.notifications_none, size: 80, color: Colors.grey), SizedBox(height: 16), Text('No new notifications')])),
+      appBar: AppBar(
+        backgroundColor: const Color(0xFF00796B),
+        title: const Text('One Vizcaya Notifications'),
+      ),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.notifications_none,
+              size: 80,
+              color: const Color(0xFF00796B).withOpacity(0.3),
+            ),
+            const SizedBox(height: 16),
+            const Text('No dynamic Vizcaya alerts available.'),
+          ],
+        ),
+      ),
     );
   }
 }
