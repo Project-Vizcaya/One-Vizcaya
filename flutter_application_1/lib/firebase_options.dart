@@ -41,48 +41,49 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyCkU5EpxZI9uXkINmm1mSjQtb5fj6phCDs',
-    appId: '1:713327217412:web:f9560283e24c6be2e09e51',
-    messagingSenderId: '713327217412',
-    projectId: 'one-bayombong-connect',
-    authDomain: 'one-bayombong-connect.firebaseapp.com',
-    storageBucket: 'one-bayombong-connect.firebasestorage.app',
-    measurementId: 'G-9ZB20835CC',
+    apiKey: 'AIzaSyAHOn7DKOq17_IyChMiA_nZGbTWM5vhmX0',
+    appId: '1:899155311025:web:39a0ba252222d089dee590',
+    messagingSenderId: '899155311025',
+    projectId: 'one-vizcaya-app',
+    authDomain: 'one-vizcaya-app.firebaseapp.com',
+    storageBucket: 'one-vizcaya-app.firebasestorage.app',
+    measurementId: 'G-ERSX5CDK5M',
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyCj3zGAViSaHu9_HPQ2g4Jy1QFtmFuVYPY',
-    appId: '1:713327217412:android:ea27f0646d904190e09e51',
-    messagingSenderId: '713327217412',
-    projectId: 'one-bayombong-connect',
-    storageBucket: 'one-bayombong-connect.firebasestorage.app',
+    apiKey: 'AIzaSyCyHGGWGelU4MGOCdn6yAZi06VtZjVf3oY',
+    appId: '1:899155311025:android:2001ac798a04ba93dee590',
+    messagingSenderId: '899155311025',
+    projectId: 'one-vizcaya-app',
+    storageBucket: 'one-vizcaya-app.firebasestorage.app',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyBuckyuhVMTuhVcfxLY61yyAe7-z4yK7G4',
-    appId: '1:713327217412:ios:bf75249ae9397846e09e51',
-    messagingSenderId: '713327217412',
-    projectId: 'one-bayombong-connect',
-    storageBucket: 'one-bayombong-connect.firebasestorage.app',
+    apiKey: 'AIzaSyArM9SMJuwgxgMKHB-b2J22LjhHUPYlMmU',
+    appId: '1:899155311025:ios:cb17cbe02262e24adee590',
+    messagingSenderId: '899155311025',
+    projectId: 'one-vizcaya-app',
+    storageBucket: 'one-vizcaya-app.firebasestorage.app',
     iosBundleId: 'com.example.flutterApplication1',
   );
 
   static const FirebaseOptions macos = FirebaseOptions(
-    apiKey: 'AIzaSyBuckyuhVMTuhVcfxLY61yyAe7-z4yK7G4',
-    appId: '1:713327217412:ios:bf75249ae9397846e09e51',
-    messagingSenderId: '713327217412',
-    projectId: 'one-bayombong-connect',
-    storageBucket: 'one-bayombong-connect.firebasestorage.app',
+    apiKey: 'AIzaSyArM9SMJuwgxgMKHB-b2J22LjhHUPYlMmU',
+    appId: '1:899155311025:ios:cb17cbe02262e24adee590',
+    messagingSenderId: '899155311025',
+    projectId: 'one-vizcaya-app',
+    storageBucket: 'one-vizcaya-app.firebasestorage.app',
     iosBundleId: 'com.example.flutterApplication1',
   );
 
   static const FirebaseOptions windows = FirebaseOptions(
-    apiKey: 'AIzaSyCkU5EpxZI9uXkINmm1mSjQtb5fj6phCDs',
-    appId: '1:713327217412:web:2ed051f0862aa5d0e09e51',
-    messagingSenderId: '713327217412',
-    projectId: 'one-bayombong-connect',
-    authDomain: 'one-bayombong-connect.firebaseapp.com',
-    storageBucket: 'one-bayombong-connect.firebasestorage.app',
-    measurementId: 'G-D92W39HEZ2',
+    apiKey: 'AIzaSyAHOn7DKOq17_IyChMiA_nZGbTWM5vhmX0',
+    appId: '1:899155311025:web:3f4e4945f25f2be4dee590',
+    messagingSenderId: '899155311025',
+    projectId: 'one-vizcaya-app',
+    authDomain: 'one-vizcaya-app.firebaseapp.com',
+    storageBucket: 'one-vizcaya-app.firebasestorage.app',
+    measurementId: 'G-RGFJYVC8DL',
   );
+
 }

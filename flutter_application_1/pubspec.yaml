@@ -31,6 +31,7 @@ flutter:
   
   assets:
     - assets/images/logo.jpg
+    - assets/images/Seal_of_Nueva_Vizcaya.svg.png
 
 # Configuration for the App Icon
 flutter_launcher_icons:

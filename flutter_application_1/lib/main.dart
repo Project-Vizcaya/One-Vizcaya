@@ -24,16 +24,76 @@ class MunicipalityState {
   // but the AppBar and dynamic welcomes will reflect the specific town.
   final Map<String, dynamic> municipalityThemes = {
     'Bambang': {
-      'appBarColor': const Color(0xFF00796B), // Teal Green (Primary Green 2)
-      'welcomeMsg': 'Welcome to Bambang, Premier Gateway of Nueva Vizcaya!',
+      'appBarColor': const Color(0xFFE2725B), // Terracotta or Earthy Brown
+      'welcomeMsg': 'Welcome to Bambang, The Argricultural Hub of Nueva Vizcaya!',
     },
     'Solano': {
-      'appBarColor': const Color(0xFF004A6D), // Dynamic Dark Blue
-      'welcomeMsg': 'Welcome to Solano, The Commercial Center of Vizcaya!',
+      'appBarColor': const Color(0xFFFF4500), // Bright Red or Orange
+      'welcomeMsg': 'Welcome to Solano, The Commercial Center of Nueva Vizcaya!',
     },
     'Bayombong': {
-      'appBarColor': const Color(0xFF006B3A), // Dark Green 2
-      'welcomeMsg': 'Welcome to Bayombong Connect!',
+      'appBarColor': const Color(0xFF228B22), // Forest Green
+      'welcomeMsg': 'Welcome to Bayombong, The Institutional Capital of Nueva Vizcaya!',
+    },
+    'Bagabag': {
+      'appBarColor': const Color(0xFFFFD12A), // Pineapple Gold
+      'secondaryColor': const Color(0xFF007FFF), // Azure Blue
+      'welcomeMsg': 'Welcome to Bagabag, The Gateway to the World-Famous Rice Terraces!',
+    },
+    'Diadi': {
+      'appBarColor': const Color(0xFF004B49), // Deep Teal
+      'secondaryColor': const Color(0xFFE6E6FA), // Mist White
+      'welcomeMsg': 'Welcome to Diadi, The Last Frontier of the North!',
+    },
+    'Villaverde': {
+      'appBarColor': const Color(0xFFDFFF00), // Light Lime
+      'secondaryColor': const Color(0xFF928E85), // Stone
+      'welcomeMsg': 'Welcome to Villaverde, The Land of Bountiful Harvests!',
+    },
+    'Quezon': {
+      'appBarColor': const Color(0xFFC0C0C0), // Silver
+      'secondaryColor': const Color(0xFF50C878), // Emerald
+      'welcomeMsg': 'Welcome to Quezon, The Land of Hidden Natural Wealth!',
+    },
+    'Aritao': {
+      'appBarColor': const Color(0xFFFF6E4A), // Sunrise Orange
+      'secondaryColor': const Color(0xFFB66A50), // Clay
+      'welcomeMsg': 'Welcome to Aritao, The Gateway to the Cagayan Valley!',
+    },
+    'Santa Fe': {
+      'appBarColor': const Color(0xFF01796F), // Pine Green
+      'secondaryColor': const Color(0xFF8C92AC), // Cool Gray
+      'welcomeMsg': 'Welcome to Santa Fe, The Mountain Gateway of Vizcaya!',
+    },
+    'Alfonso Castañeda': {
+      'appBarColor': const Color(0xFF4A5D23), // Dark Moss
+      'secondaryColor': const Color(0xFF0B3B60), // Deep River Blue
+      'welcomeMsg': 'Welcome to Alfonso Castañeda, The Last Frontier of Nueva Vizcaya!',
+    },
+    'Kayapa': {
+      'appBarColor': const Color(0xFFF28500), // Tangerine
+      'secondaryColor': const Color(0xFF708090), // Fog Gray
+      'welcomeMsg': 'Welcome to Kayapa, The Vegetable Bowl of the Province!',
+    },
+    'Dupax del Norte': {
+      'appBarColor': const Color(0xFFCC5500), // Burnt Orange
+      'secondaryColor': const Color(0xFFFFFDD0), // Cream
+      'welcomeMsg': 'Welcome to Dupax del Norte, The Home of Cultural Harmony!',
+    },
+    'Dupax del Sur': {
+      'appBarColor': const Color(0xFF800000), // Maroon
+      'secondaryColor': const Color(0xFFFAEBD7), // Antique White
+      'welcomeMsg': 'Welcome to Dupax del Sur, The Heart of Nueva Vizcaya!',
+    },
+    'Kasibu': {
+      'appBarColor': const Color(0xFFFFD700), // Citrus Yellow
+      'secondaryColor': const Color(0xFF9966CC), // Mountain Purple
+      'welcomeMsg': 'Welcome to Kasibu, The Citrus Capital of the Philippines!',
+    },
+    'Ambaguio': {
+      'appBarColor': const Color(0xFF87CEEB), // Sky Blue
+      'secondaryColor': const Color(0xFF454D32), // Pine Needle
+      'welcomeMsg': 'Welcome to Ambaguio, The Summer Capital of Vizcaya!',
     },
     'Generic': {
       'appBarColor': Colors.grey[700],
@@ -52,11 +112,12 @@ final oneVizcayaState = MunicipalityState();
 
 // List of Vizcaya Municipalities for selection
 final List<String> vizcayaMunicipalitiesList = [
-  'Bambang',
-  'Solano',
-  'Bayombong',
+  'Alfonso Castañeda',
+  'Ambaguio',
   'Aritao',
   'Bagabag',
+  'Bambang',
+  'Bayombong',
   'Diadi',
   'Dupax del Norte',
   'Dupax del Sur',
@@ -64,6 +125,7 @@ final List<String> vizcayaMunicipalitiesList = [
   'Kayapa',
   'Quezon',
   'Santa Fe',
+  'Solano',
   'Villaverde',
 ];
 
@@ -196,7 +258,10 @@ class _LoginScreenState extends State<LoginScreen> {
 
     setState(() => _isLoading = true);
 
-    final phoneNumber = _phoneController.text;
+    String phoneNumber = _phoneController.text.trim();
+    if (phoneNumber.startsWith('09')) {
+      phoneNumber = '+63${phoneNumber.substring(1)}';
+    }
 
     try {
       await FirebaseAuth.instance.verifyPhoneNumber(
@@ -253,10 +318,10 @@ class _LoginScreenState extends State<LoginScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Icon(Icons.security, size: 100, color: primaryColor),
+                Image.asset('assets/images/Seal_of_Nueva_Vizcaya.svg.png', height: 120),
                 const SizedBox(height: 16),
                 Text(
-                  'Welcome to\nOne Vizcaya Connect',
+                  'Welcome to\nOne Vizcaya',
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                     color: primaryColor,
@@ -277,15 +342,15 @@ class _LoginScreenState extends State<LoginScreen> {
                     controller: _phoneController,
                     decoration: const InputDecoration(
                       labelText: 'Phone Number',
-                      hintText: '+639171234567',
+                      hintText: '09171234567',
                       prefixIcon: Icon(Icons.phone),
                     ),
                     keyboardType: TextInputType.phone,
                     validator: (value) {
                       if (value == null || value.isEmpty)
                         return 'Please enter your phone number';
-                      if (!value.startsWith('+'))
-                        return 'Please include the country code (e.g., +63)';
+                      if (!value.startsWith('09') || value.length != 11)
+                        return 'Please enter a valid 11-digit number starting with 09';
                       return null;
                     },
                   ),
@@ -467,6 +532,8 @@ class _MunicipalitySetupScreenState extends State<MunicipalitySetupScreen> {
                 value: _selectedTown,
                 hint: const Text('Select Municipality'),
                 isExpanded: true,
+                dropdownColor: Colors.white,
+                style: const TextStyle(color: Colors.black87, fontSize: 16),
                 items: vizcayaMunicipalitiesList.map((String town) {
                   return DropdownMenuItem<String>(
                     value: town,
@@ -981,6 +1048,8 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
                 value: _selectedCategory,
                 hint: const Text('Select Problem Category'),
                 isExpanded: true,
+                dropdownColor: Colors.white,
+                style: const TextStyle(color: Colors.black87, fontSize: 16),
                 items: _categories.map((String category) {
                   return DropdownMenuItem<String>(
                     value: category,
