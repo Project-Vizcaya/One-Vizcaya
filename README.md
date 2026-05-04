@@ -6,14 +6,20 @@ The application provides a centralized platform where residents can report local
 
 🌟 Core Aims
 Empowerment: Give every citizen a digital voice to contribute to the improvement of their municipality.
+
 Efficiency: Reduce the administrative overhead for the LGU by categorizing and geotagging reports automatically.
+
 Transparency: Provide a clear feedback loop where users can track the status of their reports from "Pending" to "Resolved".
+
 Safety: Facilitate rapid reporting of disaster-related incidents like flooding or landslides to improve local emergency response.
 
 🛠 Tech Stack
 Frontend: Flutter (Dart).
+
 Backend: Firebase (Authentication, Firestore NoSQL, Cloud Storage).
+
 State Management: Provider.
+
 Location Services: Geolocator and Google Maps API.
 
 🗺 Development Roadmap
