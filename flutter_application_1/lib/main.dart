@@ -11,6 +11,7 @@ import 'presentation/screens/report_status_screen.dart';
 import 'presentation/screens/emergency_contacts_screen.dart';
 import 'presentation/screens/other_screens.dart';
 import 'presentation/screens/admin_dashboard_screen.dart';
+import 'presentation/screens/profile_management_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -34,30 +35,35 @@ class OneVizcayaApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         brightness: Brightness.light,
-        primarySwatch: Colors.blue,
+        primarySwatch: Colors.green,
         scaffoldBackgroundColor: const Color(0xFFF5F5F5),
-        iconTheme: const IconThemeData(color: Colors.white),
+        fontFamily: 'Roboto',
+        iconTheme: const IconThemeData(color: Color(0xFF333333)),
         appBarTheme: const AppBarTheme(
           elevation: 0,
+          backgroundColor: Color(0xFFF5F5F5),
+          foregroundColor: Color(0xFF333333),
           titleTextStyle: TextStyle(
-            color: Colors.white,
+            color: Color(0xFF333333),
             fontSize: 20,
             fontWeight: FontWeight.bold,
           ),
-          iconTheme: IconThemeData(color: Colors.white),
+          iconTheme: IconThemeData(color: Color(0xFF333333)),
         ),
         cardTheme: CardThemeData(
           elevation: 0,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12.0),
+            borderRadius: BorderRadius.circular(16.0),
           ),
+          color: Colors.white,
         ),
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFFFFBE26),
-            foregroundColor: const Color(0xFF004A6D),
+            backgroundColor: const Color(0xFF4CAF50),
+            foregroundColor: Colors.white,
+            elevation: 0,
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8.0),
+              borderRadius: BorderRadius.circular(14.0),
             ),
             padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 24),
           ),
@@ -71,16 +77,30 @@ class OneVizcayaApp extends StatelessWidget {
           bodyLarge: TextStyle(fontSize: 16, color: Color(0xFF555555)),
           bodyMedium: TextStyle(fontSize: 14, color: Color(0xFF777777)),
           titleMedium: TextStyle(
-            color: Colors.white,
+            color: Color(0xFF333333),
             fontWeight: FontWeight.bold,
             fontSize: 16,
           ),
         ),
         inputDecorationTheme: InputDecorationTheme(
+          filled: true,
+          fillColor: Colors.white,
           border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8.0),
-            borderSide: const BorderSide(color: Colors.grey),
+            borderRadius: BorderRadius.circular(14.0),
+            borderSide: BorderSide(color: Colors.grey.shade200),
           ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14.0),
+            borderSide: BorderSide(color: Colors.grey.shade200),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14.0),
+            borderSide: const BorderSide(color: Color(0xFF4CAF50), width: 1.5),
+          ),
+        ),
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color(0xFF4CAF50),
+          brightness: Brightness.light,
         ),
       ),
       home: const LoginScreen(),
@@ -94,7 +114,7 @@ class OneVizcayaApp extends StatelessWidget {
         '/announcements': (context) => const AnnouncementsScreen(),
         '/support': (context) => const SupportScreen(),
         '/notifications': (context) => const NotificationsScreen(),
-        '/profile': (context) => const ProfileScreen(),
+        '/profile': (context) => const ProfileManagementScreen(),
         '/admin': (context) => const AdminDashboardScreen(),
       },
     );

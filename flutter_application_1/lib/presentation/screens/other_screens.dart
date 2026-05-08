@@ -117,14 +117,4 @@ class NotificationsScreen extends StatelessWidget {
   }
 }
 
-class ProfileScreen extends StatelessWidget {
-  const ProfileScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('My Profile')),
-      body: const Center(child: Text('Profile management coming soon.')),
-    );
-  }
-}
+// ProfileScreen has been moved to profile_management_screen.dart

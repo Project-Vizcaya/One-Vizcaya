@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
 
 import '../../core/utils/toast_utils.dart';
 import '../../domain/enums/report_category.dart';
@@ -32,6 +34,8 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
   final ReportRepository _reportRepository = FirebaseReportRepository();
   final GeolocatorService _geolocatorService = GeolocatorService();
   final PriorityService _priorityService = PriorityService();
+  final ImagePicker _imagePicker = ImagePicker();
+  File? _selectedImage;
 
   Future<void> _getLocation() async {
     setState(() => _isGettingLocation = true);
@@ -291,13 +295,44 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
               const SizedBox(height: 16),
               OutlinedButton.icon(
                 icon: const Icon(Icons.camera_alt),
-                label: const Text('Attach Photo (Optional)'),
-                onPressed: _isOffline ? null : () => ToastUtils.showInfo('Image picker not yet implemented'),
+                label: Text(_selectedImage != null ? 'Photo Attached ✓' : 'Attach Photo (Optional)'),
+                onPressed: _isOffline ? null : () => _showImagePickerOptions(),
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: primaryLguColor,
-                  side: BorderSide(color: primaryLguColor),
+                  foregroundColor: _selectedImage != null ? Colors.green : primaryLguColor,
+                  side: BorderSide(color: _selectedImage != null ? Colors.green : primaryLguColor),
                 ),
               ),
+              if (_selectedImage != null) ...[
+                const SizedBox(height: 12),
+                Stack(
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: Image.file(
+                        _selectedImage!,
+                        height: 200,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                    Positioned(
+                      top: 8,
+                      right: 8,
+                      child: GestureDetector(
+                        onTap: () => setState(() => _selectedImage = null),
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: const BoxDecoration(
+                            color: Colors.black54,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.close, color: Colors.white, size: 18),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
               const SizedBox(height: 32),
               ElevatedButton(
                 onPressed: _submitReport,
@@ -319,5 +354,97 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
     _descriptionController.dispose();
     _locationController.dispose();
     super.dispose();
+  }
+
+  void _showImagePickerOptions() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey.shade300,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              'Attach Photo',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 20),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _imagePickerOption(
+                  icon: Icons.camera_alt_rounded,
+                  label: 'Camera',
+                  onTap: () {
+                    Navigator.pop(context);
+                    _pickImage(ImageSource.camera);
+                  },
+                ),
+                _imagePickerOption(
+                  icon: Icons.photo_library_rounded,
+                  label: 'Gallery',
+                  onTap: () {
+                    Navigator.pop(context);
+                    _pickImage(ImageSource.gallery);
+                  },
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _imagePickerOption({required IconData icon, required String label, required VoidCallback onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: const Color(0xFFE8F5E9),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Icon(icon, size: 32, color: const Color(0xFF4CAF50)),
+          ),
+          const SizedBox(height: 8),
+          Text(label, style: const TextStyle(fontWeight: FontWeight.w500)),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _pickImage(ImageSource source) async {
+    try {
+      final pickedFile = await _imagePicker.pickImage(
+        source: source,
+        maxWidth: 1200,
+        maxHeight: 1200,
+        imageQuality: 85,
+      );
+      if (pickedFile != null) {
+        setState(() => _selectedImage = File(pickedFile.path));
+        ToastUtils.showSuccess('Photo attached successfully');
+      }
+    } catch (e) {
+      ToastUtils.showError('Failed to pick image: $e');
+    }
   }
 }

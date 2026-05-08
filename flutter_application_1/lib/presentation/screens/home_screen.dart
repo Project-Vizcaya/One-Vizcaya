@@ -2,10 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../core/constants/app_constants.dart';
 import '../state/municipality_state.dart';
-import '../widgets/home_grid_item.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  int _selectedNavIndex = 0;
 
   @override
   Widget build(BuildContext context) {
@@ -17,146 +23,621 @@ class HomeScreen extends StatelessWidget {
         final welcomeMsg = activeTheme['welcomeMsg'] as String;
 
         return Scaffold(
-          appBar: AppBar(
-            backgroundColor: appBarColor,
-            title: Row(
+          backgroundColor: const Color(0xFFF5F5F5),
+          body: SafeArea(
+            child: _selectedNavIndex == 0
+                ? _buildHomePage(context, municipality, appBarColor, welcomeMsg)
+                : _selectedNavIndex == 1
+                    ? _buildReportsPage(context, municipality, appBarColor)
+                    : _buildProfileRedirect(context),
+          ),
+          bottomNavigationBar: _buildBottomNav(appBarColor),
+        );
+      },
+    );
+  }
+
+  Widget _buildHomePage(
+    BuildContext context,
+    String municipality,
+    Color appBarColor,
+    String welcomeMsg,
+  ) {
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // ── Top bar ──
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Row(
               children: [
-                const Icon(Icons.location_on, size: 20),
-                const SizedBox(width: 8),
+                // Municipality selector
                 Expanded(
-                  child: DropdownButtonHideUnderline(
-                    child: DropdownButton<String>(
-                      value: municipality,
-                      dropdownColor: appBarColor,
-                      style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
-                      iconEnabledColor: Colors.white,
-                      items: AppConstants.municipalities.map((String value) {
-                        return DropdownMenuItem<String>(value: value, child: Text(value));
-                      }).toList(),
-                      onChanged: (String? newValue) {
-                        if (newValue != null) {
-                          oneVizcayaState.selectedMunicipality.value = newValue;
-                        }
-                      },
+                  child: GestureDetector(
+                    onTap: () => _showMunicipalityPicker(context, municipality, appBarColor),
+                    child: Row(
+                      children: [
+                        Text(
+                          municipality,
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF333333),
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        Icon(Icons.keyboard_arrow_down, color: Colors.grey.shade600, size: 22),
+                      ],
+                    ),
+                  ),
+                ),
+                // Notification icon
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.06),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: IconButton(
+                    icon: const Icon(Icons.notifications_outlined, color: Color(0xFF333333), size: 22),
+                    onPressed: () => Navigator.of(context).pushNamed('/notifications'),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                // Profile icon
+                GestureDetector(
+                  onTap: () => Navigator.of(context).pushNamed('/profile'),
+                  child: Container(
+                    width: 38,
+                    height: 38,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF4CAF50),
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFF4CAF50).withValues(alpha: 0.3),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: const Icon(Icons.person, color: Colors.white, size: 20),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // ── Welcome Card ──
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.04),
+                    blurRadius: 16,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        width: 10,
+                        height: 10,
+                        decoration: BoxDecoration(
+                          color: appBarColor,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        municipality,
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: appBarColor,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    welcomeMsg,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w500,
+                      color: Color(0xFF555555),
+                      height: 1.4,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      _WelcomeActionButton(
+                        icon: Icons.report_problem_outlined,
+                        label: 'Report Now',
+                        color: const Color(0xFF4CAF50),
+                        onTap: () => Navigator.of(context).pushNamed('/report'),
+                      ),
+                      const SizedBox(width: 12),
+                      _WelcomeActionButton(
+                        icon: Icons.history,
+                        label: 'View Status',
+                        color: appBarColor,
+                        onTap: () => Navigator.of(context).pushNamed('/status'),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 24),
+
+          // ── Services Section ──
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Services',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF333333),
+                  ),
+                ),
+                GestureDetector(
+                  onTap: () {},
+                  child: Text(
+                    'See all',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Colors.grey.shade500,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                 ),
               ],
             ),
-            actions: [
-              IconButton(
-                icon: const Icon(Icons.notifications),
-                onPressed: () => Navigator.of(context).pushNamed('/notifications'),
-              ),
-              IconButton(
-                icon: const Icon(Icons.account_circle),
-                onPressed: () => Navigator.of(context).pushNamed('/profile'),
-              ),
-            ],
           ),
-          body: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
+          const SizedBox(height: 16),
+
+          // ── Service Grid (row 1) ──
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                Container(
-                  color: appBarColor.withOpacity(0.1),
-                  padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
-                  child: Column(
-                    children: [
-                      Text(
-                        welcomeMsg,
-                        textAlign: TextAlign.center,
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: appBarColor,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                            ),
-                      ),
-                      const SizedBox(height: 8),
-                      const Text(
-                        'Tap an option below to engage with your municipality.',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(fontSize: 13, color: Colors.grey),
-                      ),
-                    ],
-                  ),
+                _ServiceGridItem(
+                  icon: Icons.report_problem_rounded,
+                  label: 'Report\nProblem',
+                  iconColor: Colors.white,
+                  bgColor: const Color(0xFF4CAF50),
+                  onTap: () => Navigator.of(context).pushNamed('/report'),
                 ),
-                Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: GridView.count(
-                    crossAxisCount: 2,
-                    crossAxisSpacing: 16,
-                    mainAxisSpacing: 16,
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    children: [
-                      HomeGridItem(
-                        title: 'Report a Problem',
-                        subtitle: 'Local problem? Report it now.',
-                        icon: Icons.report_problem,
-                        backgroundColor: const Color(0xFF35A551),
-                        textColor: const Color(0xFF004A6D),
-                        onTap: () => Navigator.of(context).pushNamed('/report'),
-                      ),
-                      HomeGridItem(
-                        title: 'My Reports Status',
-                        subtitle: 'Track status of your local reports.',
-                        icon: Icons.history,
-                        backgroundColor: const Color(0xFFFFBE26),
-                        textColor: const Color(0xFF004A6D),
-                        onTap: () => Navigator.of(context).pushNamed('/status'),
-                      ),
-                      HomeGridItem(
-                        title: 'Emergency Contacts',
-                        subtitle: 'Tap to call $municipality emergency services.',
-                        icon: Icons.local_hospital,
-                        backgroundColor: const Color(0xFF004A6D),
-                        textColor: Colors.white,
-                        onTap: () => Navigator.of(context).pushNamed('/contacts'),
-                      ),
-                      HomeGridItem(
-                        title: 'Announcements',
-                        subtitle: 'Latest news for $municipality.',
-                        icon: Icons.campaign,
-                        backgroundColor: const Color(0xFF006B3A),
-                        textColor: Colors.white,
-                        onTap: () => Navigator.of(context).pushNamed('/announcements'),
-                      ),
-                      HomeGridItem(
-                        title: 'Support & FAQs',
-                        subtitle: 'Get app help and LGU support info.',
-                        icon: Icons.help_outline,
-                        backgroundColor: const Color(0xFF00796B),
-                        textColor: Colors.white,
-                        onTap: () => Navigator.of(context).pushNamed('/support'),
-                      ),
-                      HomeGridItem(
-                        title: 'Admin Dashboard',
-                        subtitle: 'View & manage all $municipality reports.',
-                        icon: Icons.admin_panel_settings,
-                        backgroundColor: const Color(0xFF5C2D91),
-                        textColor: Colors.white,
-                        onTap: () => Navigator.of(context).pushNamed('/admin'),
-                      ),
-                      HomeGridItem(
-                        title: 'Log Out',
-                        subtitle: 'Sign out and return to login screen.',
-                        icon: Icons.logout,
-                        backgroundColor: const Color(0xFFFFBE26),
-                        textColor: const Color(0xFF004A6D),
-                        onTap: () {
-                          FirebaseAuth.instance.signOut();
-                          Navigator.of(context).pushReplacementNamed('/login');
-                        },
-                      ),
-                    ],
-                  ),
+                _ServiceGridItem(
+                  icon: Icons.history_rounded,
+                  label: 'My\nReports',
+                  iconColor: Colors.white,
+                  bgColor: const Color(0xFFFF9800),
+                  onTap: () => Navigator.of(context).pushNamed('/status'),
+                ),
+                _ServiceGridItem(
+                  icon: Icons.local_hospital_rounded,
+                  label: 'Emergency\nContacts',
+                  iconColor: Colors.white,
+                  bgColor: const Color(0xFFE53935),
+                  onTap: () => Navigator.of(context).pushNamed('/contacts'),
+                ),
+                _ServiceGridItem(
+                  icon: Icons.campaign_rounded,
+                  label: 'Announce\nments',
+                  iconColor: Colors.white,
+                  bgColor: const Color(0xFF1565C0),
+                  onTap: () => Navigator.of(context).pushNamed('/announcements'),
                 ),
               ],
             ),
           ),
-        );
-      },
+          const SizedBox(height: 16),
+
+          // ── Service Grid (row 2) ──
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _ServiceGridItem(
+                  icon: Icons.help_outline_rounded,
+                  label: 'Support\n& FAQs',
+                  iconColor: Colors.white,
+                  bgColor: const Color(0xFF00897B),
+                  onTap: () => Navigator.of(context).pushNamed('/support'),
+                ),
+                _ServiceGridItem(
+                  icon: Icons.logout_rounded,
+                  label: 'Log\nOut',
+                  iconColor: Colors.white,
+                  bgColor: const Color(0xFF757575),
+                  onTap: () {
+                    FirebaseAuth.instance.signOut();
+                    Navigator.of(context).pushReplacementNamed('/login');
+                  },
+                ),
+                // Empty placeholders
+                _ServiceGridItem(
+                  icon: Icons.more_horiz,
+                  label: '\nMore',
+                  iconColor: Colors.grey.shade400,
+                  bgColor: Colors.grey.shade200,
+                  onTap: () {},
+                ),
+                const SizedBox(width: 72), // Spacer for alignment
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 24),
+
+          // ── Quick Info Section ──
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Container(
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(18),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.03),
+                    blurRadius: 10,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE8F5E9),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(Icons.info_outline, color: Color(0xFF4CAF50), size: 22),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Report a local problem',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14,
+                            color: Color(0xFF333333),
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'Help improve $municipality by reporting issues directly to your LGU.',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey.shade500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: () => Navigator.of(context).pushNamed('/report'),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF4CAF50),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Text(
+                        'Report now',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 32),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildReportsPage(BuildContext context, String municipality, Color appBarColor) {
+    // Quick redirect to the reports status screen
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Navigator.of(context).pushNamed('/status');
+      setState(() => _selectedNavIndex = 0);
+    });
+    return const Center(child: CircularProgressIndicator(color: Color(0xFF4CAF50)));
+  }
+
+  Widget _buildProfileRedirect(BuildContext context) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Navigator.of(context).pushNamed('/profile');
+      setState(() => _selectedNavIndex = 0);
+    });
+    return const Center(child: CircularProgressIndicator(color: Color(0xFF4CAF50)));
+  }
+
+  void _showMunicipalityPicker(BuildContext context, String current, Color appBarColor) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 12),
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey.shade300,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Select Municipality',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF333333)),
+            ),
+            const SizedBox(height: 8),
+            Flexible(
+              child: ListView.builder(
+                shrinkWrap: true,
+                itemCount: AppConstants.municipalities.length,
+                itemBuilder: (context, index) {
+                  final m = AppConstants.municipalities[index];
+                  final isSelected = m == current;
+                  return ListTile(
+                    leading: Icon(
+                      isSelected ? Icons.radio_button_checked : Icons.radio_button_off,
+                      color: isSelected ? const Color(0xFF4CAF50) : Colors.grey.shade400,
+                    ),
+                    title: Text(
+                      m,
+                      style: TextStyle(
+                        fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                        color: isSelected ? const Color(0xFF4CAF50) : const Color(0xFF333333),
+                      ),
+                    ),
+                    onTap: () {
+                      oneVizcayaState.selectedMunicipality.value = m;
+                      Navigator.of(context).pop();
+                    },
+                  );
+                },
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBottomNav(Color appBarColor) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 10,
+            offset: const Offset(0, -2),
+          ),
+        ],
+      ),
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+            decoration: BoxDecoration(
+              color: const Color(0xFF333333),
+              borderRadius: BorderRadius.circular(28),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _BottomNavItem(
+                  icon: Icons.home_rounded,
+                  isSelected: _selectedNavIndex == 0,
+                  onTap: () => setState(() => _selectedNavIndex = 0),
+                ),
+                _BottomNavItem(
+                  icon: Icons.camera_alt_rounded,
+                  isSelected: false,
+                  onTap: () => Navigator.of(context).pushNamed('/report'),
+                ),
+                _BottomNavItem(
+                  icon: Icons.grid_view_rounded,
+                  isSelected: _selectedNavIndex == 2,
+                  onTap: () => setState(() => _selectedNavIndex = 2),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ── Welcome card action button ──
+class _WelcomeActionButton extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color color;
+  final VoidCallback onTap;
+
+  const _WelcomeActionButton({
+    required this.icon,
+    required this.label,
+    required this.color,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: color.withValues(alpha: 0.15)),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, size: 18, color: color),
+              const SizedBox(width: 8),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: color,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ── Service grid icon item (circular icon + label) ──
+class _ServiceGridItem extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color iconColor;
+  final Color bgColor;
+  final VoidCallback onTap;
+
+  const _ServiceGridItem({
+    required this.icon,
+    required this.label,
+    required this.iconColor,
+    required this.bgColor,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: SizedBox(
+        width: 72,
+        child: Column(
+          children: [
+            Container(
+              width: 52,
+              height: 52,
+              decoration: BoxDecoration(
+                color: bgColor,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: bgColor.withValues(alpha: 0.3),
+                    blurRadius: 8,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
+              ),
+              child: Icon(icon, color: iconColor, size: 24),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              label,
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w500,
+                color: Color(0xFF555555),
+                height: 1.2,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Bottom nav item ──
+class _BottomNavItem extends StatelessWidget {
+  final IconData icon;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const _BottomNavItem({
+    required this.icon,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFF4CAF50) : Colors.transparent,
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Icon(
+          icon,
+          color: isSelected ? Colors.white : Colors.grey.shade500,
+          size: 24,
+        ),
+      ),
     );
   }
 }
