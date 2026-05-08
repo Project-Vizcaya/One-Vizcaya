@@ -26,9 +26,10 @@ The application provides a centralized platform where residents can report local
 
 * **Frontend:** `Flutter` (Dart)
 * **Backend:** `Firebase` (Authentication, Firestore NoSQL, Cloud Storage)
-* **State Management:** `Provider`
+* **State Management:** `BLoC` (Business Logic Component)
 * **Location Services:** `Geolocator` and Google Maps API
 
+---
 ## 🎨 UI & Theming
 
 The application features dynamic theming based on the specific municipality selected. Each town has a designated color palette inspired by its local culture, industry, or geography.
@@ -56,16 +57,16 @@ This project follows a strict Software Development Life Cycle (SDLC), scaling fr
 ### 🏗️ Phase 1: MVP & Core Architecture (Barangay Level)
 _Goal: Prove the core concept works locally with clean, scalable code._
 
-* **Clean Architecture:** Organize the `Flutter` project into strict layers: `Data` (Firebase calls), `Domain` (Models), and `Presentation` (UI).
+* **Clean Architecture & BLoC:** Organize the `Flutter` project into strict layers: `Data` (Repositories/Firebase calls), `Domain` (Models), and `Presentation` (UI). Implement the **BLoC pattern** (`flutter_bloc`) to strictly separate business logic from UI components via Events and States.
 * **Enums & Constants:** Convert the category list into a formal `enum` in Dart to guarantee type safety.
 * **Firestore Schema Optimization:** Implement a `users/{uid}/reports` sub-collection structure for fast, user-specific data loading.
 * **Basic Location & Upload:** Implement the `geolocator` package to attach precise coordinates to reports.
-* **Error Boundaries:** Implement `try-catch` blocks across all Firebase calls with UI "Toast" fallbacks for areas with weak mobile data.
+* **Error Boundaries:** Implement `try-catch` blocks across all Firebase repositories, yielding specific `ErrorStates` to trigger UI "Toast" fallbacks for areas with weak mobile data.
 
 ### 🔐 Phase 2: Security, Media, & UX (Municipal Rollout)
 _Goal: Protect user data, optimize performance, and lock down the reporting loop._
 
-* **Global State Management:** Utilize `Provider` to handle the "Report Submission" state globally, preventing data loss if the app is minimized.
+* **Predictable State Management:** Utilize `MultiBlocProvider` to handle global app states (e.g., `AuthBloc` for user sessions, `ReportBloc` for submission tracking), ensuring predictable state transitions and preventing data loss.
 * **Image Optimization:** Integrate `image_picker` and `flutter_image_compress` to resize photo evidence locally before hitting Firebase Storage to conserve quotas.
 * **Advanced Geolocation & Geofencing:** Add geocoding to automatically convert coordinates into Bambang street names, and implement geofencing to reject spam reports outside provincial boundaries.
 * **Firestore Security Rules:** Enforce strict backend rules ensuring citizens can only modify their own submissions.
@@ -82,9 +83,10 @@ _Goal: Turn "One Vizcaya" into a real-time decision-making tool for the Local Go
 ### 🧪 Phase 4: Testing, Performance, & Scale (Provincial Ready)
 _Goal: Battle-test the application for high traffic and diverse network environments._
 
-* **Offline Persistence:** Enable Firestore offline mode so citizens in remote areas can draft reports that auto-sync upon reconnecting to a network.
+* **Offline Persistence:** Enable Firestore offline mode and implement `HydratedBloc` so citizens in remote areas can draft reports that auto-sync upon reconnecting to a network.
 * **Hierarchical Access Control (RBAC):** Upgrade the LGU portal logic so a Barangay Captain only views their jurisdiction, while the Mayor views the entire municipality.
 * **Performance Profiling:** Utilize Antigravity DevTools to eliminate memory leaks, ensuring smooth performance on budget Android devices.
 * **Beta Testing:** Deploy the finalized APK via **Firebase App Distribution** to community testers for rigorous field validation prior to official launch.
+* 
 ---
 Developed by Aaron Anthony Gano, 3<sup>rd</sup>-Year Computer Science Student at NVSU.
