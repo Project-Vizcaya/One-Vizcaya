@@ -49,25 +49,42 @@ The application features dynamic theming based on the specific municipality sele
 * **Alfonso Castañeda** _(Water Source)_: Uses a deep navy blue theme `#000080`
 * **Kayapa** _(Vegetable Bowl)_: Uses an organic olive green theme `#6B8E23`
 
-## 🗺 Development Roadmap
+## 🗺 Master Development Roadmap
 
-### Phase 1: Foundation & Core Reporting
-* Implement Firebase Phone Authentication for secure, verified user access.
-* Develop the **Professional Service Reporting** module with 8+ specialized categories (Sanitation, Infrastructure, Health, etc.).
-* Integrate Geospatial tagging to automatically attach coordinates to every report.
+This project follows a strict Software Development Life Cycle (SDLC), scaling from a local barangay prototype to a province-wide platform capable of serving all ~530,106 residents of Nueva Vizcaya.
 
-### Phase 2: Media & UX Enhancement
-* Enable Firebase Storage integration for photo evidence attachments.
-* Implement a "My Reports" dashboard for users to monitor submission history and status updates.
-* Refine UI/UX for the Samsung Galaxy ecosystem and high-mid-tier Android devices.
+### 🏗️ Phase 1: MVP & Core Architecture (Barangay Level)
+_Goal: Prove the core concept works locally with clean, scalable code._
 
-### Phase 3: Administrative Ecosystem
-* Develop a separate Admin Dashboard (`Flutter Web`) for LGU personnel to manage and filter reports.
-* Implement Firebase Cloud Functions for automated notifications to relevant departments based on report categories.
+* **Clean Architecture:** Organize the `Flutter` project into strict layers: `Data` (Firebase calls), `Domain` (Models), and `Presentation` (UI).
+* **Enums & Constants:** Convert the category list into a formal `enum` in Dart to guarantee type safety.
+* **Firestore Schema Optimization:** Implement a `users/{uid}/reports` sub-collection structure for fast, user-specific data loading.
+* **Basic Location & Upload:** Implement the `geolocator` package to attach precise coordinates to reports.
+* **Error Boundaries:** Implement `try-catch` blocks across all Firebase calls with UI "Toast" fallbacks for areas with weak mobile data.
 
-### Phase 4: Optimization & Scalability
-* Add offline persistence for reports filed in areas with weak mobile data.
-* Perform rigorous field testing with community beta testers to ensure data accuracy and app stability.
+### 🔐 Phase 2: Security, Media, & UX (Municipal Rollout)
+_Goal: Protect user data, optimize performance, and lock down the reporting loop._
 
+* **Global State Management:** Utilize `Provider` to handle the "Report Submission" state globally, preventing data loss if the app is minimized.
+* **Image Optimization:** Integrate `image_picker` and `flutter_image_compress` to resize photo evidence locally before hitting Firebase Storage to conserve quotas.
+* **Advanced Geolocation & Geofencing:** Add geocoding to automatically convert coordinates into Bambang street names, and implement geofencing to reject spam reports outside provincial boundaries.
+* **Firestore Security Rules:** Enforce strict backend rules ensuring citizens can only modify their own submissions.
+* **Sensitive Data Masking:** Secure API keys by utilizing `.gitignore` for `firebase_options.dart`.
+
+### 📱 Phase 3: The Admin Ecosystem (LGU Integration)
+_Goal: Turn "One Vizcaya" into a real-time decision-making tool for the Local Government Unit._
+
+* **LGU Web Portal:** Build a companion `Flutter Web` dashboard. Use Firebase Auth Custom Claims to separate "Citizen" access from "Admin" access.
+* **Composite Indexing:** Configure Firebase indexes to allow the LGU to query reports by `category` **AND** `timestamp` simultaneously.
+* **Cloud Functions (Node.js):** Deploy backend triggers that automatically push notifications to the LGU dashboard when a `Disaster & Risk Management` report is submitted.
+* **Data Visualization:** Integrate `fl_chart` to render heatmaps and pie charts showing which barangays have the highest report volumes.
+
+### 🧪 Phase 4: Testing, Performance, & Scale (Provincial Ready)
+_Goal: Battle-test the application for high traffic and diverse network environments._
+
+* **Offline Persistence:** Enable Firestore offline mode so citizens in remote areas can draft reports that auto-sync upon reconnecting to a network.
+* **Hierarchical Access Control (RBAC):** Upgrade the LGU portal logic so a Barangay Captain only views their jurisdiction, while the Mayor views the entire municipality.
+* **Performance Profiling:** Utilize Antigravity DevTools to eliminate memory leaks, ensuring smooth performance on budget Android devices.
+* **Beta Testing:** Deploy the finalized APK via **Firebase App Distribution** to community testers for rigorous field validation prior to official launch.
 ---
 Developed by Aaron Anthony Gano, 3<sup>rd</sup>-Year Computer Science Student at NVSU.
