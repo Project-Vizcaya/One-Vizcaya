@@ -139,6 +139,12 @@ final List<String> vizcayaMunicipalitiesList = [
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  
+  // Enable offline persistence for web and mobile
+  FirebaseFirestore.instance.settings = const Settings(
+    persistenceEnabled: true,
+  );
+  
   runApp(const OneVizcayaApp());
 }
 
@@ -986,7 +992,10 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
       };
 
       // Unified provincial reports collection - localized by LGU field.
-      await FirebaseFirestore.instance.collection('reports').add(reportData);
+      // Fire and forget: don't await. Firestore will cache this locally and sync when possible.
+      FirebaseFirestore.instance.collection('reports').add(reportData).catchError((e) {
+        debugPrint("Background sync error: $e");
+      });
 
       if (!mounted) return;
       Navigator.of(context).pop();
