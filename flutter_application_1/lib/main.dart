@@ -16,12 +16,12 @@ import 'presentation/screens/profile_management_screen.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  
+
   // Enable offline persistence for web and mobile
   FirebaseFirestore.instance.settings = const Settings(
     persistenceEnabled: true,
   );
-  
+
   runApp(const OneVizcayaApp());
 }
 

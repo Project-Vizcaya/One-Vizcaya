@@ -12,13 +12,23 @@ class MunicipalitySetupScreen extends StatefulWidget {
 class _MunicipalitySetupScreenState extends State<MunicipalitySetupScreen> {
   String? _selectedTown;
 
+  /// Get the municipality color from themes
+  Color _getMunicipalityColor(String name) {
+    final theme = AppConstants.municipalityThemes[name];
+    if (theme != null) {
+      return theme['appBarColor'] as Color;
+    }
+    return const Color(0xFF616161);
+  }
+
   @override
   Widget build(BuildContext context) {
     const primaryColor = Color(0xFF00796B);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Welcome to One Vizcaya'),
+        title: const Text('Welcome to One Nueva Vizcaya'),
+        centerTitle: true,
         backgroundColor: primaryColor,
         automaticallyImplyLeading: false,
       ),
@@ -44,13 +54,38 @@ class _MunicipalitySetupScreenState extends State<MunicipalitySetupScreen> {
               ),
               const SizedBox(height: 48),
               DropdownButtonFormField<String>(
-                value: _selectedTown,
+                initialValue: _selectedTown,
                 hint: const Text('Select Municipality'),
                 isExpanded: true,
                 dropdownColor: Colors.white,
                 style: const TextStyle(color: Colors.black87, fontSize: 16),
                 items: AppConstants.municipalities.map((String town) {
-                  return DropdownMenuItem<String>(value: town, child: Text(town));
+                  final mColor = _getMunicipalityColor(town);
+                  return DropdownMenuItem<String>(
+                    value: town,
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 14,
+                          height: 14,
+                          decoration: BoxDecoration(
+                            color: mColor,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            town,
+                            style: TextStyle(
+                              color: Colors.black87,
+                              fontWeight: _selectedTown == town ? FontWeight.w600 : FontWeight.normal,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
                 }).toList(),
                 onChanged: (newValue) {
                   setState(() {
@@ -75,7 +110,9 @@ class _MunicipalitySetupScreenState extends State<MunicipalitySetupScreen> {
                         Navigator.of(context).pushReplacementNamed('/home');
                       },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: primaryColor,
+                  backgroundColor: _selectedTown != null
+                      ? _getMunicipalityColor(_selectedTown!)
+                      : primaryColor,
                   foregroundColor: Colors.white,
                 ),
                 child: const Text('Complete Setup'),

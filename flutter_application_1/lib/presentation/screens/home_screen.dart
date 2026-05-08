@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import '../../core/constants/app_constants.dart';
 import '../state/municipality_state.dart';
 
@@ -23,7 +22,7 @@ class _HomeScreenState extends State<HomeScreen> {
         final welcomeMsg = activeTheme['welcomeMsg'] as String;
 
         return Scaffold(
-          backgroundColor: const Color(0xFFF5F5F5),
+          backgroundColor: Color.lerp(Colors.white, appBarColor, 0.06)!,
           body: SafeArea(
             child: _selectedNavIndex == 0
                 ? _buildHomePage(context, municipality, appBarColor, welcomeMsg)
@@ -132,13 +131,14 @@ class _HomeScreenState extends State<HomeScreen> {
                 ],
               ),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Container(
-                        width: 10,
-                        height: 10,
+                        width: 12,
+                        height: 12,
                         decoration: BoxDecoration(
                           color: appBarColor,
                           shape: BoxShape.circle,
@@ -148,8 +148,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       Text(
                         municipality,
                         style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
                           color: appBarColor,
                           letterSpacing: 0.5,
                         ),
@@ -159,30 +159,13 @@ class _HomeScreenState extends State<HomeScreen> {
                   const SizedBox(height: 12),
                   Text(
                     welcomeMsg,
+                    textAlign: TextAlign.center,
                     style: const TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w500,
                       color: Color(0xFF555555),
                       height: 1.4,
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      _WelcomeActionButton(
-                        icon: Icons.report_problem_outlined,
-                        label: 'Report Now',
-                        color: const Color(0xFF4CAF50),
-                        onTap: () => Navigator.of(context).pushNamed('/report'),
-                      ),
-                      const SizedBox(width: 12),
-                      _WelcomeActionButton(
-                        icon: Icons.history,
-                        label: 'View Status',
-                        color: appBarColor,
-                        onTap: () => Navigator.of(context).pushNamed('/status'),
-                      ),
-                    ],
                   ),
                 ],
               ),
@@ -274,100 +257,21 @@ class _HomeScreenState extends State<HomeScreen> {
                   onTap: () => Navigator.of(context).pushNamed('/support'),
                 ),
                 _ServiceGridItem(
-                  icon: Icons.logout_rounded,
-                  label: 'Log\nOut',
+                  icon: Icons.notifications_rounded,
+                  label: 'Notifi\ncations',
                   iconColor: Colors.white,
-                  bgColor: const Color(0xFF757575),
-                  onTap: () {
-                    FirebaseAuth.instance.signOut();
-                    Navigator.of(context).pushReplacementNamed('/login');
-                  },
+                  bgColor: const Color(0xFF7B1FA2),
+                  onTap: () => Navigator.of(context).pushNamed('/notifications'),
                 ),
-                // Empty placeholders
                 _ServiceGridItem(
-                  icon: Icons.more_horiz,
-                  label: '\nMore',
-                  iconColor: Colors.grey.shade400,
-                  bgColor: Colors.grey.shade200,
+                  icon: Icons.settings_rounded,
+                  label: 'App\nSettings',
+                  iconColor: Colors.white,
+                  bgColor: const Color(0xFF546E7A),
                   onTap: () {},
                 ),
                 const SizedBox(width: 72), // Spacer for alignment
               ],
-            ),
-          ),
-
-          const SizedBox(height: 24),
-
-          // ── Quick Info Section ──
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Container(
-              padding: const EdgeInsets.all(18),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(18),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.03),
-                    blurRadius: 10,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFE8F5E9),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Icon(Icons.info_outline, color: Color(0xFF4CAF50), size: 22),
-                  ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Report a local problem',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w600,
-                            fontSize: 14,
-                            color: Color(0xFF333333),
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          'Help improve $municipality by reporting issues directly to your LGU.',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey.shade500,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  GestureDetector(
-                    onTap: () => Navigator.of(context).pushNamed('/report'),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF4CAF50),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: const Text(
-                        'Report now',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
             ),
           ),
 
@@ -392,6 +296,13 @@ class _HomeScreenState extends State<HomeScreen> {
       setState(() => _selectedNavIndex = 0);
     });
     return const Center(child: CircularProgressIndicator(color: Color(0xFF4CAF50)));
+  }
+
+  /// Get a municipality's theme color
+  Color _getMunicipalityColor(String name) {
+    final theme = AppConstants.municipalityThemes[name];
+    if (theme != null) return theme['appBarColor'] as Color;
+    return const Color(0xFF616161);
   }
 
   void _showMunicipalityPicker(BuildContext context, String current, Color appBarColor) {
@@ -428,18 +339,28 @@ class _HomeScreenState extends State<HomeScreen> {
                 itemBuilder: (context, index) {
                   final m = AppConstants.municipalities[index];
                   final isSelected = m == current;
+                  final mColor = _getMunicipalityColor(m);
                   return ListTile(
-                    leading: Icon(
-                      isSelected ? Icons.radio_button_checked : Icons.radio_button_off,
-                      color: isSelected ? const Color(0xFF4CAF50) : Colors.grey.shade400,
+                    leading: Container(
+                      width: 32,
+                      height: 32,
+                      decoration: BoxDecoration(
+                        color: isSelected ? mColor : mColor.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: isSelected
+                          ? const Icon(Icons.check, color: Colors.white, size: 18)
+                          : null,
                     ),
                     title: Text(
                       m,
                       style: TextStyle(
                         fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-                        color: isSelected ? const Color(0xFF4CAF50) : const Color(0xFF333333),
+                        color: isSelected ? mColor : const Color(0xFF333333),
                       ),
                     ),
+                    tileColor: isSelected ? mColor.withValues(alpha: 0.05) : null,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     onTap: () {
                       oneVizcayaState.selectedMunicipality.value = m;
                       Navigator.of(context).pop();
@@ -503,52 +424,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-// ── Welcome card action button ──
-class _WelcomeActionButton extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final Color color;
-  final VoidCallback onTap;
 
-  const _WelcomeActionButton({
-    required this.icon,
-    required this.label,
-    required this.color,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      child: GestureDetector(
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.08),
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: color.withValues(alpha: 0.15)),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icon, size: 18, color: color),
-              const SizedBox(width: 8),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: color,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
 
 // ── Service grid icon item (circular icon + label) ──
 class _ServiceGridItem extends StatelessWidget {
