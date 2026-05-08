@@ -19,6 +19,8 @@ dependencies:
   cloud_firestore: ^6.1.0
   image_picker: ^1.0.7
   firebase_app_check: ^0.4.1+2
+  geolocator: ^13.0.2
+  fluttertoast: ^8.2.8
 
 dev_dependencies:
   flutter_test:
