@@ -49,6 +49,11 @@ The application features dynamic theming based on the specific municipality sele
 * **Dupax del Sur** _(Historic Town)_: Uses a rustic sienna theme `#A0522D`
 * **Alfonso Castañeda** _(Water Source)_: Uses a deep navy blue theme `#000080`
 * **Kayapa** _(Vegetable Bowl)_: Uses an organic olive green theme `#6B8E23`
+---
+
+
+
+---
 
 ## 🗺 Master Development Roadmap
 
@@ -88,5 +93,39 @@ _Goal: Battle-test the application for high traffic and diverse network environm
 * **Performance Profiling:** Utilize Antigravity DevTools to eliminate memory leaks, ensuring smooth performance on budget Android devices.
 * **Beta Testing:** Deploy the finalized APK via **Firebase App Distribution** to community testers for rigorous field validation prior to official launch.
 * 
+---
+
+
+# Dashboard UI Polish & Data Integration
+
+## 🛠 Phase 1: Layout & Quick UI Polish
+*These changes do not require new backend logic and will instantly improve the app's visual balance.*
+
+- [ ] **Grid Resizing:** Refactor the current 4-column icon layout into a more spacious 3-column grid. Increase icon size and touch targets for better accessibility.
+- [ ] **Section Headers:** Group the dashboard icons logically.
+  - [ ] Add a **"Citizen Services"** header for *Report Problem* and *My Reports*.
+  - [ ] Add an **"Information & Support"** header for the remaining icons.
+
+## 📰 Phase 2: Dynamic Dashboard Features
+*Replacing the empty bottom space with active, scrolling widgets.*
+
+- [ ] **The "Community Impact" Feed:** Build a scrolling `ListView.builder` at the bottom of the screen to display recently "Resolved" public reports.
+- [ ] **Live Announcements Carousel:** Implement a swipeable `PageView` or horizontal `ListView` near the top to display the top 3 latest LGU news items using image cards and headlines.
+- [ ] **Agri-Weather & Disaster Alert Widget:** Design a horizontal `Card` below the icon grid to display current temperature, forecasts, and active PAGASA alerts.
+
+## 🗃 Phase 3: Content & Data Integration
+*Hardcoding and linking the localized data for specific LGUs.*
+
+- [ ] **Emergency Contacts Deployment:** Compile and implement the emergency hotlines (PNP, BFP, MDRRMO, Hospitals) for **all** individual municipalities in the province. 
+  - [ ] Implement UI logic to filter these based on the user's selected town.
+- [ ] **Localized Announcements Feed:** Set up the data structure and populate the Announcements section specifically tailored for **Bambang**, **Bayombong**, and **Solano**.
+- [ ] **Support & FAQs:** Add and update the text in the Support/FAQ screen to guide users on how to properly submit evidence and track their reports.
+
+---
+**End of Session Reminder:**
+- Commit all changes and push to `main`.
+- Ensure `debug.keystore` is safely backed up before the PC restarts.
+
+
 ---
 Developed by Aaron Anthony Gano, 3<sup>rd</sup>-Year Computer Science Student at NVSU.
