@@ -65,7 +65,7 @@ This project follows a strict Software Development Life Cycle (SDLC), scaling fr
 ### 🏗️ Phase 1: MVP & Core Architecture (Barangay Level)
 _Goal: Prove the core concept works locally with clean, scalable code._
 
-* **Clean Architecture & BLoC:** Organize the `Flutter` project into strict layers: `Data` (Repositories/Firebase calls), `Domain` (Models), and `Presentation` (UI). Implement the **BLoC pattern** (`flutter_bloc`) to strictly separate business logic from UI components via Events and States.
+* **Clean Architecture & BLoC:** Organize the `Flutter` project into strict layers: `Data` (Repositories, Firebase calls, and Models with fromJson/toJson), `Domain` (Pure Dart Entities), and `Presentation` (UI). Implement the **BLoC pattern** (`flutter_bloc`) to strictly separate business logic from UI components via Events and States.
 * **Enums & Constants:** Convert the category list into a formal `enum` in Dart to guarantee type safety.
 * **Firestore Schema Optimization:** Implement a `users/{uid}/reports` sub-collection structure for fast, user-specific data loading.
 * **Basic Location & Upload:** Implement the `geolocator` package to attach precise coordinates to reports.
@@ -77,13 +77,13 @@ _Goal: Protect user data, optimize performance, and lock down the reporting loop
 * **Predictable State Management:** Utilize `MultiBlocProvider` to handle global app states (e.g., `AuthBloc` for user sessions, `ReportBloc` for submission tracking), ensuring predictable state transitions and preventing data loss.
 * **Image Optimization:** Integrate `image_picker` and `flutter_image_compress` to resize photo evidence locally before hitting Firebase Storage to conserve quotas.
 * **Advanced Geolocation & Geofencing:** Add geocoding to automatically convert coordinates into Bambang street names, and implement geofencing to reject spam reports outside provincial boundaries.
-* **Firestore Security Rules:** Enforce strict backend rules ensuring citizens can only modify their own submissions.
+* **Firestore Security Rules:** Enforce strict backend rules ensuring citizens can only modify their own submissions. 
 * **Sensitive Data Masking:** Secure API keys by utilizing `.gitignore` for `firebase_options.dart`.
 
 ### 📱 Phase 3: The Admin Ecosystem (LGU Integration)
 _Goal: Turn "One Vizcaya" into a real-time decision-making tool for the Local Government Unit._
 
-* **LGU Web Portal:** Build a companion `Flutter Web` dashboard. Use Firebase Auth Custom Claims to separate "Citizen" access from "Admin" access.
+* **LGU Web Portal:** Build a companion `Flutter Web` dashboard as a completely separate repository to keep concerns clean. Share the `Domain` layer between the mobile app and the web portal as a separate Dart package.
 * **Composite Indexing:** Configure Firebase indexes to allow the LGU to query reports by `category` **AND** `timestamp` simultaneously.
 * **Cloud Functions (Node.js):** Deploy backend triggers that automatically push notifications to the LGU dashboard when a `Disaster & Risk Management` report is submitted.
 * **Data Visualization:** Integrate `fl_chart` to render heatmaps and pie charts showing which barangays have the highest report volumes.
@@ -91,10 +91,11 @@ _Goal: Turn "One Vizcaya" into a real-time decision-making tool for the Local Go
 ### 🧪 Phase 4: Testing, Performance, & Scale (Provincial Ready)
 _Goal: Battle-test the application for high traffic and diverse network environments._
 
-* **Offline Persistence:** Enable Firestore offline mode and implement `HydratedBloc` so citizens in remote areas can draft reports that auto-sync upon reconnecting to a network.
-* **Hierarchical Access Control (RBAC):** Upgrade the LGU portal logic so a Barangay Captain only views their jurisdiction, while the Mayor views the entire municipality.
+* **Offline Persistence:** Pair `HydratedBloc` (for UI state preservation) with Firestore's built-in offline persistence (`FirebaseFirestore.instance.settings = Settings(persistenceEnabled: true)`) so citizens in remote areas can reliably draft and sync reports upon reconnecting to a network.
+* **Hierarchical Access Control (RBAC):** Implement Firebase Auth Custom Claims to separate "Citizen" access from "Admin" access. Strictly mirror these Custom Claims within the Firestore Security Rules—relying on backend enforcement, not just the UI—so a Barangay Captain only views their jurisdiction, while the Mayor views the entire municipality.
 * **Performance Profiling:** Utilize Antigravity DevTools to eliminate memory leaks, ensuring smooth performance on budget Android devices.
 * **Beta Testing:** Deploy the finalized APK via **Firebase App Distribution** to community testers for rigorous field validation prior to official launch.
- 
+
+   
 ---
 Developed by Aaron Anthony A. Gano II, 3<sup>rd</sup>-Year Computer Science Student at NVSU.
