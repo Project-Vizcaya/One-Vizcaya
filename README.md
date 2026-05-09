@@ -98,4 +98,50 @@ _Goal: Battle-test the application for high traffic and diverse network environm
 
    
 ---
+
+# Master Milestone: Security, UI, and Alpha Testing
+
+## 🥇 Priority 1: Critical Security & RA 10173 Compliance
+*Must be completed before any UI work to ensure data safety.*
+
+- [ ] **Git History Audit:** Check repository history for `firebase_options.dart`. If exposed, rotate Firebase API keys immediately. Ensure `.gitignore` is properly configured.
+- [ ] **Lock Down Firestore Rules:** Deploy strict security rules ensuring users can only read/write their own reports.
+- [ ] **Data Minimization & Privacy:** Audit the registration flow to ensure only Name, Number, and Municipality are collected. Build `PrivacyPolicyScreen.dart`.
+- [ ] **RBAC Implementation:** Structure the database for "Citizen" vs. "Admin" roles, mirroring this logic in Firestore Security Rules, not just the UI.
+
+## 🥈 Priority 2: UI Polish & Demo-Readiness
+*Clean up the first impression for potential stakeholders.*
+
+- [ ] **Dashboard Layout:** Convert the 4-column icon grid to a spacious 3-column layout. 
+- [ ] **Section Headers:** Group icons under "Citizen Services" and "Information & Support".
+- [ ] **Local Emergency Contacts:** Implement the 15 municipality hotlines using a static Dart `const Map` or local `.json` file. **Do not use Firestore for this** to save database reads and ensure offline availability.
+
+## 🥉 Priority 3: Dynamic Widgets (Making it Alive)
+*Replacing dead space with active community data.*
+
+- [ ] **Community Impact Feed:** Build the scrolling `ListView` for resolved reports.
+- [ ] **Live Announcements Carousel:** Implement the swipeable LGU news feed at the top.
+- [ ] **Agri-Weather Widget:** Integrate OpenWeatherMap API. **Crucial:** Build a hardcoded UI fallback state for when the device has no internet or the API fails.
+
+## 🛡️ Priority 4: Backend Protections (Pre-Alpha)
+*Securing the reporting loop before real users touch it.*
+
+- [ ] **SMS Throttling:** Implement a 180-second UI cooldown timer on the "Resend SMS" button.
+- [ ] **Bot Protection:** Enable Firebase App Check to secure the authentication endpoints.
+- [ ] **Anti-Spam Rules:** Implement a 5-minute cooldown on the "Submit Report" button via UI (`SharedPreferences`) and enforce it strictly via Firestore Rules using the `timestamp` field.
+
+## 🧪 Priority 5: The 10-User Alpha Test
+*Controlled real-world testing to iron out bugs.*
+
+- [ ] **Build APK:** Run `flutter build apk --split-per-abi` to generate optimized, lightweight packages.
+- [ ] **Distribute to Alpha Group:** Use Firebase App Distribution to send the app to **10 trusted testers** (family/classmates). Gather feedback and fix critical bugs before scaling to 50 users. 
+*(Note: Do not implement `in_app_update` for this phase, as it conflicts with App Distribution).*
+
+## 🎯 Priority 6: LGU Pitch Prep (Post-Alpha)
+*Only to be executed when the app is stable and bug-free.*
+
+- [ ] **Academic Shield:** Secure formal endorsement from the Computer Science department.
+- [ ] **Security Whitepaper:** Draft the 2-page document detailing Google Cloud encryption and RA 10173 compliance.
+- [ ] **Schedule LGU Demos:** Target Bayombong and Solano administrators using the live, split-screen demo strategy.
+
 Developed by Aaron Anthony A. Gano II, 3<sup>rd</sup>-Year Computer Science Student at NVSU.
