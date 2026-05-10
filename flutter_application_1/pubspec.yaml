@@ -9,37 +9,36 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  firebase_core: ...
-  timeago: ^3.6.1
-  shared_preferences: ^2.3.2
-  
-  # App Packages
-  url_launcher: ^6.2.6
+
+  # Firebase
   firebase_core: ^4.2.1
   firebase_auth: ^6.1.2
-  firebase_storage: 13.0.4
+  firebase_storage: ^13.0.4
   cloud_firestore: ^6.1.0
-  image_picker: ^1.0.7
   firebase_app_check: ^0.4.1+2
+
+  # App Packages
+  url_launcher: ^6.2.6
+  image_picker: ^1.0.7
   geolocator: ^13.0.2
   fluttertoast: ^8.2.8
+  timeago: ^3.6.1
+  shared_preferences: ^2.3.2
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
-  # Tool to generate app icons
   flutter_launcher_icons: ^0.14.4
 
 flutter:
   uses-material-design: true
-  
+
   assets:
     - assets/images/Seal_of_Nueva_Vizcaya.svg.png
 
-# Configuration for the App Icon
 flutter_launcher_icons:
   android: "launcher_icon"
   ios: true
-  image_path: "assets/images/Seal_of_Nueva_Vizcaya.svg.png" # This must match your file path
+  image_path: "assets/images/Seal_of_Nueva_Vizcaya.svg.png"
   min_sdk_android: 21
