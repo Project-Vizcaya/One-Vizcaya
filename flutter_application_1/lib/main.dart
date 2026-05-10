@@ -114,6 +114,7 @@ class OneVizcayaApp extends StatelessWidget {
       routes: {
         '/login': (context) => const LoginScreen(),
         '/setup': (context) => const MunicipalitySetupScreen(),
+        '/settings': (context) => const AppSettingsScreen(),
         '/home': (context) => const HomeScreen(),
         '/report': (context) => const ReportProblemScreen(),
         '/status': (context) => const ReportStatusScreen(),
