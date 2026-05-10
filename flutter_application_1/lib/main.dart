@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_app_check/firebase_app_check.dart';
 import 'firebase_options.dart';
 
 import 'presentation/screens/login_screen.dart';
@@ -16,6 +17,11 @@ import 'presentation/screens/profile_management_screen.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
+  // ADD THIS BLOCK: Activate App Check for Bot Protection
+  await FirebaseAppCheck.instance.activate(
+    androidProvider: AndroidProvider.playIntegrity, // Standard for Android
+  );
 
   // Enable offline persistence for web and mobile
   FirebaseFirestore.instance.settings = const Settings(
