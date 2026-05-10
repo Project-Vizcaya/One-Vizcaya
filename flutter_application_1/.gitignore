@@ -33,3 +33,6 @@
 
 # Debug keystore — back up locally, never push
 **/debug.keystore
+
+# My Private Secrets
+lib/secrets.dart
