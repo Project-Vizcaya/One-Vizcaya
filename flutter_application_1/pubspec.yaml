@@ -9,7 +9,9 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  cupertino_icons: ^1.0.6
+  firebase_core: ...
+  timeago: ^3.6.1
+  shared_preferences: ^2.3.2
   
   # App Packages
   url_launcher: ^6.2.6
