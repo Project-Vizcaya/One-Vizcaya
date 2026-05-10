@@ -1,1 +1,39 @@
-{"flutter":{"platforms":{"android":{"default":{"projectId":"one-vizcaya-app","appId":"1:899155311025:android:2001ac798a04ba93dee590","fileOutput":"android/app/google-services.json"}},"dart":{"lib/firebase_options.dart":{"projectId":"one-vizcaya-app","configurations":{"android":"1:899155311025:android:2001ac798a04ba93dee590","ios":"1:899155311025:ios:cb17cbe02262e24adee590","macos":"1:899155311025:ios:cb17cbe02262e24adee590","web":"1:899155311025:web:39a0ba252222d089dee590","windows":"1:899155311025:web:3f4e4945f25f2be4dee590"}}}}}}
+{
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "one-vizcaya-app",
+          "appId": "1:899155311025:android:2001ac798a04ba93dee590",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "one-vizcaya-app",
+          "configurations": {
+            "android": "1:899155311025:android:2001ac798a04ba93dee590",
+            "ios": "1:899155311025:ios:cb17cbe02262e24adee590",
+            "macos": "1:899155311025:ios:cb17cbe02262e24adee590",
+            "web": "1:899155311025:web:39a0ba252222d089dee590",
+            "windows": "1:899155311025:web:3f4e4945f25f2be4dee590"
+          }
+        }
+      }
+    }
+  },
+  "functions": [
+    {
+      "source": "functions",
+      "codebase": "default",
+      "disallowLegacyRuntimeConfig": true,
+      "ignore": [
+        "node_modules",
+        ".git",
+        "firebase-debug.log",
+        "firebase-debug.*.log",
+        "*.local"
+      ]
+    }
+  ]
+}

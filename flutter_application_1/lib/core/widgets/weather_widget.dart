@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:geolocator/geolocator.dart'; // Only one import needed
+import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
@@ -45,27 +45,28 @@ class _WeatherWidgetState extends State<WeatherWidget> {
     _fetchWeather();
   }
 
-  IconData _getWeatherIcon(int code) {
-    if (code == 0) return Icons.wb_sunny;
-    if (code <= 2) return Icons.wb_cloudy;
-    if (code <= 48) return Icons.cloud;
-    if (code <= 67) return Icons.grain;
-    if (code <= 77) return Icons.ac_unit;
-    if (code <= 82) return Icons.beach_access;
-    return Icons.thunderstorm;
+  // OpenWeatherMap uses specific icon codes. We map them to Material Icons here.
+  IconData _getWeatherIcon(String iconCode) {
+    if (iconCode.startsWith('01')) return Icons.wb_sunny; // clear sky
+    if (iconCode.startsWith('02') ||
+        iconCode.startsWith('03') ||
+        iconCode.startsWith('04'))
+      return Icons.wb_cloudy; // clouds
+    if (iconCode.startsWith('09') || iconCode.startsWith('10'))
+      return Icons.water_drop; // rain
+    if (iconCode.startsWith('11')) return Icons.thunderstorm; // thunderstorm
+    if (iconCode.startsWith('13')) return Icons.ac_unit; // snow
+    if (iconCode.startsWith('50')) return Icons.foggy; // mist
+    return Icons.cloud;
   }
 
-  String _getWeatherCondition(int code) {
-    if (code == 0) return 'Clear Sky';
-    if (code == 1) return 'Mainly Clear';
-    if (code == 2) return 'Partly Cloudy';
-    if (code == 3) return 'Overcast';
-    if (code <= 48) return 'Foggy';
-    if (code <= 57) return 'Drizzle';
-    if (code <= 67) return 'Rainy';
-    if (code <= 77) return 'Snowy';
-    if (code <= 82) return 'Rain Showers';
-    return 'Thunderstorm';
+  // Capitalizes the first letter of each word (e.g., "broken clouds" -> "Broken Clouds")
+  String _capitalize(String text) {
+    if (text.isEmpty) return text;
+    return text
+        .split(' ')
+        .map((word) => word[0].toUpperCase() + word.substring(1))
+        .join(' ');
   }
 
   Future<void> _fetchWeather() async {
@@ -100,36 +101,39 @@ class _WeatherWidgetState extends State<WeatherWidget> {
         lon = coords[1];
       }
 
-      // 4. Call Open-Meteo API
+      // 4. Call OpenWeatherMap API
+      const apiKey = '03b9debc72c7790bdb52debc878ff38c';
       final url = Uri.parse(
-        'https://api.open-meteo.com/v1/forecast?'
-        'latitude=$lat&longitude=$lon'
-        '&current=temperature_2m,wind_speed_10m,weather_code'
-        '&wind_speed_unit=kmh&temperature_unit=celsius',
+        'https://api.openweathermap.org/data/2.5/weather?'
+        'lat=$lat&lon=$lon&units=metric&appid=$apiKey',
       );
 
       final response = await http.get(url).timeout(const Duration(seconds: 8));
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        final current = data['current'];
-        final temp = (current['temperature_2m'] as num).toStringAsFixed(0);
-        final wind = (current['wind_speed_10m'] as num).toStringAsFixed(0);
-        final code = current['weather_code'] as int;
+
+        final temp = (data['main']['temp'] as num).toStringAsFixed(0);
+        // OWM returns wind in meters/sec. Multiply by 3.6 to get km/h.
+        final wind = ((data['wind']['speed'] as num) * 3.6).toStringAsFixed(0);
+
+        final weatherArray = data['weather'][0];
+        final description = _capitalize(weatherArray['description'].toString());
+        final iconCode = weatherArray['icon'].toString();
 
         if (mounted) {
           setState(() {
             _temp = temp;
             _wind = wind;
-            _condition = _getWeatherCondition(code);
-            _icon = _getWeatherIcon(code);
+            _condition = description;
+            _icon = _getWeatherIcon(iconCode);
             _location = locationName;
             _isLoading = false;
             _isOffline = false;
           });
         }
       } else {
-        throw Exception('API error');
+        throw Exception('API error: ${response.statusCode}');
       }
     } catch (e) {
       // Fallback data if internet fails or GPS is too slow
