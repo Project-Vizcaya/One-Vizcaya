@@ -19,12 +19,13 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
-  // ADD THIS BLOCK: Activate App Check for Bot Protection
+  // App Check — debug for development, playIntegrity for release
   await FirebaseAppCheck.instance.activate(
-    androidProvider: AndroidProvider.playIntegrity, // Standard for Android
+    androidProvider: AndroidProvider.debug, // ← Change to playIntegrity before releasing to Play Store
+    appleProvider: AppleProvider.debug,
   );
 
-  // Enable offline persistence for web and mobile
+  // Enable Firestore offline persistence
   FirebaseFirestore.instance.settings = const Settings(
     persistenceEnabled: true,
   );
