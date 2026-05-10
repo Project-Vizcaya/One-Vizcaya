@@ -26,6 +26,7 @@ dependencies:
   fluttertoast: ^9.0.0
   timeago: ^3.6.1
   shared_preferences: ^2.3.2
+  qr_flutter: ^4.1.0
 
 dev_dependencies:
   flutter_test:
