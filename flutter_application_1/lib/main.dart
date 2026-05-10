@@ -13,6 +13,7 @@ import 'presentation/screens/emergency_contacts_screen.dart';
 import 'presentation/screens/other_screens.dart';
 import 'presentation/screens/admin_dashboard_screen.dart';
 import 'presentation/screens/profile_management_screen.dart';
+import 'presentation/screens/app_settings_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
