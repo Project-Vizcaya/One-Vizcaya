@@ -41,7 +41,7 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyAHOn7DKOq17_IyChMiA_nZGbTWM5vhmX0',
+    apiKey: 'AIzaSyD4a5nFOvYlQzoORTYbdimztyE8ojPk-_Y',
     appId: '1:899155311025:web:39a0ba252222d089dee590',
     messagingSenderId: '899155311025',
     projectId: 'one-vizcaya-app',
@@ -85,5 +85,4 @@ class DefaultFirebaseOptions {
     storageBucket: 'one-vizcaya-app.firebasestorage.app',
     measurementId: 'G-RGFJYVC8DL',
   );
-
 }
