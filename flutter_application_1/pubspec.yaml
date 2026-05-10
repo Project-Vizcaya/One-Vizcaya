@@ -9,6 +9,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  
 
   # Firebase
   firebase_core: ^4.2.1
@@ -38,7 +39,6 @@ flutter:
     - assets/images/Seal_of_Nueva_Vizcaya.svg.png
 
 flutter_launcher_icons:
-  android: "launcher_icon"
+  android: true
   ios: true
   image_path: "assets/images/Seal_of_Nueva_Vizcaya.svg.png"
-  min_sdk_android: 21
