@@ -1,120 +1,441 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../state/municipality_state.dart';
+import '../../core/utils/toast_utils.dart';
 
-class AnnouncementsScreen extends StatelessWidget {
-  const AnnouncementsScreen({super.key});
-
-  static final List<Map<String, String>> _allAnnouncements = [
-    {
-      'municipality': 'Bambang',
-      'title': 'Community Agri-Fair',
-      'date': 'Oct 30',
-      'body': 'Join the Bambang town plaza for the local agricultural produce fair! 8AM-5PM.',
-    },
-    {
-      'municipality': 'Solano',
-      'title': 'Public Market Drainage Upgrade',
-      'date': 'Oct 28',
-      'body': 'Maintenance ongoing on market drainage; Expect temporary road closures around Solano market area.',
-    },
-  ];
+class OtherScreens extends StatelessWidget {
+  const OtherScreens({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final activeLguColor = oneVizcayaState.activeTheme['appBarColor'] as Color;
-    final activeMunicipalityName = oneVizcayaState.selectedMunicipality.value;
-
-    final localizedAnnouncements = _allAnnouncements
-        .where((a) => a['municipality'] == activeMunicipalityName)
-        .toList();
-
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: activeLguColor,
-        title: Text('Announcements: $activeMunicipalityName'),
-      ),
-      body: localizedAnnouncements.isEmpty
-          ? Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.campaign, size: 64, color: activeLguColor.withOpacity(0.3)),
-                  const SizedBox(height: 16),
-                  Text('No recent announcements for $activeMunicipalityName.'),
-                ],
-              ),
-            )
-          : ListView.builder(
-              padding: const EdgeInsets.all(8.0),
-              itemCount: localizedAnnouncements.length,
-              itemBuilder: (context, index) {
-                final announcement = localizedAnnouncements[index];
-                return Card(
-                  margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 8.0),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              announcement['title']!,
-                              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                    color: activeLguColor,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                            ),
-                            Text(
-                              announcement['date']!,
-                              style: const TextStyle(color: Colors.grey, fontSize: 12),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        const Divider(),
-                        const SizedBox(height: 8),
-                        Text(
-                          announcement['body']!,
-                          style: Theme.of(context).textTheme.bodyMedium,
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            ),
+    return const Scaffold(
+      body: Center(child: Text('Other Screens')),
     );
   }
 }
 
-class SupportScreen extends StatelessWidget {
+// ═══════════════════════════════════════════
+// SUPPORT & FAQs SCREEN
+// ═══════════════════════════════════════════
+
+class SupportScreen extends StatefulWidget {
   const SupportScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final activeLguColor = oneVizcayaState.activeTheme['appBarColor'] as Color;
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: activeLguColor,
-        title: const Text('Support & FAQs'),
-      ),
-      body: Center(child: Text('Support screen under construction.', style: TextStyle(color: activeLguColor))),
-    );
-  }
+  State<SupportScreen> createState() => _SupportScreenState();
 }
 
-class NotificationsScreen extends StatelessWidget {
-  const NotificationsScreen({super.key});
+class _SupportScreenState extends State<SupportScreen> {
+  int? _expandedIndex;
+
+  static const List<Map<String, String>> _faqs = [
+    {
+      'q': 'How do I submit a report?',
+      'a':
+          'Tap "Report Problem" on the home screen. Select a category, describe the issue, attach a photo if available, and tap "Submit Report". Your report will be routed to your selected municipality\'s LGU automatically.',
+    },
+    {
+      'q': 'How long does it take for my report to be resolved?',
+      'a':
+          'Resolution time depends on the severity and type of issue. Critical and High priority reports are typically addressed within 24–72 hours. Medium and Low priority reports may take up to 7 days. You can track status in "My Reports".',
+    },
+    {
+      'q': 'Can I report issues from a different municipality?',
+      'a':
+          'Yes! Tap your municipality name at the top of the home screen to switch to a different municipality before submitting your report.',
+    },
+    {
+      'q': 'What types of issues can I report?',
+      'a':
+          'You can report: Road & Infrastructure damage, Flooding & Drainage issues, Public Safety concerns, Environmental violations, Public Health hazards, and Disaster & Risk Management situations.',
+    },
+    {
+      'q': 'Is my personal information safe?',
+      'a':
+          'Yes. One Vizcaya complies with Republic Act No. 10173 (Data Privacy Act of 2012). We only collect your phone number and municipality. Your data is encrypted using Google Firebase\'s enterprise-grade security and is never sold to third parties.',
+    },
+    {
+      'q': 'Why was my SMS verification blocked?',
+      'a':
+          'Firebase automatically blocks devices that request too many OTPs in a short period. Please wait 24 hours before trying again. This is a security measure to prevent spam.',
+    },
+    {
+      'q': 'Can I delete my account?',
+      'a':
+          'Yes. Under RA 10173, you have the right to request account deletion. Contact the LGU administrator or the PDRRMO Nueva Vizcaya at 09178500670 to process your deletion request within 30 days.',
+    },
+    {
+      'q': 'Why does the weather show "Offline Fallback Data"?',
+      'a':
+          'This appears when the app cannot access your GPS location or the weather service is temporarily unavailable. Tap the refresh icon on the weather widget to retry, or ensure location permissions are enabled in your phone settings.',
+    },
+    {
+      'q': 'What is the National Emergency Hotline?',
+      'a':
+          'The National Emergency Hotline is 911. For Nueva Vizcaya-specific emergencies, contact PDRRMO at 09178500670. You can find all local emergency numbers in the "Emergency Contacts" section.',
+    },
+    {
+      'q': 'How do I update my municipality selection?',
+      'a':
+          'On the home screen, tap your municipality name at the top left to open the municipality picker. Select your new municipality and it will take effect immediately.',
+    },
+  ];
+
+  static const List<Map<String, dynamic>> _contactOptions = [
+    {
+      'icon': Icons.phone,
+      'label': 'PDRRMO Nueva Vizcaya',
+      'value': '09178500670',
+      'type': 'phone',
+      'color': Color(0xFF2E7D32),
+    },
+    {
+      'icon': Icons.email,
+      'label': 'Provincial Email',
+      'value': 'pdrrmonuevavizcaya@gmail.com',
+      'type': 'email',
+      'color': Color(0xFF1565C0),
+    },
+    {
+      'icon': Icons.language,
+      'label': 'Official Website',
+      'value': 'https://nuevavizcaya.gov.ph',
+      'type': 'url',
+      'color': Color(0xFF00796B),
+    },
+  ];
+
+  Future<void> _launchContact(String type, String value) async {
+    Uri uri;
+    switch (type) {
+      case 'phone':
+        uri = Uri(scheme: 'tel', path: value);
+        break;
+      case 'email':
+        uri = Uri(scheme: 'mailto', path: value);
+        break;
+      case 'url':
+        uri = Uri.parse(value);
+        break;
+      default:
+        return;
+    }
+    try {
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri);
+      } else {
+        ToastUtils.showError('Could not open $value');
+      }
+    } catch (e) {
+      ToastUtils.showError('Failed to open: $e');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final lguColor =
+        oneVizcayaState.activeTheme['appBarColor'] as Color;
+    final municipality = oneVizcayaState.selectedMunicipality.value;
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Notifications')),
-      body: const Center(child: Text('No new notifications.')),
+      backgroundColor: const Color(0xFFF7F7F7),
+      appBar: AppBar(
+        backgroundColor: lguColor,
+        foregroundColor: Colors.white,
+        title: const Text(
+          'Support & FAQs',
+          style: TextStyle(fontWeight: FontWeight.w600),
+        ),
+        elevation: 0,
+      ),
+      body: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // ── Header Banner ──
+            Container(
+              color: lguColor,
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 10, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      municipality,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'How can we help?',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Find answers to common questions below.',
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.8),
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // ── Contact Us Section ──
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 20, 16, 8),
+              child: Text(
+                'CONTACT US',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.grey.shade500,
+                  letterSpacing: 1.2,
+                ),
+              ),
+            ),
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.04),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Column(
+                children: List.generate(_contactOptions.length, (i) {
+                  final item = _contactOptions[i];
+                  final isLast = i == _contactOptions.length - 1;
+                  return Column(
+                    children: [
+                      ListTile(
+                        leading: Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: (item['color'] as Color)
+                                .withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Icon(
+                            item['icon'] as IconData,
+                            color: item['color'] as Color,
+                            size: 20,
+                          ),
+                        ),
+                        title: Text(
+                          item['label'] as String,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14,
+                          ),
+                        ),
+                        subtitle: Text(
+                          item['value'] as String,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey.shade600,
+                          ),
+                        ),
+                        trailing: Icon(
+                          Icons.arrow_forward_ios,
+                          size: 14,
+                          color: Colors.grey.shade400,
+                        ),
+                        onTap: () => _launchContact(
+                          item['type'] as String,
+                          item['value'] as String,
+                        ),
+                      ),
+                      if (!isLast)
+                        Divider(
+                          height: 1,
+                          indent: 68,
+                          color: Colors.grey.shade100,
+                        ),
+                    ],
+                  );
+                }),
+              ),
+            ),
+
+            // ── FAQ Section ──
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
+              child: Text(
+                'FREQUENTLY ASKED QUESTIONS',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.grey.shade500,
+                  letterSpacing: 1.2,
+                ),
+              ),
+            ),
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.04),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Column(
+                children: List.generate(_faqs.length, (i) {
+                  final faq = _faqs[i];
+                  final isExpanded = _expandedIndex == i;
+                  final isLast = i == _faqs.length - 1;
+
+                  return Column(
+                    children: [
+                      InkWell(
+                        onTap: () => setState(() {
+                          _expandedIndex = isExpanded ? null : i;
+                        }),
+                        borderRadius: BorderRadius.vertical(
+                          top: i == 0
+                              ? const Radius.circular(16)
+                              : Radius.zero,
+                          bottom: isLast
+                              ? const Radius.circular(16)
+                              : Radius.zero,
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 14),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 24,
+                                height: 24,
+                                decoration: BoxDecoration(
+                                  color: isExpanded
+                                      ? lguColor
+                                      : lguColor.withValues(alpha: 0.1),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(
+                                  isExpanded
+                                      ? Icons.remove
+                                      : Icons.add,
+                                  size: 14,
+                                  color: isExpanded
+                                      ? Colors.white
+                                      : lguColor,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  faq['q']!,
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 14,
+                                    color: isExpanded
+                                        ? lguColor
+                                        : const Color(0xFF333333),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      AnimatedCrossFade(
+                        firstChild: const SizedBox.shrink(),
+                        secondChild: Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.fromLTRB(52, 0, 16, 14),
+                          child: Text(
+                            faq['a']!,
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Colors.grey.shade600,
+                              height: 1.6,
+                            ),
+                          ),
+                        ),
+                        crossFadeState: isExpanded
+                            ? CrossFadeState.showSecond
+                            : CrossFadeState.showFirst,
+                        duration: const Duration(milliseconds: 200),
+                      ),
+                      if (!isLast)
+                        Divider(
+                          height: 1,
+                          indent: 52,
+                          color: Colors.grey.shade100,
+                        ),
+                    ],
+                  );
+                }),
+              ),
+            ),
+
+            // ── Footer ──
+            Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                children: [
+                  Text(
+                    'One Vizcaya v1.0.1',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey.shade400,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Developed by Aaron Anthony A. Gano II\nNueva Vizcaya State University',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Colors.grey.shade400,
+                      height: 1.5,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'In compliance with RA 10173 (Data Privacy Act of 2012)',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: Colors.grey.shade400,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
-
-// ProfileScreen has been moved to profile_management_screen.dart
