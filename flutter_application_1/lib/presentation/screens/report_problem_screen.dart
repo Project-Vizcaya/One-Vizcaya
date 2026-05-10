@@ -3,7 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:shared_preferences/shared_preferences.dart'; // ADDED: SharedPreferences for anti-spam
+import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:io';
 
 import '../../core/utils/toast_utils.dart';
@@ -55,22 +55,18 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
     }
   }
 
-  // CHANGED: Made async to support SharedPreferences anti-spam check
   Future<void> _submitReport() async {
     if (_formKey.currentState!.validate()) {
-      // --- ANTI-SPAM COOLDOWN LOGIC ---
       final prefs = await SharedPreferences.getInstance();
       final lastSubmitTime = prefs.getInt('last_report_time') ?? 0;
       final currentTime = DateTime.now().millisecondsSinceEpoch;
 
-      // Check if 5 minutes (300,000 milliseconds) have passed
       if (currentTime - lastSubmitTime < 5 * 60 * 1000) {
         ToastUtils.showError(
           'Please wait 5 minutes between submitting reports to prevent spam.',
         );
-        return; // Abort the submission
+        return;
       }
-      // --------------------------------
 
       _formKey.currentState!.save();
 
@@ -89,7 +85,6 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
         _sendOnlineReport(municipalityReportingTo);
       }
 
-      // Save the new timestamp after a successful submission attempt
       await prefs.setInt('last_report_time', currentTime);
     }
   }
@@ -118,7 +113,6 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
       final user = FirebaseAuth.instance.currentUser;
       final String userId = user?.uid ?? 'anonymous';
 
-      // Calculate priority based on category severity + crowd duplicates
       final priorityResult = await _priorityService.calculatePriority(
         category: _selectedCategory!,
         municipality: municipality,
@@ -141,7 +135,6 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
         userPhone: user?.phoneNumber,
       );
 
-      // Fire and forget with try-catch in repository
       _reportRepository.submitReport(report, userId);
 
       _locationController.clear();
@@ -149,12 +142,11 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
       setState(() {
         _selectedCategory = null;
         _currentPosition = null;
-        _selectedImage = null; // Clear image on success too
+        _selectedImage = null;
       });
 
       if (!mounted) return;
 
-      // Show priority feedback in the confirmation dialog
       String priorityMsg = '';
       if (priorityResult.duplicateCount > 0) {
         priorityMsg =
@@ -451,52 +443,60 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Colors.grey.shade300,
-                borderRadius: BorderRadius.circular(2),
+      builder: (context) => SafeArea(
+        // WRAPPED IN SAFEAREA
+        child: Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          padding: const EdgeInsets.fromLTRB(
+            20,
+            10,
+            20,
+            20,
+          ), // ADDED BOTTOM PADDING
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(2),
+                ),
               ),
-            ),
-            const SizedBox(height: 20),
-            const Text(
-              'Attach Photo',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 20),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                _imagePickerOption(
-                  icon: Icons.camera_alt_rounded,
-                  label: 'Camera',
-                  onTap: () {
-                    Navigator.pop(context);
-                    _pickImage(ImageSource.camera);
-                  },
-                ),
-                _imagePickerOption(
-                  icon: Icons.photo_library_rounded,
-                  label: 'Gallery',
-                  onTap: () {
-                    Navigator.pop(context);
-                    _pickImage(ImageSource.gallery);
-                  },
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-          ],
+              const SizedBox(height: 20),
+              const Text(
+                'Attach Photo',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 20),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  _imagePickerOption(
+                    icon: Icons.camera_alt_rounded,
+                    label: 'Camera',
+                    onTap: () {
+                      Navigator.pop(context);
+                      _pickImage(ImageSource.camera);
+                    },
+                  ),
+                  _imagePickerOption(
+                    icon: Icons.photo_library_rounded,
+                    label: 'Gallery',
+                    onTap: () {
+                      Navigator.pop(context);
+                      _pickImage(ImageSource.gallery);
+                    },
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+            ],
+          ),
         ),
       ),
     );
