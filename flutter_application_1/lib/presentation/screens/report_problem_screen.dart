@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:shared_preferences/shared_preferences.dart'; // ADDED: SharedPreferences for anti-spam
 import 'dart:io';
 
 import '../../core/utils/toast_utils.dart';
@@ -48,15 +49,33 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
       ToastUtils.showSuccess('Location attached successfully');
     } else {
       setState(() => _isGettingLocation = false);
-      ToastUtils.showError('Could not get precise location. You can still submit the report.');
+      ToastUtils.showError(
+        'Could not get precise location. You can still submit the report.',
+      );
     }
   }
 
-  void _submitReport() {
+  // CHANGED: Made async to support SharedPreferences anti-spam check
+  Future<void> _submitReport() async {
     if (_formKey.currentState!.validate()) {
+      // --- ANTI-SPAM COOLDOWN LOGIC ---
+      final prefs = await SharedPreferences.getInstance();
+      final lastSubmitTime = prefs.getInt('last_report_time') ?? 0;
+      final currentTime = DateTime.now().millisecondsSinceEpoch;
+
+      // Check if 5 minutes (300,000 milliseconds) have passed
+      if (currentTime - lastSubmitTime < 5 * 60 * 1000) {
+        ToastUtils.showError(
+          'Please wait 5 minutes between submitting reports to prevent spam.',
+        );
+        return; // Abort the submission
+      }
+      // --------------------------------
+
       _formKey.currentState!.save();
 
-      final municipalityReportingTo = oneVizcayaState.selectedMunicipality.value;
+      final municipalityReportingTo =
+          oneVizcayaState.selectedMunicipality.value;
 
       final reportDetails =
           'Reporting to: $municipalityReportingTo\n'
@@ -69,6 +88,9 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
       } else {
         _sendOnlineReport(municipalityReportingTo);
       }
+
+      // Save the new timestamp after a successful submission attempt
+      await prefs.setInt('last_report_time', currentTime);
     }
   }
 
@@ -76,7 +98,8 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
     String localizedHotline = '+639170000000';
     if (municipality == 'Solano') localizedHotline = '+639181111111';
 
-    final String smsUri = 'sms:$localizedHotline?body=${Uri.encodeComponent(details)}';
+    final String smsUri =
+        'sms:$localizedHotline?body=${Uri.encodeComponent(details)}';
     try {
       if (await canLaunchUrl(Uri.parse(smsUri))) {
         await launchUrl(Uri.parse(smsUri));
@@ -126,6 +149,7 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
       setState(() {
         _selectedCategory = null;
         _currentPosition = null;
+        _selectedImage = null; // Clear image on success too
       });
 
       if (!mounted) return;
@@ -133,22 +157,28 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
       // Show priority feedback in the confirmation dialog
       String priorityMsg = '';
       if (priorityResult.duplicateCount > 0) {
-        priorityMsg = '\n\n📊 ${priorityResult.duplicateCount} similar report(s) found in the last 48 hours. '
+        priorityMsg =
+            '\n\n📊 ${priorityResult.duplicateCount} similar report(s) found in the last 48 hours. '
             'Priority auto-escalated to ${priorityResult.priority.displayName}.';
       } else {
-        priorityMsg = '\n\nPriority level: ${priorityResult.priority.displayName}.';
+        priorityMsg =
+            '\n\nPriority level: ${priorityResult.priority.displayName}.';
       }
 
       _showConfirmationDialog(
         title: 'Report Submitted',
-        content: 'Your report has been successfully routed to the $municipality municipal engineering database.$priorityMsg',
+        content:
+            'Your report has been successfully routed to the $municipality municipal engineering database.$priorityMsg',
       );
     } catch (e) {
       ToastUtils.showError('Error preparing report: $e');
     }
   }
 
-  void _showConfirmationDialog({required String title, required String content}) {
+  void _showConfirmationDialog({
+    required String title,
+    required String content,
+  }) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -187,8 +217,12 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
             children: [
               SwitchListTile(
                 title: Text(
-                  _isOffline ? 'Report via SMS (Offline)' : 'Report via App (Online)',
-                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold),
+                  _isOffline
+                      ? 'Report via SMS (Offline)'
+                      : 'Report via App (Online)',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold),
                 ),
                 subtitle: Text(
                   _isOffline
@@ -211,15 +245,21 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
                     value: category,
                     child: Row(
                       children: [
-                        Icon(category.basePriority.icon, size: 16, color: category.basePriority.color),
+                        Icon(
+                          category.basePriority.icon,
+                          size: 16,
+                          color: category.basePriority.color,
+                        ),
                         const SizedBox(width: 8),
                         Expanded(child: Text(category.displayName)),
                       ],
                     ),
                   );
                 }).toList(),
-                onChanged: (newValue) => setState(() => _selectedCategory = newValue),
-                validator: (value) => value == null ? 'Please select a category' : null,
+                onChanged: (newValue) =>
+                    setState(() => _selectedCategory = newValue),
+                validator: (value) =>
+                    value == null ? 'Please select a category' : null,
                 decoration: InputDecoration(
                   labelText: 'Category',
                   prefixIcon: Icon(Icons.category, color: primaryLguColor),
@@ -231,21 +271,37 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
               ),
               if (_selectedCategory != null) ...[
                 Padding(
-                  padding: const EdgeInsets.only(top: 8.0, left: 12.0, right: 12.0),
+                  padding: const EdgeInsets.only(
+                    top: 8.0,
+                    left: 12.0,
+                    right: 12.0,
+                  ),
                   child: Text(
                     _selectedCategory!.description,
-                    style: TextStyle(fontSize: 12, color: Colors.grey[700], fontStyle: FontStyle.italic),
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey[700],
+                      fontStyle: FontStyle.italic,
+                    ),
                   ),
                 ),
                 Padding(
                   padding: const EdgeInsets.only(top: 4.0, left: 12.0),
                   child: Row(
                     children: [
-                      Icon(_selectedCategory!.basePriority.icon, size: 14, color: _selectedCategory!.basePriority.color),
+                      Icon(
+                        _selectedCategory!.basePriority.icon,
+                        size: 14,
+                        color: _selectedCategory!.basePriority.color,
+                      ),
                       const SizedBox(width: 4),
                       Text(
                         'Base Priority: ${_selectedCategory!.basePriority.displayName}',
-                        style: TextStyle(fontSize: 12, color: _selectedCategory!.basePriority.color, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: _selectedCategory!.basePriority.color,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ],
                   ),
@@ -257,24 +313,43 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
                 decoration: InputDecoration(
                   labelText: 'Location / Landmark',
                   prefixIcon: Icon(Icons.location_on, color: primaryLguColor),
-                  hintText: 'e.g., "In front of $activeMunicipalityName Municipal Hall"',
+                  hintText:
+                      'e.g., "In front of $activeMunicipalityName Municipal Hall"',
                   focusedBorder: OutlineInputBorder(
                     borderSide: BorderSide(color: primaryLguColor, width: 2),
                   ),
                   labelStyle: TextStyle(color: primaryLguColor),
                 ),
-                validator: (value) => value == null || value.isEmpty ? 'Please enter a location' : null,
+                validator: (value) => value == null || value.isEmpty
+                    ? 'Please enter a location'
+                    : null,
               ),
               const SizedBox(height: 16),
               OutlinedButton.icon(
                 icon: _isGettingLocation
-                    ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
                     : const Icon(Icons.gps_fixed),
-                label: Text(_currentPosition != null ? 'Location Attached' : 'Attach Precise Location (GPS)'),
-                onPressed: _isOffline || _isGettingLocation ? null : _getLocation,
+                label: Text(
+                  _currentPosition != null
+                      ? 'Location Attached'
+                      : 'Attach Precise Location (GPS)',
+                ),
+                onPressed: _isOffline || _isGettingLocation
+                    ? null
+                    : _getLocation,
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: _currentPosition != null ? Colors.green : primaryLguColor,
-                  side: BorderSide(color: _currentPosition != null ? Colors.green : primaryLguColor),
+                  foregroundColor: _currentPosition != null
+                      ? Colors.green
+                      : primaryLguColor,
+                  side: BorderSide(
+                    color: _currentPosition != null
+                        ? Colors.green
+                        : primaryLguColor,
+                  ),
                 ),
               ),
               const SizedBox(height: 16),
@@ -290,16 +365,28 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
                   labelStyle: TextStyle(color: primaryLguColor),
                 ),
                 maxLines: 4,
-                validator: (value) => value == null || value.isEmpty ? 'Please enter a description' : null,
+                validator: (value) => value == null || value.isEmpty
+                    ? 'Please enter a description'
+                    : null,
               ),
               const SizedBox(height: 16),
               OutlinedButton.icon(
                 icon: const Icon(Icons.camera_alt),
-                label: Text(_selectedImage != null ? 'Photo Attached ✓' : 'Attach Photo (Optional)'),
+                label: Text(
+                  _selectedImage != null
+                      ? 'Photo Attached ✓'
+                      : 'Attach Photo (Optional)',
+                ),
                 onPressed: _isOffline ? null : () => _showImagePickerOptions(),
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: _selectedImage != null ? Colors.green : primaryLguColor,
-                  side: BorderSide(color: _selectedImage != null ? Colors.green : primaryLguColor),
+                  foregroundColor: _selectedImage != null
+                      ? Colors.green
+                      : primaryLguColor,
+                  side: BorderSide(
+                    color: _selectedImage != null
+                        ? Colors.green
+                        : primaryLguColor,
+                  ),
                 ),
               ),
               if (_selectedImage != null) ...[
@@ -326,7 +413,11 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
                             color: Colors.black54,
                             shape: BoxShape.circle,
                           ),
-                          child: const Icon(Icons.close, color: Colors.white, size: 18),
+                          child: const Icon(
+                            Icons.close,
+                            color: Colors.white,
+                            size: 18,
+                          ),
                         ),
                       ),
                     ),
@@ -411,7 +502,11 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
     );
   }
 
-  Widget _imagePickerOption({required IconData icon, required String label, required VoidCallback onTap}) {
+  Widget _imagePickerOption({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+  }) {
     return GestureDetector(
       onTap: onTap,
       child: Column(

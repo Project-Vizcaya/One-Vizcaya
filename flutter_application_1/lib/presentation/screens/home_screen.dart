@@ -224,37 +224,67 @@ class _HomeScreenState extends State<HomeScreen> {
 
           const SizedBox(height: 20),
 
-          // ── Services Section ──
+          // ── Agri-Weather Widget (Fallback UI) ──
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'Services',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF333333),
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.blue.shade50,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.blue.shade100),
+              ),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.cloud_queue,
+                    size: 40,
+                    color: Colors.blueGrey,
                   ),
-                ),
-                GestureDetector(
-                  onTap: () {},
-                  child: Text(
-                    'See all',
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: Colors.grey.shade500,
-                      fontWeight: FontWeight.w500,
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '$municipality Weather',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                            color: Colors.blueGrey,
+                          ),
+                        ),
+                        const Text(
+                          'Partly Cloudy • 28°C\n(Offline Fallback Data)',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: Colors.blueGrey,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          // ── Citizen Services Header ──
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 20),
+            child: Text(
+              'Citizen Services',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF333333),
+              ),
             ),
           ),
           const SizedBox(height: 16),
 
-          // ── Service Grid (row 1) ──
+          // ── Service Grid (Row 1 - 3 Items) ──
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Row(
@@ -281,6 +311,31 @@ class _HomeScreenState extends State<HomeScreen> {
                   bgColor: const Color(0xFFE53935),
                   onTap: () => Navigator.of(context).pushNamed('/contacts'),
                 ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          // ── Information & Support Header ──
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 20),
+            child: Text(
+              'Information & Support',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF333333),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // ── Service Grid (Row 2 - 3 Items) ──
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
                 _ServiceGridItem(
                   icon: Icons.campaign_rounded,
                   label: 'Announce\nments',
@@ -289,17 +344,6 @@ class _HomeScreenState extends State<HomeScreen> {
                   onTap: () =>
                       Navigator.of(context).pushNamed('/announcements'),
                 ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-
-          // ── Service Grid (row 2) ──
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
                 _ServiceGridItem(
                   icon: Icons.help_outline_rounded,
                   label: 'Support\n& FAQs',
@@ -308,21 +352,12 @@ class _HomeScreenState extends State<HomeScreen> {
                   onTap: () => Navigator.of(context).pushNamed('/support'),
                 ),
                 _ServiceGridItem(
-                  icon: Icons.notifications_rounded,
-                  label: 'Notifi\ncations',
-                  iconColor: Colors.white,
-                  bgColor: const Color(0xFF7B1FA2),
-                  onTap: () =>
-                      Navigator.of(context).pushNamed('/notifications'),
-                ),
-                _ServiceGridItem(
                   icon: Icons.settings_rounded,
                   label: 'App\nSettings',
                   iconColor: Colors.white,
                   bgColor: const Color(0xFF546E7A),
                   onTap: () {},
                 ),
-                const SizedBox(width: 72),
               ],
             ),
           ),
