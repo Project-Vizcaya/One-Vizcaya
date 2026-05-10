@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../core/constants/app_constants.dart';
 import '../state/municipality_state.dart';
+import '../../features/announcements/presentation/widgets/announcements_carousel.dart';
+import '../../features/reports/presentation/widgets/community_feed.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -27,8 +29,8 @@ class _HomeScreenState extends State<HomeScreen> {
             child: _selectedNavIndex == 0
                 ? _buildHomePage(context, municipality, appBarColor, welcomeMsg)
                 : _selectedNavIndex == 1
-                    ? _buildReportsPage(context, municipality, appBarColor)
-                    : _buildProfileRedirect(context),
+                ? _buildReportsPage(context, municipality, appBarColor)
+                : _buildProfileRedirect(context),
           ),
           bottomNavigationBar: _buildBottomNav(appBarColor),
         );
@@ -51,10 +53,13 @@ class _HomeScreenState extends State<HomeScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             child: Row(
               children: [
-                // Municipality selector
                 Expanded(
                   child: GestureDetector(
-                    onTap: () => _showMunicipalityPicker(context, municipality, appBarColor),
+                    onTap: () => _showMunicipalityPicker(
+                      context,
+                      municipality,
+                      appBarColor,
+                    ),
                     child: Row(
                       children: [
                         Text(
@@ -66,12 +71,15 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                         ),
                         const SizedBox(width: 4),
-                        Icon(Icons.keyboard_arrow_down, color: Colors.grey.shade600, size: 22),
+                        Icon(
+                          Icons.keyboard_arrow_down,
+                          color: Colors.grey.shade600,
+                          size: 22,
+                        ),
                       ],
                     ),
                   ),
                 ),
-                // Notification icon
                 Container(
                   decoration: BoxDecoration(
                     color: Colors.white,
@@ -85,12 +93,16 @@ class _HomeScreenState extends State<HomeScreen> {
                     ],
                   ),
                   child: IconButton(
-                    icon: const Icon(Icons.notifications_outlined, color: Color(0xFF333333), size: 22),
-                    onPressed: () => Navigator.of(context).pushNamed('/notifications'),
+                    icon: const Icon(
+                      Icons.notifications_outlined,
+                      color: Color(0xFF333333),
+                      size: 22,
+                    ),
+                    onPressed: () =>
+                        Navigator.of(context).pushNamed('/notifications'),
                   ),
                 ),
                 const SizedBox(width: 8),
-                // Profile icon
                 GestureDetector(
                   onTap: () => Navigator.of(context).pushNamed('/profile'),
                   child: Container(
@@ -107,7 +119,11 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       ],
                     ),
-                    child: const Icon(Icons.person, color: Colors.white, size: 20),
+                    child: const Icon(
+                      Icons.person,
+                      color: Colors.white,
+                      size: 20,
+                    ),
                   ),
                 ),
               ],
@@ -172,7 +188,41 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
 
-          const SizedBox(height: 24),
+          const SizedBox(height: 20),
+
+          // ── Announcements Carousel ──
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Announcements',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF333333),
+                  ),
+                ),
+                GestureDetector(
+                  onTap: () =>
+                      Navigator.of(context).pushNamed('/announcements'),
+                  child: Text(
+                    'See all',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Colors.grey.shade500,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
+          AnnouncementsCarousel(municipality: municipality),
+
+          const SizedBox(height: 20),
 
           // ── Services Section ──
           Padding(
@@ -236,7 +286,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   label: 'Announce\nments',
                   iconColor: Colors.white,
                   bgColor: const Color(0xFF1565C0),
-                  onTap: () => Navigator.of(context).pushNamed('/announcements'),
+                  onTap: () =>
+                      Navigator.of(context).pushNamed('/announcements'),
                 ),
               ],
             ),
@@ -261,7 +312,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   label: 'Notifi\ncations',
                   iconColor: Colors.white,
                   bgColor: const Color(0xFF7B1FA2),
-                  onTap: () => Navigator.of(context).pushNamed('/notifications'),
+                  onTap: () =>
+                      Navigator.of(context).pushNamed('/notifications'),
                 ),
                 _ServiceGridItem(
                   icon: Icons.settings_rounded,
@@ -270,8 +322,57 @@ class _HomeScreenState extends State<HomeScreen> {
                   bgColor: const Color(0xFF546E7A),
                   onTap: () {},
                 ),
-                const SizedBox(width: 72), // Spacer for alignment
+                const SizedBox(width: 72),
               ],
+            ),
+          ),
+
+          const SizedBox(height: 28),
+
+          // ── Community Feed ──
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Recently Resolved',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF333333),
+                  ),
+                ),
+                Text(
+                  'Live',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Colors.green.shade600,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.04),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: CommunityFeed(municipality: municipality),
+              ),
             ),
           ),
 
@@ -281,13 +382,18 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildReportsPage(BuildContext context, String municipality, Color appBarColor) {
-    // Quick redirect to the reports status screen
+  Widget _buildReportsPage(
+    BuildContext context,
+    String municipality,
+    Color appBarColor,
+  ) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Navigator.of(context).pushNamed('/status');
       setState(() => _selectedNavIndex = 0);
     });
-    return const Center(child: CircularProgressIndicator(color: Color(0xFF4CAF50)));
+    return const Center(
+      child: CircularProgressIndicator(color: Color(0xFF4CAF50)),
+    );
   }
 
   Widget _buildProfileRedirect(BuildContext context) {
@@ -295,17 +401,22 @@ class _HomeScreenState extends State<HomeScreen> {
       Navigator.of(context).pushNamed('/profile');
       setState(() => _selectedNavIndex = 0);
     });
-    return const Center(child: CircularProgressIndicator(color: Color(0xFF4CAF50)));
+    return const Center(
+      child: CircularProgressIndicator(color: Color(0xFF4CAF50)),
+    );
   }
 
-  /// Get a municipality's theme color
   Color _getMunicipalityColor(String name) {
     final theme = AppConstants.municipalityThemes[name];
     if (theme != null) return theme['appBarColor'] as Color;
     return const Color(0xFF616161);
   }
 
-  void _showMunicipalityPicker(BuildContext context, String current, Color appBarColor) {
+  void _showMunicipalityPicker(
+    BuildContext context,
+    String current,
+    Color appBarColor,
+  ) {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -329,7 +440,11 @@ class _HomeScreenState extends State<HomeScreen> {
             const SizedBox(height: 16),
             const Text(
               'Select Municipality',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF333333)),
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF333333),
+              ),
             ),
             const SizedBox(height: 8),
             Flexible(
@@ -345,22 +460,34 @@ class _HomeScreenState extends State<HomeScreen> {
                       width: 32,
                       height: 32,
                       decoration: BoxDecoration(
-                        color: isSelected ? mColor : mColor.withValues(alpha: 0.15),
+                        color: isSelected
+                            ? mColor
+                            : mColor.withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: isSelected
-                          ? const Icon(Icons.check, color: Colors.white, size: 18)
+                          ? const Icon(
+                              Icons.check,
+                              color: Colors.white,
+                              size: 18,
+                            )
                           : null,
                     ),
                     title: Text(
                       m,
                       style: TextStyle(
-                        fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                        fontWeight: isSelected
+                            ? FontWeight.w600
+                            : FontWeight.normal,
                         color: isSelected ? mColor : const Color(0xFF333333),
                       ),
                     ),
-                    tileColor: isSelected ? mColor.withValues(alpha: 0.05) : null,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    tileColor: isSelected
+                        ? mColor.withValues(alpha: 0.05)
+                        : null,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                     onTap: () {
                       oneVizcayaState.selectedMunicipality.value = m;
                       Navigator.of(context).pop();
@@ -424,9 +551,6 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-
-
-// ── Service grid icon item (circular icon + label) ──
 class _ServiceGridItem extends StatelessWidget {
   final IconData icon;
   final String label;
@@ -486,7 +610,6 @@ class _ServiceGridItem extends StatelessWidget {
   }
 }
 
-// ── Bottom nav item ──
 class _BottomNavItem extends StatelessWidget {
   final IconData icon;
   final bool isSelected;

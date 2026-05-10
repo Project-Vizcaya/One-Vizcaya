@@ -1,18 +1,20 @@
 import 'package:flutter/material.dart';
 import '../../core/constants/app_constants.dart';
 import '../state/municipality_state.dart';
+import '../../features/auth/presentation/screens/privacy_policy_screen.dart';
 
 class MunicipalitySetupScreen extends StatefulWidget {
   const MunicipalitySetupScreen({super.key});
 
   @override
-  _MunicipalitySetupScreenState createState() => _MunicipalitySetupScreenState();
+  _MunicipalitySetupScreenState createState() =>
+      _MunicipalitySetupScreenState();
 }
 
 class _MunicipalitySetupScreenState extends State<MunicipalitySetupScreen> {
   String? _selectedTown;
+  bool _hasAcceptedPrivacy = false;
 
-  /// Get the municipality color from themes
   Color _getMunicipalityColor(String name) {
     final theme = AppConstants.municipalityThemes[name];
     if (theme != null) {
@@ -44,7 +46,9 @@ class _MunicipalitySetupScreenState extends State<MunicipalitySetupScreen> {
               Text(
                 'Select Your Municipality',
                 textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(color: primaryColor),
+                style: Theme.of(
+                  context,
+                ).textTheme.headlineSmall?.copyWith(color: primaryColor),
               ),
               const SizedBox(height: 12),
               Text(
@@ -79,7 +83,9 @@ class _MunicipalitySetupScreenState extends State<MunicipalitySetupScreen> {
                             town,
                             style: TextStyle(
                               color: Colors.black87,
-                              fontWeight: _selectedTown == town ? FontWeight.w600 : FontWeight.normal,
+                              fontWeight: _selectedTown == town
+                                  ? FontWeight.w600
+                                  : FontWeight.normal,
                             ),
                           ),
                         ),
@@ -88,9 +94,7 @@ class _MunicipalitySetupScreenState extends State<MunicipalitySetupScreen> {
                   );
                 }).toList(),
                 onChanged: (newValue) {
-                  setState(() {
-                    _selectedTown = newValue;
-                  });
+                  setState(() => _selectedTown = newValue);
                 },
                 decoration: const InputDecoration(
                   labelText: 'Municipality',
@@ -101,16 +105,61 @@ class _MunicipalitySetupScreenState extends State<MunicipalitySetupScreen> {
                   labelStyle: TextStyle(color: primaryColor),
                 ),
               ),
-              const SizedBox(height: 32),
+
+              const SizedBox(height: 24),
+
+              // ── Privacy consent checkbox ──
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Checkbox(
+                    value: _hasAcceptedPrivacy,
+                    activeColor: primaryColor,
+                    onChanged: (val) =>
+                        setState(() => _hasAcceptedPrivacy = val ?? false),
+                  ),
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const PrivacyPolicyScreen(),
+                        ),
+                      ),
+                      child: const Text.rich(
+                        TextSpan(
+                          children: [
+                            TextSpan(text: 'I agree to the '),
+                            TextSpan(
+                              text: 'Privacy Policy',
+                              style: TextStyle(
+                                color: Color(0xFF00796B),
+                                decoration: TextDecoration.underline,
+                              ),
+                            ),
+                            TextSpan(text: ' (RA 10173)'),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 16),
+
+              // ── Complete Setup Button ──
               ElevatedButton(
-                onPressed: _selectedTown == null
+                onPressed: (_selectedTown == null || !_hasAcceptedPrivacy)
                     ? null
                     : () {
-                        oneVizcayaState.selectedMunicipality.value = _selectedTown!;
+                        oneVizcayaState.selectedMunicipality.value =
+                            _selectedTown!;
                         Navigator.of(context).pushReplacementNamed('/home');
                       },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: _selectedTown != null
+                  backgroundColor:
+                      (_selectedTown != null && _hasAcceptedPrivacy)
                       ? _getMunicipalityColor(_selectedTown!)
                       : primaryColor,
                   foregroundColor: Colors.white,
