@@ -6,6 +6,7 @@ import '../../data/services/profile_service.dart';
 import '../../domain/models/user_profile.dart';
 import '../../core/constants/app_constants.dart';
 import '../../core/utils/toast_utils.dart';
+import '../../core/widgets/profile_qr_sheet.dart';
 
 class ProfileManagementScreen extends StatefulWidget {
   const ProfileManagementScreen({super.key});
@@ -30,14 +31,10 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
     final user = _auth.currentUser;
     if (user == null) return;
 
-    // Check admin status
     debugPrint('═══ YOUR FIREBASE UID: ${user.uid} ═══');
     final isAdmin = await adminService.isAdmin(user.uid);
 
-    // Load profile from Firestore
     UserProfile? profile = await profileService.getProfile(user.uid);
-
-    // If no profile exists yet, create one with phone number from Auth
     profile ??= UserProfile(
       uid: user.uid,
       phoneNumber: user.phoneNumber ?? '',
@@ -82,7 +79,6 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Drag handle
                 Center(
                   child: Container(
                     width: 40,
@@ -103,7 +99,6 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
                   ),
                 ),
                 const SizedBox(height: 24),
-                // Name
                 TextFormField(
                   controller: nameController,
                   decoration: InputDecoration(
@@ -127,7 +122,6 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
                   },
                 ),
                 const SizedBox(height: 16),
-                // Email
                 TextFormField(
                   controller: emailController,
                   keyboardType: TextInputType.emailAddress,
@@ -156,7 +150,6 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
                   },
                 ),
                 const SizedBox(height: 16),
-                // Location
                 DropdownButtonFormField<String>(
                   initialValue: locationController.text.isNotEmpty &&
                           AppConstants.municipalities.contains(locationController.text)
@@ -183,21 +176,17 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
                   onChanged: (v) => locationController.text = v ?? '',
                 ),
                 const SizedBox(height: 28),
-                // Save button
                 SizedBox(
                   height: 52,
                   child: ElevatedButton(
                     onPressed: () async {
                       if (!formKey.currentState!.validate()) return;
-
                       final updated = _profile!.copyWith(
                         name: nameController.text.trim(),
                         email: emailController.text.trim(),
                         location: locationController.text.trim(),
                       );
-
                       await profileService.saveProfile(updated);
-
                       if (mounted) {
                         setState(() => _profile = updated);
                         Navigator.of(context).pop();
@@ -271,9 +260,11 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
                     ),
                   ),
                   actions: [
+                    // ── QR Code Button — NOW WORKING ──
                     IconButton(
                       icon: const Icon(Icons.qr_code_rounded, size: 22),
-                      onPressed: () => ToastUtils.showInfo('QR code feature coming soon'),
+                      tooltip: 'Show Citizen QR Code',
+                      onPressed: () => ProfileQrSheet.show(context),
                     ),
                   ],
                 ),
@@ -284,7 +275,6 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
                     padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
                     child: Column(
                       children: [
-                        // Avatar
                         Container(
                           width: 80,
                           height: 80,
@@ -313,7 +303,6 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
                           ),
                         ),
                         const SizedBox(height: 14),
-                        // Name
                         Text(
                           _profile?.name.isNotEmpty == true
                               ? _profile!.name.toUpperCase()
@@ -326,7 +315,6 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
                           ),
                         ),
                         const SizedBox(height: 4),
-                        // Phone (tap to copy UID)
                         GestureDetector(
                           onLongPress: () {
                             final uid = user?.uid ?? '';
@@ -353,7 +341,6 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
                             ],
                           ),
                         ),
-                        // Email
                         if (_profile?.email.isNotEmpty == true) ...[
                           const SizedBox(height: 2),
                           Text(
@@ -364,7 +351,6 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
                             ),
                           ),
                         ],
-                        // Location
                         if (_profile?.location.isNotEmpty == true) ...[
                           const SizedBox(height: 2),
                           Row(
@@ -383,7 +369,6 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
                           ),
                         ],
                         const SizedBox(height: 16),
-                        // Edit Profile button
                         SizedBox(
                           width: double.infinity,
                           height: 44,
@@ -424,7 +409,6 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Section label
                         Padding(
                           padding: const EdgeInsets.only(left: 20, top: 20, bottom: 4),
                           child: Text(
@@ -437,34 +421,24 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
                             ),
                           ),
                         ),
-
-                        // ── Menu items ──
-
-                        // My Reports
                         _ProfileMenuItem(
                           icon: Icons.description_outlined,
                           label: 'My Reports',
                           onTap: () => Navigator.of(context).pushNamed('/status'),
                         ),
                         _menuDivider(),
-
-                        // Emergency Contacts
                         _ProfileMenuItem(
                           icon: Icons.local_hospital_outlined,
                           label: 'Emergency Contacts',
                           onTap: () => Navigator.of(context).pushNamed('/contacts'),
                         ),
                         _menuDivider(),
-
-                        // Announcements
                         _ProfileMenuItem(
                           icon: Icons.campaign_outlined,
                           label: 'Announcements',
                           onTap: () => Navigator.of(context).pushNamed('/announcements'),
                         ),
                         _menuDivider(),
-
-                        // Support
                         _ProfileMenuItem(
                           icon: Icons.help_outline,
                           label: 'Support & FAQs',
@@ -472,14 +446,13 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
                         ),
                         _menuDivider(),
 
-                        // Settings
+                        // ── Settings — NOW WORKING ──
                         _ProfileMenuItem(
                           icon: Icons.settings_outlined,
                           label: 'Settings',
-                          onTap: () => ToastUtils.showInfo('Settings coming soon'),
+                          onTap: () => Navigator.of(context).pushNamed('/settings'),
                         ),
 
-                        // ── Admin Dashboard (admin only) ──
                         if (_isAdmin) ...[
                           _menuDivider(),
                           _ProfileMenuItem(
@@ -490,10 +463,7 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
                             onTap: () => Navigator.of(context).pushNamed('/admin'),
                           ),
                         ],
-
                         _menuDivider(),
-
-                        // Log Out
                         _ProfileMenuItem(
                           icon: Icons.logout,
                           label: 'Log Out',
@@ -501,20 +471,57 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
                           onTap: () {
                             adminService.clearCache();
                             FirebaseAuth.instance.signOut();
-                            Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+                            Navigator.of(context)
+                                .pushNamedAndRemoveUntil('/login', (route) => false);
                           },
                         ),
-
                         const SizedBox(height: 8),
                       ],
                     ),
                   ),
                 ),
 
-                // Bottom spacing
-                const SliverToBoxAdapter(
-                  child: SizedBox(height: 40),
+                // ── Bottom: QR Code shortcut ──
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                    child: GestureDetector(
+                      onTap: () => ProfileQrSheet.show(context),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(14),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.04),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.qr_code_rounded,
+                                size: 18, color: Colors.grey.shade600),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Show My Citizen QR Code',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                                color: Colors.grey.shade600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
+
+                const SliverToBoxAdapter(child: SizedBox(height: 40)),
               ],
             ),
     );
@@ -528,7 +535,6 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
   }
 }
 
-/// A single row in the profile menu list.
 class _ProfileMenuItem extends StatelessWidget {
   final IconData icon;
   final String label;
