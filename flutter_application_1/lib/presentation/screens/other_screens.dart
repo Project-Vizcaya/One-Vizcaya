@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../state/municipality_state.dart';
 import '../../core/utils/toast_utils.dart';
-import '../state/municipality_state.dart';
 
 class OtherScreens extends StatelessWidget {
   const OtherScreens({super.key});

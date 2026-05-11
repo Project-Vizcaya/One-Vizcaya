@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../state/municipality_state.dart';
 import '../../core/utils/toast_utils.dart';
-import '../../core/constants/app_constants.dart';
 
 class AppSettingsScreen extends StatefulWidget {
   const AppSettingsScreen({super.key});
@@ -44,8 +43,7 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
     ToastUtils.showSuccess('Setting saved');
   }
 
-  Color get _lguColor =>
-      oneVizcayaState.activeTheme['appBarColor'] as Color;
+  Color get _lguColor => oneVizcayaState.activeTheme['appBarColor'] as Color;
 
   @override
   Widget build(BuildContext context) {
@@ -66,162 +64,181 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
           children: [
             // ── Notifications ──
             _SectionHeader(label: 'NOTIFICATIONS'),
-            _SettingsCard(children: [
-              _ToggleTile(
-                icon: Icons.notifications_outlined,
-                iconColor: const Color(0xFF7B1FA2),
-                title: 'Push Notifications',
-                subtitle: 'Get notified when your report status changes',
-                value: _notificationsEnabled,
-                onChanged: (val) {
-                  setState(() => _notificationsEnabled = val);
-                  _saveSetting('notifications_enabled', val);
-                },
-              ),
-            ]),
+            _SettingsCard(
+              children: [
+                _ToggleTile(
+                  icon: Icons.notifications_outlined,
+                  iconColor: const Color(0xFF7B1FA2),
+                  title: 'Push Notifications',
+                  subtitle: 'Get notified when your report status changes',
+                  value: _notificationsEnabled,
+                  onChanged: (val) {
+                    setState(() => _notificationsEnabled = val);
+                    _saveSetting('notifications_enabled', val);
+                  },
+                ),
+              ],
+            ),
 
             // ── Location & Privacy ──
             _SectionHeader(label: 'LOCATION & PRIVACY'),
-            _SettingsCard(children: [
-              _ToggleTile(
-                icon: Icons.location_on_outlined,
-                iconColor: const Color(0xFF1565C0),
-                title: 'Location Services',
-                subtitle: 'Used for accurate weather and report geotagging',
-                value: _locationEnabled,
-                onChanged: (val) {
-                  setState(() => _locationEnabled = val);
-                  _saveSetting('location_enabled', val);
-                },
-              ),
-              _DividerLine(),
-              _NavigationTile(
-                icon: Icons.privacy_tip_outlined,
-                iconColor: const Color(0xFF2E7D32),
-                title: 'Privacy Policy',
-                subtitle: 'RA 10173 — Data Privacy Act of 2012',
-                onTap: () => Navigator.of(context).pushNamed('/privacy'),
-              ),
-              _DividerLine(),
-              _NavigationTile(
-                icon: Icons.delete_outline,
-                iconColor: const Color(0xFFE53935),
-                title: 'Delete My Account',
-                subtitle: 'Request permanent data deletion',
-                onTap: () => _showDeleteAccountDialog(context),
-              ),
-            ]),
+            _SettingsCard(
+              children: [
+                _ToggleTile(
+                  icon: Icons.location_on_outlined,
+                  iconColor: const Color(0xFF1565C0),
+                  title: 'Location Services',
+                  subtitle: 'Used for accurate weather and report geotagging',
+                  value: _locationEnabled,
+                  onChanged: (val) {
+                    setState(() => _locationEnabled = val);
+                    _saveSetting('location_enabled', val);
+                  },
+                ),
+                _DividerLine(),
+                _NavigationTile(
+                  icon: Icons.privacy_tip_outlined,
+                  iconColor: const Color(0xFF2E7D32),
+                  title: 'Privacy Policy',
+                  subtitle: 'RA 10173 — Data Privacy Act of 2012',
+                  onTap: () => Navigator.of(context).pushNamed('/privacy'),
+                ),
+                _DividerLine(),
+                _NavigationTile(
+                  icon: Icons.delete_outline,
+                  iconColor: const Color(0xFFE53935),
+                  title: 'Delete My Account',
+                  subtitle: 'Request permanent data deletion',
+                  onTap: () => _showDeleteAccountDialog(context),
+                ),
+              ],
+            ),
 
             // ── Offline & Data ──
             _SectionHeader(label: 'OFFLINE & DATA'),
-            _SettingsCard(children: [
-              _ToggleTile(
-                icon: Icons.offline_bolt_outlined,
-                iconColor: const Color(0xFFE65100),
-                title: 'Offline Mode',
-                subtitle: 'Cache data for areas with weak connectivity',
-                value: _offlineModeEnabled,
-                onChanged: (val) {
-                  setState(() => _offlineModeEnabled = val);
-                  _saveSetting('offline_mode', val);
-                },
-              ),
-              _DividerLine(),
-              _NavigationTile(
-                icon: Icons.cleaning_services_outlined,
-                iconColor: const Color(0xFF546E7A),
-                title: 'Clear Cache',
-                subtitle: 'Free up storage used by the app',
-                onTap: () => _showClearCacheDialog(context),
-              ),
-            ]),
+            _SettingsCard(
+              children: [
+                _ToggleTile(
+                  icon: Icons.offline_bolt_outlined,
+                  iconColor: const Color(0xFFE65100),
+                  title: 'Offline Mode',
+                  subtitle: 'Cache data for areas with weak connectivity',
+                  value: _offlineModeEnabled,
+                  onChanged: (val) {
+                    setState(() => _offlineModeEnabled = val);
+                    _saveSetting('offline_mode', val);
+                  },
+                ),
+                _DividerLine(),
+                _NavigationTile(
+                  icon: Icons.cleaning_services_outlined,
+                  iconColor: const Color(0xFF546E7A),
+                  title: 'Clear Cache',
+                  subtitle: 'Free up storage used by the app',
+                  onTap: () => _showClearCacheDialog(context),
+                ),
+              ],
+            ),
 
             // ── Reports ──
             _SectionHeader(label: 'REPORTS'),
-            _SettingsCard(children: [
-              _DropdownTile(
-                icon: Icons.sort,
-                iconColor: const Color(0xFF00897B),
-                title: 'Default Sort Order',
-                subtitle: 'How your reports are listed by default',
-                value: _reportSortOrder,
-                options: const ['Newest First', 'Oldest First', 'Highest Priority'],
-                onChanged: (val) {
-                  if (val != null) {
-                    setState(() => _reportSortOrder = val);
-                    _saveSetting('report_sort', val);
-                  }
-                },
-                lguColor: _lguColor,
-              ),
-            ]),
+            _SettingsCard(
+              children: [
+                _DropdownTile(
+                  icon: Icons.sort,
+                  iconColor: const Color(0xFF00897B),
+                  title: 'Default Sort Order',
+                  subtitle: 'How your reports are listed by default',
+                  value: _reportSortOrder,
+                  options: const [
+                    'Newest First',
+                    'Oldest First',
+                    'Highest Priority',
+                  ],
+                  onChanged: (val) {
+                    if (val != null) {
+                      setState(() => _reportSortOrder = val);
+                      _saveSetting('report_sort', val);
+                    }
+                  },
+                  lguColor: _lguColor,
+                ),
+              ],
+            ),
 
             // ── Accessibility ──
             _SectionHeader(label: 'ACCESSIBILITY'),
-            _SettingsCard(children: [
-              _ToggleTile(
-                icon: Icons.contrast,
-                iconColor: const Color(0xFF333333),
-                title: 'High Contrast Mode',
-                subtitle: 'Improve visibility for low-vision users',
-                value: _highContrastMode,
-                onChanged: (val) {
-                  setState(() => _highContrastMode = val);
-                  _saveSetting('high_contrast', val);
-                  ToastUtils.showInfo('Restart the app to apply contrast changes');
-                },
-              ),
-              _DividerLine(),
-              _DropdownTile(
-                icon: Icons.language,
-                iconColor: const Color(0xFF1565C0),
-                title: 'Language',
-                subtitle: 'Select your preferred language',
-                value: _selectedLanguage,
-                options: const ['English', 'Filipino'],
-                onChanged: (val) {
-                  if (val != null) {
-                    setState(() => _selectedLanguage = val);
-                    _saveSetting('language', val);
-                    ToastUtils.showInfo('Language support coming soon');
-                  }
-                },
-                lguColor: _lguColor,
-              ),
-            ]),
+            _SettingsCard(
+              children: [
+                _ToggleTile(
+                  icon: Icons.contrast,
+                  iconColor: const Color(0xFF333333),
+                  title: 'High Contrast Mode',
+                  subtitle: 'Improve visibility for low-vision users',
+                  value: _highContrastMode,
+                  onChanged: (val) {
+                    setState(() => _highContrastMode = val);
+                    _saveSetting('high_contrast', val);
+                    ToastUtils.showInfo(
+                      'Restart the app to apply contrast changes',
+                    );
+                  },
+                ),
+                _DividerLine(),
+                _DropdownTile(
+                  icon: Icons.language,
+                  iconColor: const Color(0xFF1565C0),
+                  title: 'Language',
+                  subtitle: 'Select your preferred language',
+                  value: _selectedLanguage,
+                  options: const ['English', 'Filipino'],
+                  onChanged: (val) {
+                    if (val != null) {
+                      setState(() => _selectedLanguage = val);
+                      _saveSetting('language', val);
+                      ToastUtils.showInfo('Language support coming soon');
+                    }
+                  },
+                  lguColor: _lguColor,
+                ),
+              ],
+            ),
 
             // ── About ──
             _SectionHeader(label: 'ABOUT'),
-            _SettingsCard(children: [
-              _InfoTile(
-                icon: Icons.info_outline,
-                iconColor: _lguColor,
-                title: 'App Version',
-                value: '1.0.1 (Build 1)',
-              ),
-              _DividerLine(),
-              _InfoTile(
-                icon: Icons.person_outline,
-                iconColor: _lguColor,
-                title: 'Developer',
-                value: 'Aaron Anthony A. Gano II',
-              ),
-              _DividerLine(),
-              _InfoTile(
-                icon: Icons.school_outlined,
-                iconColor: _lguColor,
-                title: 'Institution',
-                value: 'Nueva Vizcaya State University',
-              ),
-              _DividerLine(),
-              _NavigationTile(
-                icon: Icons.star_outline,
-                iconColor: const Color(0xFFFFB300),
-                title: 'Rate One Vizcaya',
-                subtitle: 'Leave a review on the Play Store',
-                onTap: () => ToastUtils.showInfo('Play Store listing coming soon'),
-              ),
-            ]),
+            _SettingsCard(
+              children: [
+                _InfoTile(
+                  icon: Icons.info_outline,
+                  iconColor: _lguColor,
+                  title: 'App Version',
+                  value: '1.0.1 (Build 1)',
+                ),
+                _DividerLine(),
+                _InfoTile(
+                  icon: Icons.person_outline,
+                  iconColor: _lguColor,
+                  title: 'Developer',
+                  value: 'Aaron Anthony A. Gano II',
+                ),
+                _DividerLine(),
+                _InfoTile(
+                  icon: Icons.school_outlined,
+                  iconColor: _lguColor,
+                  title: 'Institution',
+                  value: 'Nueva Vizcaya State University',
+                ),
+                _DividerLine(),
+                _NavigationTile(
+                  icon: Icons.star_outline,
+                  iconColor: const Color(0xFFFFB300),
+                  title: 'Rate One Vizcaya',
+                  subtitle: 'Leave a review on the Play Store',
+                  onTap: () =>
+                      ToastUtils.showInfo('Play Store listing coming soon'),
+                ),
+              ],
+            ),
 
             const SizedBox(height: 32),
 
@@ -259,7 +276,8 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text('Clear Cache'),
         content: const Text(
-            'This will clear all locally cached data. Your reports and account will not be affected.'),
+          'This will clear all locally cached data. Your reports and account will not be affected.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
@@ -287,8 +305,9 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text('Delete Account'),
         content: const Text(
-            'To delete your account and all associated data, please contact the LGU administrator. '
-            'Your request will be processed within 30 days per RA 10173.'),
+          'To delete your account and all associated data, please contact the LGU administrator. '
+          'Your request will be processed within 30 days per RA 10173.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
@@ -297,10 +316,13 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
           ElevatedButton(
             onPressed: () {
               Navigator.pop(ctx);
-              ToastUtils.showInfo('Contact PDRRMO at 09178500670 to request deletion');
+              ToastUtils.showInfo(
+                'Contact PDRRMO at 09178500670 to request deletion',
+              );
             },
             style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFE53935)),
+              backgroundColor: const Color(0xFFE53935),
+            ),
             child: const Text('Got it', style: TextStyle(color: Colors.white)),
           ),
         ],
@@ -315,7 +337,8 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text('Reset Settings'),
         content: const Text(
-            'This will restore all settings to their default values. Your account and reports will not be affected.'),
+          'This will restore all settings to their default values. Your account and reports will not be affected.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
@@ -428,10 +451,14 @@ class _ToggleTile extends StatelessWidget {
         ),
         child: Icon(icon, color: iconColor, size: 18),
       ),
-      title: Text(title,
-          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-      subtitle: Text(subtitle,
-          style: TextStyle(fontSize: 12, color: Colors.grey.shade500)),
+      title: Text(
+        title,
+        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+      ),
+      subtitle: Text(
+        subtitle,
+        style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+      ),
       trailing: Switch(
         value: value,
         onChanged: onChanged,
@@ -469,12 +496,19 @@ class _NavigationTile extends StatelessWidget {
         ),
         child: Icon(icon, color: iconColor, size: 18),
       ),
-      title: Text(title,
-          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-      subtitle: Text(subtitle,
-          style: TextStyle(fontSize: 12, color: Colors.grey.shade500)),
-      trailing: Icon(Icons.arrow_forward_ios,
-          size: 14, color: Colors.grey.shade400),
+      title: Text(
+        title,
+        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+      ),
+      subtitle: Text(
+        subtitle,
+        style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+      ),
+      trailing: Icon(
+        Icons.arrow_forward_ios,
+        size: 14,
+        color: Colors.grey.shade400,
+      ),
       onTap: onTap,
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
     );
@@ -506,10 +540,14 @@ class _InfoTile extends StatelessWidget {
         ),
         child: Icon(icon, color: iconColor, size: 18),
       ),
-      title: Text(title,
-          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-      trailing: Text(value,
-          style: TextStyle(fontSize: 12, color: Colors.grey.shade500)),
+      title: Text(
+        title,
+        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+      ),
+      trailing: Text(
+        value,
+        style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+      ),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
     );
   }
@@ -548,17 +586,22 @@ class _DropdownTile extends StatelessWidget {
         ),
         child: Icon(icon, color: iconColor, size: 18),
       ),
-      title: Text(title,
-          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-      subtitle: Text(subtitle,
-          style: TextStyle(fontSize: 12, color: Colors.grey.shade500)),
+      title: Text(
+        title,
+        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+      ),
+      subtitle: Text(
+        subtitle,
+        style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+      ),
       trailing: DropdownButton<String>(
         value: value,
         underline: const SizedBox(),
         style: TextStyle(
-            fontSize: 12,
-            color: lguColor,
-            fontWeight: FontWeight.w600),
+          fontSize: 12,
+          color: lguColor,
+          fontWeight: FontWeight.w600,
+        ),
         items: options
             .map((o) => DropdownMenuItem(value: o, child: Text(o)))
             .toList(),
