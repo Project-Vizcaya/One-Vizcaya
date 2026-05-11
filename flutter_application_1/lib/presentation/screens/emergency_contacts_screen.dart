@@ -39,13 +39,13 @@ class EmergencyContactsScreen extends StatelessWidget {
     ],
     'Bambang': [
       {'name': 'PNP Bambang', 'number': '09065630944', 'type': 'police'},
-      {'name': 'BFP Bambang', 'number': '09181234567', 'type': 'fire'},
+      {'name': 'BFP Bambang', 'number': '09175444946', 'type': 'fire'},
       {
         'name': 'NV Provincial Hospital',
         'number': '09228680843',
         'type': 'medical',
       },
-      {'name': 'MDRRMO Bambang', 'number': '09171227150', 'type': 'disaster'},
+      {'name': 'MDRRMO Bambang', 'number': '09175861838', 'type': 'disaster'},
     ],
     'Bayombong': [
       {'name': 'PNP Bayombong', 'number': '09153116455', 'type': 'police'},
