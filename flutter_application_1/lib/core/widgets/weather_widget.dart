@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import '../../secrets.dart';
+import 'package:one_vizcaya/secrets.dart';
 
 class WeatherWidget extends StatefulWidget {
   final String municipality;

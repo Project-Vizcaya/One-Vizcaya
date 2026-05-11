@@ -21,8 +21,7 @@ void main() async {
 
   // App Check — debug for development, playIntegrity for release
   await FirebaseAppCheck.instance.activate(
-    androidProvider: AndroidProvider.debug, // ← Change to playIntegrity before releasing to Play Store
-    appleProvider: AppleProvider.debug,
+    androidProvider: AndroidProvider.debug,
   );
 
   // Enable Firestore offline persistence
