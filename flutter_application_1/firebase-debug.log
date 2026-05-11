@@ -1,0 +1,149 @@
+[debug] [2026-05-11T06:00:19.406Z] ----------------------------------------------------------------------
+[debug] [2026-05-11T06:00:19.408Z] Command:       C:\Users\Administrator\Documents\DevTools\Node.js\nodejs\node-v24.15.0-win-x64\node.exe C:\Users\Administrator\Documents\DevTools\Node.js\nodejs\node-v24.15.0-win-x64\node_modules\firebase-tools\lib\bin\firebase.js deploy --only functions
+[debug] [2026-05-11T06:00:19.409Z] CLI Version:   15.17.0
+[debug] [2026-05-11T06:00:19.409Z] Platform:      win32
+[debug] [2026-05-11T06:00:19.409Z] Node Version:  v24.15.0
+[debug] [2026-05-11T06:00:19.409Z] Time:          Mon May 11 2026 14:00:19 GMT+0800 (Philippine Standard Time)
+[debug] [2026-05-11T06:00:19.409Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-05-11T06:00:20.486Z] Object "" in "firebase.json" has unknown property: {"additionalProperty":"flutter"}
+[debug] [2026-05-11T06:00:20.489Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-05-11T06:00:20.489Z] > authorizing via signed-in user (aaronzxc18@gmail.com)
+[debug] [2026-05-11T06:00:20.489Z] [iam] checking project one-vizcaya-app for permissions ["cloudfunctions.functions.create","cloudfunctions.functions.delete","cloudfunctions.functions.get","cloudfunctions.functions.list","cloudfunctions.functions.update","cloudfunctions.operations.get","firebase.projects.get"]
+[debug] [2026-05-11T06:00:20.490Z] Checked if tokens are valid: true, expires at: 1778482126070
+[debug] [2026-05-11T06:00:20.490Z] Checked if tokens are valid: true, expires at: 1778482126070
+[debug] [2026-05-11T06:00:20.491Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/one-vizcaya-app:testIamPermissions [none]
+[debug] [2026-05-11T06:00:20.491Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/one-vizcaya-app:testIamPermissions  x-goog-user-project=one-vizcaya-app
+[debug] [2026-05-11T06:00:20.491Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/one-vizcaya-app:testIamPermissions {"permissions":["cloudfunctions.functions.create","cloudfunctions.functions.delete","cloudfunctions.functions.get","cloudfunctions.functions.list","cloudfunctions.functions.update","cloudfunctions.operations.get","firebase.projects.get"]}
+[debug] [2026-05-11T06:00:22.095Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/one-vizcaya-app:testIamPermissions 200
+[debug] [2026-05-11T06:00:22.095Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/one-vizcaya-app:testIamPermissions {"permissions":["cloudfunctions.functions.create","cloudfunctions.functions.delete","cloudfunctions.functions.get","cloudfunctions.functions.list","cloudfunctions.functions.update","cloudfunctions.operations.get","firebase.projects.get"]}
+[debug] [2026-05-11T06:00:22.095Z] Checked if tokens are valid: true, expires at: 1778482126070
+[debug] [2026-05-11T06:00:22.095Z] Checked if tokens are valid: true, expires at: 1778482126070
+[debug] [2026-05-11T06:00:22.095Z] >>> [apiv2][query] POST https://iam.googleapis.com/v1/projects/one-vizcaya-app/serviceAccounts/one-vizcaya-app@appspot.gserviceaccount.com:testIamPermissions [none]
+[debug] [2026-05-11T06:00:22.095Z] >>> [apiv2][body] POST https://iam.googleapis.com/v1/projects/one-vizcaya-app/serviceAccounts/one-vizcaya-app@appspot.gserviceaccount.com:testIamPermissions {"permissions":["iam.serviceAccounts.actAs"]}
+[debug] [2026-05-11T06:00:23.558Z] <<< [apiv2][status] POST https://iam.googleapis.com/v1/projects/one-vizcaya-app/serviceAccounts/one-vizcaya-app@appspot.gserviceaccount.com:testIamPermissions 200
+[debug] [2026-05-11T06:00:23.558Z] <<< [apiv2][body] POST https://iam.googleapis.com/v1/projects/one-vizcaya-app/serviceAccounts/one-vizcaya-app@appspot.gserviceaccount.com:testIamPermissions {"permissions":["iam.serviceAccounts.actAs"]}
+[info] 
+[info] === Deploying to 'one-vizcaya-app'...
+[info] 
+[info] i  deploying functions 
+[debug] [2026-05-11T06:00:23.561Z] Checked if tokens are valid: true, expires at: 1778482126070
+[debug] [2026-05-11T06:00:23.561Z] Checked if tokens are valid: true, expires at: 1778482126070
+[debug] [2026-05-11T06:00:23.561Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/one-vizcaya-app/services/cloudresourcemanager.googleapis.com [none]
+[debug] [2026-05-11T06:00:23.561Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/one-vizcaya-app/services/cloudresourcemanager.googleapis.com  x-goog-user-project=one-vizcaya-app
+[debug] [2026-05-11T06:00:25.092Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/one-vizcaya-app/services/cloudresourcemanager.googleapis.com 200
+[debug] [2026-05-11T06:00:25.092Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/one-vizcaya-app/services/cloudresourcemanager.googleapis.com [omitted]
+[debug] [2026-05-11T06:00:25.094Z] Checked if tokens are valid: true, expires at: 1778482126070
+[debug] [2026-05-11T06:00:25.094Z] Checked if tokens are valid: true, expires at: 1778482126070
+[debug] [2026-05-11T06:00:25.094Z] >>> [apiv2][query] GET https://cloudresourcemanager.googleapis.com/v1/projects/one-vizcaya-app [none]
+[debug] [2026-05-11T06:00:25.320Z] <<< [apiv2][status] GET https://cloudresourcemanager.googleapis.com/v1/projects/one-vizcaya-app 200
+[debug] [2026-05-11T06:00:25.320Z] <<< [apiv2][body] GET https://cloudresourcemanager.googleapis.com/v1/projects/one-vizcaya-app {"projectNumber":"899155311025","projectId":"one-vizcaya-app","lifecycleState":"ACTIVE","name":"One Vizcaya App","labels":{"firebase":"enabled","firebase-core":"disabled"},"createTime":"2026-05-01T08:12:14.529Z"}
+[info] i  functions: preparing codebase default for deployment 
+[info] i  functions: ensuring required API cloudfunctions.googleapis.com is enabled... 
+[debug] [2026-05-11T06:00:25.321Z] Checked if tokens are valid: true, expires at: 1778482126070
+[debug] [2026-05-11T06:00:25.321Z] Checked if tokens are valid: true, expires at: 1778482126070
+[debug] [2026-05-11T06:00:25.321Z] Checked if tokens are valid: true, expires at: 1778482126070
+[debug] [2026-05-11T06:00:25.321Z] Checked if tokens are valid: true, expires at: 1778482126070
+[info] i  functions: ensuring required API cloudbuild.googleapis.com is enabled... 
+[debug] [2026-05-11T06:00:25.322Z] Checked if tokens are valid: true, expires at: 1778482126070
+[debug] [2026-05-11T06:00:25.322Z] Checked if tokens are valid: true, expires at: 1778482126070
+[info] i  artifactregistry: ensuring required API artifactregistry.googleapis.com is enabled... 
+[debug] [2026-05-11T06:00:25.322Z] Checked if tokens are valid: true, expires at: 1778482126070
+[debug] [2026-05-11T06:00:25.322Z] Checked if tokens are valid: true, expires at: 1778482126070
+[debug] [2026-05-11T06:00:25.322Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/one-vizcaya-app/services/cloudfunctions.googleapis.com [none]
+[debug] [2026-05-11T06:00:25.322Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/one-vizcaya-app/services/cloudfunctions.googleapis.com  x-goog-user-project=one-vizcaya-app
+[debug] [2026-05-11T06:00:25.323Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/one-vizcaya-app/services/runtimeconfig.googleapis.com [none]
+[debug] [2026-05-11T06:00:25.323Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/one-vizcaya-app/services/runtimeconfig.googleapis.com  x-goog-user-project=one-vizcaya-app
+[debug] [2026-05-11T06:00:25.324Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/one-vizcaya-app/services/cloudbuild.googleapis.com [none]
+[debug] [2026-05-11T06:00:25.324Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/one-vizcaya-app/services/cloudbuild.googleapis.com  x-goog-user-project=one-vizcaya-app
+[debug] [2026-05-11T06:00:25.325Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/one-vizcaya-app/services/artifactregistry.googleapis.com [none]
+[debug] [2026-05-11T06:00:25.325Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/one-vizcaya-app/services/artifactregistry.googleapis.com  x-goog-user-project=one-vizcaya-app
+[debug] [2026-05-11T06:00:26.507Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/one-vizcaya-app/services/cloudfunctions.googleapis.com 200
+[debug] [2026-05-11T06:00:26.508Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/one-vizcaya-app/services/cloudfunctions.googleapis.com [omitted]
+[info] +  functions: required API cloudfunctions.googleapis.com is enabled 
+[debug] [2026-05-11T06:00:26.553Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/one-vizcaya-app/services/runtimeconfig.googleapis.com 200
+[debug] [2026-05-11T06:00:26.553Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/one-vizcaya-app/services/runtimeconfig.googleapis.com [omitted]
+[debug] [2026-05-11T06:00:26.655Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/one-vizcaya-app/services/artifactregistry.googleapis.com 200
+[debug] [2026-05-11T06:00:26.655Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/one-vizcaya-app/services/artifactregistry.googleapis.com [omitted]
+[info] +  artifactregistry: required API artifactregistry.googleapis.com is enabled 
+[debug] [2026-05-11T06:00:26.662Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/one-vizcaya-app/services/cloudbuild.googleapis.com 200
+[debug] [2026-05-11T06:00:26.662Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/one-vizcaya-app/services/cloudbuild.googleapis.com [omitted]
+[info] +  functions: required API cloudbuild.googleapis.com is enabled 
+[debug] [2026-05-11T06:00:26.664Z] Checked if tokens are valid: true, expires at: 1778482126070
+[debug] [2026-05-11T06:00:26.664Z] Checked if tokens are valid: true, expires at: 1778482126070
+[debug] [2026-05-11T06:00:26.664Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/one-vizcaya-app/adminSdkConfig [none]
+[debug] [2026-05-11T06:00:27.126Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/one-vizcaya-app/adminSdkConfig 200
+[debug] [2026-05-11T06:00:27.126Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/one-vizcaya-app/adminSdkConfig {"projectId":"one-vizcaya-app","storageBucket":"one-vizcaya-app.firebasestorage.app"}
+[debug] [2026-05-11T06:00:27.127Z] Validating nodejs source
+[warn] !  functions: Couldn't find firebase-functions package in your source code. Have you run 'npm install'? 
+[debug] [2026-05-11T06:00:27.128Z] getFunctionsSDKVersion encountered error: Cannot find module 'firebase-functions'
+Require stack:
+- C:\Users\Administrator\Documents\DevTools\Node.js\nodejs\node-v24.15.0-win-x64\node_modules\firebase-tools\lib\deploy\functions\runtimes\node\versioning.js
+- C:\Users\Administrator\Documents\DevTools\Node.js\nodejs\node-v24.15.0-win-x64\node_modules\firebase-tools\lib\deploy\functions\runtimes\node\index.js
+- C:\Users\Administrator\Documents\DevTools\Node.js\nodejs\node-v24.15.0-win-x64\node_modules\firebase-tools\lib\deploy\functions\runtimes\index.js
+- C:\Users\Administrator\Documents\DevTools\Node.js\nodejs\node-v24.15.0-win-x64\node_modules\firebase-tools\lib\deploy\functions\prepare.js
+- C:\Users\Administrator\Documents\DevTools\Node.js\nodejs\node-v24.15.0-win-x64\node_modules\firebase-tools\lib\emulator\functionsEmulatorShared.js
+- C:\Users\Administrator\Documents\DevTools\Node.js\nodejs\node-v24.15.0-win-x64\node_modules\firebase-tools\lib\frameworks\index.js
+- C:\Users\Administrator\Documents\DevTools\Node.js\nodejs\node-v24.15.0-win-x64\node_modules\firebase-tools\lib\deploy\hosting\prepare.js
+- C:\Users\Administrator\Documents\DevTools\Node.js\nodejs\node-v24.15.0-win-x64\node_modules\firebase-tools\lib\deploy\hosting\index.js
+- C:\Users\Administrator\Documents\DevTools\Node.js\nodejs\node-v24.15.0-win-x64\node_modules\firebase-tools\lib\deploy\index.js
+- C:\Users\Administrator\Documents\DevTools\Node.js\nodejs\node-v24.15.0-win-x64\node_modules\firebase-tools\lib\commands\deploy.js
+- C:\Users\Administrator\Documents\DevTools\Node.js\nodejs\node-v24.15.0-win-x64\node_modules\firebase-tools\lib\commands\index.js
+- C:\Users\Administrator\Documents\DevTools\Node.js\nodejs\node-v24.15.0-win-x64\node_modules\firebase-tools\lib\index.js
+- C:\Users\Administrator\Documents\DevTools\Node.js\nodejs\node-v24.15.0-win-x64\node_modules\firebase-tools\lib\bin\cli.js
+- C:\Users\Administrator\Documents\DevTools\Node.js\nodejs\node-v24.15.0-win-x64\node_modules\firebase-tools\lib\bin\firebase.js {"code":"MODULE_NOT_FOUND","requireStack":["C:\\Users\\Administrator\\Documents\\DevTools\\Node.js\\nodejs\\node-v24.15.0-win-x64\\node_modules\\firebase-tools\\lib\\deploy\\functions\\runtimes\\node\\versioning.js","C:\\Users\\Administrator\\Documents\\DevTools\\Node.js\\nodejs\\node-v24.15.0-win-x64\\node_modules\\firebase-tools\\lib\\deploy\\functions\\runtimes\\node\\index.js","C:\\Users\\Administrator\\Documents\\DevTools\\Node.js\\nodejs\\node-v24.15.0-win-x64\\node_modules\\firebase-tools\\lib\\deploy\\functions\\runtimes\\index.js","C:\\Users\\Administrator\\Documents\\DevTools\\Node.js\\nodejs\\node-v24.15.0-win-x64\\node_modules\\firebase-tools\\lib\\deploy\\functions\\prepare.js","C:\\Users\\Administrator\\Documents\\DevTools\\Node.js\\nodejs\\node-v24.15.0-win-x64\\node_modules\\firebase-tools\\lib\\emulator\\functionsEmulatorShared.js","C:\\Users\\Administrator\\Documents\\DevTools\\Node.js\\nodejs\\node-v24.15.0-win-x64\\node_modules\\firebase-tools\\lib\\frameworks\\index.js","C:\\Users\\Administrator\\Documents\\DevTools\\Node.js\\nodejs\\node-v24.15.0-win-x64\\node_modules\\firebase-tools\\lib\\deploy\\hosting\\prepare.js","C:\\Users\\Administrator\\Documents\\DevTools\\Node.js\\nodejs\\node-v24.15.0-win-x64\\node_modules\\firebase-tools\\lib\\deploy\\hosting\\index.js","C:\\Users\\Administrator\\Documents\\DevTools\\Node.js\\nodejs\\node-v24.15.0-win-x64\\node_modules\\firebase-tools\\lib\\deploy\\index.js","C:\\Users\\Administrator\\Documents\\DevTools\\Node.js\\nodejs\\node-v24.15.0-win-x64\\node_modules\\firebase-tools\\lib\\commands\\deploy.js","C:\\Users\\Administrator\\Documents\\DevTools\\Node.js\\nodejs\\node-v24.15.0-win-x64\\node_modules\\firebase-tools\\lib\\commands\\index.js","C:\\Users\\Administrator\\Documents\\DevTools\\Node.js\\nodejs\\node-v24.15.0-win-x64\\node_modules\\firebase-tools\\lib\\index.js","C:\\Users\\Administrator\\Documents\\DevTools\\Node.js\\nodejs\\node-v24.15.0-win-x64\\node_modules\\firebase-tools\\lib\\bin\\cli.js","C:\\Users\\Administrator\\Documents\\DevTools\\Node.js\\nodejs\\node-v24.15.0-win-x64\\node_modules\\firebase-tools\\lib\\bin\\firebase.js"]}
+[debug] [2026-05-11T06:00:27.129Z] checkFunctionsSDKVersion encountered error: Invalid Version:  {}
+[debug] [2026-05-11T06:00:27.129Z] > [functions] package.json contents: {
+  "name": "functions",
+  "description": "Cloud Functions for Firebase",
+  "scripts": {
+    "serve": "firebase emulators:start --only functions",
+    "shell": "firebase functions:shell",
+    "start": "npm run shell",
+    "deploy": "firebase deploy --only functions",
+    "logs": "firebase functions:log"
+  },
+  "engines": {
+    "node": "24"
+  },
+  "main": "index.js",
+  "dependencies": {
+    "firebase-admin": "^13.6.0",
+    "firebase-functions": "^7.0.0"
+  },
+  "devDependencies": {
+    "firebase-functions-test": "^3.4.1"
+  },
+  "private": true
+}
+[debug] [2026-05-11T06:00:27.129Z] Building nodejs source
+[info] i  functions: Loading and analyzing source code for codebase default to determine what to deploy 
+[debug] [2026-05-11T06:00:27.130Z] Could not parse firebase-functions version '' into semver.
+[debug] [2026-05-11T06:00:27.130Z] Could not find functions.yaml. Must use http discovery
+[debug] [2026-05-11T06:00:27.273Z] Error: Cannot find module 'firebase-functions'
+Require stack:
+- C:\Users\Administrator\Documents\DevTools\Node.js\nodejs\node-v24.15.0-win-x64\node_modules\firebase-tools\lib\deploy\functions\runtimes\node\index.js
+- C:\Users\Administrator\Documents\DevTools\Node.js\nodejs\node-v24.15.0-win-x64\node_modules\firebase-tools\lib\deploy\functions\runtimes\index.js
+- C:\Users\Administrator\Documents\DevTools\Node.js\nodejs\node-v24.15.0-win-x64\node_modules\firebase-tools\lib\deploy\functions\prepare.js
+- C:\Users\Administrator\Documents\DevTools\Node.js\nodejs\node-v24.15.0-win-x64\node_modules\firebase-tools\lib\emulator\functionsEmulatorShared.js
+- C:\Users\Administrator\Documents\DevTools\Node.js\nodejs\node-v24.15.0-win-x64\node_modules\firebase-tools\lib\frameworks\index.js
+- C:\Users\Administrator\Documents\DevTools\Node.js\nodejs\node-v24.15.0-win-x64\node_modules\firebase-tools\lib\deploy\hosting\prepare.js
+- C:\Users\Administrator\Documents\DevTools\Node.js\nodejs\node-v24.15.0-win-x64\node_modules\firebase-tools\lib\deploy\hosting\index.js
+- C:\Users\Administrator\Documents\DevTools\Node.js\nodejs\node-v24.15.0-win-x64\node_modules\firebase-tools\lib\deploy\index.js
+- C:\Users\Administrator\Documents\DevTools\Node.js\nodejs\node-v24.15.0-win-x64\node_modules\firebase-tools\lib\commands\deploy.js
+- C:\Users\Administrator\Documents\DevTools\Node.js\nodejs\node-v24.15.0-win-x64\node_modules\firebase-tools\lib\commands\index.js
+- C:\Users\Administrator\Documents\DevTools\Node.js\nodejs\node-v24.15.0-win-x64\node_modules\firebase-tools\lib\index.js
+- C:\Users\Administrator\Documents\DevTools\Node.js\nodejs\node-v24.15.0-win-x64\node_modules\firebase-tools\lib\bin\cli.js
+- C:\Users\Administrator\Documents\DevTools\Node.js\nodejs\node-v24.15.0-win-x64\node_modules\firebase-tools\lib\bin\firebase.js
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1476:15)
+    at wrapResolveFilename (node:internal/modules/cjs/loader:1049:27)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1094:12)
+    at require.resolve (node:internal/modules/helpers:171:31)
+    at Delegate.findFunctionsBinary (C:\Users\Administrator\Documents\DevTools\Node.js\nodejs\node-v24.15.0-win-x64\node_modules\firebase-tools\lib\deploy\functions\runtimes\node\index.js:101:33)
+    at Delegate.spawnFunctionsProcess (C:\Users\Administrator\Documents\DevTools\Node.js\nodejs\node-v24.15.0-win-x64\node_modules\firebase-tools\lib\deploy\functions\runtimes\node\index.js:131:30)
+    at Delegate.serveAdmin (C:\Users\Administrator\Documents\DevTools\Node.js\nodejs\node-v24.15.0-win-x64\node_modules\firebase-tools\lib\deploy\functions\runtimes\node\index.js:152:35)
+    at Delegate.discoverBuild (C:\Users\Administrator\Documents\DevTools\Node.js\nodejs\node-v24.15.0-win-x64\node_modules\firebase-tools\lib\deploy\functions\runtimes\node\index.js:192:41)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async loadCodebases (C:\Users\Administrator\Documents\DevTools\Node.js\nodejs\node-v24.15.0-win-x64\node_modules\firebase-tools\lib\deploy\functions\prepare.js:496:33)
+[error] 
+[error] Error: An unexpected error has occurred.

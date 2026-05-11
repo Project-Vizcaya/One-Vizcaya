@@ -2,15 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../state/municipality_state.dart';
 import '../../core/utils/toast_utils.dart';
+import '../state/municipality_state.dart';
 
 class OtherScreens extends StatelessWidget {
   const OtherScreens({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Center(child: Text('Other Screens')),
-    );
+    return const Scaffold(body: Center(child: Text('Other Screens')));
   }
 }
 
@@ -133,8 +132,7 @@ class _SupportScreenState extends State<SupportScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final lguColor =
-        oneVizcayaState.activeTheme['appBarColor'] as Color;
+    final lguColor = oneVizcayaState.activeTheme['appBarColor'] as Color;
     final municipality = oneVizcayaState.selectedMunicipality.value;
 
     return Scaffold(
@@ -161,7 +159,9 @@ class _SupportScreenState extends State<SupportScreen> {
                 children: [
                   Container(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 10, vertical: 5),
+                      horizontal: 10,
+                      vertical: 5,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.white.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(20),
@@ -233,8 +233,9 @@ class _SupportScreenState extends State<SupportScreen> {
                           width: 40,
                           height: 40,
                           decoration: BoxDecoration(
-                            color: (item['color'] as Color)
-                                .withValues(alpha: 0.1),
+                            color: (item['color'] as Color).withValues(
+                              alpha: 0.1,
+                            ),
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: Icon(
@@ -318,16 +319,16 @@ class _SupportScreenState extends State<SupportScreen> {
                           _expandedIndex = isExpanded ? null : i;
                         }),
                         borderRadius: BorderRadius.vertical(
-                          top: i == 0
-                              ? const Radius.circular(16)
-                              : Radius.zero,
+                          top: i == 0 ? const Radius.circular(16) : Radius.zero,
                           bottom: isLast
                               ? const Radius.circular(16)
                               : Radius.zero,
                         ),
                         child: Padding(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 14),
+                            horizontal: 16,
+                            vertical: 14,
+                          ),
                           child: Row(
                             children: [
                               Container(
@@ -340,13 +341,9 @@ class _SupportScreenState extends State<SupportScreen> {
                                   shape: BoxShape.circle,
                                 ),
                                 child: Icon(
-                                  isExpanded
-                                      ? Icons.remove
-                                      : Icons.add,
+                                  isExpanded ? Icons.remove : Icons.add,
                                   size: 14,
-                                  color: isExpanded
-                                      ? Colors.white
-                                      : lguColor,
+                                  color: isExpanded ? Colors.white : lguColor,
                                 ),
                               ),
                               const SizedBox(width: 12),
@@ -434,6 +431,50 @@ class _SupportScreenState extends State<SupportScreen> {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class AnnouncementsScreen extends StatelessWidget {
+  const AnnouncementsScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final lguColor = oneVizcayaState.activeTheme['appBarColor'] as Color;
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: lguColor,
+        foregroundColor: Colors.white,
+        title: const Text('Announcements'),
+      ),
+      body: const Center(
+        child: Text(
+          'No announcements yet.',
+          style: TextStyle(color: Colors.grey),
+        ),
+      ),
+    );
+  }
+}
+
+class NotificationsScreen extends StatelessWidget {
+  const NotificationsScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final lguColor = oneVizcayaState.activeTheme['appBarColor'] as Color;
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: lguColor,
+        foregroundColor: Colors.white,
+        title: const Text('Notifications'),
+      ),
+      body: const Center(
+        child: Text(
+          'No notifications yet.',
+          style: TextStyle(color: Colors.grey),
         ),
       ),
     );

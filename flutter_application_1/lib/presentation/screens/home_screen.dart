@@ -3,6 +3,7 @@ import '../../core/constants/app_constants.dart';
 import '../state/municipality_state.dart';
 import '../../features/announcements/presentation/widgets/announcements_carousel.dart';
 import '../../features/reports/presentation/widgets/community_feed.dart';
+import '../../core/widgets/weather_widget.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -190,7 +191,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
           const SizedBox(height: 20),
 
-          // ── Announcements Carousel ──
+          // ── Announcements Section ──
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Row(
@@ -224,50 +225,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
           const SizedBox(height: 20),
 
-          // ── Agri-Weather Widget (Fallback UI) ──
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.blue.shade50,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.blue.shade100),
-              ),
-              child: Row(
-                children: [
-                  const Icon(
-                    Icons.cloud_queue,
-                    size: 40,
-                    color: Colors.blueGrey,
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          '$municipality Weather',
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                            color: Colors.blueGrey,
-                          ),
-                        ),
-                        const Text(
-                          'Partly Cloudy • 28°C\n(Offline Fallback Data)',
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: Colors.blueGrey,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
+          // ── Live Weather Widget ──
+          WeatherWidget(municipality: municipality),
+
           const SizedBox(height: 24),
 
           // ── Citizen Services Header ──
@@ -284,7 +244,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           const SizedBox(height: 16),
 
-          // ── Service Grid (Row 1 - 3 Items) ──
+          // ── Service Grid Row 1 ──
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Row(
@@ -330,7 +290,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           const SizedBox(height: 16),
 
-          // ── Service Grid (Row 2 - 3 Items) ──
+          // ── Service Grid Row 2 ──
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Row(
@@ -352,12 +312,11 @@ class _HomeScreenState extends State<HomeScreen> {
                   onTap: () => Navigator.of(context).pushNamed('/support'),
                 ),
                 _ServiceGridItem(
-  icon: Icons.settings_rounded,
-  label: 'App\nSettings',
-  iconColor: Colors.white,
-  bgColor: const Color(0xFF546E7A),
-  onTap: () => Navigator.of(context).pushNamed('/settings'),
-),
+                  icon: Icons.settings_rounded,
+                  label: 'App\nSettings',
+                  iconColor: Colors.white,
+                  bgColor: const Color(0xFF546E7A),
+                  onTap: () => Navigator.of(context).pushNamed('/settings'),
                 ),
               ],
             ),
