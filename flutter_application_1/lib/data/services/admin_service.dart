@@ -1,32 +1,21 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-/// Service to determine if a user has admin privileges.
-///
-/// Currently uses a hardcoded list of admin UIDs.
-/// Can be extended to read from Firestore `config/admins` document.
 class AdminService {
   static final AdminService _instance = AdminService._internal();
   factory AdminService() => _instance;
   AdminService._internal();
 
-  // ── Hardcoded admin UIDs ──────────────────────────────────────────
-  // Add the Firebase Auth UIDs of admin users here.
-  // These users will see the Admin Dashboard in their Profile menu.
+  // ── Hardcoded admin UIDs ──
   static const List<String> _hardcodedAdminUids = [
-    // Example: 'abc123XYZ...'
-    // Add your admin UIDs below:
     'KXeL25cxqiaTSHj8CJGCPvNpIh23',
     'XgWMpOQxnGg21a2wtCjJys3u3Ze2',
+    'xT02JP6jbecjKRqKPy3zXQ7mtHt2', // Aaron's phone — Bambang admin
   ];
 
-  // Cache for Firestore-based admin list
   List<String>? _firestoreAdminUids;
   DateTime? _lastFetched;
   static const _cacheDuration = Duration(minutes: 10);
 
-  /// Check if a user UID has admin privileges.
-  ///
-  /// First checks the hardcoded list, then falls back to Firestore.
   Future<bool> isAdmin(String uid) async {
     // 1. Check hardcoded list first (instant)
     if (_hardcodedAdminUids.contains(uid)) {
@@ -38,13 +27,10 @@ class AdminService {
       final firestoreAdmins = await _getFirestoreAdmins();
       return firestoreAdmins.contains(uid);
     } catch (_) {
-      // If Firestore fails, only hardcoded list is used
       return false;
     }
   }
 
-  /// Fetch admin UIDs from Firestore `config/admins` document.
-  /// Results are cached for [_cacheDuration].
   Future<List<String>> _getFirestoreAdmins() async {
     final now = DateTime.now();
 
@@ -55,7 +41,7 @@ class AdminService {
       return _firestoreAdminUids!;
     }
 
-    // Fetch from Firestore
+    // Fetch from Firestore config/admins
     final doc = await FirebaseFirestore.instance
         .collection('config')
         .doc('admins')
@@ -74,10 +60,9 @@ class AdminService {
     return [];
   }
 
-  /// Clear the cached admin list (e.g. on logout).
   void clearCache() {
     _firestoreAdminUids = null;
-    _lastFetched = null;
+    _lastFetched = now;
   }
 }
 
