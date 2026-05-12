@@ -166,11 +166,13 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                     }
                     reports.sort((a, b) {
                       if (a.status == ReportStatus.solved &&
-                          b.status != ReportStatus.solved)
+                          b.status != ReportStatus.solved) {
                         return 1;
+                      }
                       if (b.status == ReportStatus.solved &&
-                          a.status != ReportStatus.solved)
+                          a.status != ReportStatus.solved) {
                         return -1;
+                      }
                       return b.priorityScore.compareTo(a.priorityScore);
                     });
 
@@ -919,13 +921,23 @@ class _AddAnnouncementSheetState extends State<_AddAnnouncementSheet> {
               const SizedBox(height: 8),
 
               // ── Cancel ──
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: Text(
-                  'Cancel',
-                  style: TextStyle(color: Colors.grey.shade500),
+              SizedBox(
+                height: 48,
+                width: double.infinity,
+                child: TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: TextButton.styleFrom(
+                    foregroundColor: Colors.grey.shade600,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      side: BorderSide(color: Colors.grey.shade300),
+                    ),
+                  ),
+                  child: const Text('Cancel',
+                      style: TextStyle(fontSize: 15)),
                 ),
               ),
+              const SizedBox(height: 16),
             ],
           ),
         ),
