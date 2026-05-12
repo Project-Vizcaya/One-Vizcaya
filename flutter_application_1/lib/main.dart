@@ -18,22 +18,32 @@ import 'presentation/screens/app_settings_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
-  // App Check — Dynamic switching for Web, Debug, and Release
-  if (!kIsWeb) {
-    await FirebaseAppCheck.instance.activate(
-      androidProvider: kReleaseMode
-          ? AndroidProvider.playIntegrity
-          : AndroidProvider.debug,
+  // Wrap the Firebase configuration in a try-catch block.
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
     );
+
+    // App Check — Dynamic switching for Web, Debug, and Release
+    if (!kIsWeb) {
+      await FirebaseAppCheck.instance.activate(
+        androidProvider: kReleaseMode
+            ? AndroidProvider.playIntegrity
+            : AndroidProvider.debug,
+      );
+    }
+
+    // Enable Firestore offline persistence
+    FirebaseFirestore.instance.settings = const Settings(
+      persistenceEnabled: true,
+    );
+  } catch (e) {
+    // If Firebase fails or hangs, it will print the error instead of crashing silently
+    debugPrint("Firebase Initialization Error: $e");
   }
 
-  // Enable Firestore offline persistence
-  FirebaseFirestore.instance.settings = const Settings(
-    persistenceEnabled: true,
-  );
-
+  // runApp is now outside the await trap. It is guaranteed to fire and draw the UI.
   runApp(const OneVizcayaApp());
 }
 
