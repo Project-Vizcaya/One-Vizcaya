@@ -12,7 +12,8 @@ class ProfileManagementScreen extends StatefulWidget {
   const ProfileManagementScreen({super.key});
 
   @override
-  State<ProfileManagementScreen> createState() => _ProfileManagementScreenState();
+  State<ProfileManagementScreen> createState() =>
+      _ProfileManagementScreenState();
 }
 
 class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
@@ -28,6 +29,7 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
   }
 
   Future<void> _loadProfile() async {
+    adminService.clearCache(); // ← Add this line
     final user = _auth.currentUser;
     if (user == null) return;
 
@@ -35,10 +37,7 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
     final isAdmin = await adminService.isAdmin(user.uid);
 
     UserProfile? profile = await profileService.getProfile(user.uid);
-    profile ??= UserProfile(
-      uid: user.uid,
-      phoneNumber: user.phoneNumber ?? '',
-    );
+    profile ??= UserProfile(uid: user.uid, phoneNumber: user.phoneNumber ?? '');
 
     if (mounted) {
       setState(() {
@@ -104,7 +103,10 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
                   decoration: InputDecoration(
                     labelText: 'Full Name',
                     labelStyle: TextStyle(color: Colors.grey.shade600),
-                    prefixIcon: Icon(Icons.person_outline, color: Colors.grey.shade500),
+                    prefixIcon: Icon(
+                      Icons.person_outline,
+                      color: Colors.grey.shade500,
+                    ),
                     filled: true,
                     fillColor: const Color(0xFFF7F7F7),
                     border: OutlineInputBorder(
@@ -113,11 +115,15 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(14),
-                      borderSide: const BorderSide(color: Color(0xFF4CAF50), width: 1.5),
+                      borderSide: const BorderSide(
+                        color: Color(0xFF4CAF50),
+                        width: 1.5,
+                      ),
                     ),
                   ),
                   validator: (v) {
-                    if (v == null || v.trim().isEmpty) return 'Please enter your name';
+                    if (v == null || v.trim().isEmpty)
+                      return 'Please enter your name';
                     return null;
                   },
                 ),
@@ -128,7 +134,10 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
                   decoration: InputDecoration(
                     labelText: 'Email Address',
                     labelStyle: TextStyle(color: Colors.grey.shade600),
-                    prefixIcon: Icon(Icons.email_outlined, color: Colors.grey.shade500),
+                    prefixIcon: Icon(
+                      Icons.email_outlined,
+                      color: Colors.grey.shade500,
+                    ),
                     filled: true,
                     fillColor: const Color(0xFFF7F7F7),
                     border: OutlineInputBorder(
@@ -137,10 +146,16 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(14),
-                      borderSide: const BorderSide(color: Color(0xFF4CAF50), width: 1.5),
+                      borderSide: const BorderSide(
+                        color: Color(0xFF4CAF50),
+                        width: 1.5,
+                      ),
                     ),
                     helperText: 'Used for report status notifications',
-                    helperStyle: TextStyle(color: Colors.grey.shade500, fontSize: 11),
+                    helperStyle: TextStyle(
+                      color: Colors.grey.shade500,
+                      fontSize: 11,
+                    ),
                   ),
                   validator: (v) {
                     if (v != null && v.isNotEmpty && !v.contains('@')) {
@@ -151,14 +166,20 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
                 ),
                 const SizedBox(height: 16),
                 DropdownButtonFormField<String>(
-                  initialValue: locationController.text.isNotEmpty &&
-                          AppConstants.municipalities.contains(locationController.text)
+                  initialValue:
+                      locationController.text.isNotEmpty &&
+                          AppConstants.municipalities.contains(
+                            locationController.text,
+                          )
                       ? locationController.text
                       : null,
                   decoration: InputDecoration(
                     labelText: 'Municipality',
                     labelStyle: TextStyle(color: Colors.grey.shade600),
-                    prefixIcon: Icon(Icons.location_on_outlined, color: Colors.grey.shade500),
+                    prefixIcon: Icon(
+                      Icons.location_on_outlined,
+                      color: Colors.grey.shade500,
+                    ),
                     filled: true,
                     fillColor: const Color(0xFFF7F7F7),
                     border: OutlineInputBorder(
@@ -167,7 +188,10 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(14),
-                      borderSide: const BorderSide(color: Color(0xFF4CAF50), width: 1.5),
+                      borderSide: const BorderSide(
+                        color: Color(0xFF4CAF50),
+                        width: 1.5,
+                      ),
                     ),
                   ),
                   items: AppConstants.municipalities.map((m) {
@@ -202,7 +226,10 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
                     ),
                     child: const Text(
                       'Save Profile',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
                 ),
@@ -223,7 +250,9 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: Color(0xFF4CAF50)))
+          ? const Center(
+              child: CircularProgressIndicator(color: Color(0xFF4CAF50)),
+            )
           : CustomScrollView(
               slivers: [
                 // ── Top app bar ──
@@ -238,7 +267,10 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
                     onPressed: () => Navigator.of(context).pop(),
                   ),
                   title: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 6,
+                    ),
                     decoration: BoxDecoration(
                       color: const Color(0xFFE8F5E9),
                       borderRadius: BorderRadius.circular(20),
@@ -246,7 +278,11 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.check_circle, color: Color(0xFF4CAF50), size: 16),
+                        const Icon(
+                          Icons.check_circle,
+                          color: Color(0xFF4CAF50),
+                          size: 16,
+                        ),
                         const SizedBox(width: 6),
                         Text(
                           _isAdmin ? 'Admin Account' : 'Verified Account',
@@ -272,7 +308,10 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
                 // ── Profile Header ──
                 SliverToBoxAdapter(
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 8,
+                    ),
                     child: Column(
                       children: [
                         Container(
@@ -283,7 +322,9 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
                             shape: BoxShape.circle,
                             boxShadow: [
                               BoxShadow(
-                                color: const Color(0xFF4CAF50).withValues(alpha: 0.3),
+                                color: const Color(
+                                  0xFF4CAF50,
+                                ).withValues(alpha: 0.3),
                                 blurRadius: 20,
                                 offset: const Offset(0, 8),
                               ),
@@ -356,7 +397,11 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(Icons.location_on, size: 14, color: Colors.grey.shade500),
+                              Icon(
+                                Icons.location_on,
+                                size: 14,
+                                color: Colors.grey.shade500,
+                              ),
                               const SizedBox(width: 2),
                               Text(
                                 _profile!.location,
@@ -410,7 +455,11 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Padding(
-                          padding: const EdgeInsets.only(left: 20, top: 20, bottom: 4),
+                          padding: const EdgeInsets.only(
+                            left: 20,
+                            top: 20,
+                            bottom: 4,
+                          ),
                           child: Text(
                             'PROFILE MENU',
                             style: TextStyle(
@@ -424,25 +473,29 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
                         _ProfileMenuItem(
                           icon: Icons.description_outlined,
                           label: 'My Reports',
-                          onTap: () => Navigator.of(context).pushNamed('/status'),
+                          onTap: () =>
+                              Navigator.of(context).pushNamed('/status'),
                         ),
                         _menuDivider(),
                         _ProfileMenuItem(
                           icon: Icons.local_hospital_outlined,
                           label: 'Emergency Contacts',
-                          onTap: () => Navigator.of(context).pushNamed('/contacts'),
+                          onTap: () =>
+                              Navigator.of(context).pushNamed('/contacts'),
                         ),
                         _menuDivider(),
                         _ProfileMenuItem(
                           icon: Icons.campaign_outlined,
                           label: 'Announcements',
-                          onTap: () => Navigator.of(context).pushNamed('/announcements'),
+                          onTap: () =>
+                              Navigator.of(context).pushNamed('/announcements'),
                         ),
                         _menuDivider(),
                         _ProfileMenuItem(
                           icon: Icons.help_outline,
                           label: 'Support & FAQs',
-                          onTap: () => Navigator.of(context).pushNamed('/support'),
+                          onTap: () =>
+                              Navigator.of(context).pushNamed('/support'),
                         ),
                         _menuDivider(),
 
@@ -450,7 +503,8 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
                         _ProfileMenuItem(
                           icon: Icons.settings_outlined,
                           label: 'Settings',
-                          onTap: () => Navigator.of(context).pushNamed('/settings'),
+                          onTap: () =>
+                              Navigator.of(context).pushNamed('/settings'),
                         ),
 
                         if (_isAdmin) ...[
@@ -460,7 +514,8 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
                             label: 'Admin Dashboard',
                             badgeText: 'Admin',
                             badgeColor: const Color(0xFF5C2D91),
-                            onTap: () => Navigator.of(context).pushNamed('/admin'),
+                            onTap: () =>
+                                Navigator.of(context).pushNamed('/admin'),
                           ),
                         ],
                         _menuDivider(),
@@ -471,8 +526,10 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
                           onTap: () {
                             adminService.clearCache();
                             FirebaseAuth.instance.signOut();
-                            Navigator.of(context)
-                                .pushNamedAndRemoveUntil('/login', (route) => false);
+                            Navigator.of(context).pushNamedAndRemoveUntil(
+                              '/login',
+                              (route) => false,
+                            );
                           },
                         ),
                         const SizedBox(height: 8),
@@ -503,8 +560,11 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(Icons.qr_code_rounded,
-                                size: 18, color: Colors.grey.shade600),
+                            Icon(
+                              Icons.qr_code_rounded,
+                              size: 18,
+                              color: Colors.grey.shade600,
+                            ),
                             const SizedBox(width: 8),
                             Text(
                               'Show My Citizen QR Code',
@@ -574,7 +634,10 @@ class _ProfileMenuItem extends StatelessWidget {
             ),
             if (badgeText != null) ...[
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: badgeColor ?? Colors.green,
                   borderRadius: BorderRadius.circular(12),

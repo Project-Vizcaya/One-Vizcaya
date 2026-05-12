@@ -395,15 +395,17 @@ class _SupportScreenState extends State<SupportScreen> {
 
             // ── Footer ──
             Padding(
-              padding: const EdgeInsets.all(24),
+              padding: const EdgeInsets.fromLTRB(24, 16, 24, 48),
               child: Column(
                 children: [
+                  const Divider(),
+                  const SizedBox(height: 12),
                   Text(
                     'One Vizcaya v1.0.1',
                     style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey.shade400,
-                      fontWeight: FontWeight.w500,
+                      fontSize: 13,
+                      color: Colors.grey.shade600,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -411,8 +413,8 @@ class _SupportScreenState extends State<SupportScreen> {
                     'Developed by Aaron Anthony A. Gano II\nNueva Vizcaya State University',
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      fontSize: 11,
-                      color: Colors.grey.shade400,
+                      fontSize: 12,
+                      color: Colors.grey.shade500,
                       height: 1.5,
                     ),
                   ),
@@ -421,7 +423,7 @@ class _SupportScreenState extends State<SupportScreen> {
                     'In compliance with RA 10173 (Data Privacy Act of 2012)',
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      fontSize: 10,
+                      fontSize: 11,
                       color: Colors.grey.shade400,
                       fontStyle: FontStyle.italic,
                     ),

@@ -262,7 +262,7 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
               ),
             ),
 
-            const SizedBox(height: 32),
+            const SizedBox(height: 64),
           ],
         ),
       ),

@@ -216,10 +216,9 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
                   _isOffline
                       ? 'Report via SMS (Offline)'
                       : 'Report via App (Online)',
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodyLarge
-                      ?.copyWith(fontWeight: FontWeight.bold),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold),
                 ),
                 subtitle: Text(
                   _isOffline
@@ -268,7 +267,11 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
               ),
               if (_selectedCategory != null) ...[
                 Padding(
-                  padding: const EdgeInsets.only(top: 8.0, left: 12.0, right: 12.0),
+                  padding: const EdgeInsets.only(
+                    top: 8.0,
+                    left: 12.0,
+                    right: 12.0,
+                  ),
                   child: Text(
                     _selectedCategory!.description,
                     style: TextStyle(
@@ -306,14 +309,16 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
                 decoration: InputDecoration(
                   labelText: 'Location / Landmark',
                   prefixIcon: Icon(Icons.location_on, color: primaryLguColor),
-                  hintText: 'e.g., "In front of $activeMunicipalityName Municipal Hall"',
+                  hintText:
+                      'e.g., "In front of $activeMunicipalityName Municipal Hall"',
                   focusedBorder: OutlineInputBorder(
                     borderSide: BorderSide(color: primaryLguColor, width: 2),
                   ),
                   labelStyle: TextStyle(color: primaryLguColor),
                 ),
-                validator: (value) =>
-                    value == null || value.isEmpty ? 'Please enter a location' : null,
+                validator: (value) => value == null || value.isEmpty
+                    ? 'Please enter a location'
+                    : null,
               ),
               const SizedBox(height: 16),
               OutlinedButton.icon(
@@ -329,11 +334,17 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
                       ? 'Location Attached ✓'
                       : 'Attach Precise Location (GPS)',
                 ),
-                onPressed: _isOffline || _isGettingLocation ? null : _getLocation,
+                onPressed: _isOffline || _isGettingLocation
+                    ? null
+                    : _getLocation,
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: _currentPosition != null ? Colors.green : primaryLguColor,
+                  foregroundColor: _currentPosition != null
+                      ? Colors.green
+                      : primaryLguColor,
                   side: BorderSide(
-                    color: _currentPosition != null ? Colors.green : primaryLguColor,
+                    color: _currentPosition != null
+                        ? Colors.green
+                        : primaryLguColor,
                   ),
                 ),
               ),
@@ -350,20 +361,27 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
                   labelStyle: TextStyle(color: primaryLguColor),
                 ),
                 maxLines: 4,
-                validator: (value) =>
-                    value == null || value.isEmpty ? 'Please enter a description' : null,
+                validator: (value) => value == null || value.isEmpty
+                    ? 'Please enter a description'
+                    : null,
               ),
               const SizedBox(height: 16),
               OutlinedButton.icon(
                 icon: const Icon(Icons.camera_alt),
                 label: Text(
-                  _selectedImage != null ? 'Photo Attached ✓' : 'Attach Photo (Optional)',
+                  _selectedImage != null
+                      ? 'Photo Attached ✓'
+                      : 'Attach Photo (Optional)',
                 ),
                 onPressed: _isOffline ? null : () => _showImagePickerOptions(),
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: _selectedImage != null ? Colors.green : primaryLguColor,
+                  foregroundColor: _selectedImage != null
+                      ? Colors.green
+                      : primaryLguColor,
                   side: BorderSide(
-                    color: _selectedImage != null ? Colors.green : primaryLguColor,
+                    color: _selectedImage != null
+                        ? Colors.green
+                        : primaryLguColor,
                   ),
                 ),
               ),
@@ -391,14 +409,18 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
                             color: Colors.black54,
                             shape: BoxShape.circle,
                           ),
-                          child: const Icon(Icons.close, color: Colors.white, size: 18),
+                          child: const Icon(
+                            Icons.close,
+                            color: Colors.white,
+                            size: 18,
+                          ),
                         ),
                       ),
                     ),
                   ],
                 ),
               ],
-              const SizedBox(height: 32),
+              const SizedBox(height: 24),
               ElevatedButton(
                 onPressed: _submitReport,
                 style: ElevatedButton.styleFrom(
@@ -407,7 +429,7 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
                 ),
                 child: const Text('Submit Report'),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 48),
             ],
           ),
         ),

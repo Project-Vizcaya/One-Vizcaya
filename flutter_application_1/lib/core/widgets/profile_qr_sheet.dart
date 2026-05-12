@@ -26,7 +26,8 @@ class ProfileQrSheet extends StatelessWidget {
     final uid = user?.uid ?? 'unknown';
     final phone = user?.phoneNumber ?? 'Unknown';
 
-    final qrData = 'onevizcaya://citizen'
+    final qrData =
+        'onevizcaya://citizen'
         '?uid=$uid'
         '&phone=$phone'
         '&municipality=$municipality';
@@ -37,7 +38,9 @@ class ProfileQrSheet extends StatelessWidget {
         borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
       padding: EdgeInsets.fromLTRB(
-        24, 12, 24,
+        24,
+        12,
+        24,
         MediaQuery.of(context).viewInsets.bottom + 24,
       ),
       // ── Wrap in SingleChildScrollView so buttons are always reachable ──
@@ -79,7 +82,10 @@ class ProfileQrSheet extends StatelessWidget {
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: lguColor.withValues(alpha: 0.3), width: 2),
+                border: Border.all(
+                  color: lguColor.withValues(alpha: 0.3),
+                  width: 2,
+                ),
                 boxShadow: [
                   BoxShadow(
                     color: lguColor.withValues(alpha: 0.1),
@@ -115,9 +121,19 @@ class ProfileQrSheet extends StatelessWidget {
               ),
               child: Column(
                 children: [
-                  _InfoRow(label: 'Municipality', value: municipality, icon: Icons.location_on, color: lguColor),
+                  _InfoRow(
+                    label: 'Municipality',
+                    value: municipality,
+                    icon: Icons.location_on,
+                    color: lguColor,
+                  ),
                   const SizedBox(height: 6),
-                  _InfoRow(label: 'Phone', value: phone, icon: Icons.phone, color: lguColor),
+                  _InfoRow(
+                    label: 'Phone',
+                    value: phone,
+                    icon: Icons.phone,
+                    color: lguColor,
+                  ),
                   const SizedBox(height: 6),
                   _InfoRow(
                     label: 'Citizen ID',
@@ -146,7 +162,9 @@ class ProfileQrSheet extends StatelessWidget {
                       foregroundColor: lguColor,
                       side: BorderSide(color: lguColor),
                       padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
                   ),
                 ),
@@ -161,7 +179,9 @@ class ProfileQrSheet extends StatelessWidget {
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       elevation: 0,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
                   ),
                 ),
@@ -210,12 +230,20 @@ class _InfoRow extends StatelessWidget {
         const SizedBox(width: 8),
         Text(
           '$label: ',
-          style: TextStyle(fontSize: 12, color: Colors.grey.shade600, fontWeight: FontWeight.w500),
+          style: TextStyle(
+            fontSize: 12,
+            color: Colors.grey.shade600,
+            fontWeight: FontWeight.w500,
+          ),
         ),
         Expanded(
           child: Text(
             value,
-            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF333333)),
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF333333),
+            ),
             overflow: TextOverflow.ellipsis,
           ),
         ),

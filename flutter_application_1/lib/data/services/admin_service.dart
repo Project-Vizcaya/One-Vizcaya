@@ -62,7 +62,7 @@ class AdminService {
 
   void clearCache() {
     _firestoreAdminUids = null;
-    _lastFetched = now;
+    _lastFetched = null;
   }
 }
 
