@@ -21,7 +21,10 @@ class FirebaseReportRepository implements ReportRepository {
   }
 
   @override
-  Stream<List<ProblemReport>> getUserReports(String userId, String municipality) {
+  Stream<List<ProblemReport>> getUserReports(
+    String userId,
+    String municipality,
+  ) {
     return _firestore
         .collection('users')
         .doc(userId)
@@ -65,7 +68,29 @@ class FirebaseReportRepository implements ReportRepository {
   }
 
   @override
-  Future<void> updateReportStatus(String userId, String reportId, String newStatus) async {
+  Stream<List<ProblemReport>> getAllProvincialReports() {
+    // Returns all reports across every municipality, newest first by default
+    return _firestore
+        .collectionGroup('reports')
+        .orderBy('reportedAt', descending: true)
+        .snapshots()
+        .map(
+          (snapshot) => snapshot.docs
+              .map((doc) => ProblemReport.fromFirestore(doc))
+              .toList(),
+        )
+        .handleError((error) {
+          ToastUtils.showError('Failed to load provincial reports: $error');
+          return <ProblemReport>[];
+        });
+  }
+
+  @override
+  Future<void> updateReportStatus(
+    String userId,
+    String reportId,
+    String newStatus,
+  ) async {
     try {
       await _firestore
           .collection('users')

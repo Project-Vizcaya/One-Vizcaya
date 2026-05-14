@@ -81,6 +81,22 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
     }
   }
 
+  Future<String?> _uploadImage(File image, String userId) async {
+    try {
+      final fileName = '${userId}_${DateTime.now().millisecondsSinceEpoch}.jpg';
+      final ref = FirebaseStorage.instance
+          .ref()
+          .child('report_images')
+          .child(fileName);
+      final uploadTask = await ref.putFile(image);
+      return await uploadTask.ref.getDownloadURL();
+    } catch (e) {
+      // Image upload failure should not block report submission
+      debugPrint('Image upload failed: $e');
+      return null;
+    }
+  }
+
   Future<void> _submitReport() async {
     if (!_formKey.currentState!.validate()) return;
     if (_isSubmitting) return;
@@ -570,6 +586,12 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
                 textAlign: TextAlign.center,
                 style: TextStyle(
                     fontSize: 12, color: Colors.grey.shade500),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Camera photos include a verified timestamp and GPS location.',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
               ),
               const SizedBox(height: 20),
               Row(

@@ -18,14 +18,13 @@ class AnnouncementsScreen extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: lguColor,
         foregroundColor: Colors.white,
-        title: const Text('Announcements',
-            style: TextStyle(fontWeight: FontWeight.w600)),
+        title: const Text(
+          'Announcements',
+          style: TextStyle(fontWeight: FontWeight.w600),
+        ),
         elevation: 0,
       ),
-      body: _AnnouncementsList(
-        municipality: municipality,
-        lguColor: lguColor,
-      ),
+      body: _AnnouncementsList(municipality: municipality, lguColor: lguColor),
     );
   }
 }
@@ -174,8 +173,9 @@ class _AnnouncementCard extends StatelessWidget {
         children: [
           if (imageUrl.isNotEmpty)
             ClipRRect(
-              borderRadius:
-                  const BorderRadius.vertical(top: Radius.circular(16)),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(16),
+              ),
               child: Image.network(
                 imageUrl,
                 height: 180,
@@ -193,7 +193,9 @@ class _AnnouncementCard extends StatelessWidget {
                     if (isUrgent) ...[
                       Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 3),
+                          horizontal: 8,
+                          vertical: 3,
+                        ),
                         decoration: BoxDecoration(
                           color: Colors.red.shade50,
                           borderRadius: BorderRadius.circular(6),
@@ -202,14 +204,20 @@ class _AnnouncementCard extends StatelessWidget {
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.warning_amber_rounded,
-                                size: 12, color: Colors.red.shade600),
+                            Icon(
+                              Icons.warning_amber_rounded,
+                              size: 12,
+                              color: Colors.red.shade600,
+                            ),
                             const SizedBox(width: 4),
-                            Text('URGENT',
-                                style: TextStyle(
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.red.shade600)),
+                            Text(
+                              'URGENT',
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.red.shade600,
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -217,42 +225,52 @@ class _AnnouncementCard extends StatelessWidget {
                     ],
                     Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 3),
+                        horizontal: 8,
+                        vertical: 3,
+                      ),
                       decoration: BoxDecoration(
                         color: lguColor.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: Text(
-                        municipality == 'All'
-                            ? 'Province-Wide'
-                            : municipality,
+                        municipality == 'All' ? 'Province-Wide' : municipality,
                         style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w600,
-                            color: lguColor),
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                          color: lguColor,
+                        ),
                       ),
                     ),
                     const Spacer(),
                     if (timestamp != null)
-                      Text(timeago.format(timestamp),
-                          style: TextStyle(
-                              fontSize: 11,
-                              color: Colors.grey.shade400)),
+                      Text(
+                        timeago.format(timestamp),
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Colors.grey.shade400,
+                        ),
+                      ),
                   ],
                 ),
                 const SizedBox(height: 10),
-                Text(title,
-                    style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF1A1A2E),
-                        height: 1.3)),
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF1A1A2E),
+                    height: 1.3,
+                  ),
+                ),
                 const SizedBox(height: 8),
-                Text(body,
-                    style: TextStyle(
-                        fontSize: 13,
-                        color: Colors.grey.shade600,
-                        height: 1.5)),
+                Text(
+                  body,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Colors.grey.shade600,
+                    height: 1.5,
+                  ),
+                ),
                 const SizedBox(height: 12),
                 Row(
                   children: [
@@ -264,11 +282,14 @@ class _AnnouncementCard extends StatelessWidget {
                     ),
                     const SizedBox(width: 8),
                     Expanded(
-                      child: Text(postedBy,
-                          style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.grey.shade700)),
+                      child: Text(
+                        postedBy,
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.grey.shade700,
+                        ),
+                      ),
                     ),
                   ],
                 ),
@@ -280,8 +301,7 @@ class _AnnouncementCard extends StatelessWidget {
                     onTap: () => _openSource(sourceUrl),
                     child: Row(
                       children: [
-                        Icon(Icons.open_in_new,
-                            size: 14, color: lguColor),
+                        Icon(Icons.open_in_new, size: 14, color: lguColor),
                         const SizedBox(width: 6),
                         Expanded(
                           child: Text(
@@ -289,14 +309,14 @@ class _AnnouncementCard extends StatelessWidget {
                                 ? sourceLabel
                                 : 'View original post',
                             style: TextStyle(
-                                fontSize: 12,
-                                color: lguColor,
-                                fontWeight: FontWeight.w600,
-                                decoration: TextDecoration.underline),
+                              fontSize: 12,
+                              color: lguColor,
+                              fontWeight: FontWeight.w600,
+                              decoration: TextDecoration.underline,
+                            ),
                           ),
                         ),
-                        Icon(Icons.chevron_right,
-                            size: 16, color: lguColor),
+                        Icon(Icons.chevron_right, size: 16, color: lguColor),
                       ],
                     ),
                   ),

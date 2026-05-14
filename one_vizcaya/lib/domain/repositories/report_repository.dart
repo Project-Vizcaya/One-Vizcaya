@@ -2,7 +2,10 @@ import '../models/problem_report.dart';
 
 abstract class ReportRepository {
   Future<void> submitReport(ProblemReport report, String userId);
-  Stream<List<ProblemReport>> getUserReports(String userId, String municipality);
+  Stream<List<ProblemReport>> getUserReports(
+    String userId,
+    String municipality,
+  );
 
   /// Admin: Get ALL reports across ALL users for a specific municipality
   Stream<List<ProblemReport>> getAllMunicipalityReports(String municipality);
