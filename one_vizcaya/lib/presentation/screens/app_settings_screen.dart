@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../state/municipality_state.dart';
+import '../../core/constants/app_constants.dart';
 import '../../core/utils/toast_utils.dart';
 
 class AppSettingsScreen extends StatefulWidget {
@@ -212,7 +213,7 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
                   icon: Icons.info_outline,
                   iconColor: _lguColor,
                   title: 'App Version',
-                  value: '1.0.1 (Build 1)',
+                  value: AppConstants.appVersionDisplay,
                 ),
                 _DividerLine(),
                 _InfoTile(

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../state/municipality_state.dart';
+import '../../core/constants/app_constants.dart';
 import '../../core/utils/toast_utils.dart';
 
 class OtherScreens extends StatelessWidget {
@@ -401,7 +402,7 @@ class _SupportScreenState extends State<SupportScreen> {
                   const Divider(),
                   const SizedBox(height: 12),
                   Text(
-                    'One Vizcaya v1.0.1',
+                    'One Vizcaya v${AppConstants.appVersion}',
                     style: TextStyle(
                       fontSize: 13,
                       color: Colors.grey.shade600,
