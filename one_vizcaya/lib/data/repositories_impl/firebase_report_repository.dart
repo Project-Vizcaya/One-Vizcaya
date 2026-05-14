@@ -60,7 +60,6 @@ class FirebaseReportRepository implements ReportRepository {
 
   @override
   Stream<List<ProblemReport>> getAllProvincialReports() {
-    // Returns all reports across every municipality, newest first by default
     return _firestore
         .collectionGroup('reports')
         .orderBy('reportedAt', descending: true)
