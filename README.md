@@ -57,6 +57,47 @@ The application features dynamic theming based on the specific municipality sele
 
 ---
 
+## 🏛️ Architecture: Multi-Tiered Triage & Escalation System
+
+One Vizcaya is designed with an enterprise-grade hierarchical workflow. This architecture prevents the Provincial Government from being overwhelmed with minor complaints, ensuring the Capitol only sees **verified, high-level problems** that require immediate provincial resources.
+
+### 📱 Level 1: The Origin (Reporting)
+* **Actor:** The Citizen
+* **Process:** A user experiences a community issue (e.g., flooding, massive potholes). They open the app, capture a photo, select a category, and submit the report.
+* **Security Check:** The system automatically extracts and attaches verified EXIF metadata (Time, Date, GPS coordinates) from the device to prevent the upload of fake or outdated reports.
+
+### 🛡️ Level 2: Municipal Triage (Verification & Filtering)
+* **Actor:** Local Dispatch / Triage Officer
+* **Process:** The report hits a municipal desk first. The officer reviews the EXIF data to verify authenticity and assigns a Priority Level (Critical, High, Medium, Low).
+  * 🚫 *If fake/spam:* The report is immediately rejected.
+  * ✅ *If valid:* It moves to Level 3.
+
+### 🚜 Level 3: Local Action (Municipal/Barangay Response)
+* **Actor:** Local LGU Responders
+* **Process:** The verified report is routed to the correct local unit (e.g., Barangay Council for noise complaints, Municipal Engineering for minor road cracks, MDRRMO for accidents).
+  * 🛠️ *If fixable locally:* A team is dispatched, the issue is resolved, and marked as **"Solved"** on the dashboard. The citizen receives an automated status notification.
+  * ⚠️ *If beyond local capacity (lack of budget/heavy equipment):* It moves to Level 4.
+
+### 🌉 Level 4: The Bridge (Escalation)
+* **Actor:** Municipal Administrator / Escalation Officer
+* **Process:** When a problem requires resources the municipality lacks (e.g., a bridge collapse, major landslide), the Municipal Admin reviews the data and triggers the **"Escalate to Province"** protocol.
+
+### 🏛️ Level 5: Provincial Command (Oversight & Heavy Response)
+* **Actor:** Provincial Dashboard (PDRRMO / Governor's Office)
+* **Process:** The escalated report instantly appears on the Provincial Administrator's God's-Eye Dashboard, tagged with a critical "Escalated" badge. The Capitol gains immediate, real-time visibility of an issue requiring provincial intervention.
+
+### 🤝 Level 6: Provincial Coordination & Action
+* **Actor:** Provincial Action Team
+* **Process:** The provincial desk takes ownership of the report. For major infrastructure issues, they directly coordinate with agencies like the **DPWH** or the Provincial Engineering Office. Live status updates are pushed back down the chain, keeping both the Municipality and the Citizen informed that provincial help has been deployed.
+
+---
+
+> **💡 The Value Proposition for the Provincial LGU:**
+> This 6-level structure acts as a strict filter that **protects executive time**. By the time a report reaches the Capitol (Level 5), it has already been verified as authentic (Level 2), assessed by local experts on the ground (Level 3), and deemed absolutely necessary for provincial intervention (Level 4). 
+
+
+---
+
 <a id="development-roadmap"></a>
 ## 🗺 Master Development Roadmap
 
