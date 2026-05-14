@@ -29,6 +29,12 @@ class ProblemReport {
   final bool escalatedToProvince;
   final DateTime? escalatedAt;
 
+  // Anonymous reporting
+  final bool isAnonymous;
+
+  // SLA tracking
+  final DateTime? resolvedAt;
+
   ProblemReport({
     required this.id,
     required this.category,
@@ -50,6 +56,8 @@ class ProblemReport {
     this.photoLongitude,
     this.escalatedToProvince = false,
     this.escalatedAt,
+    this.isAnonymous = false,
+    this.resolvedAt,
   });
 
   factory ProblemReport.fromFirestore(DocumentSnapshot doc) {
@@ -82,6 +90,8 @@ class ProblemReport {
       photoLongitude: (data['photoLongitude'] as num?)?.toDouble(),
       escalatedToProvince: data['escalatedToProvince'] as bool? ?? false,
       escalatedAt: (data['escalatedAt'] as Timestamp?)?.toDate(),
+      isAnonymous: data['isAnonymous'] as bool? ?? false,
+      resolvedAt: (data['resolvedAt'] as Timestamp?)?.toDate(),
     );
   }
 
@@ -109,6 +119,10 @@ class ProblemReport {
       'escalatedToProvince': escalatedToProvince,
       'escalatedAt': escalatedAt != null
           ? Timestamp.fromDate(escalatedAt!)
+          : null,
+      'isAnonymous': isAnonymous,
+      'resolvedAt': resolvedAt != null
+          ? Timestamp.fromDate(resolvedAt!)
           : null,
     };
   }

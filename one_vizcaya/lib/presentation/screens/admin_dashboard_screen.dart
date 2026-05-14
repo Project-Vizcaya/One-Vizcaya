@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
 import '../../domain/models/problem_report.dart';
 import '../../domain/enums/report_priority.dart';
 import '../../domain/enums/report_status.dart';
@@ -590,10 +593,105 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
               child: const Text('Clear filters',
                   style: TextStyle(fontSize: 11)),
             ),
+          StreamBuilder<List<ProblemReport>>(
+            stream: _reportsStream,
+            builder: (context, snapshot) {
+              final reports = snapshot.data ?? [];
+              if (reports.isEmpty) return const SizedBox.shrink();
+              return IconButton(
+                icon: Icon(Icons.picture_as_pdf,
+                    size: 20, color: lguColor),
+                tooltip: 'Export to PDF',
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                onPressed: () => _exportReportsToPdf(
+                    _applyFiltersAndSort(reports), lguColor),
+              );
+            },
+          ),
         ],
       ),
     );
   }
+
+  Future<void> _exportReportsToPdf(
+      List<ProblemReport> reports, Color lguColor) async {
+    final pdf = pw.Document();
+
+    final now = DateTime.now();
+    final dateStr =
+        '${now.day}/${now.month}/${now.year} ${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
+    final municipality = _isProvincialView ? 'All Municipalities' : _activeMunicipalityName;
+
+    pdf.addPage(
+      pw.MultiPage(
+        pageFormat: PdfPageFormat.a4,
+        margin: const pw.EdgeInsets.all(32),
+        header: (_) => pw.Column(
+          crossAxisAlignment: pw.CrossAxisAlignment.start,
+          children: [
+            pw.Text(
+              'One Vizcaya — Problem Reports',
+              style: pw.TextStyle(
+                  fontSize: 18, fontWeight: pw.FontWeight.bold),
+            ),
+            pw.SizedBox(height: 4),
+            pw.Text('Municipality: $municipality   |   Generated: $dateStr',
+                style: const pw.TextStyle(fontSize: 10)),
+            pw.Divider(),
+          ],
+        ),
+        build: (_) => [
+          pw.TableHelper.fromTextArray(
+            headers: [
+              '#', 'Category', 'Status', 'Priority',
+              'Location', 'Reported', 'Resolved'
+            ],
+            headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9),
+            cellStyle: const pw.TextStyle(fontSize: 8),
+            columnWidths: {
+              0: const pw.FixedColumnWidth(20),
+              1: const pw.FlexColumnWidth(2),
+              2: const pw.FixedColumnWidth(55),
+              3: const pw.FixedColumnWidth(50),
+              4: const pw.FlexColumnWidth(2.5),
+              5: const pw.FixedColumnWidth(55),
+              6: const pw.FixedColumnWidth(55),
+            },
+            data: reports.asMap().entries.map((e) {
+              final i = e.key + 1;
+              final r = e.value;
+              final reported =
+                  '${r.reportedAt.day}/${r.reportedAt.month}/${r.reportedAt.year}';
+              final resolved = r.resolvedAt != null
+                  ? '${r.resolvedAt!.day}/${r.resolvedAt!.month}/${r.resolvedAt!.year}'
+                  : '—';
+              return [
+                '$i',
+                r.category.displayName,
+                r.status.toShortString(),
+                r.priority.displayName,
+                r.location,
+                reported,
+                resolved,
+              ];
+            }).toList(),
+          ),
+          pw.SizedBox(height: 12),
+          pw.Text(
+            'Total: ${reports.length} reports',
+            style: pw.TextStyle(
+                fontWeight: pw.FontWeight.bold, fontSize: 10),
+          ),
+        ],
+      ),
+    );
+
+    await Printing.layoutPdf(
+      onLayout: (_) async => pdf.save(),
+      name: 'one_vizcaya_reports_$municipality.pdf',
+    );
+  }
+
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -966,14 +1064,57 @@ class _ReportDetailSheet extends StatelessWidget {
                     lguColor: lguColor,
                   ),
 
-                  if (report.userPhone != null) ...[
-                    const SizedBox(height: 12),
+                  const SizedBox(height: 12),
+                  if (report.isAnonymous)
+                    _DetailSection(
+                      icon: Icons.visibility_off,
+                      label: 'Reporter',
+                      content: 'Anonymous Citizen',
+                      lguColor: lguColor,
+                    )
+                  else if (report.userPhone != null)
                     _DetailSection(
                       icon: Icons.phone,
                       label: 'Reporter Phone',
                       content: report.userPhone!,
                       lguColor: lguColor,
                     ),
+
+                  if (report.status == ReportStatus.solved &&
+                      report.resolvedAt != null) ...[
+                    const SizedBox(height: 12),
+                    Builder(builder: (context) {
+                      final duration =
+                          report.resolvedAt!.difference(report.reportedAt);
+                      final days = duration.inDays;
+                      final hours = duration.inHours.remainder(24);
+                      final label = days > 0
+                          ? 'Resolved in ${days}d ${hours}h'
+                          : 'Resolved in ${hours}h';
+                      return Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: Colors.green.shade50,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: Colors.green.shade200),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.timer_outlined,
+                                size: 16, color: Colors.green.shade700),
+                            const SizedBox(width: 8),
+                            Text(
+                              label,
+                              style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.green.shade800),
+                            ),
+                          ],
+                        ),
+                      );
+                    }),
                   ],
 
                   if (report.imageUrl != null &&

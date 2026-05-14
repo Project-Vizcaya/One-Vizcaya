@@ -5,6 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_app_check/firebase_app_check.dart';
 import 'firebase_options.dart';
 
+import 'data/services/notification_service.dart';
 import 'presentation/screens/login_screen.dart';
 import 'presentation/screens/setup_screen.dart';
 import 'presentation/screens/home_screen.dart';
@@ -38,6 +39,8 @@ void main() async {
     FirebaseFirestore.instance.settings = const Settings(
       persistenceEnabled: true,
     );
+
+    await NotificationService.instance.initialize();
   } catch (e) {
     // If Firebase fails or hangs, it will print the error instead of crashing silently
     debugPrint("Firebase Initialization Error: $e");

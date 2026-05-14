@@ -83,12 +83,19 @@ class FirebaseReportRepository implements ReportRepository {
     String newStatus,
   ) async {
     try {
+      final update = <String, dynamic>{'status': newStatus};
+      if (newStatus == 'solved') {
+        update['resolvedAt'] = FieldValue.serverTimestamp();
+      } else {
+        // Clear resolvedAt if report is reopened
+        update['resolvedAt'] = null;
+      }
       await _firestore
           .collection('users')
           .doc(userId)
           .collection('reports')
           .doc(reportId)
-          .update({'status': newStatus});
+          .update(update);
       ToastUtils.showSuccess('Status updated');
     } catch (e) {
       ToastUtils.showError('Failed to update status: $e');
