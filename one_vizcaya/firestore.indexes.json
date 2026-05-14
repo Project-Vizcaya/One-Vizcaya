@@ -15,6 +15,15 @@
         { "fieldPath": "municipality", "order": "ASCENDING" },
         { "fieldPath": "priorityScore", "order": "DESCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "reports",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "municipality", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "reportedAt", "order": "DESCENDING" }
+      ]
     }
   ],
   "fieldOverrides": [

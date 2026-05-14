@@ -1892,6 +1892,14 @@ class _AnnouncementsTab extends StatelessWidget {
           child: StreamBuilder<QuerySnapshot>(
             stream: query.snapshots(),
             builder: (context, snapshot) {
+              if (snapshot.hasError) {
+                return Center(
+                  child: Text(
+                    'Failed to load announcements',
+                    style: TextStyle(color: Colors.grey.shade600),
+                  ),
+                );
+              }
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return Center(
                     child:

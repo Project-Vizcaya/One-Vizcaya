@@ -162,8 +162,11 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
                     ),
                   ),
                   validator: (v) {
-                    if (v != null && v.isNotEmpty && !v.contains('@')) {
-                      return 'Please enter a valid email';
+                    if (v == null || v.isEmpty) return null;
+                    final emailRegex = RegExp(
+                        r'^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$');
+                    if (!emailRegex.hasMatch(v.trim())) {
+                      return 'Please enter a valid email address';
                     }
                     return null;
                   },

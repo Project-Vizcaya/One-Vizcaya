@@ -12,11 +12,20 @@ class CommunityFeed extends StatelessWidget {
       stream: FirebaseFirestore.instance
           .collectionGroup('reports')
           .where('municipality', isEqualTo: municipality)
-          .where('status', isEqualTo: 'Resolved')
-          .orderBy('timestamp', descending: true)
+          .where('status', isEqualTo: 'solved')
+          .orderBy('reportedAt', descending: true)
           .limit(10)
           .snapshots(),
       builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return const Padding(
+            padding: EdgeInsets.all(16),
+            child: Text(
+              'Unable to load resolved reports.',
+              style: TextStyle(color: Colors.grey),
+            ),
+          );
+        }
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
         }
@@ -37,23 +46,32 @@ class CommunityFeed extends StatelessWidget {
           separatorBuilder: (_, __) => const Divider(height: 1),
           itemBuilder: (context, index) {
             final data = docs[index].data() as Map<String, dynamic>;
-            final timestamp = (data['timestamp'] as Timestamp?)?.toDate();
+            final reportedAt =
+                (data['reportedAt'] as Timestamp?)?.toDate();
+            final category = data['category'] as String? ?? 'Report';
+            final location = data['location'] as String? ?? '';
             return ListTile(
               leading: CircleAvatar(
                 backgroundColor: Theme.of(context).colorScheme.primary,
-                child: const Icon(Icons.check, color: Colors.white, size: 16),
+                child:
+                    const Icon(Icons.check, color: Colors.white, size: 16),
               ),
               title: Text(
-                data['title'] ?? '',
+                category,
                 style: const TextStyle(fontWeight: FontWeight.w600),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
-              subtitle: Text(data['category'] ?? ''),
-              trailing: timestamp != null
+              subtitle: Text(
+                location,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              trailing: reportedAt != null
                   ? Text(
-                      timeago.format(timestamp),
-                      style: const TextStyle(fontSize: 11, color: Colors.grey),
+                      timeago.format(reportedAt),
+                      style: const TextStyle(
+                          fontSize: 11, color: Colors.grey),
                     )
                   : null,
             );
