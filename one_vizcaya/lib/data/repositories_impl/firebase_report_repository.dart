@@ -114,4 +114,20 @@ class FirebaseReportRepository implements ReportRepository {
       rethrow;
     }
   }
+
+  @override
+  Future<void> deleteReport(String userId, String reportId) async {
+    try {
+      await _firestore
+          .collection('users')
+          .doc(userId)
+          .collection('reports')
+          .doc(reportId)
+          .delete();
+      ToastUtils.showSuccess('Report deleted');
+    } catch (e) {
+      ToastUtils.showError('Failed to delete report: $e');
+      rethrow;
+    }
+  }
 }

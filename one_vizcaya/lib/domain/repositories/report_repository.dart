@@ -18,4 +18,7 @@ abstract class ReportRepository {
 
   /// Admin: Escalate a report to provincial level
   Future<void> escalateToProvince(String userId, String reportId);
+
+  /// Provincial Admin: Permanently delete a report
+  Future<void> deleteReport(String userId, String reportId);
 }
