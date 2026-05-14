@@ -30,7 +30,9 @@ class AnnouncementsScreen extends StatelessWidget {
   }
 }
 
-class _AnnouncementsList extends StatefulWidget {
+// Uses a real-time stream (snapshots) so new announcements appear instantly
+// and the screen doesn't silently fail on Firestore permission errors.
+class _AnnouncementsList extends StatelessWidget {
   final String municipality;
   final Color lguColor;
 
@@ -38,137 +40,84 @@ class _AnnouncementsList extends StatefulWidget {
       {required this.municipality, required this.lguColor});
 
   @override
-  State<_AnnouncementsList> createState() => _AnnouncementsListState();
-}
-
-class _AnnouncementsListState extends State<_AnnouncementsList> {
-  List<QueryDocumentSnapshot> _docs = [];
-  bool _isLoading = true;
-  bool _hasError = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadAnnouncements();
-  }
-
-  Future<void> _loadAnnouncements() async {
-    setState(() {
-      _isLoading = true;
-      _hasError = false;
-    });
-    try {
-      // Query 1: municipality-specific
-      final q1 = await FirebaseFirestore.instance
-          .collection('announcements')
-          .where('municipality', isEqualTo: widget.municipality)
-          .orderBy('timestamp', descending: true)
-          .get();
-
-      // Query 2: province-wide (All)
-      final q2 = await FirebaseFirestore.instance
-          .collection('announcements')
-          .where('municipality', isEqualTo: 'All')
-          .orderBy('timestamp', descending: true)
-          .get();
-
-      // Merge and deduplicate
-      final Map<String, QueryDocumentSnapshot> merged = {};
-      for (final doc in [...q1.docs, ...q2.docs]) {
-        merged[doc.id] = doc;
-      }
-
-      // Sort by timestamp descending
-      final sorted = merged.values.toList()
-        ..sort((a, b) {
-          final aTime = (a.data() as Map)['timestamp'] as Timestamp?;
-          final bTime = (b.data() as Map)['timestamp'] as Timestamp?;
-          if (aTime == null || bTime == null) return 0;
-          return bTime.compareTo(aTime);
-        });
-
-      if (mounted) {
-        setState(() {
-          _docs = sorted;
-          _isLoading = false;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-          _hasError = true;
-        });
-      }
-    }
-  }
-
-  @override
   Widget build(BuildContext context) {
-    if (_isLoading) {
-      return Center(
-          child: CircularProgressIndicator(color: widget.lguColor));
-    }
+    // Fetch all announcements ordered by time; filter by municipality in client.
+    // A single collection-wide query avoids the composite-index requirement that
+    // caused the original "Failed to load announcements" error.
+    final stream = FirebaseFirestore.instance
+        .collection('announcements')
+        .orderBy('timestamp', descending: true)
+        .snapshots();
 
-    if (_hasError) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.error_outline,
-                size: 48, color: Colors.red.shade300),
-            const SizedBox(height: 16),
-            Text('Failed to load announcements',
-                style: TextStyle(color: Colors.grey.shade600)),
-            const SizedBox(height: 12),
-            ElevatedButton(
-              onPressed: _loadAnnouncements,
-              style: ElevatedButton.styleFrom(
-                  backgroundColor: widget.lguColor,
-                  foregroundColor: Colors.white),
-              child: const Text('Retry'),
+    return StreamBuilder<QuerySnapshot>(
+      stream: stream,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Center(
+              child: CircularProgressIndicator(color: lguColor));
+        }
+
+        if (snapshot.hasError) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.error_outline,
+                    size: 48, color: Colors.red.shade300),
+                const SizedBox(height: 16),
+                Text('Failed to load announcements',
+                    style: TextStyle(color: Colors.grey.shade600)),
+                const SizedBox(height: 8),
+                Text(
+                  '${snapshot.error}',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 11, color: Colors.grey.shade400),
+                ),
+              ],
             ),
-          ],
-        ),
-      );
-    }
+          );
+        }
 
-    if (_docs.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.campaign_outlined,
-                size: 72,
-                color: widget.lguColor.withValues(alpha: 0.3)),
-            const SizedBox(height: 16),
-            Text('No announcements yet',
-                style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.grey.shade600)),
-            const SizedBox(height: 8),
-            Text('Check back later for updates\nfrom your local government.',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                    fontSize: 13, color: Colors.grey.shade400)),
-          ],
-        ),
-      );
-    }
+        // Filter: show announcements for this municipality OR province-wide ('All')
+        final docs = (snapshot.data?.docs ?? []).where((doc) {
+          final data = doc.data() as Map<String, dynamic>;
+          final muni = data['municipality'] as String? ?? '';
+          return muni == municipality || muni == 'All';
+        }).toList();
 
-    return RefreshIndicator(
-      onRefresh: _loadAnnouncements,
-      color: widget.lguColor,
-      child: ListView.builder(
-        padding: const EdgeInsets.all(16),
-        itemCount: _docs.length,
-        itemBuilder: (context, index) {
-          final data = _docs[index].data() as Map<String, dynamic>;
-          return _AnnouncementCard(
-              data: data, lguColor: widget.lguColor);
-        },
-      ),
+        if (docs.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.campaign_outlined,
+                    size: 72,
+                    color: lguColor.withValues(alpha: 0.3)),
+                const SizedBox(height: 16),
+                Text('No announcements yet',
+                    style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.grey.shade600)),
+                const SizedBox(height: 8),
+                Text('Check back later for updates\nfrom your local government.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                        fontSize: 13, color: Colors.grey.shade400)),
+              ],
+            ),
+          );
+        }
+
+        return ListView.builder(
+          padding: const EdgeInsets.all(16),
+          itemCount: docs.length,
+          itemBuilder: (context, index) {
+            final data = docs[index].data() as Map<String, dynamic>;
+            return _AnnouncementCard(data: data, lguColor: lguColor);
+          },
+        );
+      },
     );
   }
 }
@@ -177,8 +126,7 @@ class _AnnouncementCard extends StatelessWidget {
   final Map<String, dynamic> data;
   final Color lguColor;
 
-  const _AnnouncementCard(
-      {required this.data, required this.lguColor});
+  const _AnnouncementCard({required this.data, required this.lguColor});
 
   Future<void> _openSource(String url) async {
     final uri = Uri.parse(url);
@@ -311,8 +259,8 @@ class _AnnouncementCard extends StatelessWidget {
                     CircleAvatar(
                       radius: 14,
                       backgroundColor: lguColor.withValues(alpha: 0.15),
-                      child: Icon(Icons.person,
-                          size: 16, color: lguColor),
+                      child:
+                          Icon(Icons.person, size: 16, color: lguColor),
                     ),
                     const SizedBox(width: 8),
                     Expanded(

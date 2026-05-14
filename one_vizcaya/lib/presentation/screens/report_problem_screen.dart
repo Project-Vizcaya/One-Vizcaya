@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:image_picker/image_picker.dart';
@@ -30,13 +31,19 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
   final _locationController = TextEditingController();
   bool _isOffline = false;
   bool _isGettingLocation = false;
+  bool _isSubmitting = false;
   Position? _currentPosition;
 
   final ReportRepository _reportRepository = FirebaseReportRepository();
   final GeolocatorService _geolocatorService = GeolocatorService();
   final PriorityService _priorityService = PriorityService();
   final ImagePicker _imagePicker = ImagePicker();
+
   File? _selectedImage;
+  // Metadata captured when photo is taken
+  DateTime? _photoTimestamp;
+  double? _photoLatitude;
+  double? _photoLongitude;
 
   Future<void> _getLocation() async {
     setState(() => _isGettingLocation = true);
@@ -45,7 +52,6 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
       setState(() {
         _currentPosition = position;
         _isGettingLocation = false;
-        // ── Auto-fill location field with GPS coordinates ──
         _locationController.text =
             'GPS: ${position.latitude.toStringAsFixed(5)}, '
             '${position.longitude.toStringAsFixed(5)}';
@@ -54,43 +60,59 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
     } else {
       setState(() => _isGettingLocation = false);
       ToastUtils.showError(
-        'Could not get precise location. You can still submit the report.',
-      );
+          'Could not get precise location. You can still submit the report.');
+    }
+  }
+
+  Future<String?> _uploadImage(File image, String userId) async {
+    try {
+      final fileName =
+          '${userId}_${DateTime.now().millisecondsSinceEpoch}.jpg';
+      final ref = FirebaseStorage.instance
+          .ref()
+          .child('report_images')
+          .child(fileName);
+      final uploadTask = await ref.putFile(image);
+      return await uploadTask.ref.getDownloadURL();
+    } catch (e) {
+      // Image upload failure should not block report submission
+      debugPrint('Image upload failed: $e');
+      return null;
     }
   }
 
   Future<void> _submitReport() async {
-    if (_formKey.currentState!.validate()) {
-      final prefs = await SharedPreferences.getInstance();
-      final lastSubmitTime = prefs.getInt('last_report_time') ?? 0;
-      final currentTime = DateTime.now().millisecondsSinceEpoch;
+    if (!_formKey.currentState!.validate()) return;
+    if (_isSubmitting) return;
 
-      if (currentTime - lastSubmitTime < 5 * 60 * 1000) {
-        ToastUtils.showError(
-          'Please wait 5 minutes between submitting reports to prevent spam.',
-        );
-        return;
-      }
+    final prefs = await SharedPreferences.getInstance();
+    final lastSubmitTime = prefs.getInt('last_report_time') ?? 0;
+    final currentTime = DateTime.now().millisecondsSinceEpoch;
 
-      _formKey.currentState!.save();
+    if (currentTime - lastSubmitTime < 5 * 60 * 1000) {
+      ToastUtils.showError(
+          'Please wait 5 minutes between submitting reports to prevent spam.');
+      return;
+    }
 
-      final municipalityReportingTo =
-          oneVizcayaState.selectedMunicipality.value;
+    _formKey.currentState!.save();
+    setState(() => _isSubmitting = true);
 
+    final municipalityReportingTo = oneVizcayaState.selectedMunicipality.value;
+
+    if (_isOffline) {
       final reportDetails =
           'Reporting to: $municipalityReportingTo\n'
           'Category: ${_selectedCategory?.displayName}\n'
           'Location: ${_locationController.text}\n'
           'Description: ${_descriptionController.text}';
-
-      if (_isOffline) {
-        _sendSmsReport(municipalityReportingTo, reportDetails);
-      } else {
-        _sendOnlineReport(municipalityReportingTo);
-      }
-
-      await prefs.setInt('last_report_time', currentTime);
+      await _sendSmsReport(municipalityReportingTo, reportDetails);
+      setState(() => _isSubmitting = false);
+    } else {
+      await _sendOnlineReport(municipalityReportingTo);
     }
+
+    await prefs.setInt('last_report_time', currentTime);
   }
 
   Future<void> _sendSmsReport(String municipality, String details) async {
@@ -117,6 +139,13 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
       final user = FirebaseAuth.instance.currentUser;
       final String userId = user?.uid ?? 'anonymous';
 
+      // Upload image if one was selected
+      String? imageUrl;
+      if (_selectedImage != null) {
+        ToastUtils.showSuccess('Uploading photo evidence…');
+        imageUrl = await _uploadImage(_selectedImage!, userId);
+      }
+
       final priorityResult = await _priorityService.calculatePriority(
         category: _selectedCategory!,
         municipality: municipality,
@@ -137,9 +166,13 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
         longitude: _currentPosition?.longitude,
         userId: userId,
         userPhone: user?.phoneNumber,
+        imageUrl: imageUrl,
+        photoTimestamp: _photoTimestamp,
+        photoLatitude: _photoLatitude,
+        photoLongitude: _photoLongitude,
       );
 
-      _reportRepository.submitReport(report, userId);
+      await _reportRepository.submitReport(report, userId);
 
       _locationController.clear();
       _descriptionController.clear();
@@ -147,34 +180,33 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
         _selectedCategory = null;
         _currentPosition = null;
         _selectedImage = null;
+        _photoTimestamp = null;
+        _photoLatitude = null;
+        _photoLongitude = null;
+        _isSubmitting = false;
       });
 
       if (!mounted) return;
 
-      String priorityMsg = '';
-      if (priorityResult.duplicateCount > 0) {
-        priorityMsg =
-            '\n\n📊 ${priorityResult.duplicateCount} similar report(s) found in the last 48 hours. '
-            'Priority auto-escalated to ${priorityResult.priority.displayName}.';
-      } else {
-        priorityMsg =
-            '\n\nPriority level: ${priorityResult.priority.displayName}.';
-      }
+      String priorityMsg = priorityResult.duplicateCount > 0
+          ? '\n\n${priorityResult.duplicateCount} similar report(s) found in the last 48 hours. '
+              'Priority auto-escalated to ${priorityResult.priority.displayName}.'
+          : '\n\nPriority level: ${priorityResult.priority.displayName}.';
 
       _showConfirmationDialog(
         title: 'Report Submitted',
         content:
-            'Your report has been successfully routed to the $municipality municipal engineering database.$priorityMsg',
+            'Your report has been successfully routed to the $municipality '
+            'municipal engineering database.$priorityMsg',
       );
     } catch (e) {
+      setState(() => _isSubmitting = false);
       ToastUtils.showError('Error preparing report: $e');
     }
   }
 
-  void _showConfirmationDialog({
-    required String title,
-    required String content,
-  }) {
+  void _showConfirmationDialog(
+      {required String title, required String content}) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -196,12 +228,13 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
   @override
   Widget build(BuildContext context) {
     final dynamicTheme = oneVizcayaState.activeTheme;
-    final primaryLguColor = dynamicTheme['appBarColor'];
+    final primaryLguColor = dynamicTheme['appBarColor'] as Color;
     final activeMunicipalityName = oneVizcayaState.selectedMunicipality.value;
 
     return Scaffold(
       appBar: AppBar(
         backgroundColor: primaryLguColor,
+        foregroundColor: Colors.white,
         title: Text('Report Problem to $activeMunicipalityName'),
       ),
       body: SingleChildScrollView(
@@ -216,9 +249,10 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
                   _isOffline
                       ? 'Report via SMS (Offline)'
                       : 'Report via App (Online)',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold),
+                  style: Theme.of(context)
+                      .textTheme
+                      .bodyLarge
+                      ?.copyWith(fontWeight: FontWeight.bold),
                 ),
                 subtitle: Text(
                   _isOffline
@@ -258,31 +292,29 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
                     value == null ? 'Please select a category' : null,
                 decoration: InputDecoration(
                   labelText: 'Category',
-                  prefixIcon: Icon(Icons.category, color: primaryLguColor),
+                  prefixIcon:
+                      Icon(Icons.category, color: primaryLguColor),
                   focusedBorder: OutlineInputBorder(
-                    borderSide: BorderSide(color: primaryLguColor, width: 2),
+                    borderSide:
+                        BorderSide(color: primaryLguColor, width: 2),
                   ),
                   labelStyle: TextStyle(color: primaryLguColor),
                 ),
               ),
               if (_selectedCategory != null) ...[
                 Padding(
-                  padding: const EdgeInsets.only(
-                    top: 8.0,
-                    left: 12.0,
-                    right: 12.0,
-                  ),
+                  padding:
+                      const EdgeInsets.only(top: 8, left: 12, right: 12),
                   child: Text(
                     _selectedCategory!.description,
                     style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey[700],
-                      fontStyle: FontStyle.italic,
-                    ),
+                        fontSize: 12,
+                        color: Colors.grey[700],
+                        fontStyle: FontStyle.italic),
                   ),
                 ),
                 Padding(
-                  padding: const EdgeInsets.only(top: 4.0, left: 12.0),
+                  padding: const EdgeInsets.only(top: 4, left: 12),
                   child: Row(
                     children: [
                       Icon(
@@ -308,17 +340,20 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
                 controller: _locationController,
                 decoration: InputDecoration(
                   labelText: 'Location / Landmark',
-                  prefixIcon: Icon(Icons.location_on, color: primaryLguColor),
+                  prefixIcon:
+                      Icon(Icons.location_on, color: primaryLguColor),
                   hintText:
                       'e.g., "In front of $activeMunicipalityName Municipal Hall"',
                   focusedBorder: OutlineInputBorder(
-                    borderSide: BorderSide(color: primaryLguColor, width: 2),
+                    borderSide:
+                        BorderSide(color: primaryLguColor, width: 2),
                   ),
                   labelStyle: TextStyle(color: primaryLguColor),
                 ),
-                validator: (value) => value == null || value.isEmpty
-                    ? 'Please enter a location'
-                    : null,
+                validator: (value) =>
+                    value == null || value.isEmpty
+                        ? 'Please enter a location'
+                        : null,
               ),
               const SizedBox(height: 16),
               OutlinedButton.icon(
@@ -326,7 +361,8 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
                     ? const SizedBox(
                         width: 16,
                         height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
+                        child:
+                            CircularProgressIndicator(strokeWidth: 2),
                       )
                     : const Icon(Icons.gps_fixed),
                 label: Text(
@@ -353,17 +389,20 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
                 controller: _descriptionController,
                 decoration: InputDecoration(
                   labelText: 'Brief Description',
-                  prefixIcon: Icon(Icons.description, color: primaryLguColor),
+                  prefixIcon:
+                      Icon(Icons.description, color: primaryLguColor),
                   hintText: 'Describe the problem in detail.',
                   focusedBorder: OutlineInputBorder(
-                    borderSide: BorderSide(color: primaryLguColor, width: 2),
+                    borderSide:
+                        BorderSide(color: primaryLguColor, width: 2),
                   ),
                   labelStyle: TextStyle(color: primaryLguColor),
                 ),
                 maxLines: 4,
-                validator: (value) => value == null || value.isEmpty
-                    ? 'Please enter a description'
-                    : null,
+                validator: (value) =>
+                    value == null || value.isEmpty
+                        ? 'Please enter a description'
+                        : null,
               ),
               const SizedBox(height: 16),
               OutlinedButton.icon(
@@ -371,9 +410,10 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
                 label: Text(
                   _selectedImage != null
                       ? 'Photo Attached ✓'
-                      : 'Attach Photo (Optional)',
+                      : 'Attach Photo Evidence (Optional)',
                 ),
-                onPressed: _isOffline ? null : () => _showImagePickerOptions(),
+                onPressed:
+                    _isOffline ? null : () => _showImagePickerOptions(),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: _selectedImage != null
                       ? Colors.green
@@ -402,32 +442,84 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
                       top: 8,
                       right: 8,
                       child: GestureDetector(
-                        onTap: () => setState(() => _selectedImage = null),
+                        onTap: () => setState(() {
+                          _selectedImage = null;
+                          _photoTimestamp = null;
+                          _photoLatitude = null;
+                          _photoLongitude = null;
+                        }),
                         child: Container(
                           padding: const EdgeInsets.all(4),
                           decoration: const BoxDecoration(
                             color: Colors.black54,
                             shape: BoxShape.circle,
                           ),
-                          child: const Icon(
-                            Icons.close,
-                            color: Colors.white,
-                            size: 18,
-                          ),
+                          child: const Icon(Icons.close,
+                              color: Colors.white, size: 18),
                         ),
                       ),
                     ),
                   ],
                 ),
+                if (_photoTimestamp != null) ...[
+                  const SizedBox(height: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Colors.green.shade50,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.green.shade200),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.verified,
+                            size: 14, color: Colors.green.shade700),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            'Evidence timestamp: '
+                            '${_photoTimestamp!.day}/${_photoTimestamp!.month}/${_photoTimestamp!.year} '
+                            '${_photoTimestamp!.hour.toString().padLeft(2, '0')}:'
+                            '${_photoTimestamp!.minute.toString().padLeft(2, '0')}'
+                            '${_photoLatitude != null ? '\nGPS: ${_photoLatitude!.toStringAsFixed(5)}, ${_photoLongitude!.toStringAsFixed(5)}' : ''}',
+                            style: TextStyle(
+                                fontSize: 11,
+                                color: Colors.green.shade700),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ],
               const SizedBox(height: 24),
-              ElevatedButton(
-                onPressed: _submitReport,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: primaryLguColor,
-                  foregroundColor: Colors.white,
+              SizedBox(
+                height: 52,
+                child: ElevatedButton(
+                  onPressed:
+                      _isSubmitting ? null : _submitReport,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: primaryLguColor,
+                    foregroundColor: Colors.white,
+                  ),
+                  child: _isSubmitting
+                      ? const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white),
+                            ),
+                            SizedBox(width: 12),
+                            Text('Submitting…'),
+                          ],
+                        )
+                      : const Text('Submit Report'),
                 ),
-                child: const Text('Submit Report'),
               ),
               const SizedBox(height: 48),
             ],
@@ -468,8 +560,16 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
               ),
               const SizedBox(height: 20),
               const Text(
-                'Attach Photo',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                'Attach Photo Evidence',
+                style:
+                    TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Camera photos include a verified timestamp and GPS location.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                    fontSize: 12, color: Colors.grey.shade500),
               ),
               const SizedBox(height: 20),
               Row(
@@ -478,6 +578,7 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
                   _imagePickerOption(
                     icon: Icons.camera_alt_rounded,
                     label: 'Camera',
+                    sublabel: 'Timestamped',
                     onTap: () {
                       Navigator.pop(context);
                       _pickImage(ImageSource.camera);
@@ -486,6 +587,7 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
                   _imagePickerOption(
                     icon: Icons.photo_library_rounded,
                     label: 'Gallery',
+                    sublabel: 'No timestamp',
                     onTap: () {
                       Navigator.pop(context);
                       _pickImage(ImageSource.gallery);
@@ -504,6 +606,7 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
   Widget _imagePickerOption({
     required IconData icon,
     required String label,
+    required String sublabel,
     required VoidCallback onTap,
   }) {
     return GestureDetector(
@@ -519,7 +622,11 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
             child: Icon(icon, size: 32, color: const Color(0xFF4CAF50)),
           ),
           const SizedBox(height: 8),
-          Text(label, style: const TextStyle(fontWeight: FontWeight.w500)),
+          Text(label,
+              style: const TextStyle(fontWeight: FontWeight.w500)),
+          Text(sublabel,
+              style: TextStyle(
+                  fontSize: 11, color: Colors.grey.shade500)),
         ],
       ),
     );
@@ -527,15 +634,40 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
 
   Future<void> _pickImage(ImageSource source) async {
     try {
+      final captureTime = DateTime.now();
+
       final pickedFile = await _imagePicker.pickImage(
         source: source,
         maxWidth: 1200,
         maxHeight: 1200,
         imageQuality: 85,
       );
+
       if (pickedFile != null) {
-        setState(() => _selectedImage = File(pickedFile.path));
-        ToastUtils.showSuccess('Photo attached successfully');
+        // Capture metadata at time of photo
+        double? lat;
+        double? lng;
+        if (source == ImageSource.camera) {
+          // Try to attach current GPS to the evidence record
+          final pos = await _geolocatorService.getCurrentLocation();
+          if (pos != null) {
+            lat = pos.latitude;
+            lng = pos.longitude;
+          }
+        }
+
+        setState(() {
+          _selectedImage = File(pickedFile.path);
+          if (source == ImageSource.camera) {
+            _photoTimestamp = captureTime;
+            _photoLatitude = lat;
+            _photoLongitude = lng;
+          }
+        });
+        ToastUtils.showSuccess(
+            source == ImageSource.camera
+                ? 'Photo attached with timestamp & GPS'
+                : 'Photo attached successfully');
       }
     } catch (e) {
       ToastUtils.showError('Failed to pick image: $e');

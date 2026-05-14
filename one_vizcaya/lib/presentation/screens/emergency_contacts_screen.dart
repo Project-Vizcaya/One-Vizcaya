@@ -6,20 +6,44 @@ import '../state/municipality_state.dart';
 class EmergencyContactsScreen extends StatelessWidget {
   const EmergencyContactsScreen({super.key});
 
-  // 1. ADD THIS STATIC DATA MAP (No Firestore needed)
-  // 1. ADD THIS STATIC DATA MAP (No Firestore needed)
+  // National hotlines shown for every municipality
+  static const List<Map<String, String>> _nationalHotlines = [
+    {
+      'name': 'National Emergency Hotline',
+      'number': '911',
+      'type': 'general',
+    },
+    {
+      'name': 'NDRRMC Operations Center',
+      'number': '02-8911-5061',
+      'type': 'disaster',
+    },
+    {
+      'name': 'NDRRMC Hotline',
+      'number': '09178990098',
+      'type': 'disaster',
+    },
+    {
+      'name': 'DPWH – Region II Hotline',
+      'number': '078-396-0796',
+      'type': 'infrastructure',
+    },
+    {
+      'name': 'DPWH Nueva Vizcaya DEO',
+      'number': '09175000100',
+      'type': 'infrastructure',
+    },
+    {
+      'name': 'PDRRMO Nueva Vizcaya',
+      'number': '09171227150',
+      'type': 'disaster',
+    },
+  ];
+
   static const Map<String, List<Map<String, String>>> _localContacts = {
     'Alfonso Castañeda': [
-      {
-        'name': 'PNP Alfonso Castañeda',
-        'number': '09193262160',
-        'type': 'police',
-      },
-      {
-        'name': 'BFP Alfonso Castañeda',
-        'number': '09171112222',
-        'type': 'fire',
-      },
+      {'name': 'PNP Alfonso Castañeda', 'number': '09193262160', 'type': 'police'},
+      {'name': 'BFP Alfonso Castañeda', 'number': '09171112222', 'type': 'fire'},
       {'name': 'MDRRMO / PDRRMO', 'number': '09171227150', 'type': 'disaster'},
     ],
     'Ambaguio': [
@@ -40,49 +64,25 @@ class EmergencyContactsScreen extends StatelessWidget {
     'Bambang': [
       {'name': 'PNP Bambang', 'number': '09065630944', 'type': 'police'},
       {'name': 'BFP Bambang', 'number': '09175444946', 'type': 'fire'},
-      {
-        'name': 'NV Provincial Hospital',
-        'number': '09228680843',
-        'type': 'medical',
-      },
+      {'name': 'NV Provincial Hospital', 'number': '09228680843', 'type': 'medical'},
       {'name': 'MDRRMO Bambang', 'number': '09175861838', 'type': 'disaster'},
     ],
     'Bayombong': [
       {'name': 'PNP Bayombong', 'number': '09153116455', 'type': 'police'},
       {'name': 'BFP Bayombong', 'number': '09187654321', 'type': 'fire'},
-      {
-        'name': 'Nueva Vizcaya Prov. Hospital',
-        'number': '09228680843',
-        'type': 'medical',
-      },
-      {
-        'name': 'PDRRMO Nueva Vizcaya',
-        'number': '09171227150',
-        'type': 'disaster',
-      },
+      {'name': 'Nueva Vizcaya Prov. Hospital', 'number': '09228680843', 'type': 'medical'},
+      {'name': 'PDRRMO Nueva Vizcaya', 'number': '09171227150', 'type': 'disaster'},
     ],
     'Diadi': [
       {'name': 'PNP Diadi', 'number': '09989673133', 'type': 'police'},
       {'name': 'BFP Diadi', 'number': '09171116666', 'type': 'fire'},
-      {
-        'name': 'Diadi Emergency Hospital',
-        'number': '09228680843',
-        'type': 'medical',
-      },
+      {'name': 'Diadi Emergency Hospital', 'number': '09228680843', 'type': 'medical'},
       {'name': 'MDRRMO / PDRRMO', 'number': '09171227150', 'type': 'disaster'},
     ],
     'Dupax del Norte': [
-      {
-        'name': 'PNP Dupax del Norte',
-        'number': '09989673134',
-        'type': 'police',
-      },
+      {'name': 'PNP Dupax del Norte', 'number': '09989673134', 'type': 'police'},
       {'name': 'BFP Dupax del Norte', 'number': '09171117777', 'type': 'fire'},
-      {
-        'name': 'Dupax District Hospital',
-        'number': '0788081178',
-        'type': 'medical',
-      },
+      {'name': 'Dupax District Hospital', 'number': '0788081178', 'type': 'medical'},
       {'name': 'MDRRMO / PDRRMO', 'number': '09171227150', 'type': 'disaster'},
     ],
     'Dupax del Sur': [
@@ -93,11 +93,7 @@ class EmergencyContactsScreen extends StatelessWidget {
     'Kasibu': [
       {'name': 'PNP Kasibu', 'number': '09055889533', 'type': 'police'},
       {'name': 'BFP Kasibu', 'number': '09171119999', 'type': 'fire'},
-      {
-        'name': 'Kasibu Municipal Hospital',
-        'number': '09273659546',
-        'type': 'medical',
-      },
+      {'name': 'Kasibu Municipal Hospital', 'number': '09273659546', 'type': 'medical'},
       {'name': 'MDRRMO Kasibu', 'number': '09171227150', 'type': 'disaster'},
     ],
     'Kayapa': [
@@ -124,24 +120,7 @@ class EmergencyContactsScreen extends StatelessWidget {
     'Villaverde': [
       {'name': 'PNP Villaverde', 'number': '09062683761', 'type': 'police'},
       {'name': 'BFP Villaverde', 'number': '09172225555', 'type': 'fire'},
-      {
-        'name': 'MDRRMO Villaverde',
-        'number': '09171227150',
-        'type': 'disaster',
-      },
-    ],
-    'Default': [
-      {
-        'name': 'National Emergency Hotline',
-        'number': '911',
-        'type': 'general',
-      },
-      {'name': 'NDRRMC', 'number': '09178990098', 'type': 'disaster'},
-      {
-        'name': 'PDRRMO Nueva Vizcaya',
-        'number': '09171227150',
-        'type': 'disaster',
-      },
+      {'name': 'MDRRMO Villaverde', 'number': '09171227150', 'type': 'disaster'},
     ],
   };
 
@@ -155,8 +134,27 @@ class EmergencyContactsScreen extends StatelessWidget {
         return Icons.local_hospital;
       case 'disaster':
         return Icons.warning;
+      case 'infrastructure':
+        return Icons.construction;
       default:
         return Icons.phone;
+    }
+  }
+
+  Color _getColorForType(String? type, Color lguColor) {
+    switch (type) {
+      case 'police':
+        return const Color(0xFF1565C0);
+      case 'fire':
+        return const Color(0xFFD32F2F);
+      case 'medical':
+        return const Color(0xFF2E7D32);
+      case 'disaster':
+        return const Color(0xFFE65100);
+      case 'infrastructure':
+        return const Color(0xFF6A1B9A);
+      default:
+        return lguColor;
     }
   }
 
@@ -173,55 +171,115 @@ class EmergencyContactsScreen extends StatelessWidget {
     }
   }
 
+  Widget _buildSectionHeader(String title, Color lguColor) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(8, 16, 8, 6),
+      child: Row(
+        children: [
+          Container(
+            width: 4,
+            height: 18,
+            decoration: BoxDecoration(
+              color: lguColor,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            title,
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 13,
+              color: lguColor,
+              letterSpacing: 0.5,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildContactTile(
+    Map<String, String> data,
+    Color lguColor,
+    BuildContext context,
+  ) {
+    final name = data['name'] ?? 'Emergency';
+    final number = data['number'] ?? '';
+    final type = data['type'] ?? 'general';
+    final iconColor = _getColorForType(type, lguColor);
+
+    return Card(
+      margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+      child: ListTile(
+        leading: Container(
+          width: 42,
+          height: 42,
+          decoration: BoxDecoration(
+            color: iconColor.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Icon(_getIconForType(type), color: iconColor, size: 22),
+        ),
+        title: Text(
+          name,
+          style: Theme.of(context)
+              .textTheme
+              .bodyLarge
+              ?.copyWith(fontWeight: FontWeight.bold, fontSize: 14),
+        ),
+        subtitle: Text(
+          number,
+          style: Theme.of(context)
+              .textTheme
+              .bodyMedium
+              ?.copyWith(fontSize: 15, color: Colors.grey.shade700),
+        ),
+        trailing: Container(
+          decoration: BoxDecoration(
+            color: Colors.green.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: IconButton(
+            icon: const Icon(Icons.call, color: Colors.green),
+            onPressed: () => _makeCall(number),
+          ),
+        ),
+        onTap: () => _makeCall(number),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final activeLguColor = oneVizcayaState.activeTheme['appBarColor'] as Color;
     final activeMunicipalityName = oneVizcayaState.selectedMunicipality.value;
 
-    // 2. FETCH CONTACTS SYNCHRONOUSLY
-    final contacts =
-        _localContacts[activeMunicipalityName] ?? _localContacts['Default']!;
+    final localContacts = _localContacts[activeMunicipalityName] ?? [];
 
     return Scaffold(
       appBar: AppBar(
         backgroundColor: activeLguColor,
+        foregroundColor: Colors.white,
         title: Text('$activeMunicipalityName Emergency'),
       ),
-      // 3. USE LISTVIEW INSTEAD OF STREAMBUILDER
-      body: ListView.builder(
-        padding: const EdgeInsets.all(8.0),
-        itemCount: contacts.length,
-        itemBuilder: (context, index) {
-          final data = contacts[index];
-          final name = data['name'] ?? 'Emergency';
-          final number = data['number'] ?? '';
-          final type = data['type'] ?? 'general';
+      body: ListView(
+        padding: const EdgeInsets.only(bottom: 24),
+        children: [
+          // ── Local contacts ──
+          if (localContacts.isNotEmpty) ...[
+            _buildSectionHeader(
+                '$activeMunicipalityName Local Contacts', activeLguColor),
+            ...localContacts.map(
+                (c) => _buildContactTile(c, activeLguColor, context)),
+          ],
 
-          return Card(
-            margin: const EdgeInsets.symmetric(vertical: 6.0, horizontal: 8.0),
-            child: ListTile(
-              leading: Icon(
-                _getIconForType(type),
-                color: activeLguColor,
-                size: 36,
-              ),
-              title: Text(
-                name,
-                style: Theme.of(
-                  context,
-                ).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold),
-              ),
-              subtitle: Text(
-                number,
-                style: Theme.of(
-                  context,
-                ).textTheme.bodyMedium?.copyWith(fontSize: 16),
-              ),
-              trailing: const Icon(Icons.call, color: Colors.green),
-              onTap: () => _makeCall(number),
-            ),
-          );
-        },
+          // ── National / Provincial hotlines ──
+          _buildSectionHeader(
+              'National & Provincial Hotlines', activeLguColor),
+          ..._nationalHotlines.map(
+              (c) => _buildContactTile(c, activeLguColor, context)),
+        ],
       ),
     );
   }

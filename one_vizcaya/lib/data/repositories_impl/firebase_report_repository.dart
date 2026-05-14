@@ -9,18 +9,13 @@ class FirebaseReportRepository implements ReportRepository {
   @override
   Future<void> submitReport(ProblemReport report, String userId) async {
     try {
-      // NEW SCHEMA: users/{uid}/reports/{reportId}
       await _firestore
           .collection('users')
           .doc(userId)
           .collection('reports')
-          .add(report.toMap())
-          .catchError((e) {
-        ToastUtils.showError('Background sync error: $e');
-        throw e;
-      });
+          .add(report.toMap());
     } catch (e) {
-      ToastUtils.showError('Error submitting report. Falling back to offline mode.');
+      ToastUtils.showError('Error submitting report. Please try again.');
       rethrow;
     }
   }
@@ -34,26 +29,37 @@ class FirebaseReportRepository implements ReportRepository {
         .where('municipality', isEqualTo: municipality)
         .orderBy('reportedAt', descending: true)
         .snapshots()
-        .map((snapshot) {
-      return snapshot.docs.map((doc) => ProblemReport.fromFirestore(doc)).toList();
-    }).handleError((error) {
-      ToastUtils.showError('Failed to load reports. Please check your connection.');
-      return <ProblemReport>[];
-    });
+        .map((snapshot) =>
+            snapshot.docs.map((doc) => ProblemReport.fromFirestore(doc)).toList())
+        .handleError((_) => <ProblemReport>[]);
   }
 
   @override
   Stream<List<ProblemReport>> getAllMunicipalityReports(String municipality) {
-    // collectionGroup('reports') queries across ALL users/{uid}/reports sub-collections
     return _firestore
         .collectionGroup('reports')
         .where('municipality', isEqualTo: municipality)
         .orderBy('priorityScore', descending: true)
         .snapshots()
-        .map((snapshot) {
-      return snapshot.docs.map((doc) => ProblemReport.fromFirestore(doc)).toList();
-    }).handleError((error) {
-      ToastUtils.showError('Failed to load municipality reports: $error');
+        .map((snapshot) =>
+            snapshot.docs.map((doc) => ProblemReport.fromFirestore(doc)).toList())
+        .handleError((error) {
+      ToastUtils.showError('Failed to load reports: $error');
+      return <ProblemReport>[];
+    });
+  }
+
+  @override
+  Stream<List<ProblemReport>> getAllProvincialReports() {
+    // Returns all reports across every municipality, newest first by default
+    return _firestore
+        .collectionGroup('reports')
+        .orderBy('reportedAt', descending: true)
+        .snapshots()
+        .map((snapshot) =>
+            snapshot.docs.map((doc) => ProblemReport.fromFirestore(doc)).toList())
+        .handleError((error) {
+      ToastUtils.showError('Failed to load provincial reports: $error');
       return <ProblemReport>[];
     });
   }
@@ -67,9 +73,28 @@ class FirebaseReportRepository implements ReportRepository {
           .collection('reports')
           .doc(reportId)
           .update({'status': newStatus});
-      ToastUtils.showSuccess('Report status updated successfully');
+      ToastUtils.showSuccess('Status updated');
     } catch (e) {
-      ToastUtils.showError('Failed to update report status: $e');
+      ToastUtils.showError('Failed to update status: $e');
+      rethrow;
+    }
+  }
+
+  @override
+  Future<void> escalateToProvince(String userId, String reportId) async {
+    try {
+      await _firestore
+          .collection('users')
+          .doc(userId)
+          .collection('reports')
+          .doc(reportId)
+          .update({
+        'escalatedToProvince': true,
+        'escalatedAt': FieldValue.serverTimestamp(),
+      });
+      ToastUtils.showSuccess('Report escalated to Provincial Office');
+    } catch (e) {
+      ToastUtils.showError('Failed to escalate report: $e');
       rethrow;
     }
   }

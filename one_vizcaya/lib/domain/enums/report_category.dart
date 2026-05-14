@@ -4,6 +4,7 @@ import 'report_priority.dart';
 /// of problems of that type. The priority service may boost this further when
 /// multiple citizens report the same kind of issue.
 enum ReportCategory {
+  // ── CRITICAL ──────────────────────────────────────────────────────────────
   disasterAndRiskManagement(
     'Disaster & Risk Management',
     'Includes: Flooding, Landslides, Fallen Trees, Natural Disaster Damage.',
@@ -14,6 +15,30 @@ enum ReportCategory {
     'Includes: Stray Animals, Unsanitary Food Establishments, Dengue Concerns, Stagnant Water, Fire Hazards.',
     ReportPriority.critical,
   ),
+
+  // ── PROVINCIAL INFRASTRUCTURE (Critical / High) ───────────────────────────
+  landslideOrSoilErosion(
+    'Landslide / Soil Erosion',
+    'Includes: Active landslide zones, soil erosion threatening roads or communities, debris flows.',
+    ReportPriority.critical,
+  ),
+  floodingOrSevereDrainageIssue(
+    'Flooding / Severe Drainage Issue',
+    'Includes: Severe flash flooding, clogged drainage causing road or community flooding, river overflows.',
+    ReportPriority.critical,
+  ),
+  bridgeDamageOrBlockage(
+    'Bridge Damage / Blockage',
+    'Includes: Cracked or structurally compromised bridges, debris blockage on bridge spans, unsafe railings.',
+    ReportPriority.high,
+  ),
+  provincialRoadDamage(
+    'Provincial Road Damage',
+    'Includes: Large potholes on provincial highways, road cave-ins, damaged concrete pavement on major routes.',
+    ReportPriority.high,
+  ),
+
+  // ── HIGH ──────────────────────────────────────────────────────────────────
   peaceAndOrderDisturbance(
     'Peace & Order Disturbance',
     'Includes: Noise Complaints, Suspicious Activities, Traffic Violations, Public Nuisance.',
@@ -24,6 +49,8 @@ enum ReportCategory {
     'Includes: Water Leakage, Water Supply Issues, Pipe Bursts, Sewage Overflow.',
     ReportPriority.high,
   ),
+
+  // ── MEDIUM ────────────────────────────────────────────────────────────────
   infrastructureAndRoads(
     'Infrastructure & Roads',
     'Includes: Potholes, Damaged Roads/Bridges, Road Maintenance Needed, Broken Sidewalks.',
@@ -39,6 +66,8 @@ enum ReportCategory {
     'Includes: Improper Waste Management, Solid Waste Issues, Dirty/Clogged Canals, Illegal Dumping.',
     ReportPriority.medium,
   ),
+
+  // ── LOW ───────────────────────────────────────────────────────────────────
   socialAndCommunityServices(
     'Social & Community Services',
     'Includes: PWD/Senior Citizen Concerns, Child Welfare, Social Welfare Assistance.',
