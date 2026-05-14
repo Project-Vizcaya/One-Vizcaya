@@ -1,9 +1,62 @@
-const { onDocumentCreated } = require("firebase-functions/v2/firestore");
+const { onDocumentCreated, onDocumentUpdated } = require("firebase-functions/v2/firestore");
 const { onSchedule } = require("firebase-functions/v2/scheduler");
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const admin = require("firebase-admin");
 
 admin.initializeApp();
+
+// ── Notify citizen when report status changes ────────────────────────────────
+exports.notifyOnStatusChange = onDocumentUpdated(
+  "users/{userId}/reports/{reportId}",
+  async (event) => {
+    const before = event.data.before.data();
+    const after = event.data.after.data();
+
+    if (!before || !after) return;
+    if (before.status === after.status) return;
+
+    const userId = event.params.userId;
+    const isAnonymous = after.isAnonymous === true;
+    if (isAnonymous) return; // no notification for anonymous reports
+
+    const userDoc = await admin.firestore().collection("users").doc(userId).get();
+    if (!userDoc.exists) return;
+
+    const fcmToken = userDoc.data().fcmToken;
+    if (!fcmToken) return;
+
+    const statusLabels = {
+      reported: "Reported",
+      ongoing: "In Progress",
+      solved: "Resolved",
+    };
+
+    const newLabel = statusLabels[after.status] || after.status;
+    const category = after.category || "Your report";
+
+    const message = {
+      token: fcmToken,
+      notification: {
+        title: `Report Status Updated: ${newLabel}`,
+        body: `${category} is now marked as "${newLabel}" by the LGU.`,
+      },
+      data: {
+        reportId: event.params.reportId,
+        newStatus: after.status,
+      },
+      android: {
+        priority: "high",
+        notification: { channelId: "report_updates" },
+      },
+    };
+
+    try {
+      await admin.messaging().send(message);
+    } catch (err) {
+      console.error("FCM send failed:", err.message);
+    }
+  }
+);
 
 // ── Rate limiting: track sub-collection report submissions ──────────────────
 exports.trackSubReportRate = onDocumentCreated(

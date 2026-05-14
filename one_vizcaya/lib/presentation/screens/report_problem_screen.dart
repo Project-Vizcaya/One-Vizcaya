@@ -5,7 +5,9 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'dart:io';
+import 'dart:typed_data';
 
 import '../../core/utils/toast_utils.dart';
 import '../../domain/enums/report_category.dart';
@@ -30,6 +32,7 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
   final _descriptionController = TextEditingController();
   final _locationController = TextEditingController();
   bool _isOffline = false;
+  bool _isAnonymous = false;
   bool _isGettingLocation = false;
   bool _isSubmitting = false;
   Position? _currentPosition;
@@ -72,10 +75,29 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
           .ref()
           .child('report_images')
           .child(fileName);
-      final uploadTask = await ref.putFile(image);
-      return await uploadTask.ref.getDownloadURL();
+
+      // Compress image before upload (target ~200 KB)
+      final Uint8List? compressed = await FlutterImageCompress.compressWithFile(
+        image.absolute.path,
+        minWidth: 1024,
+        minHeight: 1024,
+        quality: 75,
+        format: CompressFormat.jpeg,
+      );
+
+      UploadTask uploadTask;
+      if (compressed != null) {
+        uploadTask = ref.putData(
+          compressed,
+          SettableMetadata(contentType: 'image/jpeg'),
+        );
+      } else {
+        uploadTask = ref.putFile(image);
+      }
+
+      final snapshot = await uploadTask;
+      return await snapshot.ref.getDownloadURL();
     } catch (e) {
-      // Image upload failure should not block report submission
       debugPrint('Image upload failed: $e');
       return null;
     }
@@ -84,6 +106,14 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
   Future<void> _submitReport() async {
     if (!_formKey.currentState!.validate()) return;
     if (_isSubmitting) return;
+
+    // GPS is required for online submissions
+    if (!_isOffline && _currentPosition == null) {
+      ToastUtils.showError(
+        'Please attach your GPS location before submitting online.',
+      );
+      return;
+    }
 
     final prefs = await SharedPreferences.getInstance();
     final lastSubmitTime = prefs.getInt('last_report_time') ?? 0;
@@ -165,12 +195,13 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
         reportedAt: DateTime.now(),
         latitude: _currentPosition?.latitude,
         longitude: _currentPosition?.longitude,
-        userId: userId,
-        userPhone: user?.phoneNumber,
+        userId: _isAnonymous ? null : userId,
+        userPhone: _isAnonymous ? null : user?.phoneNumber,
         imageUrl: imageUrl,
         photoTimestamp: _photoTimestamp,
         photoLatitude: _photoLatitude,
         photoLongitude: _photoLongitude,
+        isAnonymous: _isAnonymous,
       );
 
       await _reportRepository.submitReport(report, userId);
@@ -184,6 +215,7 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
         _photoTimestamp = null;
         _photoLatitude = null;
         _photoLongitude = null;
+        _isAnonymous = false;
         _isSubmitting = false;
       });
 
@@ -263,6 +295,19 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
                 ),
                 value: _isOffline,
                 onChanged: (value) => setState(() => _isOffline = value),
+                activeThumbColor: primaryLguColor,
+              ),
+              SwitchListTile(
+                title: const Text(
+                  'Submit Anonymously',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                subtitle: const Text(
+                  'Your name and phone number will not be attached to this report.',
+                ),
+                secondary: const Icon(Icons.visibility_off_outlined),
+                value: _isAnonymous,
+                onChanged: (value) => setState(() => _isAnonymous = value),
                 activeThumbColor: primaryLguColor,
               ),
               const SizedBox(height: 24),
@@ -386,16 +431,39 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
                 decoration: InputDecoration(
                   labelText: 'Brief Description',
                   prefixIcon: Icon(Icons.description, color: primaryLguColor),
-                  hintText: 'Describe the problem in detail.',
+                  hintText: 'Describe the problem in detail (min. 20 characters).',
                   focusedBorder: OutlineInputBorder(
                     borderSide: BorderSide(color: primaryLguColor, width: 2),
                   ),
                   labelStyle: TextStyle(color: primaryLguColor),
+                  counterText:
+                      '${_descriptionController.text.length} / 20 min',
                 ),
                 maxLines: 4,
-                validator: (value) => value == null || value.isEmpty
-                    ? 'Please enter a description'
-                    : null,
+                maxLength: 500,
+                buildCounter: (context,
+                        {required currentLength,
+                        required isFocused,
+                        maxLength}) =>
+                    Text(
+                  '$currentLength / 20 min',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: currentLength < 20
+                        ? Colors.red.shade400
+                        : Colors.grey.shade600,
+                  ),
+                ),
+                onChanged: (_) => setState(() {}),
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Please enter a description';
+                  }
+                  if (value.trim().length < 20) {
+                    return 'Description must be at least 20 characters';
+                  }
+                  return null;
+                },
               ),
               const SizedBox(height: 16),
               OutlinedButton.icon(
