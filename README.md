@@ -1,59 +1,59 @@
-# One Vizcaya: Community Reporting & Management System
+# 🏛️ One Vizcaya: Community Reporting & Management System
 
 ***Nueva Vizcaya's Digital Bridge***
 
-> `One Vizcaya` is a cross-platform mobile application built with Flutter and Firebase, designed to bridge the communication gap between the citizens of Bambang, Nueva Vizcaya, and their Local Government Unit (LGU).
+> `One Vizcaya` is a cross-platform mobile application built with Flutter and Firebase, designed to bridge the communication gap between the citizens of Nueva Vizcaya and their Local Government Units (LGU) — from the Barangay level all the way to the Provincial Capitol.
 
-## Table of Contents
-* [Project Overview](#project-overview)
-* [Core Aims](#core-aims)
-* [Tech Stack](#tech-stack)
-* [UI & Theming](#ui-theming)
-* [Master Development Roadmap](#development-roadmap)
+---
 
-<a id="project-overview"></a>
+## 📑 Table of Contents
+1. [Project Overview](#-project-overview)
+2. [Core Aims](#-core-aims)
+3. [Tech Stack](#-tech-stack)
+4. [UI & Theming](#-ui--theming)
+5. [Architecture: Multi-Tiered Triage System](#%EF%B8%8F-architecture-multi-tiered-triage--escalation-system)
+6. [Master Development Roadmap](#-master-development-roadmap)
+
+---
+
 ## 📌 Project Overview
+The application provides a centralized platform where residents can report local issues—ranging from infrastructure damage to public health concerns—directly to the authorities. By utilizing **real-time data**, **geospatial tagging**, and **verified EXIF metadata**, the project aims to streamline public service responses and foster a more transparent, digitally-inclusive community.
 
-The application provides a centralized platform where residents can report local issues—ranging from infrastructure damage to public health concerns—directly to the authorities. By utilizing <ins>real-time data</ins> and geospatial tagging, the project aims to streamline public service responses and foster a more transparent, digitally-inclusive community.
-
-<a id="core-aims"></a>
 ## 🌟 Core Aims
-
 * **Empowerment:** Give every citizen a digital voice to contribute to the improvement of their municipality.
 * **Efficiency:** Reduce the administrative overhead for the LGU by categorizing and geotagging reports automatically.
-* **Transparency:** Provide a clear feedback loop where users can track the status of their reports from `"Pending"` to `"Resolved"`.
-* **Safety:** Facilitate rapid reporting of disaster-related incidents like flooding or landslides to improve local emergency response.
+* **Transparency:** Provide a clear feedback loop where users can track the status of their reports from `"Pending"` to `"Solved"`.
+* **Safety:** Facilitate rapid reporting of disaster-related incidents like flooding or landslides to improve local and provincial emergency response.
 
-<a id="tech-stack"></a>
 ## 🛠 Tech Stack
-
 * **Frontend:** `Flutter` (Dart)
 * **Backend:** `Firebase` (Authentication, Firestore NoSQL, Cloud Storage)
 * **State Management:** `BLoC` (Business Logic Component)
 * **Location Services:** `Geolocator` and Google Maps API
+* **Security:** `Firebase App Check` & Device EXIF Extraction
 
 ---
 
-<a id="ui-theming"></a>
 ## 🎨 UI & Theming
-
 The application features dynamic theming based on the specific municipality selected. Each town has a designated color palette inspired by its local culture, industry, or geography.
 
-* **Bambang** _(Agricultural Hub)_: Uses an earthy terracotta theme `#E2725B`
-* **Solano** _(Commercial Center)_: Uses a vibrant orange/red theme `#FF4500`
-* **Bayombong** _(Provincial Capital)_: Uses a formal royal blue theme `#4169E1`
-* **Aritao** _(Gateway to the South)_: Uses an eco-friendly green theme `#2E8B57`
-* **Bagabag** _(Pineapple Capital)_: Uses a golden yellow theme `#FFD700`
-* **Villaverde** _(Historical Gateway)_: Uses a rich forest green theme `#228B22`
-* **Diadi** _(Ecotourism Hub)_: Uses a vibrant teal theme `#008080`
-* **Quezon** _(Highland Haven)_: Uses a serene purple theme `#6A5ACD`
-* **Santa Fe** _(Mountain Gateway)_: Uses a cool slate gray theme `#708090`
-* **Ambaguio** _(Cloud Haven)_: Uses a sky blue theme `#87CEEB`
-* **Kasibu** _(Citrus Capital)_: Uses a bright citrus orange theme `#FFA500`
-* **Dupax del Norte** _(Cultural Heritage)_: Uses a classic maroon theme `#800000`
-* **Dupax del Sur** _(Historic Town)_: Uses a rustic sienna theme `#A0522D`
-* **Alfonso Castañeda** _(Water Source)_: Uses a deep navy blue theme `#000080`
-* **Kayapa** _(Vegetable Bowl)_: Uses an organic olive green theme `#6B8E23`
+| Municipality | Theme Identity | Hex Code |
+| :--- | :--- | :--- |
+| **Bambang** | Agricultural Hub (Terracotta) | `#E2725B` |
+| **Solano** | Commercial Center (Vibrant Orange) | `#FF4500` |
+| **Bayombong** | Provincial Capital (Royal Blue) | `#4169E1` |
+| **Aritao** | Gateway to the South (Eco Green) | `#2E8B57` |
+| **Bagabag** | Pineapple Capital (Golden Yellow) | `#FFD700` |
+| **Villaverde** | Historical Gateway (Forest Green) | `#228B22` |
+| **Diadi** | Ecotourism Hub (Vibrant Teal) | `#008080` |
+| **Quezon** | Highland Haven (Serene Purple) | `#6A5ACD` |
+| **Santa Fe** | Mountain Gateway (Slate Gray) | `#708090` |
+| **Ambaguio** | Cloud Haven (Sky Blue) | `#87CEEB` |
+| **Kasibu** | Citrus Capital (Citrus Orange) | `#FFA500` |
+| **Dupax del Norte** | Cultural Heritage (Maroon) | `#800000` |
+| **Dupax del Sur** | Historic Town (Rustic Sienna) | `#A0522D` |
+| **Alfonso Castañeda**| Water Source (Navy Blue) | `#000080` |
+| **Kayapa** | Vegetable Bowl (Olive Green) | `#6B8E23` |
 
 ---
 
@@ -90,54 +90,45 @@ One Vizcaya is designed with an enterprise-grade hierarchical workflow. This arc
 * **Actor:** Provincial Action Team
 * **Process:** The provincial desk takes ownership of the report. For major infrastructure issues, they directly coordinate with agencies like the **DPWH** or the Provincial Engineering Office. Live status updates are pushed back down the chain, keeping both the Municipality and the Citizen informed that provincial help has been deployed.
 
----
-
 > **💡 The Value Proposition for the Provincial LGU:**
 > This 6-level structure acts as a strict filter that **protects executive time**. By the time a report reaches the Capitol (Level 5), it has already been verified as authentic (Level 2), assessed by local experts on the ground (Level 3), and deemed absolutely necessary for provincial intervention (Level 4). 
 
-
 ---
 
-<a id="development-roadmap"></a>
 ## 🗺 Master Development Roadmap
 
 This project follows a strict Software Development Life Cycle (SDLC), scaling from a local barangay prototype to a province-wide platform capable of serving all ~530,106 residents of Nueva Vizcaya.
 
 ### 🏗️ Phase 1: MVP & Core Architecture (Barangay Level)
 _Goal: Prove the core concept works locally with clean, scalable code._
-
-* **Clean Architecture & BLoC:** Organize the `Flutter` project into strict layers: `Data` (Repositories, Firebase calls, and Models with fromJson/toJson), `Domain` (Pure Dart Entities), and `Presentation` (UI). Implement the **BLoC pattern** (`flutter_bloc`) to strictly separate business logic from UI components via Events and States.
-* **Enums & Constants:** Convert the category list into a formal `enum` in Dart to guarantee type safety.
+* **Clean Architecture & BLoC:** Organize the `Flutter` project into strict layers (`Data`, `Domain`, `Presentation`). Implement the **BLoC pattern** to strictly separate business logic from UI components.
 * **Firestore Schema Optimization:** Implement a `users/{uid}/reports` sub-collection structure for fast, user-specific data loading.
 * **Basic Location & Upload:** Implement the `geolocator` package to attach precise coordinates to reports.
-* **Error Boundaries:** Implement `try-catch` blocks across all Firebase repositories, yielding specific `ErrorStates` to trigger UI "Toast" fallbacks for areas with weak mobile data.
 
 ### 🔐 Phase 2: Security, Media, & UX (Municipal Rollout)
 _Goal: Protect user data, optimize performance, and lock down the reporting loop._
+* **Verified Evidence (EXIF Integration):** Extract native camera timestamp and GPS data to prevent fraudulent report submissions.
+* **Image Optimization:** Integrate `image_picker` and `flutter_image_compress` to resize photo evidence locally before hitting Firebase Storage.
+* **Advanced Geolocation & Geofencing:** Add geocoding to automatically convert coordinates into local street names, and implement geofencing to reject spam reports outside provincial boundaries.
+* **Firestore Security Rules:** Enforce strict backend rules ensuring citizens can only modify their own submissions and LGUs can only view their own jurisdiction.
 
-* **Predictable State Management:** Utilize `MultiBlocProvider` to handle global app states (e.g., `AuthBloc` for user sessions, `ReportBloc` for submission tracking), ensuring predictable state transitions and preventing data loss.
-* **Image Optimization:** Integrate `image_picker` and `flutter_image_compress` to resize photo evidence locally before hitting Firebase Storage to conserve quotas.
-* **Advanced Geolocation & Geofencing:** Add geocoding to automatically convert coordinates into Bambang street names, and implement geofencing to reject spam reports outside provincial boundaries.
-* **Firestore Security Rules:** Enforce strict backend rules ensuring citizens can only modify their own submissions. 
-* **Sensitive Data Masking:** Secure API keys by utilizing `.gitignore` for `firebase_options.dart`.
-
-### 📱 Phase 3: The Admin Ecosystem (LGU Integration)
-_Goal: Turn "One Vizcaya" into a real-time decision-making tool for the Local Government Unit._
-
-* **LGU Web Portal:** Build a companion `Flutter Web` dashboard as a completely separate repository to keep concerns clean. Share the `Domain` layer between the mobile app and the web portal as a separate Dart package.
-* **Composite Indexing:** Configure Firebase indexes to allow the LGU to query reports by `category` **AND** `timestamp` simultaneously.
+### 🏛️ Phase 3: The Admin Ecosystem (Provincial Integration)
+_Goal: Turn "One Vizcaya" into a real-time decision-making tool for the Local & Provincial Government._
+* **Multi-Tenant Dashboard:** Upgrade the admin UI to feature Quick-Filters, Chronological Sorting, and a "Provincial View" toggle for super-admins.
+* **Escalation Protocol:** Implement the "Escalate to Province" routing logic in Firestore.
 * **Cloud Functions (Node.js):** Deploy backend triggers that automatically push notifications to the LGU dashboard when a `Disaster & Risk Management` report is submitted.
-* **Data Visualization:** Integrate `fl_chart` to render heatmaps and pie charts showing which barangays have the highest report volumes.
+* **Data Visualization:** Integrate `fl_chart` to render heatmaps and pie charts showing which municipalities have the highest report volumes.
 
-### 🧪 Phase 4: Testing, Performance, & Scale (Provincial Ready)
+### 🧪 Phase 4: Testing, Performance, & Scale
 _Goal: Battle-test the application for high traffic and diverse network environments._
-
-* **Offline Persistence:** Pair `HydratedBloc` (for UI state preservation) with Firestore's built-in offline persistence (`FirebaseFirestore.instance.settings = Settings(persistenceEnabled: true)`) so citizens in remote areas can reliably draft and sync reports upon reconnecting to a network.
-* **Hierarchical Access Control (RBAC):** Implement Firebase Auth Custom Claims to separate "Citizen" access from "Admin" access. Strictly mirror these Custom Claims within the Firestore Security Rules—relying on backend enforcement, not just the UI—so a Barangay Captain only views their jurisdiction, while the Mayor views the entire municipality.
-* **Performance Profiling:** Utilize Antigravity DevTools to eliminate memory leaks, ensuring smooth performance on budget Android devices.
+* **Offline Persistence:** Pair `HydratedBloc` with Firestore's built-in offline persistence so citizens in remote areas can reliably draft and sync reports upon reconnecting to a network.
+* **Hierarchical Access Control (RBAC):** Implement Firebase Auth Custom Claims (`municipal_admin`, `provincial_admin`) to strictly enforce data partitioning at the server level.
 * **Beta Testing:** Deploy the finalized APK via **Firebase App Distribution** to community testers for rigorous field validation prior to official launch.
 
-   
 ---
 
-Developed by Aaron Anthony A. Gano II, 3<sup>rd</sup>-Year Computer Science Student at NVSU.
+<p align="center">
+  <b>Developed By</b><br>
+  Aaron Anthony A. Gano II & Darius Acosta<br>
+  <i>Computer Science Department, Nueva Vizcaya State University (NVSU)</i>
+</p>
