@@ -35,10 +35,8 @@ class _AnnouncementsList extends StatelessWidget {
   final String municipality;
   final Color lguColor;
 
-  const _AnnouncementsList({
-    required this.municipality,
-    required this.lguColor,
-  });
+  const _AnnouncementsList(
+      {required this.municipality, required this.lguColor});
 
   @override
   Widget build(BuildContext context) {
@@ -54,7 +52,8 @@ class _AnnouncementsList extends StatelessWidget {
       stream: stream,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return Center(child: CircularProgressIndicator(color: lguColor));
+          return Center(
+              child: CircularProgressIndicator(color: lguColor));
         }
 
         if (snapshot.hasError) {
@@ -62,12 +61,11 @@ class _AnnouncementsList extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.error_outline, size: 48, color: Colors.red.shade300),
+                Icon(Icons.error_outline,
+                    size: 48, color: Colors.red.shade300),
                 const SizedBox(height: 16),
-                Text(
-                  'Failed to load announcements',
-                  style: TextStyle(color: Colors.grey.shade600),
-                ),
+                Text('Failed to load announcements',
+                    style: TextStyle(color: Colors.grey.shade600)),
                 const SizedBox(height: 8),
                 Text(
                   '${snapshot.error}',
@@ -91,26 +89,20 @@ class _AnnouncementsList extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(
-                  Icons.campaign_outlined,
-                  size: 72,
-                  color: lguColor.withValues(alpha: 0.3),
-                ),
+                Icon(Icons.campaign_outlined,
+                    size: 72,
+                    color: lguColor.withValues(alpha: 0.3)),
                 const SizedBox(height: 16),
-                Text(
-                  'No announcements yet',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.grey.shade600,
-                  ),
-                ),
+                Text('No announcements yet',
+                    style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.grey.shade600)),
                 const SizedBox(height: 8),
-                Text(
-                  'Check back later for updates\nfrom your local government.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 13, color: Colors.grey.shade400),
-                ),
+                Text('Check back later for updates\nfrom your local government.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                        fontSize: 13, color: Colors.grey.shade400)),
               ],
             ),
           );
@@ -285,7 +277,8 @@ class _AnnouncementCard extends StatelessWidget {
                     CircleAvatar(
                       radius: 14,
                       backgroundColor: lguColor.withValues(alpha: 0.15),
-                      child: Icon(Icons.person, size: 16, color: lguColor),
+                      child:
+                          Icon(Icons.person, size: 16, color: lguColor),
                     ),
                     const SizedBox(width: 8),
                     Expanded(

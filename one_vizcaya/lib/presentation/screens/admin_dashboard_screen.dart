@@ -92,7 +92,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
     var filtered = reports;
 
     if (_filterPriority != null) {
-      filtered = filtered.where((r) => r.priority == _filterPriority).toList();
+      filtered =
+          filtered.where((r) => r.priority == _filterPriority).toList();
     }
     if (_filterStatus != null) {
       filtered = filtered.where((r) => r.status == _filterStatus).toList();
@@ -101,18 +102,18 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
     if (_sortNewestFirst) {
       filtered.sort((a, b) {
         // Solved reports always sink to the bottom
-        if (a.status == ReportStatus.solved && b.status != ReportStatus.solved)
-          return 1;
-        if (b.status == ReportStatus.solved && a.status != ReportStatus.solved)
-          return -1;
+        if (a.status == ReportStatus.solved &&
+            b.status != ReportStatus.solved) return 1;
+        if (b.status == ReportStatus.solved &&
+            a.status != ReportStatus.solved) return -1;
         return b.reportedAt.compareTo(a.reportedAt);
       });
     } else {
       filtered.sort((a, b) {
-        if (a.status == ReportStatus.solved && b.status != ReportStatus.solved)
-          return 1;
-        if (b.status == ReportStatus.solved && a.status != ReportStatus.solved)
-          return -1;
+        if (a.status == ReportStatus.solved &&
+            b.status != ReportStatus.solved) return 1;
+        if (b.status == ReportStatus.solved &&
+            a.status != ReportStatus.solved) return -1;
         return a.reportedAt.compareTo(b.reportedAt);
       });
     }
@@ -143,7 +144,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                 : 'Switch to Provincial View',
             child: IconButton(
               icon: Icon(
-                _isProvincialView ? Icons.location_city : Icons.map_outlined,
+                _isProvincialView
+                    ? Icons.location_city
+                    : Icons.map_outlined,
               ),
               onPressed: () => setState(() {
                 _isProvincialView = !_isProvincialView;
@@ -190,8 +193,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
           // ── Tab 1: Reports ──────────────────────────────────────────
           Column(
             children: [
-              if (_isOffline) _OfflineBanner(lguColor: lguColor),
-              if (_isProvincialView) _ProvincialBanner(lguColor: lguColor),
+              if (_isOffline)
+                _OfflineBanner(lguColor: lguColor),
+              if (_isProvincialView)
+                _ProvincialBanner(lguColor: lguColor),
               _buildSummaryBar(lguColor),
               _buildFilterBar(lguColor),
               _buildSortRow(lguColor),
@@ -207,46 +212,40 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            const Icon(
-                              Icons.cloud_off,
-                              size: 64,
-                              color: Colors.red,
-                            ),
+                            const Icon(Icons.cloud_off,
+                                size: 64, color: Colors.red),
                             const SizedBox(height: 16),
                             const Text(
                               'Failed to load reports',
                               style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                              ),
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold),
                             ),
                             const SizedBox(height: 8),
                             Text(
                               '${snapshot.error}',
                               textAlign: TextAlign.center,
                               style: TextStyle(
-                                fontSize: 11,
-                                color: Colors.grey.shade500,
-                              ),
+                                  fontSize: 11,
+                                  color: Colors.grey.shade500),
                             ),
                             const SizedBox(height: 8),
                             const Text(
                               'Check Firestore rules and index on "reports".',
                               textAlign: TextAlign.center,
                               style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey,
-                              ),
+                                  fontSize: 12, color: Colors.grey),
                             ),
                           ],
                         ),
                       );
                     }
 
-                    if (snapshot.connectionState == ConnectionState.waiting) {
+                    if (snapshot.connectionState ==
+                        ConnectionState.waiting) {
                       return Center(
-                        child: CircularProgressIndicator(color: lguColor),
-                      );
+                          child: CircularProgressIndicator(
+                              color: lguColor));
                     }
 
                     // Connected — clear offline indicator
@@ -256,18 +255,17 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                       });
                     }
 
-                    final reports = _applyFiltersAndSort(snapshot.data ?? []);
+                    final reports =
+                        _applyFiltersAndSort(snapshot.data ?? []);
 
                     if (snapshot.data!.isEmpty) {
                       return Center(
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(
-                              Icons.inbox,
-                              size: 64,
-                              color: lguColor.withValues(alpha: 0.3),
-                            ),
+                            Icon(Icons.inbox,
+                                size: 64,
+                                color: lguColor.withValues(alpha: 0.3)),
                             const SizedBox(height: 16),
                             Text(
                               _isProvincialView
@@ -281,7 +279,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
 
                     if (reports.isEmpty) {
                       return const Center(
-                        child: Text('No reports match the selected filters.'),
+                        child: Text(
+                            'No reports match the selected filters.'),
                       );
                     }
 
@@ -296,12 +295,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                             report: report,
                             lguColor: lguColor,
                             showMunicipality: _isProvincialView,
-                            onStatusUpdate: (reportId, userId, newStatus) =>
-                                _reportRepository.updateReportStatus(
-                                  userId,
-                                  reportId,
-                                  newStatus,
-                                ),
+                            onStatusUpdate:
+                                (reportId, userId, newStatus) =>
+                                    _reportRepository.updateReportStatus(
+                                        userId, reportId, newStatus),
                           ),
                         );
                       },
@@ -313,7 +310,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
           ),
 
           // ── Tab 2: Announcements ────────────────────────────────────
-          _AnnouncementsTab(lguColor: lguColor, municipality: muniName),
+          _AnnouncementsTab(
+            lguColor: lguColor,
+            municipality: muniName,
+          ),
         ],
       ),
     );
@@ -327,25 +327,21 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
         final reports = snapshot.data ?? [];
         final total = reports.length;
         final critical = reports
-            .where(
-              (r) =>
-                  r.priority == ReportPriority.critical &&
-                  r.status != ReportStatus.solved,
-            )
+            .where((r) =>
+                r.priority == ReportPriority.critical &&
+                r.status != ReportStatus.solved)
             .length;
-        final pending = reports
-            .where((r) => r.status == ReportStatus.reported)
-            .length;
-        final ongoing = reports
-            .where((r) => r.status == ReportStatus.ongoing)
-            .length;
-        final solved = reports
-            .where((r) => r.status == ReportStatus.solved)
-            .length;
+        final pending =
+            reports.where((r) => r.status == ReportStatus.reported).length;
+        final ongoing =
+            reports.where((r) => r.status == ReportStatus.ongoing).length;
+        final solved =
+            reports.where((r) => r.status == ReportStatus.solved).length;
 
         return Container(
           width: double.infinity,
-          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+          padding:
+              const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
           decoration: BoxDecoration(
             gradient: LinearGradient(
               colors: [lguColor, lguColor.withValues(alpha: 0.75)],
@@ -358,7 +354,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                 label: 'Total',
                 count: total,
                 color: Colors.white,
-                isSelected: _filterPriority == null && _filterStatus == null,
+                isSelected: _filterPriority == null &&
+                    _filterStatus == null,
                 onTap: () => setState(() {
                   _filterPriority = null;
                   _filterStatus = null;
@@ -429,15 +426,15 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
         scrollDirection: Axis.horizontal,
         child: Row(
           children: [
-            const Text(
-              'Priority: ',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-            ),
+            const Text('Priority: ',
+                style: TextStyle(
+                    fontWeight: FontWeight.bold, fontSize: 12)),
             FilterChip(
               label: const Text('All', style: TextStyle(fontSize: 12)),
               selected: _filterPriority == null,
               selectedColor: lguColor.withValues(alpha: 0.2),
-              onSelected: (_) => setState(() => _filterPriority = null),
+              onSelected: (_) =>
+                  setState(() => _filterPriority = null),
               visualDensity: VisualDensity.compact,
             ),
             const SizedBox(width: 4),
@@ -446,22 +443,20 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                 padding: const EdgeInsets.only(right: 4),
                 child: FilterChip(
                   avatar: Icon(p.icon, size: 12, color: p.color),
-                  label: Text(
-                    p.displayName,
-                    style: const TextStyle(fontSize: 12),
-                  ),
+                  label: Text(p.displayName,
+                      style: const TextStyle(fontSize: 12)),
                   selected: _filterPriority == p,
                   selectedColor: p.color.withValues(alpha: 0.2),
-                  onSelected: (_) => setState(() => _filterPriority = p),
+                  onSelected: (_) =>
+                      setState(() => _filterPriority = p),
                   visualDensity: VisualDensity.compact,
                 ),
               ),
             ),
             const SizedBox(width: 12),
-            const Text(
-              'Status: ',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-            ),
+            const Text('Status: ',
+                style: TextStyle(
+                    fontWeight: FontWeight.bold, fontSize: 12)),
             FilterChip(
               label: const Text('All', style: TextStyle(fontSize: 12)),
               selected: _filterStatus == null,
@@ -478,20 +473,22 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
               final label = s == ReportStatus.reported
                   ? 'Pending'
                   : s == ReportStatus.ongoing
-                  ? 'Ongoing'
-                  : 'Solved';
+                      ? 'Ongoing'
+                      : 'Solved';
               final color = s == ReportStatus.reported
                   ? Colors.blue
                   : s == ReportStatus.ongoing
-                  ? Colors.orange
-                  : Colors.green;
+                      ? Colors.orange
+                      : Colors.green;
               return Padding(
                 padding: const EdgeInsets.only(right: 4),
                 child: FilterChip(
-                  label: Text(label, style: const TextStyle(fontSize: 12)),
+                  label: Text(label,
+                      style: const TextStyle(fontSize: 12)),
                   selected: _filterStatus == s,
                   selectedColor: color.withValues(alpha: 0.2),
-                  onSelected: (_) => setState(() => _filterStatus = s),
+                  onSelected: (_) =>
+                      setState(() => _filterStatus = s),
                   visualDensity: VisualDensity.compact,
                 ),
               );
@@ -511,15 +508,16 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
         children: [
           Icon(Icons.sort, size: 14, color: Colors.grey.shade600),
           const SizedBox(width: 4),
-          Text(
-            'Sort:',
-            style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-          ),
+          Text('Sort:',
+              style: TextStyle(
+                  fontSize: 12, color: Colors.grey.shade600)),
           TextButton.icon(
             onPressed: () =>
                 setState(() => _sortNewestFirst = !_sortNewestFirst),
             icon: Icon(
-              _sortNewestFirst ? Icons.arrow_downward : Icons.arrow_upward,
+              _sortNewestFirst
+                  ? Icons.arrow_downward
+                  : Icons.arrow_upward,
               size: 14,
             ),
             label: Text(
@@ -542,10 +540,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                 foregroundColor: Colors.grey.shade600,
                 padding: const EdgeInsets.symmetric(horizontal: 8),
               ),
-              child: const Text(
-                'Clear filters',
-                style: TextStyle(fontSize: 11),
-              ),
+              child: const Text('Clear filters',
+                  style: TextStyle(fontSize: 11)),
             ),
         ],
       ),
@@ -574,10 +570,9 @@ class _OfflineBanner extends StatelessWidget {
           Text(
             'Offline — Showing cached data',
             style: TextStyle(
-              color: Colors.white,
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-            ),
+                color: Colors.white,
+                fontSize: 12,
+                fontWeight: FontWeight.w600),
           ),
         ],
       ),
@@ -602,10 +597,9 @@ class _ProvincialBanner extends StatelessWidget {
           Text(
             'Provincial View — All 15 Municipalities',
             style: TextStyle(
-              color: Colors.white,
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-            ),
+                color: Colors.white,
+                fontSize: 12,
+                fontWeight: FontWeight.w600),
           ),
         ],
       ),
@@ -660,7 +654,8 @@ class _ClickableStatBadge extends StatelessWidget {
             ),
             Text(
               label,
-              style: const TextStyle(color: Colors.white70, fontSize: 10),
+              style: const TextStyle(
+                  color: Colors.white70, fontSize: 10),
             ),
           ],
         ),
@@ -678,7 +673,7 @@ class _ReportDetailSheet extends StatelessWidget {
   final Color lguColor;
   final bool isProvincialView;
   final void Function(String reportId, String userId, String newStatus)
-  onStatusUpdate;
+      onStatusUpdate;
   final Future<void> Function(String reportId, String userId) onEscalate;
 
   const _ReportDetailSheet({
@@ -693,8 +688,8 @@ class _ReportDetailSheet extends StatelessWidget {
     final hour = dt.hour > 12
         ? dt.hour - 12
         : dt.hour == 0
-        ? 12
-        : dt.hour;
+            ? 12
+            : dt.hour;
     final period = dt.hour >= 12 ? 'PM' : 'AM';
     final minute = dt.minute.toString().padLeft(2, '0');
     return '${dt.month}/${dt.day}/${dt.year}  $hour:$minute $period';
@@ -729,15 +724,14 @@ class _ReportDetailSheet extends StatelessWidget {
 
             // ── Header chips ──
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 16),
               child: Row(
                 children: [
                   // Priority chip
                   Container(
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 4,
-                    ),
+                        horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
                       color: priorityColor.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(20),
@@ -745,19 +739,15 @@ class _ReportDetailSheet extends StatelessWidget {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(
-                          report.priority.icon,
-                          size: 12,
-                          color: priorityColor,
-                        ),
+                        Icon(report.priority.icon,
+                            size: 12, color: priorityColor),
                         const SizedBox(width: 4),
                         Text(
                           '${report.priority.displayName} Priority',
                           style: TextStyle(
-                            color: priorityColor,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 11,
-                          ),
+                              color: priorityColor,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 11),
                         ),
                       ],
                     ),
@@ -766,9 +756,7 @@ class _ReportDetailSheet extends StatelessWidget {
                   // Status chip
                   Container(
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 4,
-                    ),
+                        horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
                       color: statusColor.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(20),
@@ -776,42 +764,37 @@ class _ReportDetailSheet extends StatelessWidget {
                     child: Text(
                       _statusLabel(report.status),
                       style: TextStyle(
-                        color: statusColor,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 11,
-                      ),
+                          color: statusColor,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 11),
                     ),
                   ),
                   if (report.escalatedToProvince) ...[
                     const SizedBox(width: 8),
                     Container(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
+                          horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF4A148C).withValues(alpha: 0.12),
+                        color: const Color(0xFF4A148C)
+                            .withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
-                          color: const Color(0xFF4A148C).withValues(alpha: 0.4),
-                        ),
+                            color: const Color(0xFF4A148C)
+                                .withValues(alpha: 0.4)),
                       ),
                       child: const Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(
-                            Icons.arrow_upward,
-                            size: 10,
-                            color: Color(0xFF4A148C),
-                          ),
+                          Icon(Icons.arrow_upward,
+                              size: 10,
+                              color: Color(0xFF4A148C)),
                           SizedBox(width: 3),
                           Text(
                             'ESCALATED',
                             style: TextStyle(
-                              color: Color(0xFF4A148C),
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                            ),
+                                color: Color(0xFF4A148C),
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold),
                           ),
                         ],
                       ),
@@ -849,19 +832,15 @@ class _ReportDetailSheet extends StatelessWidget {
                     const SizedBox(height: 4),
                     Row(
                       children: [
-                        const Icon(
-                          Icons.location_city,
-                          size: 14,
-                          color: Colors.grey,
-                        ),
+                        const Icon(Icons.location_city,
+                            size: 14, color: Colors.grey),
                         const SizedBox(width: 4),
                         Text(
                           report.municipality,
                           style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey.shade600,
-                            fontWeight: FontWeight.w600,
-                          ),
+                              fontSize: 12,
+                              color: Colors.grey.shade600,
+                              fontWeight: FontWeight.w600),
                         ),
                       ],
                     ),
@@ -924,10 +903,9 @@ class _ReportDetailSheet extends StatelessWidget {
                     Text(
                       'Photo Evidence',
                       style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 13,
-                        color: lguColor,
-                      ),
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                          color: lguColor),
                     ),
                     const SizedBox(height: 8),
                     ClipRRect(
@@ -935,21 +913,22 @@ class _ReportDetailSheet extends StatelessWidget {
                       child: Image.network(
                         report.imageUrl!,
                         fit: BoxFit.cover,
-                        loadingBuilder: (_, child, progress) => progress == null
-                            ? child
-                            : const SizedBox(
-                                height: 120,
-                                child: Center(
-                                  child: CircularProgressIndicator(),
-                                ),
-                              ),
+                        loadingBuilder: (_, child, progress) =>
+                            progress == null
+                                ? child
+                                : const SizedBox(
+                                    height: 120,
+                                    child: Center(
+                                        child:
+                                            CircularProgressIndicator())),
                         errorBuilder: (_, __, ___) => Container(
                           height: 80,
                           decoration: BoxDecoration(
                             color: Colors.grey.shade100,
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          child: const Center(child: Text('Image unavailable')),
+                          child: const Center(
+                              child: Text('Image unavailable')),
                         ),
                       ),
                     ),
@@ -963,26 +942,24 @@ class _ReportDetailSheet extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: Colors.green.shade50,
                         borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: Colors.green.shade200),
+                        border:
+                            Border.all(color: Colors.green.shade200),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Row(
                             children: [
-                              Icon(
-                                Icons.verified,
-                                size: 14,
-                                color: Colors.green.shade700,
-                              ),
+                              Icon(Icons.verified,
+                                  size: 14,
+                                  color: Colors.green.shade700),
                               const SizedBox(width: 6),
                               Text(
                                 'Verified Evidence Metadata',
                                 style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.green.shade800,
-                                ),
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.green.shade800),
                               ),
                             ],
                           ),
@@ -990,9 +967,8 @@ class _ReportDetailSheet extends StatelessWidget {
                           Text(
                             'Captured: ${_formatFullTimestamp(report.photoTimestamp!)}',
                             style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.green.shade700,
-                            ),
+                                fontSize: 12,
+                                color: Colors.green.shade700),
                           ),
                           if (report.photoLatitude != null) ...[
                             const SizedBox(height: 2),
@@ -1000,9 +976,8 @@ class _ReportDetailSheet extends StatelessWidget {
                               'Location: ${report.photoLatitude!.toStringAsFixed(5)}, '
                               '${report.photoLongitude!.toStringAsFixed(5)}',
                               style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.green.shade700,
-                              ),
+                                  fontSize: 12,
+                                  color: Colors.green.shade700),
                             ),
                           ],
                         ],
@@ -1016,28 +991,25 @@ class _ReportDetailSheet extends StatelessWidget {
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF4A148C).withValues(alpha: 0.07),
+                        color: const Color(0xFF4A148C)
+                            .withValues(alpha: 0.07),
                         borderRadius: BorderRadius.circular(10),
                         border: Border.all(
-                          color: const Color(0xFF4A148C).withValues(alpha: 0.3),
-                        ),
+                            color: const Color(0xFF4A148C)
+                                .withValues(alpha: 0.3)),
                       ),
                       child: Row(
                         children: [
-                          const Icon(
-                            Icons.arrow_upward,
-                            size: 16,
-                            color: Color(0xFF4A148C),
-                          ),
+                          const Icon(Icons.arrow_upward,
+                              size: 16, color: Color(0xFF4A148C)),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
                               'Escalated to Provincial Office on '
                               '${_formatFullTimestamp(report.escalatedAt!)}',
                               style: const TextStyle(
-                                fontSize: 12,
-                                color: Color(0xFF4A148C),
-                              ),
+                                  fontSize: 12,
+                                  color: Color(0xFF4A148C)),
                             ),
                           ),
                         ],
@@ -1053,10 +1025,9 @@ class _ReportDetailSheet extends StatelessWidget {
                   Text(
                     'Update Status',
                     style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: lguColor,
-                      fontSize: 13,
-                    ),
+                        fontWeight: FontWeight.bold,
+                        color: lguColor,
+                        fontSize: 13),
                   ),
                   const SizedBox(height: 8),
                   Wrap(
@@ -1071,10 +1042,7 @@ class _ReportDetailSheet extends StatelessWidget {
                           onTap: () {
                             if (report.userId != null) {
                               onStatusUpdate(
-                                report.id,
-                                report.userId!,
-                                'ongoing',
-                              );
+                                  report.id, report.userId!, 'ongoing');
                               Navigator.pop(context);
                             }
                           },
@@ -1087,10 +1055,7 @@ class _ReportDetailSheet extends StatelessWidget {
                           onTap: () {
                             if (report.userId != null) {
                               onStatusUpdate(
-                                report.id,
-                                report.userId!,
-                                'solved',
-                              );
+                                  report.id, report.userId!, 'solved');
                               Navigator.pop(context);
                             }
                           },
@@ -1103,10 +1068,7 @@ class _ReportDetailSheet extends StatelessWidget {
                           onTap: () {
                             if (report.userId != null) {
                               onStatusUpdate(
-                                report.id,
-                                report.userId!,
-                                'reported',
-                              );
+                                  report.id, report.userId!, 'reported');
                               Navigator.pop(context);
                             }
                           },
@@ -1122,19 +1084,23 @@ class _ReportDetailSheet extends StatelessWidget {
                     SizedBox(
                       width: double.infinity,
                       child: OutlinedButton.icon(
-                        icon: const Icon(Icons.arrow_upward, size: 16),
+                        icon: const Icon(Icons.arrow_upward,
+                            size: 16),
                         label: const Text('Escalate to Province'),
                         onPressed: () async {
                           Navigator.pop(context);
-                          await onEscalate(report.id, report.userId!);
+                          await onEscalate(
+                              report.id, report.userId!);
                         },
                         style: OutlinedButton.styleFrom(
                           foregroundColor: const Color(0xFF4A148C),
-                          side: const BorderSide(color: Color(0xFF4A148C)),
-                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          side: const BorderSide(
+                              color: Color(0xFF4A148C)),
+                          padding: const EdgeInsets.symmetric(
+                              vertical: 12),
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
+                              borderRadius:
+                                  BorderRadius.circular(12)),
                         ),
                       ),
                     ),
@@ -1143,9 +1109,7 @@ class _ReportDetailSheet extends StatelessWidget {
                       'Sends this report to the Provincial Administrator\'s dashboard.',
                       textAlign: TextAlign.center,
                       style: TextStyle(
-                        fontSize: 11,
-                        color: Colors.grey.shade500,
-                      ),
+                          fontSize: 11, color: Colors.grey.shade500),
                     ),
                   ],
                 ],
@@ -1205,17 +1169,17 @@ class _DetailSection extends StatelessWidget {
             Text(
               label,
               style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 12,
-                color: lguColor,
-              ),
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
+                  color: lguColor),
             ),
           ],
         ),
         const SizedBox(height: 4),
         Text(
           content,
-          style: TextStyle(fontSize: 14, color: Colors.grey.shade800),
+          style: TextStyle(
+              fontSize: 14, color: Colors.grey.shade800),
         ),
       ],
     );
@@ -1240,7 +1204,10 @@ class _DetailRow extends StatelessWidget {
         Icon(icon, size: 13, color: color),
         const SizedBox(width: 6),
         Expanded(
-          child: Text(content, style: TextStyle(fontSize: 12, color: color)),
+          child: Text(
+            content,
+            style: TextStyle(fontSize: 12, color: color),
+          ),
         ),
       ],
     );
@@ -1269,8 +1236,10 @@ class _ActionButton extends StatelessWidget {
       style: ElevatedButton.styleFrom(
         backgroundColor: color,
         foregroundColor: Colors.white,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        padding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10)),
         elevation: 0,
       ),
     );
@@ -1286,7 +1255,7 @@ class _AdminReportCard extends StatelessWidget {
   final Color lguColor;
   final bool showMunicipality;
   final void Function(String reportId, String userId, String newStatus)
-  onStatusUpdate;
+      onStatusUpdate;
 
   const _AdminReportCard({
     required this.report,
@@ -1299,8 +1268,8 @@ class _AdminReportCard extends StatelessWidget {
     final hour = date.hour > 12
         ? date.hour - 12
         : date.hour == 0
-        ? 12
-        : date.hour;
+            ? 12
+            : date.hour;
     final period = date.hour >= 12 ? 'PM' : 'AM';
     final minute = date.minute.toString().padLeft(2, '0');
     return '${date.month}/${date.day}/${date.year}  $hour:$minute $period';
@@ -1359,7 +1328,8 @@ class _AdminReportCard extends StatelessWidget {
           // ── Priority header bar ──
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
             decoration: BoxDecoration(
               color: priorityColor.withValues(alpha: 0.15),
               borderRadius: const BorderRadius.only(
@@ -1374,46 +1344,39 @@ class _AdminReportCard extends StatelessWidget {
                 Text(
                   '${report.priority.displayName} Priority',
                   style: TextStyle(
-                    color: priorityColor,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 11,
-                  ),
+                      color: priorityColor,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 11),
                 ),
                 const Spacer(),
                 if (isEscalated) ...[
-                  const Icon(
-                    Icons.arrow_upward,
-                    size: 11,
-                    color: Color(0xFF4A148C),
-                  ),
+                  const Icon(Icons.arrow_upward,
+                      size: 11, color: Color(0xFF4A148C)),
                   const SizedBox(width: 3),
                   const Text(
                     'ESCALATED',
                     style: TextStyle(
-                      color: Color(0xFF4A148C),
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                    ),
+                        color: Color(0xFF4A148C),
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(width: 8),
                 ],
                 if (report.duplicateCount > 0) ...[
                   Container(
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 6,
-                      vertical: 2,
-                    ),
+                        horizontal: 6, vertical: 2),
                     decoration: BoxDecoration(
-                      color: priorityColor.withValues(alpha: 0.2),
+                      color:
+                          priorityColor.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Text(
                       '${report.duplicateCount} similar',
                       style: TextStyle(
-                        color: priorityColor,
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                      ),
+                          color: priorityColor,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold),
                     ),
                   ),
                 ],
@@ -1441,9 +1404,7 @@ class _AdminReportCard extends StatelessWidget {
                     ),
                     Container(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 3,
-                      ),
+                          horizontal: 8, vertical: 3),
                       decoration: BoxDecoration(
                         color: statusColor.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(20),
@@ -1451,19 +1412,15 @@ class _AdminReportCard extends StatelessWidget {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(
-                            _statusIcon(report.status),
-                            color: statusColor,
-                            size: 12,
-                          ),
+                          Icon(_statusIcon(report.status),
+                              color: statusColor, size: 12),
                           const SizedBox(width: 4),
                           Text(
                             _statusLabel(report.status),
                             style: TextStyle(
-                              color: statusColor,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 11,
-                            ),
+                                color: statusColor,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 11),
                           ),
                         ],
                       ),
@@ -1476,19 +1433,15 @@ class _AdminReportCard extends StatelessWidget {
                 if (showMunicipality) ...[
                   Row(
                     children: [
-                      Icon(
-                        Icons.location_city,
-                        size: 12,
-                        color: Colors.grey.shade500,
-                      ),
+                      Icon(Icons.location_city,
+                          size: 12, color: Colors.grey.shade500),
                       const SizedBox(width: 4),
                       Text(
                         report.municipality,
                         style: TextStyle(
-                          fontSize: 11,
-                          color: Colors.grey.shade600,
-                          fontWeight: FontWeight.w600,
-                        ),
+                            fontSize: 11,
+                            color: Colors.grey.shade600,
+                            fontWeight: FontWeight.w600),
                       ),
                     ],
                   ),
@@ -1501,24 +1454,21 @@ class _AdminReportCard extends StatelessWidget {
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                    fontSize: 13,
-                    color: Color(0xFF555555),
-                  ),
+                      fontSize: 13, color: Color(0xFF555555)),
                 ),
                 const SizedBox(height: 6),
 
                 // Location
                 Row(
                   children: [
-                    const Icon(Icons.location_on, size: 12, color: Colors.grey),
+                    const Icon(Icons.location_on,
+                        size: 12, color: Colors.grey),
                     const SizedBox(width: 4),
                     Expanded(
                       child: Text(
                         report.location,
                         style: const TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey,
-                        ),
+                            fontSize: 12, color: Colors.grey),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -1530,16 +1480,19 @@ class _AdminReportCard extends StatelessWidget {
                 // Precise timestamp
                 Row(
                   children: [
-                    const Icon(Icons.schedule, size: 12, color: Colors.grey),
+                    const Icon(Icons.schedule,
+                        size: 12, color: Colors.grey),
                     const SizedBox(width: 4),
                     Text(
                       _formatTimestamp(report.reportedAt),
-                      style: const TextStyle(fontSize: 11, color: Colors.grey),
+                      style: const TextStyle(
+                          fontSize: 11, color: Colors.grey),
                     ),
                     if (report.imageUrl != null &&
                         report.imageUrl!.isNotEmpty) ...[
                       const SizedBox(width: 8),
-                      const Icon(Icons.photo, size: 11, color: Colors.blueGrey),
+                      const Icon(Icons.photo,
+                          size: 11, color: Colors.blueGrey),
                     ],
                   ],
                 ),
@@ -1552,9 +1505,7 @@ class _AdminReportCard extends StatelessWidget {
                     Text(
                       'Tap card for details   ',
                       style: TextStyle(
-                        fontSize: 10,
-                        color: Colors.grey.shade400,
-                      ),
+                          fontSize: 10, color: Colors.grey.shade400),
                     ),
                     if (report.status != ReportStatus.ongoing)
                       _SmallStatusButton(
@@ -1563,14 +1514,10 @@ class _AdminReportCard extends StatelessWidget {
                         onTap: () {
                           if (report.userId != null) {
                             onStatusUpdate(
-                              report.id,
-                              report.userId!,
-                              'ongoing',
-                            );
+                                report.id, report.userId!, 'ongoing');
                           } else {
                             ToastUtils.showError(
-                              'Cannot update: missing user info',
-                            );
+                                'Cannot update: missing user info');
                           }
                         },
                       ),
@@ -1581,11 +1528,11 @@ class _AdminReportCard extends StatelessWidget {
                         color: Colors.green,
                         onTap: () {
                           if (report.userId != null) {
-                            onStatusUpdate(report.id, report.userId!, 'solved');
+                            onStatusUpdate(
+                                report.id, report.userId!, 'solved');
                           } else {
                             ToastUtils.showError(
-                              'Cannot update: missing user info',
-                            );
+                                'Cannot update: missing user info');
                           }
                         },
                       ),
@@ -1596,14 +1543,10 @@ class _AdminReportCard extends StatelessWidget {
                         onTap: () {
                           if (report.userId != null) {
                             onStatusUpdate(
-                              report.id,
-                              report.userId!,
-                              'reported',
-                            );
+                                report.id, report.userId!, 'reported');
                           } else {
                             ToastUtils.showError(
-                              'Cannot update: missing user info',
-                            );
+                                'Cannot update: missing user info');
                           }
                         },
                       ),
@@ -1638,9 +1581,12 @@ class _SmallStatusButton extends StatelessWidget {
         style: ElevatedButton.styleFrom(
           backgroundColor: color,
           foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(horizontal: 10),
-          textStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+          padding:
+              const EdgeInsets.symmetric(horizontal: 10),
+          textStyle: const TextStyle(
+              fontSize: 11, fontWeight: FontWeight.bold),
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(6)),
           elevation: 0,
         ),
         child: Text(label),
@@ -1657,26 +1603,28 @@ class _AnnouncementsTab extends StatelessWidget {
   final Color lguColor;
   final String municipality;
 
-  const _AnnouncementsTab({required this.lguColor, required this.municipality});
+  const _AnnouncementsTab(
+      {required this.lguColor, required this.municipality});
 
-  Future<void> _deleteAnnouncement(BuildContext context, String docId) async {
+  Future<void> _deleteAnnouncement(
+      BuildContext context, String docId) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16)),
         title: const Text('Delete Announcement'),
-        content: const Text('Are you sure? This cannot be undone.'),
+        content: const Text(
+            'Are you sure? This cannot be undone.'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
-          ),
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancel')),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
-            ),
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white),
             child: const Text('Delete'),
           ),
         ],
@@ -1700,7 +1648,8 @@ class _AnnouncementsTab extends StatelessWidget {
           .snapshots(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return Center(child: CircularProgressIndicator(color: lguColor));
+          return Center(
+              child: CircularProgressIndicator(color: lguColor));
         }
 
         final docs = snapshot.data?.docs ?? [];
@@ -1710,32 +1659,28 @@ class _AnnouncementsTab extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(
-                  Icons.campaign_outlined,
-                  size: 72,
-                  color: lguColor.withValues(alpha: 0.3),
-                ),
+                Icon(Icons.campaign_outlined,
+                    size: 72,
+                    color: lguColor.withValues(alpha: 0.3)),
                 const SizedBox(height: 16),
-                Text(
-                  'No announcements yet',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.grey.shade600,
-                  ),
-                ),
+                Text('No announcements yet',
+                    style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.grey.shade600)),
                 const SizedBox(height: 8),
-                Text(
-                  'Tap the + button below to post one',
-                  style: TextStyle(fontSize: 13, color: Colors.grey.shade400),
-                ),
+                Text('Tap the + button below to post one',
+                    style: TextStyle(
+                        fontSize: 13,
+                        color: Colors.grey.shade400)),
               ],
             ),
           );
         }
 
         return ListView.builder(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
+          padding:
+              const EdgeInsets.fromLTRB(16, 16, 16, 100),
           itemCount: docs.length,
           itemBuilder: (context, index) {
             final doc = docs[index];
@@ -1745,7 +1690,8 @@ class _AnnouncementsTab extends StatelessWidget {
             final isUrgent = data['isUrgent'] as bool? ?? false;
             final postedBy = data['postedBy'] as String? ?? 'LGU';
             final muni = data['municipality'] as String? ?? '';
-            final timestamp = (data['timestamp'] as Timestamp?)?.toDate();
+            final timestamp =
+                (data['timestamp'] as Timestamp?)?.toDate();
 
             return Container(
               margin: const EdgeInsets.only(bottom: 12),
@@ -1764,7 +1710,8 @@ class _AnnouncementsTab extends StatelessWidget {
                 ],
               ),
               child: ListTile(
-                contentPadding: const EdgeInsets.fromLTRB(16, 10, 8, 10),
+                contentPadding:
+                    const EdgeInsets.fromLTRB(16, 10, 8, 10),
                 leading: Container(
                   width: 44,
                   height: 44,
@@ -1775,52 +1722,48 @@ class _AnnouncementsTab extends StatelessWidget {
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Icon(
-                    isUrgent ? Icons.warning_amber_rounded : Icons.campaign,
+                    isUrgent
+                        ? Icons.warning_amber_rounded
+                        : Icons.campaign,
                     color: isUrgent ? Colors.red : lguColor,
                     size: 22,
                   ),
                 ),
-                title: Text(
-                  title,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
+                title: Text(title,
+                    style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis),
                 subtitle: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const SizedBox(height: 2),
-                    Text(
-                      body,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey.shade600,
-                      ),
-                    ),
+                    Text(body,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey.shade600)),
                     const SizedBox(height: 4),
                     Row(
                       children: [
                         Container(
                           padding: const EdgeInsets.symmetric(
-                            horizontal: 6,
-                            vertical: 2,
-                          ),
+                              horizontal: 6, vertical: 2),
                           decoration: BoxDecoration(
-                            color: lguColor.withValues(alpha: 0.1),
+                            color:
+                                lguColor.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: Text(
-                            muni == 'All' ? 'Province-Wide' : muni,
+                            muni == 'All'
+                                ? 'Province-Wide'
+                                : muni,
                             style: TextStyle(
-                              fontSize: 10,
-                              color: lguColor,
-                              fontWeight: FontWeight.w600,
-                            ),
+                                fontSize: 10,
+                                color: lguColor,
+                                fontWeight: FontWeight.w600),
                           ),
                         ),
                         const SizedBox(width: 6),
@@ -1829,9 +1772,8 @@ class _AnnouncementsTab extends StatelessWidget {
                             '${timestamp.month}/${timestamp.day}/${timestamp.year}  '
                             '${timestamp.hour.toString().padLeft(2, '0')}:${timestamp.minute.toString().padLeft(2, '0')}',
                             style: TextStyle(
-                              fontSize: 10,
-                              color: Colors.grey.shade400,
-                            ),
+                                fontSize: 10,
+                                color: Colors.grey.shade400),
                           ),
                       ],
                     ),
@@ -1849,9 +1791,11 @@ class _AnnouncementsTab extends StatelessWidget {
                       value: 'delete',
                       child: Row(
                         children: [
-                          Icon(Icons.delete, color: Colors.red, size: 18),
+                          Icon(Icons.delete,
+                              color: Colors.red, size: 18),
                           SizedBox(width: 8),
-                          Text('Delete', style: TextStyle(color: Colors.red)),
+                          Text('Delete',
+                              style: TextStyle(color: Colors.red)),
                         ],
                       ),
                     ),
@@ -1874,13 +1818,12 @@ class _AddAnnouncementSheet extends StatefulWidget {
   final Color lguColor;
   final String municipality;
 
-  const _AddAnnouncementSheet({
-    required this.lguColor,
-    required this.municipality,
-  });
+  const _AddAnnouncementSheet(
+      {required this.lguColor, required this.municipality});
 
   @override
-  State<_AddAnnouncementSheet> createState() => _AddAnnouncementSheetState();
+  State<_AddAnnouncementSheet> createState() =>
+      _AddAnnouncementSheetState();
 }
 
 class _AddAnnouncementSheetState extends State<_AddAnnouncementSheet> {
@@ -1915,7 +1858,9 @@ class _AddAnnouncementSheetState extends State<_AddAnnouncementSheet> {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _isPosting = true);
     try {
-      await FirebaseFirestore.instance.collection('announcements').add({
+      await FirebaseFirestore.instance
+          .collection('announcements')
+          .add({
         'title': _titleController.text.trim(),
         'body': _bodyController.text.trim(),
         'municipality': _selectedMunicipality,
@@ -1945,14 +1890,11 @@ class _AddAnnouncementSheetState extends State<_AddAnnouncementSheet> {
     return Container(
       decoration: const BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        borderRadius:
+            BorderRadius.vertical(top: Radius.circular(24)),
       ),
       padding: EdgeInsets.fromLTRB(
-        24,
-        16,
-        24,
-        MediaQuery.of(context).viewInsets.bottom + 24,
-      ),
+          24, 16, 24, MediaQuery.of(context).viewInsets.bottom + 24),
       child: SingleChildScrollView(
         child: Form(
           key: _formKey,
@@ -1965,9 +1907,8 @@ class _AddAnnouncementSheetState extends State<_AddAnnouncementSheet> {
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: Colors.grey.shade300,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
+                      color: Colors.grey.shade300,
+                      borderRadius: BorderRadius.circular(2)),
                 ),
               ),
               const SizedBox(height: 16),
@@ -1979,140 +1920,121 @@ class _AddAnnouncementSheetState extends State<_AddAnnouncementSheet> {
                       color: widget.lguColor.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: Icon(
-                      Icons.campaign,
-                      color: widget.lguColor,
-                      size: 22,
-                    ),
+                    child: Icon(Icons.campaign,
+                        color: widget.lguColor, size: 22),
                   ),
                   const SizedBox(width: 12),
-                  Text(
-                    'Post Announcement',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: widget.lguColor,
-                    ),
-                  ),
+                  Text('Post Announcement',
+                      style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: widget.lguColor)),
                 ],
               ),
               const SizedBox(height: 20),
-              _field(
-                _titleController,
-                'Announcement Title *',
-                'e.g., Road Project Update in Bambang',
-                Icons.title,
-                widget.lguColor,
-                validator: (v) =>
-                    v == null || v.trim().isEmpty ? 'Title is required' : null,
-                maxLength: 100,
-              ),
+              _field(_titleController, 'Announcement Title *',
+                  'e.g., Road Project Update in Bambang',
+                  Icons.title, widget.lguColor,
+                  validator: (v) => v == null || v.trim().isEmpty
+                      ? 'Title is required'
+                      : null,
+                  maxLength: 100),
               const SizedBox(height: 12),
-              _field(
-                _bodyController,
-                'Message / Details *',
-                'Write the full announcement details here…',
-                Icons.message,
-                widget.lguColor,
-                validator: (v) => v == null || v.trim().isEmpty
-                    ? 'Message is required'
-                    : null,
-                maxLines: 4,
-                maxLength: 500,
-              ),
+              _field(_bodyController, 'Message / Details *',
+                  'Write the full announcement details here…',
+                  Icons.message, widget.lguColor,
+                  validator: (v) => v == null || v.trim().isEmpty
+                      ? 'Message is required'
+                      : null,
+                  maxLines: 4,
+                  maxLength: 500),
               const SizedBox(height: 12),
-              _field(
-                _postedByController,
-                'Posted By *',
-                'e.g., Gov. Darren Gambito',
-                Icons.person,
-                widget.lguColor,
-                validator: (v) => v == null || v.trim().isEmpty
-                    ? 'Posted by is required'
-                    : null,
-              ),
+              _field(_postedByController, 'Posted By *',
+                  'e.g., Gov. Darren Gambito',
+                  Icons.person, widget.lguColor,
+                  validator: (v) => v == null || v.trim().isEmpty
+                      ? 'Posted by is required'
+                      : null),
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
                 value: _selectedMunicipality,
                 decoration: InputDecoration(
                   labelText: 'Target Municipality',
-                  prefixIcon: Icon(Icons.location_city, color: widget.lguColor),
+                  prefixIcon: Icon(Icons.location_city,
+                      color: widget.lguColor),
                   focusedBorder: OutlineInputBorder(
-                    borderSide: BorderSide(color: widget.lguColor, width: 2),
+                    borderSide:
+                        BorderSide(color: widget.lguColor, width: 2),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  helperText: 'Select "All" to show to all municipalities',
+                      borderRadius: BorderRadius.circular(12)),
+                  helperText:
+                      'Select "All" to show to all municipalities',
                 ),
                 items: municipalities.map((m) {
                   return DropdownMenuItem(
                     value: m,
-                    child: Text(m == 'All' ? '🌍 All Municipalities' : m),
+                    child: Text(
+                        m == 'All' ? '🌍 All Municipalities' : m),
                   );
                 }).toList(),
-                onChanged: (v) => setState(() => _selectedMunicipality = v!),
+                onChanged: (v) =>
+                    setState(() => _selectedMunicipality = v!),
               ),
               const SizedBox(height: 12),
-              _field(
-                _sourceUrlController,
-                'Source URL (Optional)',
-                'https://facebook.com/post/…',
-                Icons.link,
-                widget.lguColor,
-                keyboardType: TextInputType.url,
-                helperText: 'Citizens can tap to view original post',
-              ),
+              _field(_sourceUrlController, 'Source URL (Optional)',
+                  'https://facebook.com/post/…',
+                  Icons.link, widget.lguColor,
+                  keyboardType: TextInputType.url,
+                  helperText:
+                      'Citizens can tap to view original post'),
               const SizedBox(height: 12),
-              _field(
-                _sourceLabelController,
-                'Source Label (Optional)',
-                'e.g., Posted by Gov. Gambito • Facebook',
-                Icons.label_outline,
-                widget.lguColor,
-              ),
+              _field(_sourceLabelController,
+                  'Source Label (Optional)',
+                  'e.g., Posted by Gov. Gambito • Facebook',
+                  Icons.label_outline, widget.lguColor),
               const SizedBox(height: 12),
               Container(
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 8,
-                ),
+                    horizontal: 16, vertical: 8),
                 decoration: BoxDecoration(
-                  color: _isUrgent ? Colors.red.shade50 : Colors.grey.shade50,
+                  color: _isUrgent
+                      ? Colors.red.shade50
+                      : Colors.grey.shade50,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: _isUrgent
-                        ? Colors.red.shade300
-                        : Colors.grey.shade200,
-                  ),
+                      color: _isUrgent
+                          ? Colors.red.shade300
+                          : Colors.grey.shade200),
                 ),
                 child: SwitchListTile(
                   contentPadding: EdgeInsets.zero,
                   title: Row(
                     children: [
-                      Icon(
-                        Icons.warning_amber_rounded,
-                        color: _isUrgent ? Colors.red : Colors.grey,
-                        size: 20,
-                      ),
+                      Icon(Icons.warning_amber_rounded,
+                          color: _isUrgent
+                              ? Colors.red
+                              : Colors.grey,
+                          size: 20),
                       const SizedBox(width: 8),
-                      Text(
-                        'Mark as Urgent',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w600,
-                          color: _isUrgent ? Colors.red : Colors.black87,
-                        ),
-                      ),
+                      Text('Mark as Urgent',
+                          style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              color: _isUrgent
+                                  ? Colors.red
+                                  : Colors.black87)),
                     ],
                   ),
                   subtitle: Text(
-                    'Shows red border and URGENT badge to citizens',
-                    style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
-                  ),
+                      'Shows red border and URGENT badge to citizens',
+                      style: TextStyle(
+                          fontSize: 11,
+                          color: Colors.grey.shade500)),
                   value: _isUrgent,
                   activeColor: Colors.red,
-                  onChanged: (v) => setState(() => _isUrgent = v),
+                  onChanged: (v) =>
+                      setState(() => _isUrgent = v),
                 ),
               ),
               const SizedBox(height: 20),
@@ -2125,18 +2047,16 @@ class _AddAnnouncementSheetState extends State<_AddAnnouncementSheet> {
                           width: 18,
                           height: 18,
                           child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
-                          ),
-                        )
+                              strokeWidth: 2,
+                              color: Colors.white))
                       : const Icon(Icons.send),
-                  label: Text(_isPosting ? 'Posting…' : 'Post Announcement'),
+                  label: Text(
+                      _isPosting ? 'Posting…' : 'Post Announcement'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: widget.lguColor,
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
+                        borderRadius: BorderRadius.circular(14)),
                     elevation: 0,
                   ),
                 ),
@@ -2184,10 +2104,10 @@ class _AddAnnouncementSheetState extends State<_AddAnnouncementSheet> {
         helperText: helperText,
         prefixIcon: Icon(prefixIcon, color: color),
         focusedBorder: OutlineInputBorder(
-          borderSide: BorderSide(color: color, width: 2),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            borderSide: BorderSide(color: color, width: 2),
+            borderRadius: BorderRadius.circular(12)),
+        border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12)),
       ),
       validator: validator,
       maxLines: maxLines ?? 1,
