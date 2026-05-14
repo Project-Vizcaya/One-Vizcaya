@@ -32,11 +32,8 @@ class FirebaseReportRepository implements ReportRepository {
         .where('municipality', isEqualTo: municipality)
         .orderBy('reportedAt', descending: true)
         .snapshots()
-        .map(
-          (snapshot) => snapshot.docs
-              .map((doc) => ProblemReport.fromFirestore(doc))
-              .toList(),
-        )
+        .map((snapshot) =>
+            snapshot.docs.map((doc) => ProblemReport.fromFirestore(doc)).toList())
         .handleError((_) => <ProblemReport>[]);
   }
 
@@ -47,15 +44,27 @@ class FirebaseReportRepository implements ReportRepository {
         .where('municipality', isEqualTo: municipality)
         .orderBy('priorityScore', descending: true)
         .snapshots()
-        .map(
-          (snapshot) => snapshot.docs
-              .map((doc) => ProblemReport.fromFirestore(doc))
-              .toList(),
-        )
+        .map((snapshot) =>
+            snapshot.docs.map((doc) => ProblemReport.fromFirestore(doc)).toList())
         .handleError((error) {
-          ToastUtils.showError('Failed to load reports: $error');
-          return <ProblemReport>[];
-        });
+      ToastUtils.showError('Failed to load reports: $error');
+      return <ProblemReport>[];
+    });
+  }
+
+  @override
+  Stream<List<ProblemReport>> getAllProvincialReports() {
+    // Returns all reports across every municipality, newest first by default
+    return _firestore
+        .collectionGroup('reports')
+        .orderBy('reportedAt', descending: true)
+        .snapshots()
+        .map((snapshot) =>
+            snapshot.docs.map((doc) => ProblemReport.fromFirestore(doc)).toList())
+        .handleError((error) {
+      ToastUtils.showError('Failed to load provincial reports: $error');
+      return <ProblemReport>[];
+    });
   }
 
   @override
@@ -104,9 +113,9 @@ class FirebaseReportRepository implements ReportRepository {
           .collection('reports')
           .doc(reportId)
           .update({
-            'escalatedToProvince': true,
-            'escalatedAt': FieldValue.serverTimestamp(),
-          });
+        'escalatedToProvince': true,
+        'escalatedAt': FieldValue.serverTimestamp(),
+      });
       ToastUtils.showSuccess('Report escalated to Provincial Office');
     } catch (e) {
       ToastUtils.showError('Failed to escalate report: $e');

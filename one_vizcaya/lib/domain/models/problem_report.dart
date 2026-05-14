@@ -71,8 +71,7 @@ class ProblemReport {
       priority: ReportPriority.fromString(data['priority']),
       priorityScore: data['priorityScore'] ?? 0,
       duplicateCount: data['duplicateCount'] ?? 0,
-      reportedAt:
-          (data['reportedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      reportedAt: (data['reportedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       latitude: (data['latitude'] as num?)?.toDouble(),
       longitude: (data['longitude'] as num?)?.toDouble(),
       userId: data['userId'] as String? ?? extractedUserId,

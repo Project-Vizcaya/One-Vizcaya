@@ -46,17 +46,17 @@ class AppUser {
   bool get isProvincialAdmin => role == UserRole.provincialAdmin;
 
   Map<String, dynamic> toMap() => {
-    'name': name,
-    'phoneNumber': phoneNumber,
-    'municipality': municipality,
-    'role': role.name,
-  };
+        'name': name,
+        'phoneNumber': phoneNumber,
+        'municipality': municipality,
+        'role': role.name,
+      };
 
   AppUser copyWith({UserRole? role}) => AppUser(
-    uid: uid,
-    name: name,
-    phoneNumber: phoneNumber,
-    municipality: municipality,
-    role: role ?? this.role,
-  );
+        uid: uid,
+        name: name,
+        phoneNumber: phoneNumber,
+        municipality: municipality,
+        role: role ?? this.role,
+      );
 }
