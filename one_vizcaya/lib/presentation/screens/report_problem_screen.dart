@@ -60,24 +60,8 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
     } else {
       setState(() => _isGettingLocation = false);
       ToastUtils.showError(
-          'Could not get precise location. You can still submit the report.');
-    }
-  }
-
-  Future<String?> _uploadImage(File image, String userId) async {
-    try {
-      final fileName =
-          '${userId}_${DateTime.now().millisecondsSinceEpoch}.jpg';
-      final ref = FirebaseStorage.instance
-          .ref()
-          .child('report_images')
-          .child(fileName);
-      final uploadTask = await ref.putFile(image);
-      return await uploadTask.ref.getDownloadURL();
-    } catch (e) {
-      // Image upload failure should not block report submission
-      debugPrint('Image upload failed: $e');
-      return null;
+        'Could not get precise location. You can still submit the report.',
+      );
     }
   }
 
@@ -107,7 +91,8 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
 
     if (currentTime - lastSubmitTime < 5 * 60 * 1000) {
       ToastUtils.showError(
-          'Please wait 5 minutes between submitting reports to prevent spam.');
+        'Please wait 5 minutes between submitting reports to prevent spam.',
+      );
       return;
     }
 
@@ -206,7 +191,7 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
 
       String priorityMsg = priorityResult.duplicateCount > 0
           ? '\n\n${priorityResult.duplicateCount} similar report(s) found in the last 48 hours. '
-              'Priority auto-escalated to ${priorityResult.priority.displayName}.'
+                'Priority auto-escalated to ${priorityResult.priority.displayName}.'
           : '\n\nPriority level: ${priorityResult.priority.displayName}.';
 
       _showConfirmationDialog(
@@ -221,8 +206,10 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
     }
   }
 
-  void _showConfirmationDialog(
-      {required String title, required String content}) {
+  void _showConfirmationDialog({
+    required String title,
+    required String content,
+  }) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -265,10 +252,9 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
                   _isOffline
                       ? 'Report via SMS (Offline)'
                       : 'Report via App (Online)',
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodyLarge
-                      ?.copyWith(fontWeight: FontWeight.bold),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold),
                 ),
                 subtitle: Text(
                   _isOffline
@@ -308,25 +294,23 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
                     value == null ? 'Please select a category' : null,
                 decoration: InputDecoration(
                   labelText: 'Category',
-                  prefixIcon:
-                      Icon(Icons.category, color: primaryLguColor),
+                  prefixIcon: Icon(Icons.category, color: primaryLguColor),
                   focusedBorder: OutlineInputBorder(
-                    borderSide:
-                        BorderSide(color: primaryLguColor, width: 2),
+                    borderSide: BorderSide(color: primaryLguColor, width: 2),
                   ),
                   labelStyle: TextStyle(color: primaryLguColor),
                 ),
               ),
               if (_selectedCategory != null) ...[
                 Padding(
-                  padding:
-                      const EdgeInsets.only(top: 8, left: 12, right: 12),
+                  padding: const EdgeInsets.only(top: 8, left: 12, right: 12),
                   child: Text(
                     _selectedCategory!.description,
                     style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey[700],
-                        fontStyle: FontStyle.italic),
+                      fontSize: 12,
+                      color: Colors.grey[700],
+                      fontStyle: FontStyle.italic,
+                    ),
                   ),
                 ),
                 Padding(
@@ -356,20 +340,17 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
                 controller: _locationController,
                 decoration: InputDecoration(
                   labelText: 'Location / Landmark',
-                  prefixIcon:
-                      Icon(Icons.location_on, color: primaryLguColor),
+                  prefixIcon: Icon(Icons.location_on, color: primaryLguColor),
                   hintText:
                       'e.g., "In front of $activeMunicipalityName Municipal Hall"',
                   focusedBorder: OutlineInputBorder(
-                    borderSide:
-                        BorderSide(color: primaryLguColor, width: 2),
+                    borderSide: BorderSide(color: primaryLguColor, width: 2),
                   ),
                   labelStyle: TextStyle(color: primaryLguColor),
                 ),
-                validator: (value) =>
-                    value == null || value.isEmpty
-                        ? 'Please enter a location'
-                        : null,
+                validator: (value) => value == null || value.isEmpty
+                    ? 'Please enter a location'
+                    : null,
               ),
               const SizedBox(height: 16),
               OutlinedButton.icon(
@@ -377,8 +358,7 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
                     ? const SizedBox(
                         width: 16,
                         height: 16,
-                        child:
-                            CircularProgressIndicator(strokeWidth: 2),
+                        child: CircularProgressIndicator(strokeWidth: 2),
                       )
                     : const Icon(Icons.gps_fixed),
                 label: Text(
@@ -405,20 +385,17 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
                 controller: _descriptionController,
                 decoration: InputDecoration(
                   labelText: 'Brief Description',
-                  prefixIcon:
-                      Icon(Icons.description, color: primaryLguColor),
+                  prefixIcon: Icon(Icons.description, color: primaryLguColor),
                   hintText: 'Describe the problem in detail.',
                   focusedBorder: OutlineInputBorder(
-                    borderSide:
-                        BorderSide(color: primaryLguColor, width: 2),
+                    borderSide: BorderSide(color: primaryLguColor, width: 2),
                   ),
                   labelStyle: TextStyle(color: primaryLguColor),
                 ),
                 maxLines: 4,
-                validator: (value) =>
-                    value == null || value.isEmpty
-                        ? 'Please enter a description'
-                        : null,
+                validator: (value) => value == null || value.isEmpty
+                    ? 'Please enter a description'
+                    : null,
               ),
               const SizedBox(height: 16),
               OutlinedButton.icon(
@@ -428,8 +405,7 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
                       ? 'Photo Attached ✓'
                       : 'Attach Photo Evidence (Optional)',
                 ),
-                onPressed:
-                    _isOffline ? null : () => _showImagePickerOptions(),
+                onPressed: _isOffline ? null : () => _showImagePickerOptions(),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: _selectedImage != null
                       ? Colors.green
@@ -470,8 +446,11 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
                             color: Colors.black54,
                             shape: BoxShape.circle,
                           ),
-                          child: const Icon(Icons.close,
-                              color: Colors.white, size: 18),
+                          child: const Icon(
+                            Icons.close,
+                            color: Colors.white,
+                            size: 18,
+                          ),
                         ),
                       ),
                     ),
@@ -481,7 +460,9 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
                   const SizedBox(height: 6),
                   Container(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 6),
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.green.shade50,
                       borderRadius: BorderRadius.circular(8),
@@ -489,8 +470,11 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
                     ),
                     child: Row(
                       children: [
-                        Icon(Icons.verified,
-                            size: 14, color: Colors.green.shade700),
+                        Icon(
+                          Icons.verified,
+                          size: 14,
+                          color: Colors.green.shade700,
+                        ),
                         const SizedBox(width: 6),
                         Expanded(
                           child: Text(
@@ -500,8 +484,9 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
                             '${_photoTimestamp!.minute.toString().padLeft(2, '0')}'
                             '${_photoLatitude != null ? '\nGPS: ${_photoLatitude!.toStringAsFixed(5)}, ${_photoLongitude!.toStringAsFixed(5)}' : ''}',
                             style: TextStyle(
-                                fontSize: 11,
-                                color: Colors.green.shade700),
+                              fontSize: 11,
+                              color: Colors.green.shade700,
+                            ),
                           ),
                         ),
                       ],
@@ -513,8 +498,7 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
               SizedBox(
                 height: 52,
                 child: ElevatedButton(
-                  onPressed:
-                      _isSubmitting ? null : _submitReport,
+                  onPressed: _isSubmitting ? null : _submitReport,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: primaryLguColor,
                     foregroundColor: Colors.white,
@@ -527,8 +511,9 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
                               width: 18,
                               height: 18,
                               child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: Colors.white),
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
                             ),
                             SizedBox(width: 12),
                             Text('Submitting…'),
@@ -577,15 +562,13 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
               const SizedBox(height: 20),
               const Text(
                 'Attach Photo Evidence',
-                style:
-                    TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 8),
               Text(
                 'Camera photos include a verified timestamp and GPS location.',
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                    fontSize: 12, color: Colors.grey.shade500),
+                style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
               ),
               const SizedBox(height: 8),
               Text(
@@ -644,11 +627,11 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
             child: Icon(icon, size: 32, color: const Color(0xFF4CAF50)),
           ),
           const SizedBox(height: 8),
-          Text(label,
-              style: const TextStyle(fontWeight: FontWeight.w500)),
-          Text(sublabel,
-              style: TextStyle(
-                  fontSize: 11, color: Colors.grey.shade500)),
+          Text(label, style: const TextStyle(fontWeight: FontWeight.w500)),
+          Text(
+            sublabel,
+            style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
+          ),
         ],
       ),
     );
@@ -687,9 +670,10 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
           }
         });
         ToastUtils.showSuccess(
-            source == ImageSource.camera
-                ? 'Photo attached with timestamp & GPS'
-                : 'Photo attached successfully');
+          source == ImageSource.camera
+              ? 'Photo attached with timestamp & GPS'
+              : 'Photo attached successfully',
+        );
       }
     } catch (e) {
       ToastUtils.showError('Failed to pick image: $e');
