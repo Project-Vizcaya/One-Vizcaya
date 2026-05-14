@@ -16,8 +16,18 @@ class ProblemReport {
   final DateTime reportedAt;
   final double? latitude;
   final double? longitude;
-  final String? userId;      // Owner UID — needed for admin status updates
-  final String? userPhone;   // Reporter's phone — useful for admin contact
+  final String? userId;
+  final String? userPhone;
+
+  // Photo evidence
+  final String? imageUrl;
+  final DateTime? photoTimestamp;
+  final double? photoLatitude;
+  final double? photoLongitude;
+
+  // Escalation
+  final bool escalatedToProvince;
+  final DateTime? escalatedAt;
 
   ProblemReport({
     required this.id,
@@ -34,12 +44,17 @@ class ProblemReport {
     this.longitude,
     this.userId,
     this.userPhone,
+    this.imageUrl,
+    this.photoTimestamp,
+    this.photoLatitude,
+    this.photoLongitude,
+    this.escalatedToProvince = false,
+    this.escalatedAt,
   });
 
   factory ProblemReport.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
 
-    // Extract userId from the document path: users/{uid}/reports/{reportId}
     String? extractedUserId;
     final pathSegments = doc.reference.path.split('/');
     if (pathSegments.length >= 2 && pathSegments[0] == 'users') {
@@ -56,11 +71,18 @@ class ProblemReport {
       priority: ReportPriority.fromString(data['priority']),
       priorityScore: data['priorityScore'] ?? 0,
       duplicateCount: data['duplicateCount'] ?? 0,
-      reportedAt: (data['reportedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
-      latitude: data['latitude'] as double?,
-      longitude: data['longitude'] as double?,
+      reportedAt:
+          (data['reportedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      latitude: (data['latitude'] as num?)?.toDouble(),
+      longitude: (data['longitude'] as num?)?.toDouble(),
       userId: data['userId'] as String? ?? extractedUserId,
       userPhone: data['userPhone'] as String?,
+      imageUrl: data['imageUrl'] as String?,
+      photoTimestamp: (data['photoTimestamp'] as Timestamp?)?.toDate(),
+      photoLatitude: (data['photoLatitude'] as num?)?.toDouble(),
+      photoLongitude: (data['photoLongitude'] as num?)?.toDouble(),
+      escalatedToProvince: data['escalatedToProvince'] as bool? ?? false,
+      escalatedAt: (data['escalatedAt'] as Timestamp?)?.toDate(),
     );
   }
 
@@ -79,6 +101,16 @@ class ProblemReport {
       'longitude': longitude,
       'userId': userId,
       'userPhone': userPhone,
+      'imageUrl': imageUrl ?? '',
+      'photoTimestamp': photoTimestamp != null
+          ? Timestamp.fromDate(photoTimestamp!)
+          : null,
+      'photoLatitude': photoLatitude,
+      'photoLongitude': photoLongitude,
+      'escalatedToProvince': escalatedToProvince,
+      'escalatedAt': escalatedAt != null
+          ? Timestamp.fromDate(escalatedAt!)
+          : null,
     };
   }
 }
