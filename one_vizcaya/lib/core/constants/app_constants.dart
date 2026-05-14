@@ -19,6 +19,18 @@ class AppConstants {
     'Villaverde',
   ];
 
+  // SMS hotlines per municipality. Update these without touching screen code.
+  static const Map<String, String> municipalityHotlines = {
+    'Bambang': '+639170000000',
+    'Solano': '+639181111111',
+    'Bayombong': '+639170000000',
+    // All unlisted municipalities fall back to the default below
+  };
+  static const String defaultHotline = '+639170000000';
+
+  static String hotlineFor(String municipality) =>
+      municipalityHotlines[municipality] ?? defaultHotline;
+
   static const Map<String, dynamic> municipalityThemes = {
     'Bambang': {
       'appBarColor': Color(0xFFE2725B), // Terracotta or Earthy Brown

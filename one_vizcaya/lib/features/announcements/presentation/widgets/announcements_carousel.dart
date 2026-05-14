@@ -16,6 +16,9 @@ class AnnouncementsCarousel extends StatelessWidget {
           .limit(5)
           .snapshots(),
       builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return const _EmptyAnnouncement();
+        }
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const SizedBox(
             height: 120,

@@ -383,6 +383,7 @@ class _HomeScreenState extends State<HomeScreen> {
     Color appBarColor,
   ) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
       Navigator.of(context).pushNamed('/status');
       setState(() => _selectedNavIndex = 0);
     });
@@ -393,6 +394,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildProfileRedirect(BuildContext context) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
       Navigator.of(context).pushNamed('/profile');
       setState(() => _selectedNavIndex = 0);
     });

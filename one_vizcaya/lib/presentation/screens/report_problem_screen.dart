@@ -9,6 +9,7 @@ import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'dart:io';
 import 'dart:typed_data';
 
+import '../../core/constants/app_constants.dart';
 import '../../core/utils/toast_utils.dart';
 import '../../domain/enums/report_category.dart';
 import '../../domain/enums/report_status.dart';
@@ -147,8 +148,7 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
   }
 
   Future<void> _sendSmsReport(String municipality, String details) async {
-    String localizedHotline = '+639170000000';
-    if (municipality == 'Solano') localizedHotline = '+639181111111';
+    final localizedHotline = AppConstants.hotlineFor(municipality);
 
     final String smsUri =
         'sms:$localizedHotline?body=${Uri.encodeComponent(details)}';
@@ -638,11 +638,11 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 4),
               Text(
-                'Camera photos include a verified timestamp and GPS location.',
+                'Gallery photos do not include a timestamp or GPS.',
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+                style: TextStyle(fontSize: 12, color: Colors.grey.shade400),
               ),
               const SizedBox(height: 20),
               Row(
