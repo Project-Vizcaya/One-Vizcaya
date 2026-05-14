@@ -1,5 +1,33 @@
 enum UserRole { citizen, admin, municipalAdmin, provincialAdmin }
 
+extension UserRoleX on UserRole {
+  String get displayName {
+    switch (this) {
+      case UserRole.citizen:
+        return 'Citizen';
+      case UserRole.admin:
+        return 'Admin';
+      case UserRole.municipalAdmin:
+        return 'Municipal Admin';
+      case UserRole.provincialAdmin:
+        return 'Provincial Admin';
+    }
+  }
+
+  String get firestoreValue {
+    switch (this) {
+      case UserRole.provincialAdmin:
+        return 'provincial_admin';
+      case UserRole.municipalAdmin:
+        return 'municipal_admin';
+      case UserRole.admin:
+        return 'admin';
+      case UserRole.citizen:
+        return 'citizen';
+    }
+  }
+}
+
 class AppUser {
   final String uid;
   final String name;
@@ -21,11 +49,11 @@ class AppUser {
       name: map['name'] ?? '',
       phoneNumber: map['phoneNumber'] ?? '',
       municipality: map['municipality'] ?? '',
-      role: _roleFromString(map['role'] as String?),
+      role: roleFromString(map['role'] as String?),
     );
   }
 
-  static UserRole _roleFromString(String? value) {
+  static UserRole roleFromString(String? value) {
     switch (value) {
       case 'provincial_admin':
         return UserRole.provincialAdmin;
@@ -49,7 +77,7 @@ class AppUser {
         'name': name,
         'phoneNumber': phoneNumber,
         'municipality': municipality,
-        'role': role.name,
+        'role': role.firestoreValue,
       };
 
   AppUser copyWith({UserRole? role}) => AppUser(

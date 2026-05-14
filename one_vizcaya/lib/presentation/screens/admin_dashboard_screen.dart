@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../../domain/models/problem_report.dart';
 import '../../domain/enums/report_priority.dart';
 import '../../domain/enums/report_status.dart';
 import '../../domain/repositories/report_repository.dart';
 import '../../data/repositories_impl/firebase_report_repository.dart';
+import '../../data/services/admin_service.dart';
+import '../../data/services/role_service.dart';
+import '../../features/auth/domain/entities/app_user.dart';
 import '../../core/utils/toast_utils.dart';
 import '../../core/constants/app_constants.dart';
 import '../state/municipality_state.dart';
@@ -24,27 +28,50 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
     with SingleTickerProviderStateMixin {
   final ReportRepository _reportRepository = FirebaseReportRepository();
 
-  // Filters & view state
+  UserRole _currentUserRole = UserRole.admin;
+  bool _isLoadingRole = true;
+
   ReportPriority? _filterPriority;
   ReportStatus? _filterStatus;
   bool _isProvincialView = false;
   bool _sortNewestFirst = true;
-
-  // Connectivity tracking (true when last stream update had error)
   bool _isOffline = false;
 
-  late TabController _tabController;
+  TabController? _tabController;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _loadUserRole();
   }
 
   @override
   void dispose() {
-    _tabController.dispose();
+    _tabController?.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadUserRole() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) {
+      if (mounted) setState(() => _isLoadingRole = false);
+      return;
+    }
+    final role = await adminService.getUserRole(uid);
+    if (!mounted) return;
+
+    _tabController?.dispose();
+    _tabController = TabController(
+      length: role == UserRole.provincialAdmin ? 3 : 2,
+      vsync: this,
+    );
+
+    setState(() {
+      _currentUserRole = role;
+      // Provincial admins default to provincial view and cannot switch
+      _isProvincialView = role == UserRole.provincialAdmin;
+      _isLoadingRole = false;
+    });
   }
 
   String get _activeMunicipalityName =>
@@ -66,6 +93,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
       builder: (_) => _AddAnnouncementSheet(
         lguColor: _activeLguColor,
         municipality: _activeMunicipalityName,
+        isProvincialAdmin: _currentUserRole == UserRole.provincialAdmin,
       ),
     );
   }
@@ -80,10 +108,13 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
         report: report,
         lguColor: _activeLguColor,
         isProvincialView: _isProvincialView,
+        canDelete: _currentUserRole == UserRole.provincialAdmin,
         onStatusUpdate: (reportId, userId, newStatus) =>
             _reportRepository.updateReportStatus(userId, reportId, newStatus),
         onEscalate: (reportId, userId) =>
             _reportRepository.escalateToProvince(userId, reportId),
+        onDelete: (reportId, userId) =>
+            _reportRepository.deleteReport(userId, reportId),
       ),
     );
   }
@@ -101,7 +132,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
 
     if (_sortNewestFirst) {
       filtered.sort((a, b) {
-        // Solved reports always sink to the bottom
         if (a.status == ReportStatus.solved &&
             b.status != ReportStatus.solved) return 1;
         if (b.status == ReportStatus.solved &&
@@ -123,8 +153,18 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoadingRole) {
+      return Scaffold(
+        backgroundColor: Colors.white,
+        body: Center(
+          child: CircularProgressIndicator(color: _activeLguColor),
+        ),
+      );
+    }
+
     final lguColor = _activeLguColor;
     final muniName = _activeMunicipalityName;
+    final tabController = _tabController!;
 
     return Scaffold(
       appBar: AppBar(
@@ -137,24 +177,25 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
           style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
         ),
         actions: [
-          // Provincial / Municipal toggle
-          Tooltip(
-            message: _isProvincialView
-                ? 'Switch to Municipal View'
-                : 'Switch to Provincial View',
-            child: IconButton(
-              icon: Icon(
-                _isProvincialView
-                    ? Icons.location_city
-                    : Icons.map_outlined,
+          // Toggle only for legacy "admin" role (municipal/provincial admins are locked)
+          if (_currentUserRole == UserRole.admin)
+            Tooltip(
+              message: _isProvincialView
+                  ? 'Switch to Municipal View'
+                  : 'Switch to Provincial View',
+              child: IconButton(
+                icon: Icon(
+                  _isProvincialView
+                      ? Icons.location_city
+                      : Icons.map_outlined,
+                ),
+                onPressed: () => setState(() {
+                  _isProvincialView = !_isProvincialView;
+                  _filterPriority = null;
+                  _filterStatus = null;
+                }),
               ),
-              onPressed: () => setState(() {
-                _isProvincialView = !_isProvincialView;
-                _filterPriority = null;
-                _filterStatus = null;
-              }),
             ),
-          ),
           IconButton(
             icon: const Icon(Icons.refresh),
             tooltip: 'Refresh',
@@ -162,21 +203,23 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
           ),
         ],
         bottom: TabBar(
-          controller: _tabController,
+          controller: tabController,
           indicatorColor: Colors.white,
           labelColor: Colors.white,
           unselectedLabelColor: Colors.white60,
-          tabs: const [
-            Tab(icon: Icon(Icons.report_problem), text: 'Reports'),
-            Tab(icon: Icon(Icons.campaign), text: 'Announcements'),
+          tabs: [
+            const Tab(icon: Icon(Icons.report_problem), text: 'Reports'),
+            const Tab(icon: Icon(Icons.campaign), text: 'Announcements'),
+            if (_currentUserRole == UserRole.provincialAdmin)
+              const Tab(icon: Icon(Icons.manage_accounts), text: 'Users'),
           ],
         ),
       ),
 
       floatingActionButton: ListenableBuilder(
-        listenable: _tabController,
+        listenable: tabController,
         builder: (context, _) {
-          if (_tabController.index != 1) return const SizedBox.shrink();
+          if (tabController.index != 1) return const SizedBox.shrink();
           return FloatingActionButton.extended(
             onPressed: _showAddAnnouncementSheet,
             backgroundColor: lguColor,
@@ -188,15 +231,13 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
       ),
 
       body: TabBarView(
-        controller: _tabController,
+        controller: tabController,
         children: [
-          // ── Tab 1: Reports ──────────────────────────────────────────
+          // ── Tab 1: Reports ──
           Column(
             children: [
-              if (_isOffline)
-                _OfflineBanner(lguColor: lguColor),
-              if (_isProvincialView)
-                _ProvincialBanner(lguColor: lguColor),
+              if (_isOffline) _OfflineBanner(lguColor: lguColor),
+              if (_isProvincialView) _ProvincialBanner(lguColor: lguColor),
               _buildSummaryBar(lguColor),
               _buildFilterBar(lguColor),
               _buildSortRow(lguColor),
@@ -241,14 +282,12 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                       );
                     }
 
-                    if (snapshot.connectionState ==
-                        ConnectionState.waiting) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
                       return Center(
-                          child: CircularProgressIndicator(
-                              color: lguColor));
+                          child:
+                              CircularProgressIndicator(color: lguColor));
                     }
 
-                    // Connected — clear offline indicator
                     if (_isOffline) {
                       WidgetsBinding.instance.addPostFrameCallback((_) {
                         if (mounted) setState(() => _isOffline = false);
@@ -309,17 +348,22 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
             ],
           ),
 
-          // ── Tab 2: Announcements ────────────────────────────────────
+          // ── Tab 2: Announcements ──
           _AnnouncementsTab(
             lguColor: lguColor,
             municipality: muniName,
+            isProvincialAdmin:
+                _currentUserRole == UserRole.provincialAdmin,
           ),
+
+          // ── Tab 3: Users (provincial admin only) ──
+          if (_currentUserRole == UserRole.provincialAdmin)
+            _RoleManagementTab(lguColor: lguColor),
         ],
       ),
     );
   }
 
-  // ── Summary bar (clickable badges) ──────────────────────────────────────
   Widget _buildSummaryBar(Color lguColor) {
     return StreamBuilder<List<ProblemReport>>(
       stream: _reportsStream,
@@ -354,8 +398,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                 label: 'Total',
                 count: total,
                 color: Colors.white,
-                isSelected: _filterPriority == null &&
-                    _filterStatus == null,
+                isSelected:
+                    _filterPriority == null && _filterStatus == null,
                 onTap: () => setState(() {
                   _filterPriority = null;
                   _filterStatus = null;
@@ -365,11 +409,13 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                 label: 'Critical',
                 count: critical,
                 color: ReportPriority.critical.color,
-                isSelected: _filterPriority == ReportPriority.critical,
+                isSelected:
+                    _filterPriority == ReportPriority.critical,
                 onTap: () => setState(() {
-                  _filterPriority = _filterPriority == ReportPriority.critical
-                      ? null
-                      : ReportPriority.critical;
+                  _filterPriority =
+                      _filterPriority == ReportPriority.critical
+                          ? null
+                          : ReportPriority.critical;
                   _filterStatus = null;
                 }),
               ),
@@ -379,9 +425,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                 color: Colors.blue.shade200,
                 isSelected: _filterStatus == ReportStatus.reported,
                 onTap: () => setState(() {
-                  _filterStatus = _filterStatus == ReportStatus.reported
-                      ? null
-                      : ReportStatus.reported;
+                  _filterStatus =
+                      _filterStatus == ReportStatus.reported
+                          ? null
+                          : ReportStatus.reported;
                   _filterPriority = null;
                 }),
               ),
@@ -391,9 +438,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                 color: Colors.orange.shade200,
                 isSelected: _filterStatus == ReportStatus.ongoing,
                 onTap: () => setState(() {
-                  _filterStatus = _filterStatus == ReportStatus.ongoing
-                      ? null
-                      : ReportStatus.ongoing;
+                  _filterStatus =
+                      _filterStatus == ReportStatus.ongoing
+                          ? null
+                          : ReportStatus.ongoing;
                   _filterPriority = null;
                 }),
               ),
@@ -403,9 +451,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                 color: Colors.green.shade200,
                 isSelected: _filterStatus == ReportStatus.solved,
                 onTap: () => setState(() {
-                  _filterStatus = _filterStatus == ReportStatus.solved
-                      ? null
-                      : ReportStatus.solved;
+                  _filterStatus =
+                      _filterStatus == ReportStatus.solved
+                          ? null
+                          : ReportStatus.solved;
                   _filterPriority = null;
                 }),
               ),
@@ -416,7 +465,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
     );
   }
 
-  // ── Filter chips row ─────────────────────────────────────────────────────
   Widget _buildFilterBar(Color lguColor) {
     return Container(
       width: double.infinity,
@@ -499,7 +547,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
     );
   }
 
-  // ── Sort row ─────────────────────────────────────────────────────────────
   Widget _buildSortRow(Color lguColor) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
@@ -672,16 +719,20 @@ class _ReportDetailSheet extends StatelessWidget {
   final ProblemReport report;
   final Color lguColor;
   final bool isProvincialView;
+  final bool canDelete;
   final void Function(String reportId, String userId, String newStatus)
       onStatusUpdate;
   final Future<void> Function(String reportId, String userId) onEscalate;
+  final Future<void> Function(String reportId, String userId) onDelete;
 
   const _ReportDetailSheet({
     required this.report,
     required this.lguColor,
     required this.isProvincialView,
+    required this.canDelete,
     required this.onStatusUpdate,
     required this.onEscalate,
+    required this.onDelete,
   });
 
   String _formatFullTimestamp(DateTime dt) {
@@ -693,6 +744,37 @@ class _ReportDetailSheet extends StatelessWidget {
     final period = dt.hour >= 12 ? 'PM' : 'AM';
     final minute = dt.minute.toString().padLeft(2, '0');
     return '${dt.month}/${dt.day}/${dt.year}  $hour:$minute $period';
+  }
+
+  void _confirmDelete(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Delete Report'),
+        content: const Text(
+            'Permanently delete this report? This cannot be undone.'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              Navigator.pop(context);
+              if (report.userId != null) {
+                await onDelete(report.id, report.userId!);
+              }
+            },
+            style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -711,7 +793,6 @@ class _ReportDetailSheet extends StatelessWidget {
         ),
         child: Column(
           children: [
-            // ── Drag handle ──
             Container(
               width: 40,
               height: 4,
@@ -722,13 +803,10 @@ class _ReportDetailSheet extends StatelessWidget {
               ),
             ),
 
-            // ── Header chips ──
             Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 16),
+              padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Row(
                 children: [
-                  // Priority chip
                   Container(
                     padding: const EdgeInsets.symmetric(
                         horizontal: 10, vertical: 4),
@@ -753,7 +831,6 @@ class _ReportDetailSheet extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 8),
-                  // Status chip
                   Container(
                     padding: const EdgeInsets.symmetric(
                         horizontal: 10, vertical: 4),
@@ -786,8 +863,7 @@ class _ReportDetailSheet extends StatelessWidget {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Icon(Icons.arrow_upward,
-                              size: 10,
-                              color: Color(0xFF4A148C)),
+                              size: 10, color: Color(0xFF4A148C)),
                           SizedBox(width: 3),
                           Text(
                             'ESCALATED',
@@ -801,6 +877,15 @@ class _ReportDetailSheet extends StatelessWidget {
                     ),
                   ],
                   const Spacer(),
+                  if (canDelete)
+                    IconButton(
+                      icon:
+                          const Icon(Icons.delete_outline, color: Colors.red),
+                      onPressed: () => _confirmDelete(context),
+                      tooltip: 'Delete Report',
+                      padding: EdgeInsets.zero,
+                      iconSize: 22,
+                    ),
                   IconButton(
                     icon: const Icon(Icons.close),
                     onPressed: () => Navigator.pop(context),
@@ -813,13 +898,11 @@ class _ReportDetailSheet extends StatelessWidget {
 
             const Divider(height: 16),
 
-            // ── Scrollable body ──
             Expanded(
               child: ListView(
                 controller: controller,
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
                 children: [
-                  // Category title
                   Text(
                     report.category.displayName,
                     style: TextStyle(
@@ -848,7 +931,6 @@ class _ReportDetailSheet extends StatelessWidget {
 
                   const SizedBox(height: 12),
 
-                  // Description
                   _DetailSection(
                     icon: Icons.description,
                     label: 'Description',
@@ -857,7 +939,6 @@ class _ReportDetailSheet extends StatelessWidget {
                   ),
                   const SizedBox(height: 12),
 
-                  // Location
                   _DetailSection(
                     icon: Icons.location_on,
                     label: 'Location',
@@ -878,7 +959,6 @@ class _ReportDetailSheet extends StatelessWidget {
 
                   const SizedBox(height: 12),
 
-                  // Submission timestamp (precise)
                   _DetailSection(
                     icon: Icons.schedule,
                     label: 'Submitted',
@@ -896,7 +976,6 @@ class _ReportDetailSheet extends StatelessWidget {
                     ),
                   ],
 
-                  // ── Photo evidence ──
                   if (report.imageUrl != null &&
                       report.imageUrl!.isNotEmpty) ...[
                     const SizedBox(height: 16),
@@ -934,7 +1013,6 @@ class _ReportDetailSheet extends StatelessWidget {
                     ),
                   ],
 
-                  // ── Verified evidence metadata ──
                   if (report.photoTimestamp != null) ...[
                     const SizedBox(height: 12),
                     Container(
@@ -942,8 +1020,7 @@ class _ReportDetailSheet extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: Colors.green.shade50,
                         borderRadius: BorderRadius.circular(10),
-                        border:
-                            Border.all(color: Colors.green.shade200),
+                        border: Border.all(color: Colors.green.shade200),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -951,8 +1028,7 @@ class _ReportDetailSheet extends StatelessWidget {
                           Row(
                             children: [
                               Icon(Icons.verified,
-                                  size: 14,
-                                  color: Colors.green.shade700),
+                                  size: 14, color: Colors.green.shade700),
                               const SizedBox(width: 6),
                               Text(
                                 'Verified Evidence Metadata',
@@ -1008,8 +1084,7 @@ class _ReportDetailSheet extends StatelessWidget {
                               'Escalated to Provincial Office on '
                               '${_formatFullTimestamp(report.escalatedAt!)}',
                               style: const TextStyle(
-                                  fontSize: 12,
-                                  color: Color(0xFF4A148C)),
+                                  fontSize: 12, color: Color(0xFF4A148C)),
                             ),
                           ),
                         ],
@@ -1021,7 +1096,6 @@ class _ReportDetailSheet extends StatelessWidget {
                   const Divider(),
                   const SizedBox(height: 12),
 
-                  // ── Action buttons ──
                   Text(
                     'Update Status',
                     style: TextStyle(
@@ -1076,7 +1150,6 @@ class _ReportDetailSheet extends StatelessWidget {
                     ],
                   ),
 
-                  // Escalate to Province (only in municipal view and not yet escalated)
                   if (!isProvincialView &&
                       !report.escalatedToProvince &&
                       report.userId != null) ...[
@@ -1084,23 +1157,19 @@ class _ReportDetailSheet extends StatelessWidget {
                     SizedBox(
                       width: double.infinity,
                       child: OutlinedButton.icon(
-                        icon: const Icon(Icons.arrow_upward,
-                            size: 16),
+                        icon: const Icon(Icons.arrow_upward, size: 16),
                         label: const Text('Escalate to Province'),
                         onPressed: () async {
                           Navigator.pop(context);
-                          await onEscalate(
-                              report.id, report.userId!);
+                          await onEscalate(report.id, report.userId!);
                         },
                         style: OutlinedButton.styleFrom(
                           foregroundColor: const Color(0xFF4A148C),
                           side: const BorderSide(
                               color: Color(0xFF4A148C)),
-                          padding: const EdgeInsets.symmetric(
-                              vertical: 12),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
                           shape: RoundedRectangleBorder(
-                              borderRadius:
-                                  BorderRadius.circular(12)),
+                              borderRadius: BorderRadius.circular(12)),
                         ),
                       ),
                     ),
@@ -1178,8 +1247,8 @@ class _DetailSection extends StatelessWidget {
         const SizedBox(height: 4),
         Text(
           content,
-          style: TextStyle(
-              fontSize: 14, color: Colors.grey.shade800),
+          style:
+              TextStyle(fontSize: 14, color: Colors.grey.shade800),
         ),
       ],
     );
@@ -1325,7 +1394,6 @@ class _AdminReportCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── Priority header bar ──
           Container(
             width: double.infinity,
             padding:
@@ -1339,7 +1407,8 @@ class _AdminReportCard extends StatelessWidget {
             ),
             child: Row(
               children: [
-                Icon(report.priority.icon, size: 13, color: priorityColor),
+                Icon(report.priority.icon,
+                    size: 13, color: priorityColor),
                 const SizedBox(width: 5),
                 Text(
                   '${report.priority.displayName} Priority',
@@ -1367,8 +1436,7 @@ class _AdminReportCard extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(
                         horizontal: 6, vertical: 2),
                     decoration: BoxDecoration(
-                      color:
-                          priorityColor.withValues(alpha: 0.2),
+                      color: priorityColor.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Text(
@@ -1389,7 +1457,6 @@ class _AdminReportCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Category + status
                 Row(
                   children: [
                     Expanded(
@@ -1429,7 +1496,6 @@ class _AdminReportCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 6),
 
-                // Municipality (provincial view only)
                 if (showMunicipality) ...[
                   Row(
                     children: [
@@ -1448,7 +1514,6 @@ class _AdminReportCard extends StatelessWidget {
                   const SizedBox(height: 4),
                 ],
 
-                // Description (truncated)
                 Text(
                   report.description,
                   maxLines: 2,
@@ -1458,7 +1523,6 @@ class _AdminReportCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 6),
 
-                // Location
                 Row(
                   children: [
                     const Icon(Icons.location_on,
@@ -1477,7 +1541,6 @@ class _AdminReportCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 3),
 
-                // Precise timestamp
                 Row(
                   children: [
                     const Icon(Icons.schedule,
@@ -1498,7 +1561,6 @@ class _AdminReportCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
 
-                // Quick status buttons
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
@@ -1581,8 +1643,7 @@ class _SmallStatusButton extends StatelessWidget {
         style: ElevatedButton.styleFrom(
           backgroundColor: color,
           foregroundColor: Colors.white,
-          padding:
-              const EdgeInsets.symmetric(horizontal: 10),
+          padding: const EdgeInsets.symmetric(horizontal: 10),
           textStyle: const TextStyle(
               fontSize: 11, fontWeight: FontWeight.bold),
           shape: RoundedRectangleBorder(
@@ -1602,9 +1663,13 @@ class _SmallStatusButton extends StatelessWidget {
 class _AnnouncementsTab extends StatelessWidget {
   final Color lguColor;
   final String municipality;
+  final bool isProvincialAdmin;
 
-  const _AnnouncementsTab(
-      {required this.lguColor, required this.municipality});
+  const _AnnouncementsTab({
+    required this.lguColor,
+    required this.municipality,
+    required this.isProvincialAdmin,
+  });
 
   Future<void> _deleteAnnouncement(
       BuildContext context, String docId) async {
@@ -1614,8 +1679,8 @@ class _AnnouncementsTab extends StatelessWidget {
         shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16)),
         title: const Text('Delete Announcement'),
-        content: const Text(
-            'Are you sure? This cannot be undone.'),
+        content:
+            const Text('Are you sure? This cannot be undone.'),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
@@ -1641,171 +1706,278 @@ class _AnnouncementsTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance
-          .collection('announcements')
-          .orderBy('timestamp', descending: true)
-          .snapshots(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return Center(
-              child: CircularProgressIndicator(color: lguColor));
-        }
+    // Provincial admin sees all; municipal admin sees only their scope
+    Query query = FirebaseFirestore.instance
+        .collection('announcements')
+        .orderBy('timestamp', descending: true);
 
-        final docs = snapshot.data?.docs ?? [];
-
-        if (docs.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.campaign_outlined,
-                    size: 72,
-                    color: lguColor.withValues(alpha: 0.3)),
-                const SizedBox(height: 16),
-                Text('No announcements yet',
-                    style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.grey.shade600)),
-                const SizedBox(height: 8),
-                Text('Tap the + button below to post one',
-                    style: TextStyle(
-                        fontSize: 13,
-                        color: Colors.grey.shade400)),
-              ],
-            ),
-          );
-        }
-
-        return ListView.builder(
+    return Column(
+      children: [
+        // Scope indicator banner
+        Container(
+          width: double.infinity,
           padding:
-              const EdgeInsets.fromLTRB(16, 16, 16, 100),
-          itemCount: docs.length,
-          itemBuilder: (context, index) {
-            final doc = docs[index];
-            final data = doc.data() as Map<String, dynamic>;
-            final title = data['title'] as String? ?? 'Announcement';
-            final body = data['body'] as String? ?? '';
-            final isUrgent = data['isUrgent'] as bool? ?? false;
-            final postedBy = data['postedBy'] as String? ?? 'LGU';
-            final muni = data['municipality'] as String? ?? '';
-            final timestamp =
-                (data['timestamp'] as Timestamp?)?.toDate();
-
-            return Container(
-              margin: const EdgeInsets.only(bottom: 12),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(14),
-                border: isUrgent
-                    ? Border.all(color: Colors.red.shade300)
-                    : null,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.04),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
+              const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          color: isProvincialAdmin
+              ? const Color(0xFF4A148C).withValues(alpha: 0.08)
+              : lguColor.withValues(alpha: 0.08),
+          child: Row(
+            children: [
+              Icon(
+                isProvincialAdmin ? Icons.public : Icons.location_city,
+                size: 14,
+                color: isProvincialAdmin
+                    ? const Color(0xFF4A148C)
+                    : lguColor,
               ),
-              child: ListTile(
-                contentPadding:
-                    const EdgeInsets.fromLTRB(16, 10, 8, 10),
-                leading: Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: isUrgent
-                        ? Colors.red.shade50
-                        : lguColor.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Icon(
-                    isUrgent
-                        ? Icons.warning_amber_rounded
-                        : Icons.campaign,
-                    color: isUrgent ? Colors.red : lguColor,
-                    size: 22,
-                  ),
+              const SizedBox(width: 8),
+              Text(
+                isProvincialAdmin
+                    ? 'Showing all announcements across the province'
+                    : 'Showing announcements for $municipality',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: isProvincialAdmin
+                      ? const Color(0xFF4A148C)
+                      : lguColor,
+                  fontWeight: FontWeight.w500,
                 ),
-                title: Text(title,
-                    style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis),
-                subtitle: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const SizedBox(height: 2),
-                    Text(body,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey.shade600)),
-                    const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(
-                            color:
-                                lguColor.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Text(
-                            muni == 'All'
-                                ? 'Province-Wide'
-                                : muni,
-                            style: TextStyle(
-                                fontSize: 10,
-                                color: lguColor,
-                                fontWeight: FontWeight.w600),
-                          ),
+              ),
+            ],
+          ),
+        ),
+
+        Expanded(
+          child: StreamBuilder<QuerySnapshot>(
+            stream: query.snapshots(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return Center(
+                    child:
+                        CircularProgressIndicator(color: lguColor));
+              }
+
+              final allDocs = snapshot.data?.docs ?? [];
+
+              // Municipal admins only see their own + province-wide announcements
+              final docs = isProvincialAdmin
+                  ? allDocs
+                  : allDocs.where((doc) {
+                      final data = doc.data() as Map<String, dynamic>;
+                      final muni = data['municipality'] as String? ?? '';
+                      return muni == municipality || muni == 'All';
+                    }).toList();
+
+              if (docs.isEmpty) {
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.campaign_outlined,
+                          size: 72,
+                          color: lguColor.withValues(alpha: 0.3)),
+                      const SizedBox(height: 16),
+                      Text('No announcements yet',
+                          style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.grey.shade600)),
+                      const SizedBox(height: 8),
+                      Text('Tap the + button below to post one',
+                          style: TextStyle(
+                              fontSize: 13,
+                              color: Colors.grey.shade400)),
+                    ],
+                  ),
+                );
+              }
+
+              return ListView.builder(
+                padding:
+                    const EdgeInsets.fromLTRB(16, 16, 16, 100),
+                itemCount: docs.length,
+                itemBuilder: (context, index) {
+                  final doc = docs[index];
+                  final data =
+                      doc.data() as Map<String, dynamic>;
+                  final title =
+                      data['title'] as String? ?? 'Announcement';
+                  final body = data['body'] as String? ?? '';
+                  final isUrgent =
+                      data['isUrgent'] as bool? ?? false;
+                  final postedBy =
+                      data['postedBy'] as String? ?? 'LGU';
+                  final muni =
+                      data['municipality'] as String? ?? '';
+                  final timestamp =
+                      (data['timestamp'] as Timestamp?)?.toDate();
+                  final isProvinceWide = muni == 'All';
+
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 12),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(14),
+                      border: isUrgent
+                          ? Border.all(color: Colors.red.shade300)
+                          : isProvinceWide
+                              ? Border.all(
+                                  color: const Color(0xFF4A148C)
+                                      .withValues(alpha: 0.4))
+                              : null,
+                      boxShadow: [
+                        BoxShadow(
+                          color:
+                              Colors.black.withValues(alpha: 0.04),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
                         ),
-                        const SizedBox(width: 6),
-                        if (timestamp != null)
-                          Text(
-                            '${timestamp.month}/${timestamp.day}/${timestamp.year}  '
-                            '${timestamp.hour.toString().padLeft(2, '0')}:${timestamp.minute.toString().padLeft(2, '0')}',
-                            style: TextStyle(
-                                fontSize: 10,
-                                color: Colors.grey.shade400),
-                          ),
                       ],
                     ),
-                  ],
-                ),
-                trailing: PopupMenuButton<String>(
-                  icon: const Icon(Icons.more_vert),
-                  onSelected: (value) {
-                    if (value == 'delete') {
-                      _deleteAnnouncement(context, doc.id);
-                    }
-                  },
-                  itemBuilder: (_) => [
-                    const PopupMenuItem(
-                      value: 'delete',
-                      child: Row(
+                    child: ListTile(
+                      contentPadding:
+                          const EdgeInsets.fromLTRB(16, 10, 8, 10),
+                      leading: Container(
+                        width: 44,
+                        height: 44,
+                        decoration: BoxDecoration(
+                          color: isUrgent
+                              ? Colors.red.shade50
+                              : isProvinceWide
+                                  ? const Color(0xFF4A148C)
+                                      .withValues(alpha: 0.08)
+                                  : lguColor.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Icon(
+                          isUrgent
+                              ? Icons.warning_amber_rounded
+                              : isProvinceWide
+                                  ? Icons.public
+                                  : Icons.campaign,
+                          color: isUrgent
+                              ? Colors.red
+                              : isProvinceWide
+                                  ? const Color(0xFF4A148C)
+                                  : lguColor,
+                          size: 22,
+                        ),
+                      ),
+                      title: Text(title,
+                          style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Icon(Icons.delete,
-                              color: Colors.red, size: 18),
-                          SizedBox(width: 8),
-                          Text('Delete',
-                              style: TextStyle(color: Colors.red)),
+                          const SizedBox(height: 2),
+                          Text(body,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey.shade600)),
+                          const SizedBox(height: 4),
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: isProvinceWide
+                                      ? const Color(0xFF4A148C)
+                                          .withValues(alpha: 0.12)
+                                      : lguColor
+                                          .withValues(alpha: 0.1),
+                                  borderRadius:
+                                      BorderRadius.circular(4),
+                                ),
+                                child: Text(
+                                  isProvinceWide
+                                      ? '🌍 Province-Wide'
+                                      : muni,
+                                  style: TextStyle(
+                                      fontSize: 10,
+                                      color: isProvinceWide
+                                          ? const Color(0xFF4A148C)
+                                          : lguColor,
+                                      fontWeight: FontWeight.w600),
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              if (isUrgent) ...[
+                                Container(
+                                  padding:
+                                      const EdgeInsets.symmetric(
+                                          horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: Colors.red.shade50,
+                                    borderRadius:
+                                        BorderRadius.circular(4),
+                                    border: Border.all(
+                                        color: Colors.red.shade200),
+                                  ),
+                                  child: const Text(
+                                    '⚠ URGENT',
+                                    style: TextStyle(
+                                        fontSize: 10,
+                                        color: Colors.red,
+                                        fontWeight: FontWeight.w700),
+                                  ),
+                                ),
+                                const SizedBox(width: 6),
+                              ],
+                              if (timestamp != null)
+                                Text(
+                                  '${timestamp.month}/${timestamp.day}/${timestamp.year}',
+                                  style: TextStyle(
+                                      fontSize: 10,
+                                      color: Colors.grey.shade400),
+                                ),
+                            ],
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            'By $postedBy',
+                            style: TextStyle(
+                                fontSize: 11,
+                                color: Colors.grey.shade500),
+                          ),
+                        ],
+                      ),
+                      trailing: PopupMenuButton<String>(
+                        icon: const Icon(Icons.more_vert),
+                        onSelected: (value) {
+                          if (value == 'delete') {
+                            _deleteAnnouncement(context, doc.id);
+                          }
+                        },
+                        itemBuilder: (_) => [
+                          const PopupMenuItem(
+                            value: 'delete',
+                            child: Row(
+                              children: [
+                                Icon(Icons.delete,
+                                    color: Colors.red, size: 18),
+                                SizedBox(width: 8),
+                                Text('Delete',
+                                    style:
+                                        TextStyle(color: Colors.red)),
+                              ],
+                            ),
+                          ),
                         ],
                       ),
                     ),
-                  ],
-                ),
-              ),
-            );
-          },
-        );
-      },
+                  );
+                },
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 }
@@ -1817,31 +1989,40 @@ class _AnnouncementsTab extends StatelessWidget {
 class _AddAnnouncementSheet extends StatefulWidget {
   final Color lguColor;
   final String municipality;
+  final bool isProvincialAdmin;
 
-  const _AddAnnouncementSheet(
-      {required this.lguColor, required this.municipality});
+  const _AddAnnouncementSheet({
+    required this.lguColor,
+    required this.municipality,
+    required this.isProvincialAdmin,
+  });
 
   @override
   State<_AddAnnouncementSheet> createState() =>
       _AddAnnouncementSheetState();
 }
 
-class _AddAnnouncementSheetState extends State<_AddAnnouncementSheet> {
+class _AddAnnouncementSheetState
+    extends State<_AddAnnouncementSheet> {
   final _formKey = GlobalKey<FormState>();
   final _titleController = TextEditingController();
   final _bodyController = TextEditingController();
   final _sourceUrlController = TextEditingController();
   final _sourceLabelController = TextEditingController();
   final _postedByController = TextEditingController();
-  String _selectedMunicipality = 'All';
+  late String _selectedMunicipality;
   bool _isUrgent = false;
   bool _isPosting = false;
 
   @override
   void initState() {
     super.initState();
-    _selectedMunicipality = widget.municipality;
-    _postedByController.text = 'LGU ${widget.municipality}';
+    // Provincial admins default to province-wide; municipal admins default to their municipality
+    _selectedMunicipality =
+        widget.isProvincialAdmin ? 'All' : widget.municipality;
+    _postedByController.text = widget.isProvincialAdmin
+        ? 'Provincial Government of Nueva Vizcaya'
+        : 'LGU ${widget.municipality}';
   }
 
   @override
@@ -1885,8 +2066,6 @@ class _AddAnnouncementSheetState extends State<_AddAnnouncementSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final municipalities = ['All', ...AppConstants.municipalities];
-
     return Container(
       decoration: const BoxDecoration(
         color: Colors.white,
@@ -1894,7 +2073,10 @@ class _AddAnnouncementSheetState extends State<_AddAnnouncementSheet> {
             BorderRadius.vertical(top: Radius.circular(24)),
       ),
       padding: EdgeInsets.fromLTRB(
-          24, 16, 24, MediaQuery.of(context).viewInsets.bottom + 24),
+          24,
+          16,
+          24,
+          MediaQuery.of(context).viewInsets.bottom + 24),
       child: SingleChildScrollView(
         child: Form(
           key: _formKey,
@@ -1924,64 +2106,127 @@ class _AddAnnouncementSheetState extends State<_AddAnnouncementSheet> {
                         color: widget.lguColor, size: 22),
                   ),
                   const SizedBox(width: 12),
-                  Text('Post Announcement',
-                      style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: widget.lguColor)),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Post Announcement',
+                            style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: widget.lguColor)),
+                        Text(
+                          widget.isProvincialAdmin
+                              ? 'Province-wide or per municipality'
+                              : 'For ${widget.municipality} residents',
+                          style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey.shade500),
+                        ),
+                      ],
+                    ),
+                  ),
                 ],
               ),
               const SizedBox(height: 20),
+
               _field(_titleController, 'Announcement Title *',
                   'e.g., Road Project Update in Bambang',
                   Icons.title, widget.lguColor,
-                  validator: (v) => v == null || v.trim().isEmpty
-                      ? 'Title is required'
-                      : null,
+                  validator: (v) =>
+                      v == null || v.trim().isEmpty
+                          ? 'Title is required'
+                          : null,
                   maxLength: 100),
               const SizedBox(height: 12),
               _field(_bodyController, 'Message / Details *',
                   'Write the full announcement details here…',
                   Icons.message, widget.lguColor,
-                  validator: (v) => v == null || v.trim().isEmpty
-                      ? 'Message is required'
-                      : null,
+                  validator: (v) =>
+                      v == null || v.trim().isEmpty
+                          ? 'Message is required'
+                          : null,
                   maxLines: 4,
                   maxLength: 500),
               const SizedBox(height: 12),
               _field(_postedByController, 'Posted By *',
                   'e.g., Gov. Darren Gambito',
                   Icons.person, widget.lguColor,
-                  validator: (v) => v == null || v.trim().isEmpty
-                      ? 'Posted by is required'
-                      : null),
+                  validator: (v) =>
+                      v == null || v.trim().isEmpty
+                          ? 'Posted by is required'
+                          : null),
               const SizedBox(height: 12),
-              DropdownButtonFormField<String>(
-                value: _selectedMunicipality,
-                decoration: InputDecoration(
-                  labelText: 'Target Municipality',
-                  prefixIcon: Icon(Icons.location_city,
-                      color: widget.lguColor),
-                  focusedBorder: OutlineInputBorder(
-                    borderSide:
-                        BorderSide(color: widget.lguColor, width: 2),
-                    borderRadius: BorderRadius.circular(12),
+
+              // ── Audience scope ──
+              if (widget.isProvincialAdmin) ...[
+                DropdownButtonFormField<String>(
+                  value: _selectedMunicipality,
+                  decoration: InputDecoration(
+                    labelText: 'Target Audience',
+                    prefixIcon: Icon(Icons.public,
+                        color: widget.lguColor),
+                    focusedBorder: OutlineInputBorder(
+                      borderSide: BorderSide(
+                          color: widget.lguColor, width: 2),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                    helperText:
+                        '"All Municipalities" sends to everyone in the province',
                   ),
-                  border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12)),
-                  helperText:
-                      'Select "All" to show to all municipalities',
+                  items: [
+                    const DropdownMenuItem(
+                      value: 'All',
+                      child: Text('🌍 All Municipalities (Province-Wide)'),
+                    ),
+                    ...AppConstants.municipalities.map((m) =>
+                        DropdownMenuItem(
+                            value: m, child: Text(m))),
+                  ],
+                  onChanged: (v) =>
+                      setState(() => _selectedMunicipality = v!),
                 ),
-                items: municipalities.map((m) {
-                  return DropdownMenuItem(
-                    value: m,
-                    child: Text(
-                        m == 'All' ? '🌍 All Municipalities' : m),
-                  );
-                }).toList(),
-                onChanged: (v) =>
-                    setState(() => _selectedMunicipality = v!),
-              ),
+              ] else ...[
+                // Municipal admin: audience is locked to their municipality
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 16, vertical: 14),
+                  decoration: BoxDecoration(
+                    color: widget.lguColor.withValues(alpha: 0.06),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                        color:
+                            widget.lguColor.withValues(alpha: 0.3)),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.location_city,
+                          size: 18, color: widget.lguColor),
+                      const SizedBox(width: 12),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Target Audience',
+                              style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey.shade500)),
+                          Text(widget.municipality,
+                              style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w600,
+                                  color: widget.lguColor)),
+                        ],
+                      ),
+                      const Spacer(),
+                      Icon(Icons.lock_outline,
+                          size: 16, color: Colors.grey.shade400),
+                    ],
+                  ),
+                ),
+              ],
+
               const SizedBox(height: 12),
               _field(_sourceUrlController, 'Source URL (Optional)',
                   'https://facebook.com/post/…',
@@ -1995,6 +2240,7 @@ class _AddAnnouncementSheetState extends State<_AddAnnouncementSheet> {
                   'e.g., Posted by Gov. Gambito • Facebook',
                   Icons.label_outline, widget.lguColor),
               const SizedBox(height: 12),
+
               Container(
                 padding: const EdgeInsets.symmetric(
                     horizontal: 16, vertical: 8),
@@ -2033,15 +2279,16 @@ class _AddAnnouncementSheetState extends State<_AddAnnouncementSheet> {
                           color: Colors.grey.shade500)),
                   value: _isUrgent,
                   activeColor: Colors.red,
-                  onChanged: (v) =>
-                      setState(() => _isUrgent = v),
+                  onChanged: (v) => setState(() => _isUrgent = v),
                 ),
               ),
               const SizedBox(height: 20),
+
               SizedBox(
                 height: 52,
                 child: ElevatedButton.icon(
-                  onPressed: _isPosting ? null : _postAnnouncement,
+                  onPressed:
+                      _isPosting ? null : _postAnnouncement,
                   icon: _isPosting
                       ? const SizedBox(
                           width: 18,
@@ -2073,7 +2320,8 @@ class _AddAnnouncementSheetState extends State<_AddAnnouncementSheet> {
                       side: BorderSide(color: Colors.grey.shade300),
                     ),
                   ),
-                  child: const Text('Cancel', style: TextStyle(fontSize: 15)),
+                  child: const Text('Cancel',
+                      style: TextStyle(fontSize: 15)),
                 ),
               ),
               const SizedBox(height: 16),
@@ -2113,6 +2361,321 @@ class _AddAnnouncementSheetState extends State<_AddAnnouncementSheet> {
       maxLines: maxLines ?? 1,
       maxLength: maxLength,
       keyboardType: keyboardType,
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ROLE MANAGEMENT TAB  (Provincial Admin only)
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _RoleManagementTab extends StatefulWidget {
+  final Color lguColor;
+  const _RoleManagementTab({required this.lguColor});
+
+  @override
+  State<_RoleManagementTab> createState() =>
+      _RoleManagementTabState();
+}
+
+class _RoleManagementTabState extends State<_RoleManagementTab> {
+  final _searchController = TextEditingController();
+  String _searchQuery = '';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _showRoleDialog(
+      BuildContext context,
+      String uid,
+      String name,
+      UserRole currentRole) {
+    UserRole selected = currentRole;
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16)),
+          title: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Assign Role',
+                  style: TextStyle(fontWeight: FontWeight.bold)),
+              Text(name,
+                  style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.normal,
+                      color: Colors.grey.shade600)),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: UserRole.values.map((role) {
+              return RadioListTile<UserRole>(
+                dense: true,
+                activeColor: widget.lguColor,
+                title: Text(role.displayName,
+                    style: const TextStyle(fontSize: 14)),
+                subtitle: _roleDescription(role),
+                value: role,
+                groupValue: selected,
+                onChanged: (v) {
+                  if (v != null) setDialogState(() => selected = v);
+                },
+              );
+            }).toList(),
+          ),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Cancel')),
+            ElevatedButton(
+              onPressed: () async {
+                Navigator.pop(ctx);
+                await roleService.assignRole(uid, selected);
+              },
+              style: ElevatedButton.styleFrom(
+                  backgroundColor: widget.lguColor,
+                  foregroundColor: Colors.white),
+              child: const Text('Save'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget? _roleDescription(UserRole role) {
+    switch (role) {
+      case UserRole.citizen:
+        return const Text('Standard app user', style: TextStyle(fontSize: 11));
+      case UserRole.admin:
+        return const Text('Legacy admin (view only)', style: TextStyle(fontSize: 11));
+      case UserRole.municipalAdmin:
+        return const Text('Manages reports & announcements for their municipality',
+            style: TextStyle(fontSize: 11));
+      case UserRole.provincialAdmin:
+        return const Text('Full access across all municipalities',
+            style: TextStyle(fontSize: 11));
+    }
+  }
+
+  Color _roleColor(UserRole role) {
+    switch (role) {
+      case UserRole.citizen:
+        return Colors.grey;
+      case UserRole.admin:
+        return Colors.blue;
+      case UserRole.municipalAdmin:
+        return Colors.green.shade700;
+      case UserRole.provincialAdmin:
+        return const Color(0xFF4A148C);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Container(
+          color: const Color(0xFF4A148C).withValues(alpha: 0.07),
+          padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
+          child: Row(
+            children: [
+              const Icon(Icons.manage_accounts,
+                  size: 16, color: Color(0xFF4A148C)),
+              const SizedBox(width: 8),
+              const Expanded(
+                child: Text(
+                  'Assign roles to users. Changes take effect on their next login.',
+                  style: TextStyle(
+                      fontSize: 12, color: Color(0xFF4A148C)),
+                ),
+              ),
+            ],
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
+          child: TextField(
+            controller: _searchController,
+            decoration: InputDecoration(
+              hintText: 'Search by name or municipality…',
+              prefixIcon:
+                  const Icon(Icons.search, color: Colors.grey),
+              border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12)),
+              contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16, vertical: 10),
+              isDense: true,
+            ),
+            onChanged: (v) =>
+                setState(() => _searchQuery = v.toLowerCase()),
+          ),
+        ),
+        Expanded(
+          child: StreamBuilder<QuerySnapshot>(
+            stream: roleService.getUsersStream(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return Center(
+                    child: CircularProgressIndicator(
+                        color: widget.lguColor));
+              }
+
+              if (snapshot.hasError) {
+                return Center(
+                  child: Text('Failed to load users: ${snapshot.error}',
+                      textAlign: TextAlign.center),
+                );
+              }
+
+              final allDocs = snapshot.data?.docs ?? [];
+              final docs = _searchQuery.isEmpty
+                  ? allDocs
+                  : allDocs.where((doc) {
+                      final data =
+                          doc.data() as Map<String, dynamic>;
+                      final name = (data['name'] as String? ?? '')
+                          .toLowerCase();
+                      final muni =
+                          (data['municipality'] as String? ?? '')
+                              .toLowerCase();
+                      final phone =
+                          (data['phoneNumber'] as String? ?? '')
+                              .toLowerCase();
+                      return name.contains(_searchQuery) ||
+                          muni.contains(_searchQuery) ||
+                          phone.contains(_searchQuery);
+                    }).toList();
+
+              if (allDocs.isEmpty) {
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.people_outline,
+                          size: 64,
+                          color: Colors.grey.shade300),
+                      const SizedBox(height: 12),
+                      Text('No users found',
+                          style: TextStyle(
+                              color: Colors.grey.shade500)),
+                    ],
+                  ),
+                );
+              }
+
+              if (docs.isEmpty) {
+                return const Center(
+                    child: Text('No users match your search.'));
+              }
+
+              return ListView.builder(
+                padding:
+                    const EdgeInsets.fromLTRB(12, 0, 12, 24),
+                itemCount: docs.length,
+                itemBuilder: (context, index) {
+                  final doc = docs[index];
+                  final data =
+                      doc.data() as Map<String, dynamic>;
+                  final name =
+                      data['name'] as String? ?? '(No name)';
+                  final phone =
+                      data['phoneNumber'] as String? ?? '';
+                  final muni =
+                      data['municipality'] as String? ?? '';
+                  final roleStr =
+                      data['role'] as String? ?? 'citizen';
+                  final role =
+                      AppUser.roleFromString(roleStr);
+                  final roleColor = _roleColor(role);
+
+                  final initials = name.isNotEmpty
+                      ? name
+                          .trim()
+                          .split(' ')
+                          .take(2)
+                          .map((w) => w.isNotEmpty
+                              ? w[0].toUpperCase()
+                              : '')
+                          .join()
+                      : '?';
+
+                  return Card(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                    child: ListTile(
+                      onTap: () => _showRoleDialog(
+                          context, doc.id, name, role),
+                      leading: CircleAvatar(
+                        backgroundColor:
+                            roleColor.withValues(alpha: 0.15),
+                        child: Text(initials,
+                            style: TextStyle(
+                                color: roleColor,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13)),
+                      ),
+                      title: Text(name,
+                          style: const TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 14)),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (muni.isNotEmpty)
+                            Text(muni,
+                                style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey.shade600)),
+                          if (phone.isNotEmpty)
+                            Text(phone,
+                                style: TextStyle(
+                                    fontSize: 11,
+                                    color: Colors.grey.shade400)),
+                        ],
+                      ),
+                      trailing: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color:
+                                  roleColor.withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                  color: roleColor
+                                      .withValues(alpha: 0.4)),
+                            ),
+                            child: Text(
+                              role.displayName,
+                              style: TextStyle(
+                                  fontSize: 10,
+                                  color: roleColor,
+                                  fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Icon(Icons.edit,
+                              size: 12, color: Colors.grey.shade400),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 }

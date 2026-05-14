@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../../data/services/admin_service.dart';
 import '../../data/services/profile_service.dart';
 import '../../domain/models/user_profile.dart';
+import '../../features/auth/domain/entities/app_user.dart';
 import '../../core/constants/app_constants.dart';
 import '../../core/utils/toast_utils.dart';
 import '../../core/widgets/profile_qr_sheet.dart';
@@ -19,6 +20,7 @@ class ProfileManagementScreen extends StatefulWidget {
 class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
   final _auth = FirebaseAuth.instance;
   bool _isAdmin = false;
+  UserRole _userRole = UserRole.citizen;
   UserProfile? _profile;
   bool _isLoading = true;
 
@@ -29,18 +31,20 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
   }
 
   Future<void> _loadProfile() async {
-    adminService.clearCache(); // ← Add this line
+    adminService.clearCache();
     final user = _auth.currentUser;
     if (user == null) return;
 
     debugPrint('═══ YOUR FIREBASE UID: ${user.uid} ═══');
-    final isAdmin = await adminService.isAdmin(user.uid);
+    final role = await adminService.getUserRole(user.uid);
+    final isAdmin = role != UserRole.citizen;
 
     UserProfile? profile = await profileService.getProfile(user.uid);
     profile ??= UserProfile(uid: user.uid, phoneNumber: user.phoneNumber ?? '');
 
     if (mounted) {
       setState(() {
+        _userRole = role;
         _isAdmin = isAdmin;
         _profile = profile;
         _isLoading = false;
@@ -285,7 +289,9 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
                         ),
                         const SizedBox(width: 6),
                         Text(
-                          _isAdmin ? 'Admin Account' : 'Verified Account',
+                          _isAdmin
+                              ? _userRole.displayName
+                              : 'Verified Account',
                           style: const TextStyle(
                             color: Color(0xFF4CAF50),
                             fontSize: 13,
@@ -512,8 +518,12 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
                           _ProfileMenuItem(
                             icon: Icons.admin_panel_settings,
                             label: 'Admin Dashboard',
-                            badgeText: 'Admin',
-                            badgeColor: const Color(0xFF5C2D91),
+                            badgeText: _userRole.displayName,
+                            badgeColor: _userRole == UserRole.provincialAdmin
+                                ? const Color(0xFF4A148C)
+                                : _userRole == UserRole.municipalAdmin
+                                    ? Colors.green.shade700
+                                    : const Color(0xFF5C2D91),
                             onTap: () =>
                                 Navigator.of(context).pushNamed('/admin'),
                           ),
