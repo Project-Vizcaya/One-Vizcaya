@@ -4,148 +4,174 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>One Vizcaya — Admin Dashboard</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
-    body{font-family:'Inter',sans-serif;background:#EEF4FB;color:#1A1A2E;min-height:100vh}
+    body{font-family:'Inter',sans-serif;background:#EDF2F7;color:#1A202C;min-height:100vh}
 
     /* ── Navbar ── */
-    .navbar{background:#1565C0;color:#fff;padding:0 24px;height:60px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.25)}
-    .nav-brand{display:flex;align-items:center;gap:10px;font-size:17px;font-weight:700}
-    .nav-brand span{font-size:24px}
-    .nav-right{display:flex;align-items:center;gap:12px}
-    .nav-badge{border-radius:20px;padding:4px 14px;font-size:12px;font-weight:700;letter-spacing:.3px}
+    .navbar{background:linear-gradient(135deg,#0D47A1 0%,#1565C0 100%);color:#fff;padding:0 28px;height:68px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:0 4px 20px rgba(13,71,161,.4)}
+    .nav-brand{display:flex;align-items:center;gap:14px}
+    .nav-seal{width:48px;height:48px;border-radius:50%;border:2.5px solid rgba(255,255,255,.5);object-fit:contain;background:rgba(255,255,255,.1);padding:2px}
+    .nav-seal-fb{width:48px;height:48px;border-radius:50%;border:2.5px solid rgba(255,255,255,.5);background:rgba(255,255,255,.2);display:none;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#fff;letter-spacing:-.5px}
+    .nav-title{font-size:18px;font-weight:800;letter-spacing:-.3px;line-height:1.2}
+    .nav-subtitle{font-size:11px;opacity:.7;margin-top:1px;font-weight:400}
+    .nav-right{display:flex;align-items:center;gap:14px}
+    .nav-badge{border-radius:20px;padding:5px 14px;font-size:12px;font-weight:700;letter-spacing:.3px}
     .nav-badge.provincial{background:#2E7D32;color:#fff}
-    .nav-badge.municipal{background:rgba(255,255,255,.25);color:#fff;border:1px solid rgba(255,255,255,.4)}
-    .nav-user{font-size:13px;opacity:.85}
-    .btn-logout{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);color:#fff;padding:6px 14px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;transition:background .2s}
-    .btn-logout:hover{background:rgba(255,255,255,.25)}
+    .nav-badge.municipal{background:rgba(255,255,255,.2);color:#fff;border:1px solid rgba(255,255,255,.4)}
+    .nav-user{font-size:13px;opacity:.75}
+    .btn-logout{background:rgba(255,255,255,.15);border:1.5px solid rgba(255,255,255,.35);color:#fff;padding:7px 16px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;transition:all .2s}
+    .btn-logout:hover{background:rgba(255,255,255,.28)}
+
+    /* ── Role banner ── */
+    .role-banner{padding:11px 28px;font-size:13px;font-weight:600;display:flex;align-items:center;gap:10px;letter-spacing:.1px}
+    .role-banner.provincial{background:linear-gradient(90deg,#1B5E20,#2E7D32 60%,#388E3C);color:#fff}
+    .role-banner.municipal{background:linear-gradient(90deg,#0D47A1,#1565C0 60%,#1976D2);color:#fff}
+    .banner-seal{width:32px;height:32px;border-radius:50%;object-fit:contain;background:rgba(255,255,255,.2);border:1.5px solid rgba(255,255,255,.4);padding:1px}
 
     /* ── Layout ── */
-    .container{max-width:1400px;margin:0 auto;padding:20px 20px 40px}
+    .container{max-width:1440px;margin:0 auto;padding:24px 24px 56px}
 
     /* ── Stats ── */
-    .stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:20px}
+    .stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;margin-bottom:24px}
     @media(max-width:900px){.stats-grid{grid-template-columns:repeat(2,1fr)}}
     @media(max-width:500px){.stats-grid{grid-template-columns:1fr}}
-    .stat-card{background:#fff;border-radius:14px;padding:18px 20px;box-shadow:0 2px 8px rgba(21,101,192,.08);display:flex;align-items:center;gap:16px;border-left:4px solid transparent}
-    .stat-card.blue{border-left-color:#1565C0}
-    .stat-card.red{border-left-color:#B71C1C}
-    .stat-card.orange{border-left-color:#E65100}
-    .stat-card.green{border-left-color:#2E7D32}
-    .stat-icon{width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
-    .stat-label{font-size:12px;color:#777;font-weight:500;margin-bottom:4px}
-    .stat-value{font-size:26px;font-weight:700;line-height:1}
-    .stat-sub{font-size:11px;color:#999;margin-top:3px}
+    .stat-card{background:#fff;border-radius:16px;padding:0;box-shadow:0 2px 12px rgba(0,0,0,.07);cursor:pointer;transition:all .22s;overflow:hidden;display:flex;flex-direction:column}
+    .stat-card:hover{transform:translateY(-3px);box-shadow:0 10px 28px rgba(0,0,0,.13)}
+    .stat-card:active{transform:translateY(-1px)}
+    .stat-strip{height:5px;border-radius:0}
+    .stat-card.blue .stat-strip{background:linear-gradient(90deg,#1565C0,#42A5F5)}
+    .stat-card.red .stat-strip{background:linear-gradient(90deg,#B71C1C,#EF5350)}
+    .stat-card.orange .stat-strip{background:linear-gradient(90deg,#E65100,#FF8F00)}
+    .stat-card.green .stat-strip{background:linear-gradient(90deg,#2E7D32,#66BB6A)}
+    .stat-inner{padding:20px 20px 18px;flex:1;display:flex;flex-direction:column;gap:6px}
+    .stat-row{display:flex;align-items:center;justify-content:space-between;gap:10px}
+    .stat-icon{width:50px;height:50px;border-radius:13px;display:flex;align-items:center;justify-content:center;font-size:23px;flex-shrink:0}
+    .stat-card.blue .stat-icon{background:#E3F2FD}
+    .stat-card.red .stat-icon{background:#FFEBEE}
+    .stat-card.orange .stat-icon{background:#FFF3E0}
+    .stat-card.green .stat-icon{background:#E8F5E9}
+    .stat-value{font-size:38px;font-weight:800;line-height:1;letter-spacing:-1px}
+    .stat-card.blue .stat-value{color:#1565C0}
+    .stat-card.red .stat-value{color:#B71C1C}
+    .stat-card.orange .stat-value{color:#E65100}
+    .stat-card.green .stat-value{color:#2E7D32}
+    .stat-label{font-size:13px;font-weight:600;color:#4A5568}
+    .stat-sub{font-size:11px;color:#A0AEC0;margin-top:1px}
 
-    /* ── Section card ── */
-    .card{background:#fff;border-radius:14px;box-shadow:0 1px 4px rgba(0,0,0,.07);overflow:hidden;margin-bottom:20px}
-    .card-header{padding:14px 20px;border-bottom:1px solid #F0F0F0;display:flex;align-items:center;justify-content:space-between}
-    .card-title{font-size:14px;font-weight:700;color:#333}
-    .card-body{padding:16px 20px}
-    .role-banner{padding:10px 20px;font-size:13px;font-weight:600;border-bottom:1px solid rgba(255,255,255,.15);display:flex;align-items:center;gap:8px}
-    .role-banner.provincial{background:linear-gradient(90deg,#1B5E20,#2E7D32);color:#fff}
-    .role-banner.municipal{background:linear-gradient(90deg,#0D47A1,#1565C0);color:#fff}
+    /* ── Cards ── */
+    .card{background:#fff;border-radius:16px;box-shadow:0 2px 12px rgba(0,0,0,.07);overflow:hidden;margin-bottom:24px}
+    .card-header{padding:16px 22px;border-bottom:1px solid #EDF2F7;display:flex;align-items:center;justify-content:space-between}
+    .card-title{font-size:15px;font-weight:700;color:#2D3748;display:flex;align-items:center;gap:8px}
+    .card-body{padding:18px 22px}
+    .card-meta{font-size:12px;color:#A0AEC0}
 
     /* ── Map ── */
-    #map{height:460px;width:100%}
-    @media(max-width:768px){#map{height:300px}}
-    .map-controls{padding:12px 16px;background:#FAFAFA;border-bottom:1px solid #F0F0F0;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
-    .toggle-btn{padding:6px 14px;border-radius:20px;border:1.5px solid #ddd;background:#fff;font-size:12px;font-weight:600;cursor:pointer;transition:all .2s;color:#555}
-    .toggle-btn.active{background:#1565C0;border-color:#1565C0;color:#fff}
-    .map-legend{padding:10px 16px;background:#FAFAFA;border-top:1px solid #F0F0F0;display:flex;flex-wrap:wrap;gap:14px;font-size:11px}
-    .legend-item{display:flex;align-items:center;gap:5px;color:#555}
+    #map{height:480px;width:100%}
+    @media(max-width:768px){#map{height:320px}}
+    .map-controls{padding:13px 20px;background:#FAFBFC;border-bottom:1px solid #EDF2F7;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+    .toggle-btn{padding:7px 16px;border-radius:20px;border:1.5px solid #E2E8F0;background:#fff;font-size:12px;font-weight:600;cursor:pointer;transition:all .2s;color:#4A5568}
+    .toggle-btn.active{background:#1565C0;border-color:#1565C0;color:#fff;box-shadow:0 2px 8px rgba(21,101,192,.3)}
+    .map-legend{padding:10px 20px;background:#FAFBFC;border-top:1px solid #EDF2F7;display:flex;flex-wrap:wrap;gap:14px;font-size:11px;align-items:center}
+    .legend-item{display:flex;align-items:center;gap:5px;color:#718096}
     .legend-dot{width:10px;height:10px;border-radius:50%}
-    .filter-select{padding:6px 10px;border:1.5px solid #ddd;border-radius:8px;font-size:12px;color:#444;background:#fff;cursor:pointer}
+    .filter-select{padding:7px 12px;border:1.5px solid #E2E8F0;border-radius:8px;font-size:12px;color:#4A5568;background:#fff;cursor:pointer}
 
     /* ── Bottom grid ── */
-    .bottom-grid{display:grid;grid-template-columns:1fr 380px;gap:20px}
-    @media(max-width:1024px){.bottom-grid{grid-template-columns:1fr}}
+    .bottom-grid{display:grid;grid-template-columns:1fr 400px;gap:24px}
+    @media(max-width:1100px){.bottom-grid{grid-template-columns:1fr}}
 
     /* ── Reports table ── */
-    .reports-filter{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
-    .chip{padding:5px 12px;border-radius:20px;border:1.5px solid #ddd;background:#fff;font-size:11px;font-weight:600;cursor:pointer;color:#555;transition:all .2s}
+    .reports-filter{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+    .chip{padding:6px 14px;border-radius:20px;border:1.5px solid #E2E8F0;background:#fff;font-size:12px;font-weight:600;cursor:pointer;color:#4A5568;transition:all .2s}
     .chip.active{background:#1565C0;border-color:#1565C0;color:#fff}
     table{width:100%;border-collapse:collapse;font-size:13px}
-    th{text-align:left;padding:8px 10px;font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.5px;border-bottom:2px solid #F0F0F0}
-    td{padding:10px 10px;border-bottom:1px solid #F7F7F7;vertical-align:middle}
-    tr:hover td{background:#F9FBFF}
+    th{text-align:left;padding:10px 12px;font-size:11px;font-weight:700;color:#A0AEC0;text-transform:uppercase;letter-spacing:.5px;border-bottom:2px solid #EDF2F7}
+    td{padding:11px 12px;border-bottom:1px solid #F7FAFC;vertical-align:middle}
+    tr:hover td{background:#F7FAFF}
     tr.clickable{cursor:pointer}
-    .badge-status{padding:3px 9px;border-radius:10px;font-size:11px;font-weight:700;white-space:nowrap}
-    .badge-priority{padding:3px 9px;border-radius:10px;font-size:10px;font-weight:700;white-space:nowrap}
-    .s-reported{background:#E3F2FD;color:#1565C0}
-    .s-ongoing{background:#FFF3E0;color:#E65100}
-    .s-solved{background:#E8F5E9;color:#2E7D32}
-    .p-critical{background:#FFEBEE;color:#B71C1C}
-    .p-high{background:#FFF3E0;color:#E65100}
-    .p-medium{background:#FFFDE7;color:#F57F17}
-    .p-low{background:#F1F8E9;color:#33691E}
-    .empty-state{text-align:center;padding:48px 20px;color:#aaa}
-    .empty-state div{font-size:40px;margin-bottom:8px}
+    .badge-status{padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700;white-space:nowrap}
+    .badge-priority{padding:4px 10px;border-radius:20px;font-size:10px;font-weight:700;white-space:nowrap}
+    .s-reported{background:#EBF8FF;color:#2B6CB0}
+    .s-ongoing{background:#FFFAF0;color:#C05621}
+    .s-solved{background:#F0FFF4;color:#276749}
+    .p-critical{background:#FFF5F5;color:#C53030}
+    .p-high{background:#FFFAF0;color:#C05621}
+    .p-medium{background:#FFFFF0;color:#975A16}
+    .p-low{background:#F0FFF4;color:#276749}
+    .empty-state{text-align:center;padding:52px 20px;color:#CBD5E0}
+    .empty-state div{font-size:44px;margin-bottom:10px}
+    .scroll-table{overflow-x:auto}
 
     /* ── Responder directory ── */
-    .responder-list{max-height:520px;overflow-y:auto}
-    .responder-card{display:flex;align-items:flex-start;gap:12px;padding:12px;border-radius:10px;margin-bottom:8px;border:1px solid #F0F0F0;transition:background .15s;cursor:pointer}
-    .responder-card:hover{background:#F5F9FF}
-    .resp-icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+    .responder-list{max-height:560px;overflow-y:auto}
+    .responder-card{display:flex;align-items:flex-start;gap:13px;padding:13px 14px;border-radius:12px;margin-bottom:8px;border:1px solid #EDF2F7;transition:all .15s;cursor:pointer}
+    .responder-card:hover{background:#F7FAFF;border-color:#BEE3F8;transform:translateX(2px)}
+    .resp-icon{width:42px;height:42px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
     .resp-info{flex:1;min-width:0}
-    .resp-name{font-size:13px;font-weight:600;color:#222;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-    .resp-muni{font-size:11px;color:#888;margin-bottom:2px}
+    .resp-name{font-size:13px;font-weight:700;color:#2D3748;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .resp-muni{font-size:11px;color:#A0AEC0;margin-bottom:2px}
     .resp-phone{font-size:12px;color:#1565C0;font-weight:600}
-    .resp-contact-btn{display:flex;gap:6px;margin-top:6px}
-    .btn-call{padding:4px 10px;background:#E8F5E9;color:#2E7D32;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;text-decoration:none;display:inline-block}
-    .btn-sms{padding:4px 10px;background:#E3F2FD;color:#1565C0;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;text-decoration:none;display:inline-block}
-    .resp-filter{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+    .resp-contact-btn{display:flex;gap:6px;margin-top:7px}
+    .btn-call{padding:4px 10px;background:#F0FFF4;color:#276749;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;text-decoration:none;display:inline-block}
+    .btn-sms{padding:4px 10px;background:#EBF8FF;color:#2B6CB0;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;text-decoration:none;display:inline-block}
+    .resp-filter{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
 
     /* ── Loading overlay ── */
-    #loading-overlay{position:fixed;inset:0;background:#1565C0;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;color:#fff}
-    #loading-overlay h2{font-size:20px;font-weight:700;margin-top:16px}
-    #loading-overlay p{font-size:13px;opacity:.7;margin-top:6px}
-    .loader{width:40px;height:40px;border:3px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite}
+    #loading-overlay{position:fixed;inset:0;background:linear-gradient(135deg,#0D47A1 0%,#1565C0 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;color:#fff;gap:14px}
+    .loader-ring{width:56px;height:56px;border:3px solid rgba(255,255,255,.25);border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite}
     @keyframes spin{to{transform:rotate(360deg)}}
+    #loading-overlay h2{font-size:22px;font-weight:800;letter-spacing:-.3px;margin-top:4px}
+    #loading-overlay p{font-size:13px;opacity:.65}
 
     /* ── Info window ── */
     .iw{font-family:'Inter',sans-serif;min-width:200px}
-    .iw h4{font-size:13px;font-weight:700;margin-bottom:4px;color:#222}
-    .iw p{font-size:12px;color:#555;margin-bottom:2px}
+    .iw h4{font-size:14px;font-weight:700;margin-bottom:5px;color:#1A202C}
+    .iw p{font-size:12px;color:#718096;margin-bottom:3px}
     .iw .iw-phone{color:#1565C0;font-weight:600}
-    .iw .iw-btns{margin-top:8px;display:flex;gap:6px}
-    .iw .iw-btns a{padding:5px 10px;border-radius:6px;font-size:11px;font-weight:700;text-decoration:none}
-    .iw-call{background:#E8F5E9;color:#2E7D32}
-    .iw-sms{background:#E3F2FD;color:#1565C0}
+    .iw .iw-btns{margin-top:10px;display:flex;gap:6px}
+    .iw .iw-btns a{padding:6px 12px;border-radius:6px;font-size:11px;font-weight:700;text-decoration:none}
+    .iw-call{background:#F0FFF4;color:#276749}
+    .iw-sms{background:#EBF8FF;color:#2B6CB0}
+    .iw-muni{display:flex;align-items:center;gap:10px;padding:4px 0 8px}
+    .iw-muni-seal{width:40px;height:40px;border-radius:50%;object-fit:contain;border:1px solid #E2E8F0}
+    .iw-muni h4{font-size:15px;font-weight:800;color:#0D47A1;margin:0}
+    .iw-muni p{font-size:11px;color:#718096;margin:2px 0 0}
 
     /* ── Misc ── */
-    .section-title{font-size:15px;font-weight:700;color:#333;margin-bottom:12px;display:flex;align-items:center;gap:8px}
-    .live-dot{width:8px;height:8px;background:#4CAF50;border-radius:50%;animation:pulse 1.5s ease-in-out infinite}
-    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
-    .report-loc{font-size:11px;color:#999;max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-    .anon-badge{font-size:10px;background:#EEE;color:#888;padding:2px 6px;border-radius:6px;margin-left:4px}
-    .scroll-table{overflow-x:auto}
+    .live-dot{width:8px;height:8px;background:#48BB78;border-radius:50%;animation:pulse 1.5s ease-in-out infinite}
+    @keyframes pulse{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(72,187,120,.4)}50%{opacity:.6;box-shadow:0 0 0 4px rgba(72,187,120,0)}}
+    .report-loc{font-size:11px;color:#A0AEC0;max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .anon-badge{font-size:10px;background:#EDF2F7;color:#718096;padding:2px 6px;border-radius:6px;margin-left:4px}
 
     /* ── Role management ── */
-    .users-list{max-height:420px;overflow-y:auto}
-    .user-row{display:flex;align-items:center;gap:12px;padding:12px;border-radius:10px;border:1px solid #F0F0F0;margin-bottom:8px;flex-wrap:wrap}
-    .user-row:hover{background:#F5F9FF}
-    .user-avatar{width:38px;height:38px;border-radius:50%;background:#1565C0;color:#fff;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;flex-shrink:0}
+    .users-list{max-height:440px;overflow-y:auto}
+    .user-row{display:flex;align-items:center;gap:12px;padding:13px 14px;border-radius:12px;border:1px solid #EDF2F7;margin-bottom:8px;flex-wrap:wrap}
+    .user-row:hover{background:#F7FAFF}
+    .user-avatar{width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#1565C0,#0D47A1);color:#fff;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;flex-shrink:0}
     .user-info{flex:1;min-width:120px}
-    .user-phone{font-size:13px;font-weight:600;color:#222}
-    .user-role-label{font-size:11px;color:#888;margin-top:2px}
-    .role-select{padding:5px 8px;border:1.5px solid #ddd;border-radius:8px;font-size:12px;background:#fff;cursor:pointer;color:#333}
-    .muni-select{padding:5px 8px;border:1.5px solid #ddd;border-radius:8px;font-size:12px;background:#fff;cursor:pointer;color:#333;margin-left:6px}
-    .btn-save-role{padding:5px 12px;background:#1565C0;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;margin-left:6px}
+    .user-phone{font-size:13px;font-weight:700;color:#2D3748}
+    .user-role-label{font-size:11px;color:#A0AEC0;margin-top:2px}
+    .role-select{padding:6px 10px;border:1.5px solid #E2E8F0;border-radius:8px;font-size:12px;background:#fff;cursor:pointer;color:#4A5568}
+    .muni-select{padding:6px 10px;border:1.5px solid #E2E8F0;border-radius:8px;font-size:12px;background:#fff;cursor:pointer;color:#4A5568;margin-left:6px}
+    .btn-save-role{padding:6px 14px;background:#1565C0;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;margin-left:6px}
     .btn-save-role:hover{background:#0D47A1}
-    .save-ok{color:#2E7D32;font-size:12px;margin-left:6px}
+    .save-ok{color:#276749;font-size:12px;margin-left:6px}
 
     /* ── View As switcher ── */
     .view-switch{display:flex;align-items:center;gap:6px;font-size:12px;color:rgba(255,255,255,.85)}
-    .view-switch select{padding:4px 8px;border:1px solid rgba(255,255,255,.4);border-radius:8px;background:rgba(255,255,255,.15);color:#fff;font-size:12px;cursor:pointer}
+    .view-switch select{padding:5px 10px;border:1px solid rgba(255,255,255,.4);border-radius:8px;background:rgba(255,255,255,.15);color:#fff;font-size:12px;cursor:pointer}
     .view-switch select option{color:#333;background:#fff}
   </style>
 </head>
 <body>
 
 <div id="loading-overlay">
-  <div class="loader"></div>
+  <img src="https://en.wikipedia.org/wiki/Special:Redirect/file/PHL_Nueva_Vizcaya_seal.svg"
+       style="width:72px;height:72px;border-radius:50%;border:3px solid rgba(255,255,255,.4);object-fit:contain;background:rgba(255,255,255,.1);padding:3px"
+       alt="NV Seal" onerror="this.style.display='none'"/>
+  <div class="loader-ring"></div>
   <h2>One Vizcaya Admin</h2>
   <p>Loading dashboard…</p>
 </div>
@@ -153,8 +179,15 @@
 <!-- Navbar -->
 <nav class="navbar">
   <div class="nav-brand">
-    <span>🏛️</span>
-    One Vizcaya Admin
+    <img id="nav-seal-img"
+         src="https://en.wikipedia.org/wiki/Special:Redirect/file/PHL_Nueva_Vizcaya_seal.svg"
+         class="nav-seal" alt="Nueva Vizcaya Seal"
+         onerror="this.style.display='none';document.getElementById('nav-seal-fb').style.display='flex'"/>
+    <div id="nav-seal-fb" class="nav-seal-fb">NV</div>
+    <div>
+      <div class="nav-title">One Vizcaya Admin</div>
+      <div class="nav-subtitle">Nueva Vizcaya Province · Emergency Management</div>
+    </div>
   </div>
   <div class="nav-right">
     <div id="view-as-container" class="view-switch" style="display:none">
@@ -170,49 +203,67 @@
 </nav>
 
 <div id="role-banner" class="role-banner" style="display:none"></div>
+
 <div class="container">
 
   <!-- Stats -->
   <div class="stats-grid">
-    <div class="stat-card blue" style="cursor:pointer" onclick="statCardFilter('all')" title="Show all reports">
-      <div class="stat-icon" style="background:#E3F2FD"><span>📋</span></div>
-      <div>
+
+    <div class="stat-card blue" onclick="statCardFilter('all')" title="Show all reports">
+      <div class="stat-strip"></div>
+      <div class="stat-inner">
+        <div class="stat-row">
+          <div class="stat-value" id="stat-total">—</div>
+          <div class="stat-icon">📋</div>
+        </div>
         <div class="stat-label">Total Reports</div>
-        <div class="stat-value" id="stat-total">—</div>
         <div class="stat-sub" id="stat-muni">Loading…</div>
       </div>
     </div>
-    <div class="stat-card red" style="cursor:pointer" onclick="statCardFilter('critical')" title="Show critical reports">
-      <div class="stat-icon" style="background:#FFEBEE"><span>🚨</span></div>
-      <div>
+
+    <div class="stat-card red" onclick="statCardFilter('critical')" title="Show critical reports">
+      <div class="stat-strip"></div>
+      <div class="stat-inner">
+        <div class="stat-row">
+          <div class="stat-value" id="stat-critical">—</div>
+          <div class="stat-icon">🚨</div>
+        </div>
         <div class="stat-label">Critical Open</div>
-        <div class="stat-value" style="color:#B71C1C" id="stat-critical">—</div>
-        <div class="stat-sub">Click to filter</div>
+        <div class="stat-sub">Needs immediate action</div>
       </div>
     </div>
-    <div class="stat-card orange" style="cursor:pointer" onclick="statCardFilter('ongoing')" title="Show ongoing reports">
-      <div class="stat-icon" style="background:#FFF3E0"><span>🔧</span></div>
-      <div>
+
+    <div class="stat-card orange" onclick="statCardFilter('ongoing')" title="Show ongoing reports">
+      <div class="stat-strip"></div>
+      <div class="stat-inner">
+        <div class="stat-row">
+          <div class="stat-value" id="stat-ongoing">—</div>
+          <div class="stat-icon">🔧</div>
+        </div>
         <div class="stat-label">Ongoing</div>
-        <div class="stat-value" style="color:#E65100" id="stat-ongoing">—</div>
-        <div class="stat-sub">Click to filter</div>
+        <div class="stat-sub">In progress</div>
       </div>
     </div>
-    <div class="stat-card green" style="cursor:pointer" onclick="statCardFilter('solved')" title="Show resolved reports">
-      <div class="stat-icon" style="background:#E8F5E9"><span>✅</span></div>
-      <div>
+
+    <div class="stat-card green" onclick="statCardFilter('solved')" title="Show resolved reports">
+      <div class="stat-strip"></div>
+      <div class="stat-inner">
+        <div class="stat-row">
+          <div class="stat-value" id="stat-resolved">—</div>
+          <div class="stat-icon">✅</div>
+        </div>
         <div class="stat-label">Resolved</div>
-        <div class="stat-value" style="color:#2E7D32" id="stat-resolved">—</div>
         <div class="stat-sub" id="stat-avg-time">Computing…</div>
       </div>
     </div>
+
   </div>
 
   <!-- Map -->
   <div class="card">
     <div class="card-header">
-      <span class="card-title">📍 Report Heatmap & Responder Locations</span>
-      <span style="font-size:12px;color:#999">Nueva Vizcaya Province</span>
+      <span class="card-title">📍 Report Heatmap &amp; Responder Locations</span>
+      <span class="card-meta" id="map-scope-label">Nueva Vizcaya Province</span>
     </div>
     <div class="map-controls">
       <button class="toggle-btn active" id="btn-heatmap" onclick="toggleHeatmap()">🔥 Heatmap</button>
@@ -233,18 +284,19 @@
     </div>
     <div id="map"></div>
     <div class="map-legend">
-      <strong style="font-size:11px;color:#555;margin-right:4px">Heatmap:</strong>
+      <strong style="font-size:11px;color:#718096;margin-right:2px">Heatmap:</strong>
       <div class="legend-item"><div class="legend-dot" style="background:#00C853"></div>Low</div>
       <div class="legend-item"><div class="legend-dot" style="background:#FFD600"></div>Medium</div>
       <div class="legend-item"><div class="legend-dot" style="background:#FF6D00"></div>High</div>
       <div class="legend-item"><div class="legend-dot" style="background:#D50000"></div>Critical</div>
-      <span style="margin-left:12px;color:#999">|</span>
-      <strong style="font-size:11px;color:#555;margin:0 4px">Responders:</strong>
+      <span style="margin-left:8px;color:#CBD5E0">|</span>
+      <strong style="font-size:11px;color:#718096;margin:0 4px">Responders:</strong>
       <div class="legend-item">🚨 MDRRMO</div>
       <div class="legend-item">👮 Police</div>
       <div class="legend-item">🚒 Fire</div>
       <div class="legend-item">🏥 Hospital</div>
       <div class="legend-item">⚕️ Health</div>
+      <div class="legend-item">🏗️ DPWH</div>
     </div>
   </div>
 
@@ -254,11 +306,11 @@
     <!-- Reports list -->
     <div class="card">
       <div class="card-header">
-        <div style="display:flex;align-items:center;gap:8px">
-          <span class="card-title">Live Reports</span>
+        <div class="card-title">
+          Live Reports
           <div class="live-dot"></div>
         </div>
-        <span style="font-size:12px;color:#999" id="report-count-label">Loading…</span>
+        <span class="card-meta" id="report-count-label">Loading…</span>
       </div>
       <div class="card-body">
         <div class="reports-filter">
@@ -266,7 +318,7 @@
           <button class="chip" onclick="filterReports('reported',this)">Reported</button>
           <button class="chip" onclick="filterReports('ongoing',this)">Ongoing</button>
           <button class="chip" onclick="filterReports('solved',this)">Solved</button>
-          <button class="chip" style="border-color:#FFEBEE;color:#B71C1C" onclick="filterReportsByCritical(this)">🚨 Critical</button>
+          <button class="chip" style="border-color:#FED7D7;color:#C53030" onclick="filterReportsByCritical(this)">🚨 Critical</button>
         </div>
         <div class="scroll-table">
           <table>
@@ -291,10 +343,10 @@
     <!-- Responder directory -->
     <div class="card">
       <div class="card-header">
-        <span class="card-title">🚨 Responder Directory</span>
-        <span style="font-size:12px;color:#999" id="resp-count-label">Loading…</span>
+        <div class="card-title">🚨 Responder Directory</div>
+        <span class="card-meta" id="resp-count-label">Loading…</span>
       </div>
-      <div class="card-body" style="padding-top:12px">
+      <div class="card-body" style="padding-top:14px">
         <div class="resp-filter" id="resp-chips">
           <button class="chip active" onclick="filterRespDir('all',this)">All</button>
           <button class="chip" onclick="filterRespDir('mdrrmo',this)">MDRRMO</button>
@@ -313,8 +365,8 @@
   <!-- Manage Users (provincial admin only) -->
   <div class="card" id="users-card" style="display:none">
     <div class="card-header">
-      <span class="card-title">👥 Manage User Roles</span>
-      <span style="font-size:12px;color:#999" id="users-count-label"></span>
+      <div class="card-title">👥 Manage User Roles</div>
+      <span class="card-meta" id="users-count-label"></span>
     </div>
     <div class="card-body">
       <div class="users-list" id="users-list">
@@ -334,6 +386,30 @@
 <script src="js/municipalities.js"></script>
 
 <script>
+// Municipality seal filenames from Wikimedia Commons
+const MUNI_SEALS = {
+  "Bayombong":         "Ph_seal_bayombong_nueva_vizcaya.png",
+  "Bambang":           "Ph_seal_bambang_nueva_vizcaya.png",
+  "Solano":            "Ph_seal_solano_nueva_vizcaya.png",
+  "Bagabag":           "Ph_seal_bagabag_nueva_vizcaya.png",
+  "Aritao":            "Ph_seal_aritao_nueva_vizcaya.png",
+  "Dupax del Norte":   "Ph_seal_dupax_del_norte_nueva_vizcaya.png",
+  "Dupax del Sur":     "Ph_seal_dupax_del_sur_nueva_vizcaya.png",
+  "Santa Fe":          "Ph_seal_santa_fe_nueva_vizcaya.png",
+  "Kasibu":            "Ph_seal_kasibu_nueva_vizcaya.png",
+  "Villaverde":        "Ph_seal_villaverde_nueva_vizcaya.png",
+  "Diadi":             "Ph_seal_diadi_nueva_vizcaya.png",
+  "Quezon":            "Ph_seal_quezon_nueva_vizcaya.png",
+  "Ambaguio":          "Ph_seal_ambaguio_nueva_vizcaya.png",
+  "Kayapa":            "Ph_seal_kayapa_nueva_vizcaya.png",
+  "Alfonso Castañeda": "Ph_seal_alfonso_castaneda_nueva_vizcaya.png",
+};
+
+function getMuniSealUrl(muniName) {
+  const f = MUNI_SEALS[muniName];
+  return f ? `https://en.wikipedia.org/wiki/Special:Redirect/file/${f}` : null;
+}
+
 // ── Firebase init ────────────────────────────────────────────────────────────
 firebase.initializeApp(FIREBASE_CONFIG);
 const auth = firebase.auth();
@@ -375,18 +451,26 @@ auth.onAuthStateChanged(async user => {
   roleBadgeEl.textContent =
     (roleLabels[userRole] || 'Unknown') +
     (userRole === 'municipal_admin' ? ' — ' + userMunicipality : ' — All Municipalities');
+
   if (userRole === 'provincial_admin' || userRole === 'admin') {
     roleBadgeEl.className = 'nav-badge provincial';
     const banner = document.getElementById('role-banner');
     banner.className = 'role-banner provincial';
-    banner.innerHTML = '🏛️ Provincial View — Monitoring all 15 municipalities of Nueva Vizcaya';
+    const sealUrl = 'https://en.wikipedia.org/wiki/Special:Redirect/file/PHL_Nueva_Vizcaya_seal.svg';
+    banner.innerHTML = `<img src="${sealUrl}" class="banner-seal" alt="NV Seal" onerror="this.style.display='none'"/> 🏛️ Provincial View — Monitoring all 15 municipalities of Nueva Vizcaya`;
     banner.style.display = 'flex';
+    document.getElementById('map-scope-label').textContent = 'Nueva Vizcaya Province';
   } else {
     roleBadgeEl.className = 'nav-badge municipal';
     const banner = document.getElementById('role-banner');
     banner.className = 'role-banner municipal';
-    banner.innerHTML = '📍 Municipal View — ' + userMunicipality + ' only';
+    const sealUrl = getMuniSealUrl(userMunicipality);
+    const sealHtml = sealUrl
+      ? `<img src="${sealUrl}" class="banner-seal" alt="${userMunicipality} Seal" onerror="this.style.display='none'"/>`
+      : '';
+    banner.innerHTML = `${sealHtml} 📍 Municipal View — ${userMunicipality} only`;
     banner.style.display = 'flex';
+    document.getElementById('map-scope-label').textContent = userMunicipality;
   }
 
   document.getElementById('stat-muni').textContent =
@@ -440,17 +524,14 @@ function loadMunicipalityBoundaries() {
 
     const path = muni.polygon.map(([lng, lat]) => ({ lat, lng }));
 
-    // Consistent blue/green color scheme — no random colors
     let strokeColor, strokeOpacity, strokeWeight, fillColor, fillOpacity;
     if (isMunicipal && isActive) {
-      // Municipal admin: their municipality in strong blue
       strokeColor   = '#1565C0';
       strokeOpacity = 1;
       strokeWeight  = 3;
       fillColor     = '#1565C0';
       fillOpacity   = 0.14;
     } else if (isProvincial) {
-      // Provincial: all municipalities in uniform blue outline
       strokeColor   = '#1565C0';
       strokeOpacity = 0.7;
       strokeWeight  = 1.5;
@@ -479,8 +560,30 @@ function loadMunicipalityBoundaries() {
         zIndex: 0
       });
 
-      polygon.addListener('click', () => zoomToMunicipality(muni.name));
-      label.addListener('click', () => zoomToMunicipality(muni.name));
+      // Info window with municipality seal on polygon click
+      const muniInfoWindow = new google.maps.InfoWindow();
+      const clickHandler = () => {
+        const sealUrl = getMuniSealUrl(muni.name);
+        const sealHtml = sealUrl
+          ? `<img src="${sealUrl}" class="iw-muni-seal" alt="${muni.name} Seal" onerror="this.style.display='none'"/>`
+          : '<div style="width:40px;height:40px;border-radius:50%;background:#E3F2FD;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#1565C0">'+muni.name.slice(0,2).toUpperCase()+'</div>';
+        muniInfoWindow.setContent(`
+          <div class="iw">
+            <div class="iw-muni">
+              ${sealHtml}
+              <div>
+                <h4>${muni.name}</h4>
+                <p>Nueva Vizcaya</p>
+              </div>
+            </div>
+            <a href="#" style="font-size:12px;color:#1565C0;font-weight:600;text-decoration:none"
+               onclick="zoomToMunicipality('${muni.name}');return false">Zoom in →</a>
+          </div>`);
+        muniInfoWindow.setPosition(center);
+        muniInfoWindow.open(map);
+      };
+      polygon.addListener('click', clickHandler);
+      label.addListener('click', clickHandler);
     }
   });
 
@@ -498,7 +601,6 @@ function loadMunicipalityBoundaries() {
 function zoomToMunicipality(muniName) {
   const bounds = getMuniBounds(muniName);
   if (bounds) map.fitBounds(bounds, 40);
-  // Update muni filter dropdown to match
   const sel = document.getElementById('map-muni-filter');
   if (sel) sel.value = muniName;
   filterRespondersByType();
@@ -547,7 +649,6 @@ function updateStats() {
   document.getElementById('stat-ongoing').textContent  = ongoing;
   document.getElementById('stat-resolved').textContent = solved;
 
-  // Avg resolution time
   const resolvedWithTime = allReports.filter(
     r => r.status === 'solved' && r.resolvedAt?.toDate && r.reportedAt
   );
@@ -570,7 +671,7 @@ function updateStats() {
 function applyFilter() {
   let list = [...allReports];
   if (currentFilter !== 'all') list = list.filter(r => r.status === currentFilter);
-  if (criticalOnly)           list = list.filter(r => r.priority === 'critical');
+  if (criticalOnly)            list = list.filter(r => r.priority === 'critical');
   filteredReports = list;
   renderTable(list);
   document.getElementById('report-count-label').textContent = list.length + ' report(s)';
@@ -635,8 +736,8 @@ function renderTable(reports) {
       <td><span class="badge-status ${sc}">${sl}</span></td>
       <td><span class="badge-priority ${pc}">${pl}</span></td>
       <td><div class="report-loc" title="${r.location||''}">${r.location||'—'}</div>
-          ${hasGps?`<span style="font-size:10px;color:#4CAF50">📍 GPS</span>`:''}</td>
-      <td style="font-size:11px;color:#888">${dt}</td>
+          ${hasGps?`<span style="font-size:10px;color:#48BB78">📍 GPS</span>`:''}</td>
+      <td style="font-size:11px;color:#A0AEC0">${dt}</td>
     </tr>`;
   }).join('');
 }
@@ -703,7 +804,7 @@ function renderResponderMarkers() {
         <h4>${r.name}</h4>
         <p>📍 ${r.address}</p>
         <p class="iw-phone">📞 ${r.phone}</p>
-        ${r.email ? `<p style="font-size:11px;color:#888">${r.email}</p>` : ''}
+        ${r.email ? `<p style="font-size:11px;color:#A0AEC0">${r.email}</p>` : ''}
         <div class="iw-btns">
           <a href="tel:${r.phone.replace(/[^+0-9]/g,'')}" class="iw-call">📞 Call</a>
           <a href="sms:${r.phone.replace(/[^+0-9]/g,'')}" class="iw-sms">💬 SMS</a>
@@ -726,8 +827,6 @@ function filterMapByMuni() {
   renderResponderMarkers();
   const muniFilter = document.getElementById('map-muni-filter').value;
   if (muniFilter !== 'all') {
-    const muni = Object.keys(RESPONDERS.reduce((a,r) => { a[r.municipality]=1; return a; }, {}))
-      .includes(muniFilter);
     const first = RESPONDERS.find(r => r.municipality === muniFilter);
     if (first) { map.setCenter({lat: first.lat, lng: first.lng}); map.setZoom(13); }
   } else {
@@ -760,7 +859,7 @@ function renderReportPins() {
         <p>📍 ${r.location||'—'}</p>
         <p>Status: <strong>${r.status||'—'}</strong></p>
         <p>Priority: <strong>${r.priority||'—'}</strong></p>
-        <p style="font-size:11px;color:#888">${r.municipality||''}</p>
+        <p style="font-size:11px;color:#A0AEC0">${r.municipality||''}</p>
       </div>`
     });
     m.addListener('click', () => iw.open(map, m));
@@ -865,11 +964,7 @@ function switchView(val) {
     userRole         = 'municipal_admin';
     userMunicipality = val.replace('muni:', '');
   }
-  // Re-render map, table, responders
-  if (map) {
-    // Clear existing polygons by reloading the page state
-    window.location.reload();
-  }
+  if (map) window.location.reload();
 }
 
 // ── Manage Users (provincial admin only) ──────────────────────────────────────
