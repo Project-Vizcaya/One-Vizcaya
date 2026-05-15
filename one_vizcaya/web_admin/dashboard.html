@@ -279,6 +279,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 <script src="js/config.js"></script>
 <script src="js/responders.js"></script>
+<script src="js/municipalities.js"></script>
 
 <script>
 // ── Firebase init ────────────────────────────────────────────────────────────
@@ -355,7 +356,79 @@ function initMap() {
     ]
   });
 
+  loadMunicipalityBoundaries();
   renderResponderMarkers();
+}
+
+// ── Municipality boundaries ───────────────────────────────────────────────────
+function loadMunicipalityBoundaries() {
+  const isProvincial = userRole === 'provincial_admin' || userRole === 'admin';
+  const isMunicipal  = userRole === 'municipal_admin';
+
+  NV_MUNICIPALITIES.forEach(muni => {
+    const isActive = muni.name === userMunicipality;
+    const show     = isProvincial || isActive;
+    if (!show) return;
+
+    // Build polygon path (GeoJSON is [lng,lat], Google Maps needs {lat,lng})
+    const path = muni.polygon.map(([lng, lat]) => ({ lat, lng }));
+
+    const polygon = new google.maps.Polygon({
+      paths: path,
+      map: map,
+      strokeColor:   isActive && isMunicipal ? '#1565C0' : muni.color,
+      strokeOpacity: 1,
+      strokeWeight:  isActive && isMunicipal ? 3 : 1.5,
+      fillColor:     isActive && isMunicipal ? '#1565C0' : muni.color,
+      fillOpacity:   isActive && isMunicipal ? 0.18 : 0.08,
+      zIndex:        isActive ? 2 : 1
+    });
+
+    // Label in center for provincial view
+    if (isProvincial) {
+      const bounds = new google.maps.LatLngBounds();
+      path.forEach(p => bounds.extend(p));
+      const center = bounds.getCenter();
+
+      const label = new google.maps.Marker({
+        position: center,
+        map: map,
+        icon: { path: google.maps.SymbolPath.CIRCLE, scale: 0 },
+        label: {
+          text: muni.name,
+          fontSize: '10px',
+          fontWeight: '700',
+          color: '#333'
+        },
+        title: muni.name,
+        zIndex: 0
+      });
+
+      // Click on province map: zoom to clicked municipality
+      polygon.addListener('click', () => zoomToMunicipality(muni.name));
+      label.addListener('click', () => zoomToMunicipality(muni.name));
+    }
+  });
+
+  // Set initial map bounds based on role
+  google.maps.event.addListenerOnce(map, 'idle', () => {
+    if (isMunicipal) {
+      const bounds = getMuniBounds(userMunicipality);
+      if (bounds) map.fitBounds(bounds, 40);
+    } else {
+      const bounds = getProvinceBounds();
+      if (bounds) map.fitBounds(bounds, 20);
+    }
+  });
+}
+
+function zoomToMunicipality(muniName) {
+  const bounds = getMuniBounds(muniName);
+  if (bounds) map.fitBounds(bounds, 40);
+  // Update muni filter dropdown to match
+  const sel = document.getElementById('map-muni-filter');
+  if (sel) sel.value = muniName;
+  filterRespondersByType();
 }
 
 // ── Reports listener ─────────────────────────────────────────────────────────
