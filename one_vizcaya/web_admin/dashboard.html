@@ -168,7 +168,7 @@
 <body>
 
 <div id="loading-overlay">
-  <img src="https://en.wikipedia.org/wiki/Special:Redirect/file/PHL_Nueva_Vizcaya_seal.svg"
+  <img src="img/seals/nueva-vizcaya.png"
        style="width:72px;height:72px;border-radius:50%;border:3px solid rgba(255,255,255,.4);object-fit:contain;background:rgba(255,255,255,.1);padding:3px"
        alt="NV Seal" onerror="this.style.display='none'"/>
   <div class="loader-ring"></div>
@@ -180,7 +180,7 @@
 <nav class="navbar">
   <div class="nav-brand">
     <img id="nav-seal-img"
-         src="https://en.wikipedia.org/wiki/Special:Redirect/file/PHL_Nueva_Vizcaya_seal.svg"
+         src="img/seals/nueva-vizcaya.png"
          class="nav-seal" alt="Nueva Vizcaya Seal"
          onerror="this.style.display='none';document.getElementById('nav-seal-fb').style.display='flex'"/>
     <div id="nav-seal-fb" class="nav-seal-fb">NV</div>
@@ -455,8 +455,7 @@ auth.onAuthStateChanged(async user => {
     roleBadgeEl.className = 'nav-badge provincial';
     const banner = document.getElementById('role-banner');
     banner.className = 'role-banner provincial';
-    const sealUrl = 'https://en.wikipedia.org/wiki/Special:Redirect/file/PHL_Nueva_Vizcaya_seal.svg';
-    banner.innerHTML = `<img src="${sealUrl}" class="banner-seal" alt="NV Seal" onerror="this.style.display='none'"/> 🏛️ Provincial View — Monitoring all 15 municipalities of Nueva Vizcaya`;
+    banner.innerHTML = `<img src="img/seals/nueva-vizcaya.png" class="banner-seal" alt="NV Seal" onerror="this.style.display='none'"/> 🏛️ Provincial View — Monitoring all 15 municipalities of Nueva Vizcaya`;
     banner.style.display = 'flex';
     document.getElementById('map-scope-label').textContent = 'Nueva Vizcaya Province';
   } else {
