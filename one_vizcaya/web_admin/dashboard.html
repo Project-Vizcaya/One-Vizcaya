@@ -415,8 +415,9 @@ const auth = firebase.auth();
 const db   = firebase.firestore();
 
 // ── State ────────────────────────────────────────────────────────────────────
-let currentUser   = null;
-let userRole      = null;
+let currentUser      = null;
+let userRole         = null;   // current view role (may be overridden by switchView)
+let firestoreRole    = null;   // actual role from Firestore, never overridden
 let userMunicipality = null;
 let allReports    = [];
 let filteredReports = [];
@@ -439,7 +440,8 @@ auth.onAuthStateChanged(async user => {
 
   const doc  = await db.collection('users').doc(user.uid).get();
   const data = doc.exists ? doc.data() : {};
-  userRole         = data.role || 'citizen';
+  firestoreRole    = data.role || 'citizen';
+  userRole         = firestoreRole;
   userMunicipality = data.municipality || 'Bambang';
 
   // Restore view override from switchView (survives page reload)
@@ -956,7 +958,8 @@ function signOut() {
 
 // ── View As switcher (provincial / super admin only) ─────────────────────────
 function initViewAsSwitcher() {
-  const canSwitch = userRole === 'provincial_admin' || userRole === 'admin' || userRole === 'super_admin';
+  // Use firestoreRole so the switcher stays visible even in overridden municipal view
+  const canSwitch = ['provincial_admin', 'admin', 'super_admin'].includes(firestoreRole);
   if (!canSwitch) return;
   const container = document.getElementById('view-as-container');
   const sel       = document.getElementById('view-as-select');
@@ -969,6 +972,8 @@ function initViewAsSwitcher() {
     opt.textContent = m.name + ' (Municipal)';
     sel.appendChild(opt);
   });
+  // Pre-select the current view so the dropdown reflects actual state
+  sel.value = (userRole === 'municipal_admin') ? ('muni:' + userMunicipality) : 'provincial';
 }
 
 function switchView(val) {
