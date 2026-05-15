@@ -226,17 +226,6 @@ const RESPONDERS = [
     email: ""
   },
 
-  // ── R2TMC ────────────────────────────────────────────────────────────────────
-  {
-    name: "R2TMC – Region 2 Traffic Management",
-    type: "traffic",
-    municipality: "Bayombong",
-    lat: 16.4840, lng: 121.1492,
-    phone: "(078) 321-2100", // *unverified
-    address: "Maharlika Highway, Bayombong",
-    email: ""
-  },
-
   // ── DPWH ─────────────────────────────────────────────────────────────────────
   {
     name: "DPWH Nueva Vizcaya 1st DEO",
@@ -276,5 +265,4 @@ const RESPONDER_ICONS = {
   hospital:{ color: "#2E7D32", label: "Hospital",       emoji: "🏥" },
   health:  { color: "#00838F", label: "Health",         emoji: "⚕️"  },
   dpwh:    { color: "#1A237E", label: "DPWH",           emoji: "🏗️" },
-  traffic: { color: "#6A1B9A", label: "Traffic (R2TMC)", emoji: "🚦" },
 };

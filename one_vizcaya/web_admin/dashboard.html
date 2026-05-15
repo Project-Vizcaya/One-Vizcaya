@@ -174,7 +174,7 @@
 
   <!-- Stats -->
   <div class="stats-grid">
-    <div class="stat-card blue">
+    <div class="stat-card blue" style="cursor:pointer" onclick="statCardFilter('all')" title="Show all reports">
       <div class="stat-icon" style="background:#E3F2FD"><span>📋</span></div>
       <div>
         <div class="stat-label">Total Reports</div>
@@ -182,23 +182,23 @@
         <div class="stat-sub" id="stat-muni">Loading…</div>
       </div>
     </div>
-    <div class="stat-card red">
+    <div class="stat-card red" style="cursor:pointer" onclick="statCardFilter('critical')" title="Show critical reports">
       <div class="stat-icon" style="background:#FFEBEE"><span>🚨</span></div>
       <div>
         <div class="stat-label">Critical Open</div>
         <div class="stat-value" style="color:#B71C1C" id="stat-critical">—</div>
-        <div class="stat-sub">Needs immediate action</div>
+        <div class="stat-sub">Click to filter</div>
       </div>
     </div>
-    <div class="stat-card orange">
+    <div class="stat-card orange" style="cursor:pointer" onclick="statCardFilter('ongoing')" title="Show ongoing reports">
       <div class="stat-icon" style="background:#FFF3E0"><span>🔧</span></div>
       <div>
         <div class="stat-label">Ongoing</div>
         <div class="stat-value" style="color:#E65100" id="stat-ongoing">—</div>
-        <div class="stat-sub">In progress</div>
+        <div class="stat-sub">Click to filter</div>
       </div>
     </div>
-    <div class="stat-card green">
+    <div class="stat-card green" style="cursor:pointer" onclick="statCardFilter('solved')" title="Show resolved reports">
       <div class="stat-icon" style="background:#E8F5E9"><span>✅</span></div>
       <div>
         <div class="stat-label">Resolved</div>
@@ -229,7 +229,6 @@
         <option value="hospital">Hospital</option>
         <option value="health">Health Center</option>
         <option value="dpwh">DPWH</option>
-        <option value="traffic">Traffic (R2TMC)</option>
       </select>
     </div>
     <div id="map"></div>
@@ -304,7 +303,6 @@
           <button class="chip" onclick="filterRespDir('hospital',this)">Hospital</button>
           <button class="chip" onclick="filterRespDir('health',this)">Health</button>
           <button class="chip" onclick="filterRespDir('dpwh',this)">DPWH</button>
-          <button class="chip" onclick="filterRespDir('traffic',this)">R2TMC</button>
         </div>
         <div class="responder-list" id="responder-list"></div>
       </div>
@@ -584,6 +582,22 @@ function filterReports(status, btn) {
   document.querySelectorAll('.reports-filter .chip').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   applyFilter();
+}
+
+function statCardFilter(type) {
+  document.querySelectorAll('.reports-filter .chip').forEach(b => b.classList.remove('active'));
+  if (type === 'critical') {
+    criticalOnly  = true;
+    currentFilter = 'all';
+    document.querySelector('.chip[onclick*="critical"]')?.classList.add('active');
+  } else {
+    criticalOnly  = false;
+    currentFilter = type;
+    document.querySelector(`.chip[onclick*="'${type}'"]`)?.classList.add('active');
+  }
+  applyFilter();
+  document.querySelector('.card-title')?.closest('.card')
+    ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 function filterReportsByCritical(btn) {
