@@ -65,14 +65,15 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
 
     _tabController?.dispose();
     _tabController = TabController(
-      length: role == UserRole.provincialAdmin ? 3 : 2,
+      length: (role == UserRole.provincialAdmin || role == UserRole.superAdmin) ? 3 : 2,
       vsync: this,
     );
 
     setState(() {
       _currentUserRole = role;
-      // Provincial admins default to provincial view and cannot switch
-      _isProvincialView = role == UserRole.provincialAdmin;
+      // Provincial & super admins default to provincial view
+      // Super admin can toggle; provincial admin cannot
+      _isProvincialView = role == UserRole.provincialAdmin || role == UserRole.superAdmin;
       _isLoadingRole = false;
     });
   }
@@ -96,7 +97,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
       builder: (_) => _AddAnnouncementSheet(
         lguColor: _activeLguColor,
         municipality: _activeMunicipalityName,
-        isProvincialAdmin: _currentUserRole == UserRole.provincialAdmin,
+        isProvincialAdmin: _currentUserRole == UserRole.provincialAdmin ||
+            _currentUserRole == UserRole.superAdmin,
       ),
     );
   }
@@ -111,7 +113,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
         report: report,
         lguColor: _activeLguColor,
         isProvincialView: _isProvincialView,
-        canDelete: _currentUserRole == UserRole.provincialAdmin,
+        canDelete: _currentUserRole == UserRole.provincialAdmin ||
+            _currentUserRole == UserRole.superAdmin,
         onStatusUpdate: (reportId, userId, newStatus) =>
             _reportRepository.updateReportStatus(userId, reportId, newStatus),
         onEscalate: (reportId, userId) =>
@@ -180,8 +183,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
           style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
         ),
         actions: [
-          // Toggle only for legacy "admin" role (municipal/provincial admins are locked)
-          if (_currentUserRole == UserRole.admin)
+          if (_currentUserRole == UserRole.admin ||
+              _currentUserRole == UserRole.superAdmin)
             Tooltip(
               message: _isProvincialView
                   ? 'Switch to Municipal View'
@@ -213,7 +216,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
           tabs: [
             const Tab(icon: Icon(Icons.report_problem), text: 'Reports'),
             const Tab(icon: Icon(Icons.campaign), text: 'Announcements'),
-            if (_currentUserRole == UserRole.provincialAdmin)
+            if (_currentUserRole == UserRole.provincialAdmin ||
+                _currentUserRole == UserRole.superAdmin)
               const Tab(icon: Icon(Icons.manage_accounts), text: 'Users'),
           ],
         ),
@@ -1703,12 +1707,13 @@ class _AdminReportCard extends StatelessWidget {
                 const SizedBox(height: 8),
 
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    Text(
-                      'Tap card for details   ',
-                      style: TextStyle(
-                          fontSize: 10, color: Colors.grey.shade400),
+                    Expanded(
+                      child: Text(
+                        'Tap card for details',
+                        style: TextStyle(
+                            fontSize: 10, color: Colors.grey.shade400),
+                      ),
                     ),
                     if (report.status != ReportStatus.ongoing)
                       _SmallStatusButton(
@@ -2610,6 +2615,9 @@ class _RoleManagementTabState extends State<_RoleManagementTab> {
       case UserRole.provincialAdmin:
         return const Text('Full access across all municipalities',
             style: TextStyle(fontSize: 11));
+      case UserRole.superAdmin:
+        return const Text('Full access — provincial + municipal view switching',
+            style: TextStyle(fontSize: 11));
     }
   }
 
@@ -2623,6 +2631,8 @@ class _RoleManagementTabState extends State<_RoleManagementTab> {
         return Colors.green.shade700;
       case UserRole.provincialAdmin:
         return const Color(0xFF4A148C);
+      case UserRole.superAdmin:
+        return const Color(0xFF1B5E20);
     }
   }
 

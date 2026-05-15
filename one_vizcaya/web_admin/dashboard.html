@@ -442,16 +442,28 @@ auth.onAuthStateChanged(async user => {
   userRole         = data.role || 'citizen';
   userMunicipality = data.municipality || 'Bambang';
 
+  // Restore view override from switchView (survives page reload)
+  const override = sessionStorage.getItem('viewOverride');
+  if (override) {
+    try {
+      const ov = JSON.parse(override);
+      userRole         = ov.role;
+      userMunicipality = ov.municipality || userMunicipality;
+    } catch (_) {}
+    sessionStorage.removeItem('viewOverride');
+  }
+
   const roleLabels = {
     admin: 'Admin', municipal_admin: 'Municipal Admin',
-    provincial_admin: 'Provincial Admin'
+    provincial_admin: 'Provincial Admin', super_admin: 'Super Admin'
   };
   const roleBadgeEl = document.getElementById('role-badge');
+  const isProvincialView = userRole === 'provincial_admin' || userRole === 'admin' || userRole === 'super_admin';
   roleBadgeEl.textContent =
     (roleLabels[userRole] || 'Unknown') +
     (userRole === 'municipal_admin' ? ' — ' + userMunicipality : ' — All Municipalities');
 
-  if (userRole === 'provincial_admin' || userRole === 'admin') {
+  if (isProvincialView) {
     roleBadgeEl.className = 'nav-badge provincial';
     const banner = document.getElementById('role-banner');
     banner.className = 'role-banner provincial';
@@ -471,9 +483,7 @@ auth.onAuthStateChanged(async user => {
     document.getElementById('map-scope-label').textContent = userMunicipality;
   }
 
-  document.getElementById('stat-muni').textContent =
-    userRole === 'provincial_admin' || userRole === 'admin'
-      ? 'Province-wide' : userMunicipality;
+  document.getElementById('stat-muni').textContent = isProvincialView ? 'Province-wide' : userMunicipality;
 
   initMap();
   listenToReports();
@@ -512,7 +522,7 @@ function initMap() {
 
 // ── Municipality boundaries ───────────────────────────────────────────────────
 function loadMunicipalityBoundaries() {
-  const isProvincial = userRole === 'provincial_admin' || userRole === 'admin';
+  const isProvincial = userRole === 'provincial_admin' || userRole === 'admin' || userRole === 'super_admin';
   const isMunicipal  = userRole === 'municipal_admin';
 
   NV_MUNICIPALITIES.forEach(muni => {
@@ -940,12 +950,15 @@ function signOut() {
   auth.signOut().then(() => window.location.href = 'index.html');
 }
 
-// ── View As switcher (provincial admin only) ──────────────────────────────────
+// ── View As switcher (provincial / super admin only) ─────────────────────────
 function initViewAsSwitcher() {
-  if (userRole !== 'provincial_admin' && userRole !== 'admin') return;
+  const canSwitch = userRole === 'provincial_admin' || userRole === 'admin' || userRole === 'super_admin';
+  if (!canSwitch) return;
   const container = document.getElementById('view-as-container');
   const sel       = document.getElementById('view-as-select');
   container.style.display = 'flex';
+  // Remove any previously appended options (guard against double-init)
+  while (sel.options.length > 1) sel.remove(1);
   NV_MUNICIPALITIES.forEach(m => {
     const opt = document.createElement('option');
     opt.value = 'muni:' + m.name;
@@ -955,19 +968,23 @@ function initViewAsSwitcher() {
 }
 
 function switchView(val) {
+  let newRole, newMuni;
   if (val === 'provincial') {
-    userRole         = 'provincial_admin';
-    userMunicipality = '';
+    newRole = 'provincial_admin';
+    newMuni = '';
   } else {
-    userRole         = 'municipal_admin';
-    userMunicipality = val.replace('muni:', '');
+    newRole = 'municipal_admin';
+    newMuni = val.replace('muni:', '');
   }
-  if (map) window.location.reload();
+  // Persist override so the auth listener can restore it after reload
+  sessionStorage.setItem('viewOverride', JSON.stringify({ role: newRole, municipality: newMuni }));
+  window.location.reload();
 }
 
-// ── Manage Users (provincial admin only) ──────────────────────────────────────
+// ── Manage Users (provincial / super admin only) ──────────────────────────────
 async function loadUsers() {
-  if (userRole !== 'provincial_admin' && userRole !== 'admin') return;
+  const canManage = userRole === 'provincial_admin' || userRole === 'admin' || userRole === 'super_admin';
+  if (!canManage) return;
   document.getElementById('users-card').style.display = 'block';
   try {
     const snap = await db.collection('users').limit(50).get();
@@ -992,7 +1009,8 @@ async function loadUsers() {
           <option value="citizen"${role==='citizen'?' selected':''}>Citizen</option>
           <option value="municipal_admin"${role==='municipal_admin'?' selected':''}>Municipal Admin</option>
           <option value="provincial_admin"${role==='provincial_admin'?' selected':''}>Provincial Admin</option>
-          <option value="admin"${role==='admin'?' selected':''}>Super Admin</option>
+          <option value="super_admin"${role==='super_admin'?' selected':''}>Super Admin</option>
+          <option value="admin"${role==='admin'?' selected':''}>Admin (Legacy)</option>
         </select>
         <select class="muni-select" id="muni-${u.uid}">
           <option value="">— No municipality —</option>
