@@ -6,11 +6,21 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    function getUserRole() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('role', 'citizen');
+    }
+
     function isAdmin() {
       return isAuth() && (
-        request.auth.token.role == 'admin' ||
-        request.auth.token.role == 'municipal_admin' ||
-        request.auth.token.role == 'provincial_admin'
+        request.auth.token.role in ['admin', 'municipal_admin', 'provincial_admin'] ||
+        getUserRole() in ['admin', 'municipal_admin', 'provincial_admin']
+      );
+    }
+
+    function isProvincialAdmin() {
+      return isAuth() && (
+        request.auth.token.role in ['admin', 'provincial_admin'] ||
+        getUserRole() in ['admin', 'provincial_admin']
       );
     }
 
@@ -20,7 +30,8 @@ service cloud.firestore {
 
     // User profiles
     match /users/{userId} {
-      allow read, write: if isOwner(userId) || isAdmin();
+      allow read: if isOwner(userId) || isAdmin();
+      allow write: if isOwner(userId) || isProvincialAdmin();
 
       // Per-user report sub-collection
       match /reports/{reportId} {

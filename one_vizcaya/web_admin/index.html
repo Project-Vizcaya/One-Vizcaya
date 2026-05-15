@@ -7,42 +7,39 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
-    body{font-family:'Inter',sans-serif;background:linear-gradient(135deg,#1565C0 0%,#0D47A1 60%,#1B5E20 100%);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:16px}
-    .card{background:#fff;border-radius:20px;padding:40px 36px;width:100%;max-width:420px;box-shadow:0 20px 60px rgba(0,0,0,0.3)}
-    .logo{text-align:center;margin-bottom:28px}
-    .logo img{width:72px;height:72px;border-radius:50%;object-fit:cover;margin-bottom:12px}
-    .logo h1{font-size:22px;font-weight:700;color:#1565C0}
-    .logo p{font-size:13px;color:#666;margin-top:4px}
-    .badge{display:inline-block;background:#E3F2FD;color:#1565C0;font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;margin-top:6px}
-    label{font-size:13px;font-weight:600;color:#333;display:block;margin-bottom:6px}
-    .input-group{display:flex;gap:8px;margin-bottom:16px}
-    .prefix{background:#F5F5F5;border:1px solid #E0E0E0;border-radius:10px;padding:0 12px;display:flex;align-items:center;font-size:14px;color:#444;white-space:nowrap}
-    input{width:100%;border:1px solid #E0E0E0;border-radius:10px;padding:12px 14px;font-size:15px;outline:none;transition:border .2s}
-    input:focus{border-color:#1565C0}
-    .btn{width:100%;padding:14px;border:none;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer;transition:all .2s;margin-top:4px}
-    .btn-primary{background:#1565C0;color:#fff}
-    .btn-primary:hover{background:#0D47A1}
-    .btn-primary:disabled{background:#90CAF9;cursor:not-allowed}
-    .btn-outline{background:#fff;color:#1565C0;border:1.5px solid #1565C0;margin-top:8px}
+    body{font-family:'Inter',sans-serif;background:linear-gradient(145deg,#0D47A1 0%,#1565C0 45%,#1B5E20 100%);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:16px}
+    .card{background:#fff;border-radius:24px;padding:44px 40px;width:100%;max-width:420px;box-shadow:0 24px 80px rgba(0,0,0,0.35);animation:fadeUp .4s ease}
+    @keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+    .logo{text-align:center;margin-bottom:32px}
+    .logo-ring{width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,#1565C0,#0D47A1);display:flex;align-items:center;justify-content:center;margin:0 auto 14px;box-shadow:0 8px 24px rgba(21,101,192,.35)}
+    .logo-ring span{font-size:36px}
+    .logo h1{font-size:24px;font-weight:800;color:#0D47A1;letter-spacing:-.3px}
+    .logo p{font-size:13px;color:#777;margin-top:4px}
+    .badge{display:inline-block;background:linear-gradient(90deg,#E3F2FD,#E8F5E9);color:#1565C0;font-size:11px;font-weight:700;padding:4px 12px;border-radius:20px;margin-top:8px;border:1px solid #BBDEFB}
+    label{font-size:12px;font-weight:700;color:#555;display:block;margin-bottom:7px;text-transform:uppercase;letter-spacing:.5px}
+    .input-group{display:flex;gap:8px;margin-bottom:18px}
+    .prefix{background:#EEF4FB;border:1.5px solid #BBDEFB;border-radius:12px;padding:0 14px;display:flex;align-items:center;font-size:14px;font-weight:600;color:#1565C0;white-space:nowrap}
+    input{width:100%;border:1.5px solid #E0E0E0;border-radius:12px;padding:13px 15px;font-size:15px;outline:none;transition:all .2s;color:#222}
+    input:focus{border-color:#1565C0;box-shadow:0 0 0 3px rgba(21,101,192,.1)}
+    .btn{width:100%;padding:15px;border:none;border-radius:14px;font-size:15px;font-weight:700;cursor:pointer;transition:all .2s;margin-top:4px}
+    .btn-primary{background:linear-gradient(135deg,#1565C0,#0D47A1);color:#fff;box-shadow:0 4px 16px rgba(21,101,192,.35)}
+    .btn-primary:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(21,101,192,.45)}
+    .btn-primary:disabled{background:#90CAF9;cursor:not-allowed;transform:none;box-shadow:none}
+    .btn-outline{background:#fff;color:#1565C0;border:2px solid #1565C0;margin-top:10px}
     .btn-outline:hover{background:#E3F2FD}
     #otp-section{display:none}
-    .error{background:#FFEBEE;color:#C62828;border-radius:10px;padding:10px 14px;font-size:13px;margin-top:12px;display:none}
-    .success{background:#E8F5E9;color:#2E7D32;border-radius:10px;padding:10px 14px;font-size:13px;margin-top:12px;display:none}
-    .spinner{display:inline-block;width:16px;height:16px;border:2px solid #fff;border-top-color:transparent;border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:6px}
+    .error{background:#FFEBEE;color:#C62828;border-radius:12px;padding:11px 15px;font-size:13px;margin-top:12px;display:none;border-left:4px solid #EF5350}
+    .success{background:#E8F5E9;color:#2E7D32;border-radius:12px;padding:11px 15px;font-size:13px;margin-top:12px;display:none;border-left:4px solid #66BB6A}
+    .spinner{display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:6px}
     @keyframes spin{to{transform:rotate(360deg)}}
-    .divider{text-align:center;color:#999;font-size:12px;margin:16px 0;position:relative}
-    .divider::before,.divider::after{content:'';position:absolute;top:50%;width:42%;height:1px;background:#E0E0E0}
-    .divider::before{left:0}.divider::after{right:0}
-    .footer{text-align:center;font-size:11px;color:#999;margin-top:24px}
+    .footer{text-align:center;font-size:11px;color:#aaa;margin-top:28px;line-height:1.6}
     #recaptcha-container{margin-top:8px}
   </style>
 </head>
 <body>
 <div class="card">
   <div class="logo">
-    <div style="width:72px;height:72px;background:#1565C0;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 12px">
-      <span style="font-size:32px">🏛️</span>
-    </div>
+    <div class="logo-ring"><span>🏛️</span></div>
     <h1>One Vizcaya</h1>
     <p>Nueva Vizcaya Province</p>
     <span class="badge">Admin Dashboard</span>
@@ -51,7 +48,7 @@
   <div id="phone-section">
     <label for="phone">Phone Number</label>
     <div class="input-group">
-      <div class="prefix">🇵🇭 +63</div>
+      <div class="prefix">+63</div>
       <input type="tel" id="phone" placeholder="9XXXXXXXXX" maxlength="10" inputmode="numeric"/>
     </div>
     <div id="recaptcha-container"></div>

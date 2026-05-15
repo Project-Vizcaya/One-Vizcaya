@@ -121,6 +121,25 @@
     .report-loc{font-size:11px;color:#999;max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .anon-badge{font-size:10px;background:#EEE;color:#888;padding:2px 6px;border-radius:6px;margin-left:4px}
     .scroll-table{overflow-x:auto}
+
+    /* ── Role management ── */
+    .users-list{max-height:420px;overflow-y:auto}
+    .user-row{display:flex;align-items:center;gap:12px;padding:12px;border-radius:10px;border:1px solid #F0F0F0;margin-bottom:8px;flex-wrap:wrap}
+    .user-row:hover{background:#F5F9FF}
+    .user-avatar{width:38px;height:38px;border-radius:50%;background:#1565C0;color:#fff;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;flex-shrink:0}
+    .user-info{flex:1;min-width:120px}
+    .user-phone{font-size:13px;font-weight:600;color:#222}
+    .user-role-label{font-size:11px;color:#888;margin-top:2px}
+    .role-select{padding:5px 8px;border:1.5px solid #ddd;border-radius:8px;font-size:12px;background:#fff;cursor:pointer;color:#333}
+    .muni-select{padding:5px 8px;border:1.5px solid #ddd;border-radius:8px;font-size:12px;background:#fff;cursor:pointer;color:#333;margin-left:6px}
+    .btn-save-role{padding:5px 12px;background:#1565C0;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;margin-left:6px}
+    .btn-save-role:hover{background:#0D47A1}
+    .save-ok{color:#2E7D32;font-size:12px;margin-left:6px}
+
+    /* ── View As switcher ── */
+    .view-switch{display:flex;align-items:center;gap:6px;font-size:12px;color:rgba(255,255,255,.85)}
+    .view-switch select{padding:4px 8px;border:1px solid rgba(255,255,255,.4);border-radius:8px;background:rgba(255,255,255,.15);color:#fff;font-size:12px;cursor:pointer}
+    .view-switch select option{color:#333;background:#fff}
   </style>
 </head>
 <body>
@@ -138,6 +157,12 @@
     One Vizcaya Admin
   </div>
   <div class="nav-right">
+    <div id="view-as-container" class="view-switch" style="display:none">
+      <span>View as:</span>
+      <select id="view-as-select" onchange="switchView(this.value)">
+        <option value="provincial">Provincial Admin</option>
+      </select>
+    </div>
     <span class="nav-badge" id="role-badge">Loading…</span>
     <span class="nav-user" id="nav-phone"></span>
     <button class="btn-logout" onclick="signOut()">Sign Out</button>
@@ -286,6 +311,20 @@
     </div>
 
   </div>
+
+  <!-- Manage Users (provincial admin only) -->
+  <div class="card" id="users-card" style="display:none">
+    <div class="card-header">
+      <span class="card-title">👥 Manage User Roles</span>
+      <span style="font-size:12px;color:#999" id="users-count-label"></span>
+    </div>
+    <div class="card-body">
+      <div class="users-list" id="users-list">
+        <div class="empty-state"><div>⏳</div>Loading users…</div>
+      </div>
+    </div>
+  </div>
+
 </div>
 
 <!-- Firebase + Maps SDKs -->
@@ -360,6 +399,8 @@ auth.onAuthStateChanged(async user => {
   listenToReports();
   renderResponderDirectory('all');
   populateMuniFilter();
+  initViewAsSwitcher();
+  loadUsers();
 });
 
 // ── Google Maps init ─────────────────────────────────────────────────────────
@@ -786,6 +827,100 @@ function populateMuniFilter() {
 // ── Sign out ──────────────────────────────────────────────────────────────────
 function signOut() {
   auth.signOut().then(() => window.location.href = 'index.html');
+}
+
+// ── View As switcher (provincial admin only) ──────────────────────────────────
+function initViewAsSwitcher() {
+  if (userRole !== 'provincial_admin' && userRole !== 'admin') return;
+  const container = document.getElementById('view-as-container');
+  const sel       = document.getElementById('view-as-select');
+  container.style.display = 'flex';
+  NV_MUNICIPALITIES.forEach(m => {
+    const opt = document.createElement('option');
+    opt.value = 'muni:' + m.name;
+    opt.textContent = m.name + ' (Municipal)';
+    sel.appendChild(opt);
+  });
+}
+
+function switchView(val) {
+  if (val === 'provincial') {
+    userRole         = 'provincial_admin';
+    userMunicipality = '';
+  } else {
+    userRole         = 'municipal_admin';
+    userMunicipality = val.replace('muni:', '');
+  }
+  // Re-render map, table, responders
+  if (map) {
+    // Clear existing polygons by reloading the page state
+    window.location.reload();
+  }
+}
+
+// ── Manage Users (provincial admin only) ──────────────────────────────────────
+async function loadUsers() {
+  if (userRole !== 'provincial_admin' && userRole !== 'admin') return;
+  document.getElementById('users-card').style.display = 'block';
+  try {
+    const snap = await db.collection('users').limit(50).get();
+    const users = snap.docs.map(d => ({ uid: d.id, ...d.data() }));
+    document.getElementById('users-count-label').textContent = users.length + ' users';
+    const muniOptions = NV_MUNICIPALITIES.map(m =>
+      `<option value="${m.name}">${m.name}</option>`
+    ).join('');
+
+    document.getElementById('users-list').innerHTML = users.map(u => {
+      const initial = (u.phoneNumber || u.phone || '?')[0].toUpperCase();
+      const phone   = u.phoneNumber || u.phone || u.uid.slice(0,8);
+      const role    = u.role || 'citizen';
+      const muni    = u.municipality || '';
+      return `<div class="user-row" id="row-${u.uid}">
+        <div class="user-avatar">${initial}</div>
+        <div class="user-info">
+          <div class="user-phone">${phone}</div>
+          <div class="user-role-label">Current: <strong>${role}</strong>${muni ? ' · ' + muni : ''}</div>
+        </div>
+        <select class="role-select" id="role-${u.uid}">
+          <option value="citizen"${role==='citizen'?' selected':''}>Citizen</option>
+          <option value="municipal_admin"${role==='municipal_admin'?' selected':''}>Municipal Admin</option>
+          <option value="provincial_admin"${role==='provincial_admin'?' selected':''}>Provincial Admin</option>
+          <option value="admin"${role==='admin'?' selected':''}>Super Admin</option>
+        </select>
+        <select class="muni-select" id="muni-${u.uid}">
+          <option value="">— No municipality —</option>
+          ${muniOptions.replace(`value="${muni}"`, `value="${muni}" selected`)}
+        </select>
+        <button class="btn-save-role" onclick="saveUserRole('${u.uid}')">Save</button>
+        <span class="save-ok" id="ok-${u.uid}" style="display:none">✓ Saved</span>
+      </div>`;
+    }).join('') || '<div class="empty-state"><div>👥</div>No users found.</div>';
+  } catch (e) {
+    document.getElementById('users-list').innerHTML =
+      '<div class="empty-state"><div>⚠️</div>Could not load users. Check Firestore rules.</div>';
+  }
+}
+
+async function saveUserRole(uid) {
+  const role = document.getElementById('role-' + uid).value;
+  const muni = document.getElementById('muni-' + uid).value;
+  const btn  = document.querySelector(`#row-${uid} .btn-save-role`);
+  const ok   = document.getElementById('ok-' + uid);
+  btn.disabled = true;
+  btn.textContent = '…';
+  try {
+    const update = { role };
+    if (muni) update.municipality = muni;
+    await db.collection('users').doc(uid).update(update);
+    ok.style.display = 'inline';
+    document.querySelector(`#row-${uid} .user-role-label`).innerHTML =
+      `Current: <strong>${role}</strong>${muni ? ' · ' + muni : ''}`;
+    setTimeout(() => { ok.style.display = 'none'; }, 3000);
+  } catch (e) {
+    alert('Failed to save: ' + e.message);
+  }
+  btn.disabled = false;
+  btn.textContent = 'Save';
 }
 
 // ── Hide loading overlay ──────────────────────────────────────────────────────
