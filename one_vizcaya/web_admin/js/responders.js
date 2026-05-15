@@ -21,6 +21,15 @@ const RESPONDERS = [
     email: ""
   },
   {
+    name: "Region II Trauma and Medical Center",
+    type: "hospital",
+    municipality: "Bayombong",
+    lat: 16.4870, lng: 121.1525,
+    phone: "(078) 392-1058",
+    address: "AH26, Barangay Magsaysay, Bayombong, Nueva Vizcaya",
+    email: "r2tmc@doh.gov.ph"
+  },
+  {
     name: "PNP Nueva Vizcaya Provincial Office",
     type: "police",
     municipality: "Bayombong",
