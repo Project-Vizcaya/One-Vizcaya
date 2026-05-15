@@ -12,15 +12,15 @@ service cloud.firestore {
 
     function isAdmin() {
       return isAuth() && (
-        request.auth.token.role in ['admin', 'municipal_admin', 'provincial_admin'] ||
-        getUserRole() in ['admin', 'municipal_admin', 'provincial_admin']
+        request.auth.token.role in ['admin', 'municipal_admin', 'provincial_admin', 'super_admin'] ||
+        getUserRole() in ['admin', 'municipal_admin', 'provincial_admin', 'super_admin']
       );
     }
 
     function isProvincialAdmin() {
       return isAuth() && (
-        request.auth.token.role in ['admin', 'provincial_admin'] ||
-        getUserRole() in ['admin', 'provincial_admin']
+        request.auth.token.role in ['admin', 'provincial_admin', 'super_admin'] ||
+        getUserRole() in ['admin', 'provincial_admin', 'super_admin']
       );
     }
 
