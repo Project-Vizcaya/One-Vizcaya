@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>One Vizcaya — Admin Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Inter',sans-serif;background:#F0F2F5;color:#1A1A2E;min-height:100vh}
+
+    /* ── Navbar ── */
+    .navbar{background:#1565C0;color:#fff;padding:0 24px;height:60px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.25)}
+    .nav-brand{display:flex;align-items:center;gap:10px;font-size:17px;font-weight:700}
+    .nav-brand span{font-size:24px}
+    .nav-right{display:flex;align-items:center;gap:12px}
+    .nav-badge{background:rgba(255,255,255,.2);border-radius:20px;padding:4px 12px;font-size:12px;font-weight:600}
+    .nav-user{font-size:13px;opacity:.85}
+    .btn-logout{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);color:#fff;padding:6px 14px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;transition:background .2s}
+    .btn-logout:hover{background:rgba(255,255,255,.25)}
+
+    /* ── Layout ── */
+    .container{max-width:1400px;margin:0 auto;padding:20px 20px 40px}
+
+    /* ── Stats ── */
+    .stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:20px}
+    @media(max-width:900px){.stats-grid{grid-template-columns:repeat(2,1fr)}}
+    @media(max-width:500px){.stats-grid{grid-template-columns:1fr}}
+    .stat-card{background:#fff;border-radius:14px;padding:18px 20px;box-shadow:0 1px 4px rgba(0,0,0,.07);display:flex;align-items:center;gap:16px}
+    .stat-icon{width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
+    .stat-label{font-size:12px;color:#777;font-weight:500;margin-bottom:4px}
+    .stat-value{font-size:26px;font-weight:700;line-height:1}
+    .stat-sub{font-size:11px;color:#999;margin-top:3px}
+
+    /* ── Section card ── */
+    .card{background:#fff;border-radius:14px;box-shadow:0 1px 4px rgba(0,0,0,.07);overflow:hidden;margin-bottom:20px}
+    .card-header{padding:14px 20px;border-bottom:1px solid #F0F0F0;display:flex;align-items:center;justify-content:space-between}
+    .card-title{font-size:14px;font-weight:700;color:#333}
+    .card-body{padding:16px 20px}
+
+    /* ── Map ── */
+    #map{height:480px;width:100%}
+    .map-controls{padding:12px 16px;background:#FAFAFA;border-bottom:1px solid #F0F0F0;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+    .toggle-btn{padding:6px 14px;border-radius:20px;border:1.5px solid #ddd;background:#fff;font-size:12px;font-weight:600;cursor:pointer;transition:all .2s;color:#555}
+    .toggle-btn.active{background:#1565C0;border-color:#1565C0;color:#fff}
+    .map-legend{padding:10px 16px;background:#FAFAFA;border-top:1px solid #F0F0F0;display:flex;flex-wrap:wrap;gap:14px;font-size:11px}
+    .legend-item{display:flex;align-items:center;gap:5px;color:#555}
+    .legend-dot{width:10px;height:10px;border-radius:50%}
+    .filter-select{padding:6px 10px;border:1.5px solid #ddd;border-radius:8px;font-size:12px;color:#444;background:#fff;cursor:pointer}
+
+    /* ── Bottom grid ── */
+    .bottom-grid{display:grid;grid-template-columns:1fr 380px;gap:20px}
+    @media(max-width:1024px){.bottom-grid{grid-template-columns:1fr}}
+
+    /* ── Reports table ── */
+    .reports-filter{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+    .chip{padding:5px 12px;border-radius:20px;border:1.5px solid #ddd;background:#fff;font-size:11px;font-weight:600;cursor:pointer;color:#555;transition:all .2s}
+    .chip.active{background:#1565C0;border-color:#1565C0;color:#fff}
+    table{width:100%;border-collapse:collapse;font-size:13px}
+    th{text-align:left;padding:8px 10px;font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.5px;border-bottom:2px solid #F0F0F0}
+    td{padding:10px 10px;border-bottom:1px solid #F7F7F7;vertical-align:middle}
+    tr:hover td{background:#F9FBFF}
+    tr.clickable{cursor:pointer}
+    .badge-status{padding:3px 9px;border-radius:10px;font-size:11px;font-weight:700;white-space:nowrap}
+    .badge-priority{padding:3px 9px;border-radius:10px;font-size:10px;font-weight:700;white-space:nowrap}
+    .s-reported{background:#E3F2FD;color:#1565C0}
+    .s-ongoing{background:#FFF3E0;color:#E65100}
+    .s-solved{background:#E8F5E9;color:#2E7D32}
+    .p-critical{background:#FFEBEE;color:#B71C1C}
+    .p-high{background:#FFF3E0;color:#E65100}
+    .p-medium{background:#FFFDE7;color:#F57F17}
+    .p-low{background:#F1F8E9;color:#33691E}
+    .empty-state{text-align:center;padding:48px 20px;color:#aaa}
+    .empty-state div{font-size:40px;margin-bottom:8px}
+
+    /* ── Responder directory ── */
+    .responder-list{max-height:520px;overflow-y:auto}
+    .responder-card{display:flex;align-items:flex-start;gap:12px;padding:12px;border-radius:10px;margin-bottom:8px;border:1px solid #F0F0F0;transition:background .15s;cursor:pointer}
+    .responder-card:hover{background:#F5F9FF}
+    .resp-icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+    .resp-info{flex:1;min-width:0}
+    .resp-name{font-size:13px;font-weight:600;color:#222;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .resp-muni{font-size:11px;color:#888;margin-bottom:2px}
+    .resp-phone{font-size:12px;color:#1565C0;font-weight:600}
+    .resp-contact-btn{display:flex;gap:6px;margin-top:6px}
+    .btn-call{padding:4px 10px;background:#E8F5E9;color:#2E7D32;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;text-decoration:none;display:inline-block}
+    .btn-sms{padding:4px 10px;background:#E3F2FD;color:#1565C0;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;text-decoration:none;display:inline-block}
+    .resp-filter{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+
+    /* ── Loading overlay ── */
+    #loading-overlay{position:fixed;inset:0;background:#1565C0;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;color:#fff}
+    #loading-overlay h2{font-size:20px;font-weight:700;margin-top:16px}
+    #loading-overlay p{font-size:13px;opacity:.7;margin-top:6px}
+    .loader{width:40px;height:40px;border:3px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
+
+    /* ── Info window ── */
+    .iw{font-family:'Inter',sans-serif;min-width:200px}
+    .iw h4{font-size:13px;font-weight:700;margin-bottom:4px;color:#222}
+    .iw p{font-size:12px;color:#555;margin-bottom:2px}
+    .iw .iw-phone{color:#1565C0;font-weight:600}
+    .iw .iw-btns{margin-top:8px;display:flex;gap:6px}
+    .iw .iw-btns a{padding:5px 10px;border-radius:6px;font-size:11px;font-weight:700;text-decoration:none}
+    .iw-call{background:#E8F5E9;color:#2E7D32}
+    .iw-sms{background:#E3F2FD;color:#1565C0}
+
+    /* ── Misc ── */
+    .section-title{font-size:15px;font-weight:700;color:#333;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+    .live-dot{width:8px;height:8px;background:#4CAF50;border-radius:50%;animation:pulse 1.5s ease-in-out infinite}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+    .report-loc{font-size:11px;color:#999;max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .anon-badge{font-size:10px;background:#EEE;color:#888;padding:2px 6px;border-radius:6px;margin-left:4px}
+    .scroll-table{overflow-x:auto}
+  </style>
+</head>
+<body>
+
+<div id="loading-overlay">
+  <div class="loader"></div>
+  <h2>One Vizcaya Admin</h2>
+  <p>Loading dashboard…</p>
+</div>
+
+<!-- Navbar -->
+<nav class="navbar">
+  <div class="nav-brand">
+    <span>🏛️</span>
+    One Vizcaya Admin
+  </div>
+  <div class="nav-right">
+    <span class="nav-badge" id="role-badge">Loading…</span>
+    <span class="nav-user" id="nav-phone"></span>
+    <button class="btn-logout" onclick="signOut()">Sign Out</button>
+  </div>
+</nav>
+
+<div class="container">
+
+  <!-- Stats -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-icon" style="background:#E3F2FD"><span>📋</span></div>
+      <div>
+        <div class="stat-label">Total Reports</div>
+        <div class="stat-value" id="stat-total">—</div>
+        <div class="stat-sub" id="stat-muni">Loading…</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon" style="background:#FFEBEE"><span>🚨</span></div>
+      <div>
+        <div class="stat-label">Critical Open</div>
+        <div class="stat-value" style="color:#B71C1C" id="stat-critical">—</div>
+        <div class="stat-sub">Needs immediate action</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon" style="background:#FFF3E0"><span>🔧</span></div>
+      <div>
+        <div class="stat-label">Ongoing</div>
+        <div class="stat-value" style="color:#E65100" id="stat-ongoing">—</div>
+        <div class="stat-sub">In progress</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon" style="background:#E8F5E9"><span>✅</span></div>
+      <div>
+        <div class="stat-label">Resolved</div>
+        <div class="stat-value" style="color:#2E7D32" id="stat-resolved">—</div>
+        <div class="stat-sub" id="stat-avg-time">Computing…</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Map -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">📍 Report Heatmap & Responder Locations</span>
+      <span style="font-size:12px;color:#999">Nueva Vizcaya Province</span>
+    </div>
+    <div class="map-controls">
+      <button class="toggle-btn active" id="btn-heatmap" onclick="toggleHeatmap()">🔥 Heatmap</button>
+      <button class="toggle-btn active" id="btn-responders" onclick="toggleResponders()">🚨 Responders</button>
+      <button class="toggle-btn" id="btn-reports-pins" onclick="toggleReportPins()">📌 Report Pins</button>
+      <select class="filter-select" id="map-muni-filter" onchange="filterMapByMuni()">
+        <option value="all">All Municipalities</option>
+      </select>
+      <select class="filter-select" id="resp-type-filter" onchange="filterRespondersByType()">
+        <option value="all">All Responder Types</option>
+        <option value="mdrrmo">MDRRMO</option>
+        <option value="police">Police (PNP)</option>
+        <option value="fire">Fire (BFP)</option>
+        <option value="hospital">Hospital</option>
+        <option value="health">Health Center</option>
+      </select>
+    </div>
+    <div id="map"></div>
+    <div class="map-legend">
+      <strong style="font-size:11px;color:#555;margin-right:4px">Heatmap:</strong>
+      <div class="legend-item"><div class="legend-dot" style="background:#00C853"></div>Low</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#FFD600"></div>Medium</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#FF6D00"></div>High</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#D50000"></div>Critical</div>
+      <span style="margin-left:12px;color:#999">|</span>
+      <strong style="font-size:11px;color:#555;margin:0 4px">Responders:</strong>
+      <div class="legend-item">🚨 MDRRMO</div>
+      <div class="legend-item">👮 Police</div>
+      <div class="legend-item">🚒 Fire</div>
+      <div class="legend-item">🏥 Hospital</div>
+      <div class="legend-item">⚕️ Health</div>
+    </div>
+  </div>
+
+  <!-- Bottom grid -->
+  <div class="bottom-grid">
+
+    <!-- Reports list -->
+    <div class="card">
+      <div class="card-header">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span class="card-title">Live Reports</span>
+          <div class="live-dot"></div>
+        </div>
+        <span style="font-size:12px;color:#999" id="report-count-label">Loading…</span>
+      </div>
+      <div class="card-body">
+        <div class="reports-filter">
+          <button class="chip active" onclick="filterReports('all',this)">All</button>
+          <button class="chip" onclick="filterReports('reported',this)">Reported</button>
+          <button class="chip" onclick="filterReports('ongoing',this)">Ongoing</button>
+          <button class="chip" onclick="filterReports('solved',this)">Solved</button>
+          <button class="chip" style="border-color:#FFEBEE;color:#B71C1C" onclick="filterReportsByCritical(this)">🚨 Critical</button>
+        </div>
+        <div class="scroll-table">
+          <table>
+            <thead>
+              <tr>
+                <th>Category</th>
+                <th>Municipality</th>
+                <th>Status</th>
+                <th>Priority</th>
+                <th>Location</th>
+                <th>Reported</th>
+              </tr>
+            </thead>
+            <tbody id="reports-tbody">
+              <tr><td colspan="6"><div class="empty-state"><div>⏳</div>Loading reports…</div></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Responder directory -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">🚨 Responder Directory</span>
+        <span style="font-size:12px;color:#999" id="resp-count-label">Loading…</span>
+      </div>
+      <div class="card-body" style="padding-top:12px">
+        <div class="resp-filter" id="resp-chips">
+          <button class="chip active" onclick="filterRespDir('all',this)">All</button>
+          <button class="chip" onclick="filterRespDir('mdrrmo',this)">MDRRMO</button>
+          <button class="chip" onclick="filterRespDir('police',this)">Police</button>
+          <button class="chip" onclick="filterRespDir('fire',this)">Fire</button>
+          <button class="chip" onclick="filterRespDir('hospital',this)">Hospital</button>
+          <button class="chip" onclick="filterRespDir('health',this)">Health</button>
+        </div>
+        <div class="responder-list" id="responder-list"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Firebase + Maps SDKs -->
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<script src="js/config.js"></script>
+<script src="js/responders.js"></script>
+<script src="js/municipalities.js"></script>
+
+<script>
+// ── Firebase init ────────────────────────────────────────────────────────────
+firebase.initializeApp(FIREBASE_CONFIG);
+const auth = firebase.auth();
+const db   = firebase.firestore();
+
+// ── State ────────────────────────────────────────────────────────────────────
+let currentUser   = null;
+let userRole      = null;
+let userMunicipality = null;
+let allReports    = [];
+let filteredReports = [];
+let currentFilter = 'all';
+let criticalOnly  = false;
+
+let map, heatmapLayer;
+let responderMarkers = [];
+let reportPins       = [];
+let showHeatmap      = true;
+let showResponders   = true;
+let showReportPins   = false;
+let currentRespDirFilter = 'all';
+
+// ── Auth guard ───────────────────────────────────────────────────────────────
+auth.onAuthStateChanged(async user => {
+  if (!user) { window.location.href = 'index.html'; return; }
+  currentUser = user;
+  document.getElementById('nav-phone').textContent = user.phoneNumber || '';
+
+  const doc  = await db.collection('users').doc(user.uid).get();
+  const data = doc.exists ? doc.data() : {};
+  userRole         = data.role || 'citizen';
+  userMunicipality = data.municipality || 'Bambang';
+
+  const roleLabels = {
+    admin: 'Admin', municipal_admin: 'Municipal Admin',
+    provincial_admin: 'Provincial Admin'
+  };
+  document.getElementById('role-badge').textContent =
+    (roleLabels[userRole] || 'Unknown') +
+    (userRole === 'municipal_admin' ? ' — ' + userMunicipality : ' — All Municipalities');
+
+  document.getElementById('stat-muni').textContent =
+    userRole === 'provincial_admin' || userRole === 'admin'
+      ? 'Province-wide' : userMunicipality;
+
+  initMap();
+  listenToReports();
+  renderResponderDirectory('all');
+  populateMuniFilter();
+});
+
+// ── Google Maps init ─────────────────────────────────────────────────────────
+function initMap() {
+  map = new google.maps.Map(document.getElementById('map'), {
+    center: NV_CENTER,
+    zoom: NV_ZOOM,
+    mapTypeId: 'roadmap',
+    styles: [
+      {featureType:'poi',elementType:'labels',stylers:[{visibility:'off'}]},
+      {featureType:'transit',stylers:[{visibility:'off'}]}
+    ],
+    mapTypeControl: true,
+    mapTypeControlOptions: { position: google.maps.ControlPosition.TOP_RIGHT }
+  });
+
+  heatmapLayer = new google.maps.visualization.HeatmapLayer({
+    map: map,
+    radius: 40,
+    gradient: [
+      'rgba(0,0,0,0)','rgba(0,200,83,1)','rgba(100,221,23,1)',
+      'rgba(255,214,0,1)','rgba(255,109,0,1)','rgba(213,0,0,1)'
+    ]
+  });
+
+  loadMunicipalityBoundaries();
+  renderResponderMarkers();
+}
+
+// ── Municipality boundaries ───────────────────────────────────────────────────
+function loadMunicipalityBoundaries() {
+  const isProvincial = userRole === 'provincial_admin' || userRole === 'admin';
+  const isMunicipal  = userRole === 'municipal_admin';
+
+  NV_MUNICIPALITIES.forEach(muni => {
+    const isActive = muni.name === userMunicipality;
+    const show     = isProvincial || isActive;
+    if (!show) return;
+
+    // Build polygon path (GeoJSON is [lng,lat], Google Maps needs {lat,lng})
+    const path = muni.polygon.map(([lng, lat]) => ({ lat, lng }));
+
+    const polygon = new google.maps.Polygon({
+      paths: path,
+      map: map,
+      strokeColor:   isActive && isMunicipal ? '#1565C0' : muni.color,
+      strokeOpacity: 1,
+      strokeWeight:  isActive && isMunicipal ? 3 : 1.5,
+      fillColor:     isActive && isMunicipal ? '#1565C0' : muni.color,
+      fillOpacity:   isActive && isMunicipal ? 0.18 : 0.08,
+      zIndex:        isActive ? 2 : 1
+    });
+
+    // Label in center for provincial view
+    if (isProvincial) {
+      const bounds = new google.maps.LatLngBounds();
+      path.forEach(p => bounds.extend(p));
+      const center = bounds.getCenter();
+
+      const label = new google.maps.Marker({
+        position: center,
+        map: map,
+        icon: { path: google.maps.SymbolPath.CIRCLE, scale: 0 },
+        label: {
+          text: muni.name,
+          fontSize: '10px',
+          fontWeight: '700',
+          color: '#333'
+        },
+        title: muni.name,
+        zIndex: 0
+      });
+
+      // Click on province map: zoom to clicked municipality
+      polygon.addListener('click', () => zoomToMunicipality(muni.name));
+      label.addListener('click', () => zoomToMunicipality(muni.name));
+    }
+  });
+
+  // Set initial map bounds based on role
+  google.maps.event.addListenerOnce(map, 'idle', () => {
+    if (isMunicipal) {
+      const bounds = getMuniBounds(userMunicipality);
+      if (bounds) map.fitBounds(bounds, 40);
+    } else {
+      const bounds = getProvinceBounds();
+      if (bounds) map.fitBounds(bounds, 20);
+    }
+  });
+}
+
+function zoomToMunicipality(muniName) {
+  const bounds = getMuniBounds(muniName);
+  if (bounds) map.fitBounds(bounds, 40);
+  // Update muni filter dropdown to match
+  const sel = document.getElementById('map-muni-filter');
+  if (sel) sel.value = muniName;
+  filterRespondersByType();
+}
+
+// ── Reports listener ─────────────────────────────────────────────────────────
+function listenToReports() {
+  let query;
+  if (userRole === 'municipal_admin') {
+    query = db.collectionGroup('reports')
+      .where('municipality', '==', userMunicipality)
+      .orderBy('reportedAt', 'desc');
+  } else {
+    query = db.collectionGroup('reports')
+      .orderBy('reportedAt', 'desc');
+  }
+
+  query.onSnapshot(snapshot => {
+    allReports = snapshot.docs.map(doc => {
+      const d = doc.data();
+      const segs = doc.ref.path.split('/');
+      return {
+        id: doc.id,
+        ...d,
+        userId: d.userId || (segs.length >= 2 ? segs[1] : null),
+        reportedAt: d.reportedAt?.toDate ? d.reportedAt.toDate() : new Date()
+      };
+    });
+
+    updateStats();
+    applyFilter();
+    updateHeatmap();
+    if (showReportPins) renderReportPins();
+  }, err => console.error('Reports error:', err));
+}
+
+// ── Stats ────────────────────────────────────────────────────────────────────
+function updateStats() {
+  const total    = allReports.length;
+  const critical = allReports.filter(r => r.priority === 'critical' && r.status !== 'solved').length;
+  const ongoing  = allReports.filter(r => r.status === 'ongoing').length;
+  const solved   = allReports.filter(r => r.status === 'solved').length;
+
+  document.getElementById('stat-total').textContent    = total;
+  document.getElementById('stat-critical').textContent = critical;
+  document.getElementById('stat-ongoing').textContent  = ongoing;
+  document.getElementById('stat-resolved').textContent = solved;
+
+  // Avg resolution time
+  const resolvedWithTime = allReports.filter(
+    r => r.status === 'solved' && r.resolvedAt?.toDate && r.reportedAt
+  );
+  if (resolvedWithTime.length > 0) {
+    const avgMs = resolvedWithTime.reduce((sum, r) => {
+      const resolved = r.resolvedAt.toDate ? r.resolvedAt.toDate() : new Date(r.resolvedAt);
+      return sum + (resolved - r.reportedAt);
+    }, 0) / resolvedWithTime.length;
+    const avgHours = Math.round(avgMs / 36e5);
+    const avgDays  = Math.floor(avgHours / 24);
+    const remHours = avgHours % 24;
+    document.getElementById('stat-avg-time').textContent =
+      avgDays > 0 ? `Avg: ${avgDays}d ${remHours}h` : `Avg: ${avgHours}h`;
+  } else {
+    document.getElementById('stat-avg-time').textContent = 'No resolved data yet';
+  }
+}
+
+// ── Report table ─────────────────────────────────────────────────────────────
+function applyFilter() {
+  let list = [...allReports];
+  if (currentFilter !== 'all') list = list.filter(r => r.status === currentFilter);
+  if (criticalOnly)           list = list.filter(r => r.priority === 'critical');
+  filteredReports = list;
+  renderTable(list);
+  document.getElementById('report-count-label').textContent = list.length + ' report(s)';
+}
+
+function filterReports(status, btn) {
+  currentFilter = status;
+  criticalOnly  = false;
+  document.querySelectorAll('.reports-filter .chip').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  applyFilter();
+}
+
+function filterReportsByCritical(btn) {
+  criticalOnly  = !criticalOnly;
+  currentFilter = 'all';
+  document.querySelectorAll('.reports-filter .chip').forEach(b => b.classList.remove('active'));
+  if (criticalOnly) btn.classList.add('active');
+  applyFilter();
+}
+
+function renderTable(reports) {
+  const tbody = document.getElementById('reports-tbody');
+  if (reports.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="6"><div class="empty-state"><div>🗂️</div>No reports match this filter.</div></td></tr>';
+    return;
+  }
+
+  const priorityClass = { critical:'p-critical', high:'p-high', medium:'p-medium', low:'p-low' };
+  const statusClass   = { reported:'s-reported', ongoing:'s-ongoing', solved:'s-solved' };
+  const priorityLabel = { critical:'Critical', high:'High', medium:'Medium', low:'Low' };
+  const statusLabel   = { reported:'Reported', ongoing:'Ongoing', solved:'Solved' };
+
+  tbody.innerHTML = reports.slice(0, 100).map(r => {
+    const d   = r.reportedAt;
+    const dt  = d ? `${d.getMonth()+1}/${d.getDate()}/${d.getFullYear()}` : '—';
+    const pc  = priorityClass[r.priority] || 'p-low';
+    const sc  = statusClass[r.status]     || 's-reported';
+    const pl  = priorityLabel[r.priority] || r.priority || '—';
+    const sl  = statusLabel[r.status]     || r.status   || '—';
+    const anon = r.isAnonymous ? '<span class="anon-badge">Anon</span>' : '';
+    const hasGps = r.latitude && r.longitude;
+    return `<tr class="clickable" onclick="focusReport(${r.latitude||'null'},${r.longitude||'null'})">
+      <td><strong style="font-size:12px">${r.category||'—'}</strong>${anon}</td>
+      <td style="font-size:12px">${r.municipality||'—'}</td>
+      <td><span class="badge-status ${sc}">${sl}</span></td>
+      <td><span class="badge-priority ${pc}">${pl}</span></td>
+      <td><div class="report-loc" title="${r.location||''}">${r.location||'—'}</div>
+          ${hasGps?`<span style="font-size:10px;color:#4CAF50">📍 GPS</span>`:''}</td>
+      <td style="font-size:11px;color:#888">${dt}</td>
+    </tr>`;
+  }).join('');
+}
+
+function focusReport(lat, lng) {
+  if (!lat || !lng || !map) return;
+  map.setCenter({ lat: parseFloat(lat), lng: parseFloat(lng) });
+  map.setZoom(15);
+  document.getElementById('map').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// ── Heatmap ──────────────────────────────────────────────────────────────────
+function updateHeatmap() {
+  if (!heatmapLayer) return;
+  const points = allReports
+    .filter(r => r.latitude && r.longitude)
+    .map(r => ({
+      location: new google.maps.LatLng(r.latitude, r.longitude),
+      weight: r.priority === 'critical' ? 4 : r.priority === 'high' ? 3 : r.priority === 'medium' ? 2 : 1
+    }));
+  heatmapLayer.setData(points);
+}
+
+function toggleHeatmap() {
+  showHeatmap = !showHeatmap;
+  if (heatmapLayer) heatmapLayer.setMap(showHeatmap ? map : null);
+  document.getElementById('btn-heatmap').classList.toggle('active', showHeatmap);
+}
+
+// ── Responder markers ─────────────────────────────────────────────────────────
+function renderResponderMarkers() {
+  responderMarkers.forEach(m => m.setMap(null));
+  responderMarkers = [];
+
+  const typeFilter = document.getElementById('resp-type-filter')?.value || 'all';
+  const muniFilter = document.getElementById('map-muni-filter')?.value || 'all';
+
+  const list = RESPONDERS.filter(r => {
+    if (typeFilter !== 'all' && r.type !== typeFilter) return false;
+    if (muniFilter !== 'all' && r.municipality !== muniFilter) return false;
+    if (userRole === 'municipal_admin' && r.municipality !== userMunicipality) return false;
+    return true;
+  });
+
+  list.forEach(r => {
+    const info = RESPONDER_ICONS[r.type] || RESPONDER_ICONS.mdrrmo;
+    const marker = new google.maps.Marker({
+      position: { lat: r.lat, lng: r.lng },
+      map: showResponders ? map : null,
+      title: r.name,
+      label: { text: info.emoji, fontSize: '18px' },
+      icon: {
+        path: google.maps.SymbolPath.CIRCLE,
+        scale: 18,
+        fillColor: info.color,
+        fillOpacity: 0.92,
+        strokeColor: '#fff',
+        strokeWeight: 2
+      }
+    });
+
+    const iw = new google.maps.InfoWindow({
+      content: `<div class="iw">
+        <h4>${r.name}</h4>
+        <p>📍 ${r.address}</p>
+        <p class="iw-phone">📞 ${r.phone}</p>
+        ${r.email ? `<p style="font-size:11px;color:#888">${r.email}</p>` : ''}
+        <div class="iw-btns">
+          <a href="tel:${r.phone.replace(/[^+0-9]/g,'')}" class="iw-call">📞 Call</a>
+          <a href="sms:${r.phone.replace(/[^+0-9]/g,'')}" class="iw-sms">💬 SMS</a>
+        </div>
+      </div>`
+    });
+    marker.addListener('click', () => iw.open(map, marker));
+    responderMarkers.push(marker);
+  });
+}
+
+function toggleResponders() {
+  showResponders = !showResponders;
+  responderMarkers.forEach(m => m.setMap(showResponders ? map : null));
+  document.getElementById('btn-responders').classList.toggle('active', showResponders);
+}
+
+function filterRespondersByType() { renderResponderMarkers(); }
+function filterMapByMuni() {
+  renderResponderMarkers();
+  const muniFilter = document.getElementById('map-muni-filter').value;
+  if (muniFilter !== 'all') {
+    const muni = Object.keys(RESPONDERS.reduce((a,r) => { a[r.municipality]=1; return a; }, {}))
+      .includes(muniFilter);
+    const first = RESPONDERS.find(r => r.municipality === muniFilter);
+    if (first) { map.setCenter({lat: first.lat, lng: first.lng}); map.setZoom(13); }
+  } else {
+    map.setCenter(NV_CENTER); map.setZoom(NV_ZOOM);
+  }
+}
+
+// ── Report pins ───────────────────────────────────────────────────────────────
+function renderReportPins() {
+  reportPins.forEach(m => m.setMap(null));
+  reportPins = [];
+  const priorityColors = { critical:'#B71C1C', high:'#E65100', medium:'#F57F17', low:'#388E3C' };
+  allReports.filter(r => r.latitude && r.longitude).forEach(r => {
+    const m = new google.maps.Marker({
+      position: { lat: r.latitude, lng: r.longitude },
+      map: showReportPins ? map : null,
+      title: r.category,
+      icon: {
+        path: google.maps.SymbolPath.CIRCLE,
+        scale: 7,
+        fillColor: priorityColors[r.priority] || '#888',
+        fillOpacity: 0.85,
+        strokeColor: '#fff',
+        strokeWeight: 1.5
+      }
+    });
+    const iw = new google.maps.InfoWindow({
+      content: `<div class="iw">
+        <h4>${r.category||'Report'}</h4>
+        <p>📍 ${r.location||'—'}</p>
+        <p>Status: <strong>${r.status||'—'}</strong></p>
+        <p>Priority: <strong>${r.priority||'—'}</strong></p>
+        <p style="font-size:11px;color:#888">${r.municipality||''}</p>
+      </div>`
+    });
+    m.addListener('click', () => iw.open(map, m));
+    reportPins.push(m);
+  });
+}
+
+function toggleReportPins() {
+  showReportPins = !showReportPins;
+  if (showReportPins) renderReportPins();
+  else reportPins.forEach(m => m.setMap(null));
+  document.getElementById('btn-reports-pins').classList.toggle('active', showReportPins);
+}
+
+// ── Responder directory ───────────────────────────────────────────────────────
+function renderResponderDirectory(filter) {
+  currentRespDirFilter = filter;
+  let list = RESPONDERS.filter(r => {
+    if (userRole === 'municipal_admin' && r.municipality !== userMunicipality) return false;
+    if (filter !== 'all' && r.type !== filter) return false;
+    return true;
+  });
+
+  document.getElementById('resp-count-label').textContent = list.length + ' responders';
+
+  if (list.length === 0) {
+    document.getElementById('responder-list').innerHTML =
+      '<div class="empty-state"><div>🚨</div>No responders match.</div>';
+    return;
+  }
+
+  document.getElementById('responder-list').innerHTML = list.map(r => {
+    const info = RESPONDER_ICONS[r.type] || RESPONDER_ICONS.mdrrmo;
+    return `<div class="responder-card" onclick="focusResponder(${r.lat},${r.lng},'${r.name}')">
+      <div class="resp-icon" style="background:${info.color}22">${info.emoji}</div>
+      <div class="resp-info">
+        <div class="resp-name">${r.name}</div>
+        <div class="resp-muni">${r.municipality} &bull; ${info.label}</div>
+        <div class="resp-phone">${r.phone}</div>
+        <div class="resp-contact-btn">
+          <a href="tel:${r.phone.replace(/[^+0-9]/g,'')}" class="btn-call">📞 Call</a>
+          <a href="sms:${r.phone.replace(/[^+0-9]/g,'')}" class="btn-sms">💬 SMS</a>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function filterRespDir(type, btn) {
+  document.querySelectorAll('#resp-chips .chip').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderResponderDirectory(type);
+}
+
+function focusResponder(lat, lng, name) {
+  if (!map) return;
+  map.setCenter({ lat, lng });
+  map.setZoom(15);
+  document.getElementById('map').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// ── Municipality filter populate ──────────────────────────────────────────────
+function populateMuniFilter() {
+  const sel = document.getElementById('map-muni-filter');
+  const munis = [...new Set(RESPONDERS.map(r => r.municipality))].sort();
+  if (userRole === 'municipal_admin') {
+    sel.innerHTML = `<option value="${userMunicipality}">${userMunicipality}</option>`;
+    sel.disabled = true;
+  } else {
+    munis.forEach(m => {
+      const opt = document.createElement('option');
+      opt.value = m; opt.textContent = m;
+      sel.appendChild(opt);
+    });
+  }
+}
+
+// ── Sign out ──────────────────────────────────────────────────────────────────
+function signOut() {
+  auth.signOut().then(() => window.location.href = 'index.html');
+}
+
+// ── Hide loading overlay ──────────────────────────────────────────────────────
+function onMapsReady() {
+  document.getElementById('loading-overlay').style.display = 'none';
+}
+</script>
+
+<script async defer
+  src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCcKuCdQDdl6pxlLTFy88wTpEfjj2rwikI&libraries=visualization&callback=onMapsReady">
+</script>
+</body>
+</html>

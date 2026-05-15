@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>One Vizcaya — Admin Login</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Inter',sans-serif;background:linear-gradient(135deg,#1565C0 0%,#0D47A1 60%,#1B5E20 100%);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:16px}
+    .card{background:#fff;border-radius:20px;padding:40px 36px;width:100%;max-width:420px;box-shadow:0 20px 60px rgba(0,0,0,0.3)}
+    .logo{text-align:center;margin-bottom:28px}
+    .logo img{width:72px;height:72px;border-radius:50%;object-fit:cover;margin-bottom:12px}
+    .logo h1{font-size:22px;font-weight:700;color:#1565C0}
+    .logo p{font-size:13px;color:#666;margin-top:4px}
+    .badge{display:inline-block;background:#E3F2FD;color:#1565C0;font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;margin-top:6px}
+    label{font-size:13px;font-weight:600;color:#333;display:block;margin-bottom:6px}
+    .input-group{display:flex;gap:8px;margin-bottom:16px}
+    .prefix{background:#F5F5F5;border:1px solid #E0E0E0;border-radius:10px;padding:0 12px;display:flex;align-items:center;font-size:14px;color:#444;white-space:nowrap}
+    input{width:100%;border:1px solid #E0E0E0;border-radius:10px;padding:12px 14px;font-size:15px;outline:none;transition:border .2s}
+    input:focus{border-color:#1565C0}
+    .btn{width:100%;padding:14px;border:none;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer;transition:all .2s;margin-top:4px}
+    .btn-primary{background:#1565C0;color:#fff}
+    .btn-primary:hover{background:#0D47A1}
+    .btn-primary:disabled{background:#90CAF9;cursor:not-allowed}
+    .btn-outline{background:#fff;color:#1565C0;border:1.5px solid #1565C0;margin-top:8px}
+    .btn-outline:hover{background:#E3F2FD}
+    #otp-section{display:none}
+    .error{background:#FFEBEE;color:#C62828;border-radius:10px;padding:10px 14px;font-size:13px;margin-top:12px;display:none}
+    .success{background:#E8F5E9;color:#2E7D32;border-radius:10px;padding:10px 14px;font-size:13px;margin-top:12px;display:none}
+    .spinner{display:inline-block;width:16px;height:16px;border:2px solid #fff;border-top-color:transparent;border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:6px}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    .divider{text-align:center;color:#999;font-size:12px;margin:16px 0;position:relative}
+    .divider::before,.divider::after{content:'';position:absolute;top:50%;width:42%;height:1px;background:#E0E0E0}
+    .divider::before{left:0}.divider::after{right:0}
+    .footer{text-align:center;font-size:11px;color:#999;margin-top:24px}
+    #recaptcha-container{margin-top:8px}
+  </style>
+</head>
+<body>
+<div class="card">
+  <div class="logo">
+    <div style="width:72px;height:72px;background:#1565C0;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 12px">
+      <span style="font-size:32px">🏛️</span>
+    </div>
+    <h1>One Vizcaya</h1>
+    <p>Nueva Vizcaya Province</p>
+    <span class="badge">Admin Dashboard</span>
+  </div>
+
+  <div id="phone-section">
+    <label for="phone">Phone Number</label>
+    <div class="input-group">
+      <div class="prefix">🇵🇭 +63</div>
+      <input type="tel" id="phone" placeholder="9XXXXXXXXX" maxlength="10" inputmode="numeric"/>
+    </div>
+    <div id="recaptcha-container"></div>
+    <button class="btn btn-primary" id="send-otp-btn" onclick="sendOTP()">Send Verification Code</button>
+  </div>
+
+  <div id="otp-section">
+    <label for="otp">Verification Code</label>
+    <input type="text" id="otp" placeholder="Enter 6-digit code" maxlength="6" inputmode="numeric" style="margin-bottom:16px"/>
+    <button class="btn btn-primary" id="verify-btn" onclick="verifyOTP()">Verify & Sign In</button>
+    <button class="btn btn-outline" onclick="resetLogin()">← Change Number</button>
+  </div>
+
+  <div id="error-msg" class="error"></div>
+  <div id="success-msg" class="success"></div>
+
+  <div class="footer">
+    One Vizcaya Admin Portal v1.0.6<br/>
+    Authorized personnel only
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<script src="js/config.js"></script>
+<script>
+  firebase.initializeApp(FIREBASE_CONFIG);
+  const auth = firebase.auth();
+  const db   = firebase.firestore();
+  let confirmationResult = null;
+  let recaptchaVerifier  = null;
+
+  window.onload = () => {
+    auth.onAuthStateChanged(async user => {
+      if (user) await checkRoleAndRedirect(user);
+    });
+    recaptchaVerifier = new firebase.auth.RecaptchaVerifier('recaptcha-container', {
+      size: 'invisible',
+      callback: () => {}
+    });
+    recaptchaVerifier.render();
+  };
+
+  async function sendOTP() {
+    const raw   = document.getElementById('phone').value.trim();
+    const phone = '+63' + raw;
+    if (!/^\+63[0-9]{10}$/.test(phone)) {
+      return showError('Enter a valid 10-digit Philippine mobile number.');
+    }
+    setLoading('send-otp-btn', true, 'Sending…');
+    hideMessages();
+    try {
+      confirmationResult = await auth.signInWithPhoneNumber(phone, recaptchaVerifier);
+      document.getElementById('phone-section').style.display = 'none';
+      document.getElementById('otp-section').style.display   = 'block';
+      showSuccess('Code sent to +63' + raw);
+    } catch (e) {
+      showError('Failed to send code: ' + e.message);
+      recaptchaVerifier.render();
+    }
+    setLoading('send-otp-btn', false, 'Send Verification Code');
+  }
+
+  async function verifyOTP() {
+    const code = document.getElementById('otp').value.trim();
+    if (code.length !== 6) return showError('Enter the 6-digit code.');
+    setLoading('verify-btn', true, 'Verifying…');
+    hideMessages();
+    try {
+      const result = await confirmationResult.confirm(code);
+      await checkRoleAndRedirect(result.user);
+    } catch (e) {
+      showError('Invalid code. Please try again.');
+      setLoading('verify-btn', false, 'Verify & Sign In');
+    }
+  }
+
+  async function checkRoleAndRedirect(user) {
+    try {
+      const doc  = await db.collection('users').doc(user.uid).get();
+      const role = doc.exists ? (doc.data().role || 'citizen') : 'citizen';
+      const allowed = ['admin','municipal_admin','provincial_admin'];
+      if (allowed.includes(role)) {
+        window.location.href = 'dashboard.html';
+      } else {
+        await auth.signOut();
+        showError('Access denied. This portal is for LGU administrators only.');
+        setLoading('verify-btn', false, 'Verify & Sign In');
+      }
+    } catch (e) {
+      showError('Could not verify role: ' + e.message);
+      setLoading('verify-btn', false, 'Verify & Sign In');
+    }
+  }
+
+  function resetLogin() {
+    document.getElementById('phone-section').style.display = 'block';
+    document.getElementById('otp-section').style.display   = 'none';
+    document.getElementById('phone').value = '';
+    document.getElementById('otp').value   = '';
+    hideMessages();
+    confirmationResult = null;
+  }
+
+  function showError(msg)   { const el = document.getElementById('error-msg');   el.textContent = msg; el.style.display = 'block'; document.getElementById('success-msg').style.display = 'none'; }
+  function showSuccess(msg) { const el = document.getElementById('success-msg'); el.textContent = msg; el.style.display = 'block'; document.getElementById('error-msg').style.display   = 'none'; }
+  function hideMessages()   { document.getElementById('error-msg').style.display = 'none'; document.getElementById('success-msg').style.display = 'none'; }
+  function setLoading(id, loading, label) {
+    const btn = document.getElementById(id);
+    btn.disabled   = loading;
+    btn.innerHTML  = loading ? '<span class="spinner"></span>' + label : label;
+  }
+
+  document.getElementById('phone').addEventListener('keydown', e => { if (e.key === 'Enter') sendOTP(); });
+  document.getElementById('otp').addEventListener('keydown', e => { if (e.key === 'Enter') verifyOTP(); });
+</script>
+</body>
+</html>
