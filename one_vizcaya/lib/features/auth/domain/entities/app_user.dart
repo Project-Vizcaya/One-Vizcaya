@@ -1,4 +1,4 @@
-enum UserRole { citizen, admin, municipalAdmin, provincialAdmin }
+enum UserRole { citizen, admin, municipalAdmin, provincialAdmin, superAdmin }
 
 extension UserRoleX on UserRole {
   String get displayName {
@@ -11,11 +11,15 @@ extension UserRoleX on UserRole {
         return 'Municipal Admin';
       case UserRole.provincialAdmin:
         return 'Provincial Admin';
+      case UserRole.superAdmin:
+        return 'Super Admin';
     }
   }
 
   String get firestoreValue {
     switch (this) {
+      case UserRole.superAdmin:
+        return 'super_admin';
       case UserRole.provincialAdmin:
         return 'provincial_admin';
       case UserRole.municipalAdmin:
@@ -55,6 +59,8 @@ class AppUser {
 
   static UserRole roleFromString(String? value) {
     switch (value) {
+      case 'super_admin':
+        return UserRole.superAdmin;
       case 'provincial_admin':
         return UserRole.provincialAdmin;
       case 'municipal_admin':
@@ -69,9 +75,13 @@ class AppUser {
   bool get isAnyAdmin =>
       role == UserRole.admin ||
       role == UserRole.municipalAdmin ||
-      role == UserRole.provincialAdmin;
+      role == UserRole.provincialAdmin ||
+      role == UserRole.superAdmin;
 
-  bool get isProvincialAdmin => role == UserRole.provincialAdmin;
+  bool get isProvincialAdmin =>
+      role == UserRole.provincialAdmin || role == UserRole.superAdmin;
+
+  bool get isSuperAdmin => role == UserRole.superAdmin;
 
   Map<String, dynamic> toMap() => {
         'name': name,
