@@ -386,28 +386,27 @@
 <script src="js/municipalities.js"></script>
 
 <script>
-// Municipality seal filenames from Wikimedia Commons
+// Municipality seal images — served locally from img/seals/
 const MUNI_SEALS = {
-  "Bayombong":         "Ph_seal_bayombong_nueva_vizcaya.png",
-  "Bambang":           "Ph_seal_bambang_nueva_vizcaya.png",
-  "Solano":            "Ph_seal_solano_nueva_vizcaya.png",
-  "Bagabag":           "Ph_seal_bagabag_nueva_vizcaya.png",
-  "Aritao":            "Ph_seal_aritao_nueva_vizcaya.png",
-  "Dupax del Norte":   "Ph_seal_dupax_del_norte_nueva_vizcaya.png",
-  "Dupax del Sur":     "Ph_seal_dupax_del_sur_nueva_vizcaya.png",
-  "Santa Fe":          "Ph_seal_santa_fe_nueva_vizcaya.png",
-  "Kasibu":            "Ph_seal_kasibu_nueva_vizcaya.png",
-  "Villaverde":        "Ph_seal_villaverde_nueva_vizcaya.png",
-  "Diadi":             "Ph_seal_diadi_nueva_vizcaya.png",
-  "Quezon":            "Ph_seal_quezon_nueva_vizcaya.png",
-  "Ambaguio":          "Ph_seal_ambaguio_nueva_vizcaya.png",
-  "Kayapa":            "Ph_seal_kayapa_nueva_vizcaya.png",
-  "Alfonso Castañeda": "Ph_seal_alfonso_castaneda_nueva_vizcaya.png",
+  "Bayombong":         "img/seals/bayombong.png",
+  "Bambang":           "img/seals/bambang.png",
+  "Solano":            "img/seals/solano.png",
+  "Bagabag":           "img/seals/bagabag.png",
+  "Aritao":            "img/seals/aritao.png",
+  "Dupax del Norte":   "img/seals/dupax-del-norte.png",
+  "Dupax del Sur":     "img/seals/dupax-del-sur.png",
+  "Santa Fe":          "img/seals/santa-fe.png",
+  "Kasibu":            "img/seals/kasibu.png",
+  "Villaverde":        "img/seals/villaverde.png",
+  "Diadi":             "img/seals/diadi.png",
+  "Quezon":            "img/seals/quezon.png",
+  "Ambaguio":          "img/seals/ambaguio.png",
+  "Kayapa":            "img/seals/kayapa.png",
+  "Alfonso Castañeda": "img/seals/alfonso-castaneda.png",
 };
 
 function getMuniSealUrl(muniName) {
-  const f = MUNI_SEALS[muniName];
-  return f ? `https://en.wikipedia.org/wiki/Special:Redirect/file/${f}` : null;
+  return MUNI_SEALS[muniName] || null;
 }
 
 // ── Firebase init ────────────────────────────────────────────────────────────
