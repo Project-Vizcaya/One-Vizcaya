@@ -7,26 +7,27 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
-    body{font-family:'Inter',sans-serif;background:linear-gradient(145deg,#0D47A1 0%,#1565C0 45%,#1B5E20 100%);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:16px}
+    body{font-family:'Inter',sans-serif;background:linear-gradient(145deg,#1B5E20 0%,#2E7D32 50%,#F57F17 100%);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:16px}
     .card{background:#fff;border-radius:24px;padding:44px 40px;width:100%;max-width:420px;box-shadow:0 24px 80px rgba(0,0,0,0.35);animation:fadeUp .4s ease}
     @keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
     .logo{text-align:center;margin-bottom:32px}
-    .logo-ring{width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,#1565C0,#0D47A1);display:flex;align-items:center;justify-content:center;margin:0 auto 14px;box-shadow:0 8px 24px rgba(21,101,192,.35)}
+    .logo-ring{width:96px;height:96px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;margin:0 auto 14px;box-shadow:0 8px 28px rgba(46,125,50,.3);border:3px solid #C8E6C9;overflow:hidden}
+    .logo-ring img{width:88px;height:88px;object-fit:contain;border-radius:50%}
     .logo-ring span{font-size:36px}
-    .logo h1{font-size:24px;font-weight:800;color:#0D47A1;letter-spacing:-.3px}
+    .logo h1{font-size:24px;font-weight:800;color:#1B5E20;letter-spacing:-.3px}
     .logo p{font-size:13px;color:#777;margin-top:4px}
-    .badge{display:inline-block;background:linear-gradient(90deg,#E3F2FD,#E8F5E9);color:#1565C0;font-size:11px;font-weight:700;padding:4px 12px;border-radius:20px;margin-top:8px;border:1px solid #BBDEFB}
+    .badge{display:inline-block;background:linear-gradient(90deg,#E8F5E9,#FFF8E1);color:#1B5E20;font-size:11px;font-weight:700;padding:4px 12px;border-radius:20px;margin-top:8px;border:1px solid #C8E6C9}
     label{font-size:12px;font-weight:700;color:#555;display:block;margin-bottom:7px;text-transform:uppercase;letter-spacing:.5px}
     .input-group{display:flex;gap:8px;margin-bottom:18px}
-    .prefix{background:#EEF4FB;border:1.5px solid #BBDEFB;border-radius:12px;padding:0 14px;display:flex;align-items:center;font-size:14px;font-weight:600;color:#1565C0;white-space:nowrap}
+    .prefix{background:#EEF8F0;border:1.5px solid #C8E6C9;border-radius:12px;padding:0 14px;display:flex;align-items:center;font-size:14px;font-weight:600;color:#2E7D32;white-space:nowrap}
     input{width:100%;border:1.5px solid #E0E0E0;border-radius:12px;padding:13px 15px;font-size:15px;outline:none;transition:all .2s;color:#222}
-    input:focus{border-color:#1565C0;box-shadow:0 0 0 3px rgba(21,101,192,.1)}
+    input:focus{border-color:#2E7D32;box-shadow:0 0 0 3px rgba(46,125,50,.1)}
     .btn{width:100%;padding:15px;border:none;border-radius:14px;font-size:15px;font-weight:700;cursor:pointer;transition:all .2s;margin-top:4px}
-    .btn-primary{background:linear-gradient(135deg,#1565C0,#0D47A1);color:#fff;box-shadow:0 4px 16px rgba(21,101,192,.35)}
-    .btn-primary:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(21,101,192,.45)}
-    .btn-primary:disabled{background:#90CAF9;cursor:not-allowed;transform:none;box-shadow:none}
-    .btn-outline{background:#fff;color:#1565C0;border:2px solid #1565C0;margin-top:10px}
-    .btn-outline:hover{background:#E3F2FD}
+    .btn-primary{background:linear-gradient(135deg,#2E7D32,#1B5E20);color:#fff;box-shadow:0 4px 16px rgba(46,125,50,.35)}
+    .btn-primary:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(46,125,50,.45)}
+    .btn-primary:disabled{background:#A5D6A7;cursor:not-allowed;transform:none;box-shadow:none}
+    .btn-outline{background:#fff;color:#2E7D32;border:2px solid #2E7D32;margin-top:10px}
+    .btn-outline:hover{background:#E8F5E9}
     #otp-section{display:none}
     .error{background:#FFEBEE;color:#C62828;border-radius:12px;padding:11px 15px;font-size:13px;margin-top:12px;display:none;border-left:4px solid #EF5350}
     .success{background:#E8F5E9;color:#2E7D32;border-radius:12px;padding:11px 15px;font-size:13px;margin-top:12px;display:none;border-left:4px solid #66BB6A}
@@ -39,7 +40,10 @@
 <body>
 <div class="card">
   <div class="logo">
-    <div class="logo-ring"><span>🏛️</span></div>
+    <div class="logo-ring">
+      <img src="img/seals/nueva-vizcaya.png" alt="Nueva Vizcaya Seal"
+           onerror="this.style.display='none';this.parentElement.innerHTML='<span>🏛️</span>'"/>
+    </div>
     <h1>One Vizcaya</h1>
     <p>Nueva Vizcaya Province</p>
     <span class="badge">Admin Dashboard</span>
