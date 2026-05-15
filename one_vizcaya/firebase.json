@@ -26,6 +26,16 @@
       }
     }
   },
+  "hosting": {
+    "public": "web_admin",
+    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+    "headers": [
+      {
+        "source": "**",
+        "headers": [{ "key": "Cache-Control", "value": "no-cache" }]
+      }
+    ]
+  },
   "functions": [
     {
       "source": "functions",
