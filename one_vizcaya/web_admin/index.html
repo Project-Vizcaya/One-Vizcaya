@@ -11,7 +11,8 @@
     .card{background:#fff;border-radius:24px;padding:44px 40px;width:100%;max-width:420px;box-shadow:0 24px 80px rgba(0,0,0,0.35);animation:fadeUp .4s ease}
     @keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
     .logo{text-align:center;margin-bottom:32px}
-    .logo-ring{width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,#1565C0,#0D47A1);display:flex;align-items:center;justify-content:center;margin:0 auto 14px;box-shadow:0 8px 24px rgba(21,101,192,.35)}
+    .logo-ring{width:96px;height:96px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;margin:0 auto 14px;box-shadow:0 8px 28px rgba(21,101,192,.28);border:3px solid #BBDEFB;overflow:hidden}
+    .logo-ring img{width:88px;height:88px;object-fit:contain;border-radius:50%}
     .logo-ring span{font-size:36px}
     .logo h1{font-size:24px;font-weight:800;color:#0D47A1;letter-spacing:-.3px}
     .logo p{font-size:13px;color:#777;margin-top:4px}
@@ -39,7 +40,10 @@
 <body>
 <div class="card">
   <div class="logo">
-    <div class="logo-ring"><span>🏛️</span></div>
+    <div class="logo-ring">
+      <img src="img/seals/nueva-vizcaya.png" alt="Nueva Vizcaya Seal"
+           onerror="this.style.display='none';this.parentElement.innerHTML='<span>🏛️</span>'"/>
+    </div>
     <h1>One Vizcaya</h1>
     <p>Nueva Vizcaya Province</p>
     <span class="badge">Admin Dashboard</span>
