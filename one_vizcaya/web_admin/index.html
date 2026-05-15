@@ -135,7 +135,7 @@
     try {
       const doc  = await db.collection('users').doc(user.uid).get();
       const role = doc.exists ? (doc.data().role || 'citizen') : 'citizen';
-      const allowed = ['admin','municipal_admin','provincial_admin'];
+      const allowed = ['admin','municipal_admin','provincial_admin','super_admin'];
       if (allowed.includes(role)) {
         window.location.href = 'dashboard.html';
       } else {
