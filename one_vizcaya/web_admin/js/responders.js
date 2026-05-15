@@ -226,6 +226,37 @@ const RESPONDERS = [
     email: ""
   },
 
+  // ── R2TMC ────────────────────────────────────────────────────────────────────
+  {
+    name: "R2TMC – Region 2 Traffic Management",
+    type: "traffic",
+    municipality: "Bayombong",
+    lat: 16.4840, lng: 121.1492,
+    phone: "(078) 321-2100", // *unverified
+    address: "Maharlika Highway, Bayombong",
+    email: ""
+  },
+
+  // ── DPWH ─────────────────────────────────────────────────────────────────────
+  {
+    name: "DPWH Nueva Vizcaya 1st DEO",
+    type: "dpwh",
+    municipality: "Bayombong",
+    lat: 16.4828, lng: 121.1508,
+    phone: "(078) 321-2060", // *unverified
+    address: "Bayombong, Nueva Vizcaya",
+    email: ""
+  },
+  {
+    name: "DPWH Nueva Vizcaya 2nd DEO",
+    type: "dpwh",
+    municipality: "Solano",
+    lat: 16.5198, lng: 121.1795,
+    phone: "(078) 326-5040", // *unverified
+    address: "Solano, Nueva Vizcaya",
+    email: ""
+  },
+
   // ── VILLAVERDE ───────────────────────────────────────────────────────────
   {
     name: "MDRRMO Villaverde",
@@ -239,9 +270,11 @@ const RESPONDERS = [
 ];
 
 const RESPONDER_ICONS = {
-  mdrrmo:  { color: "#E65100", label: "MDRRMO",   emoji: "🚨" },
-  police:  { color: "#1565C0", label: "Police",    emoji: "👮" },
-  fire:    { color: "#B71C1C", label: "Fire (BFP)", emoji: "🚒" },
-  hospital:{ color: "#2E7D32", label: "Hospital",  emoji: "🏥" },
-  health:  { color: "#00838F", label: "Health",    emoji: "⚕️"  },
+  mdrrmo:  { color: "#E65100", label: "MDRRMO",        emoji: "🚨" },
+  police:  { color: "#1565C0", label: "Police",         emoji: "👮" },
+  fire:    { color: "#B71C1C", label: "Fire (BFP)",     emoji: "🚒" },
+  hospital:{ color: "#2E7D32", label: "Hospital",       emoji: "🏥" },
+  health:  { color: "#00838F", label: "Health",         emoji: "⚕️"  },
+  dpwh:    { color: "#1A237E", label: "DPWH",           emoji: "🏗️" },
+  traffic: { color: "#6A1B9A", label: "Traffic (R2TMC)", emoji: "🚦" },
 };
