@@ -21,6 +21,15 @@ const RESPONDERS = [
     email: ""
   },
   {
+    name: "Region II Trauma and Medical Center",
+    type: "hospital",
+    municipality: "Bayombong",
+    lat: 16.4870, lng: 121.1525,
+    phone: "(078) 392-1058",
+    address: "AH26, Barangay Magsaysay, Bayombong, Nueva Vizcaya",
+    email: "r2tmc@doh.gov.ph"
+  },
+  {
     name: "PNP Nueva Vizcaya Provincial Office",
     type: "police",
     municipality: "Bayombong",
@@ -53,7 +62,7 @@ const RESPONDERS = [
     name: "MDRRMO Bambang",
     type: "mdrrmo",
     municipality: "Bambang",
-    lat: 16.3831, lng: 121.1008,
+    lat: 16.3852, lng: 121.1058,
     phone: "09065630944",
     address: "Municipal Hall Compound, Bambang",
     email: ""
@@ -62,7 +71,7 @@ const RESPONDERS = [
     name: "PNP Bambang Municipal Station",
     type: "police",
     municipality: "Bambang",
-    lat: 16.3825, lng: 121.1012,
+    lat: 16.3844, lng: 121.1068,
     phone: "09175444946",
     address: "Bambang, Nueva Vizcaya",
     email: ""
@@ -71,7 +80,7 @@ const RESPONDERS = [
     name: "Bambang Rural Health Unit",
     type: "health",
     municipality: "Bambang",
-    lat: 16.3840, lng: 121.1005,
+    lat: 16.3860, lng: 121.1048,
     phone: "(078) 321-3010", // *unverified
     address: "Bambang, Nueva Vizcaya",
     email: ""
@@ -80,7 +89,7 @@ const RESPONDERS = [
     name: "BFP Bambang Fire Station",
     type: "fire",
     municipality: "Bambang",
-    lat: 16.3820, lng: 121.1018,
+    lat: 16.3835, lng: 121.1075,
     phone: "(078) 321-3020", // *unverified
     address: "Bambang, Nueva Vizcaya",
     email: ""
@@ -226,17 +235,6 @@ const RESPONDERS = [
     email: ""
   },
 
-  // ── R2TMC ────────────────────────────────────────────────────────────────────
-  {
-    name: "R2TMC – Region 2 Traffic Management",
-    type: "traffic",
-    municipality: "Bayombong",
-    lat: 16.4840, lng: 121.1492,
-    phone: "(078) 321-2100", // *unverified
-    address: "Maharlika Highway, Bayombong",
-    email: ""
-  },
-
   // ── DPWH ─────────────────────────────────────────────────────────────────────
   {
     name: "DPWH Nueva Vizcaya 1st DEO",
@@ -276,5 +274,4 @@ const RESPONDER_ICONS = {
   hospital:{ color: "#2E7D32", label: "Hospital",       emoji: "🏥" },
   health:  { color: "#00838F", label: "Health",         emoji: "⚕️"  },
   dpwh:    { color: "#1A237E", label: "DPWH",           emoji: "🏗️" },
-  traffic: { color: "#6A1B9A", label: "Traffic (R2TMC)", emoji: "🚦" },
 };
