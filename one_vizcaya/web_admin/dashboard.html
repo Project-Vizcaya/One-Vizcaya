@@ -530,21 +530,25 @@ function loadMunicipalityBoundaries() {
     const show     = isProvincial || isActive;
     if (!show) return;
 
-    const path = muni.polygon.map(([lng, lat]) => ({ lat, lng }));
+    const path       = muni.polygon.map(([lng, lat]) => ({ lat, lng }));
+    const muniColor  = muni.color || '#2E7D32';
 
     let strokeColor, strokeOpacity, strokeWeight, fillColor, fillOpacity;
-    if (isMunicipal && isActive) {
-      strokeColor   = '#2E7D32';
-      strokeOpacity = 1;
-      strokeWeight  = 3;
-      fillColor     = '#2E7D32';
-      fillOpacity   = 0.14;
-    } else if (isProvincial) {
-      strokeColor   = '#2E7D32';
+
+    if (isProvincial) {
+      // Each municipality gets its own color; active one (if switching views) is more opaque
+      strokeColor   = '#4A4A4A';
       strokeOpacity = 0.7;
       strokeWeight  = 1.5;
-      fillColor     = '#2E7D32';
-      fillOpacity   = 0.05;
+      fillColor     = muniColor;
+      fillOpacity   = 0.55;
+    } else if (isMunicipal && isActive) {
+      // Single-municipality view: bold highlight
+      strokeColor   = '#1B5E20';
+      strokeOpacity = 1;
+      strokeWeight  = 3;
+      fillColor     = muniColor;
+      fillOpacity   = 0.65;
     }
 
     const polygon = new google.maps.Polygon({
@@ -563,7 +567,7 @@ function loadMunicipalityBoundaries() {
         position: center,
         map,
         icon: { path: google.maps.SymbolPath.CIRCLE, scale: 0 },
-        label: { text: muni.name, fontSize: '10px', fontWeight: '700', color: '#1B5E20' },
+        label: { text: muni.name, fontSize: '10px', fontWeight: '700', color: '#1A1A1A' },
         title: muni.name,
         zIndex: 0
       });
