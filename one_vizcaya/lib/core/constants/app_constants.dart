@@ -38,17 +38,20 @@ class AppConstants {
 
   static const Map<String, dynamic> municipalityThemes = {
     'Bambang': {
-      'appBarColor': Color(0xFFE2725B), // Terracotta or Earthy Brown
+      'appBarColor': Color(0xFFE2725B),    // Terracotta
+      'secondaryColor': Color(0xFF8B4513), // Saddle Brown
       'welcomeMsg':
           'Welcome to Bambang, The Agricultural Hub of Nueva Vizcaya!',
     },
     'Solano': {
-      'appBarColor': Color(0xFFFF4500), // Bright Red or Orange
+      'appBarColor': Color(0xFFFF4500),    // Bright Red-Orange
+      'secondaryColor': Color(0xFFFFD700), // Golden Yellow
       'welcomeMsg':
           'Welcome to Solano, The Commercial Center of Nueva Vizcaya!',
     },
     'Bayombong': {
-      'appBarColor': Color(0xFF228B22), // Forest Green
+      'appBarColor': Color(0xFF228B22),    // Forest Green
+      'secondaryColor': Color(0xFFF9A825), // Amber Gold
       'welcomeMsg':
           'Welcome to Bayombong, The Institutional Capital of Nueva Vizcaya!',
     },
