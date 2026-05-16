@@ -113,7 +113,7 @@ const RESPONDERS = [
     name: "PNP Bambang Municipal Station",
     type: "police",
     municipality: "Bambang",
-    lat: 16.37519, lng: 121.10334,
+    lat: 16.37564, lng: 121.10344,
     phone: "09175444946",
     address: "Bambang, Nueva Vizcaya",
     email: ""
@@ -153,7 +153,7 @@ const RESPONDERS = [
     name: "PNP Solano Municipal Station",
     type: "police",
     municipality: "Solano",
-    lat: 16.52185, lng: 121.18424,
+    lat: 16.51796, lng: 121.18695,
     phone: "09360620305",
     address: "Solano, Nueva Vizcaya",
     email: ""
@@ -211,7 +211,7 @@ const RESPONDERS = [
     name: "MDRRMO Bagabag",
     type: "mdrrmo",
     municipality: "Bagabag",
-    lat: 16.59895, lng: 121.26435,
+    lat: 16.60780, lng: 121.25360,
     phone: "(078) 321-4010", // *unverified
     address: "Municipal Hall, Bagabag, Nueva Vizcaya",
     email: ""
@@ -220,7 +220,7 @@ const RESPONDERS = [
     name: "PNP Bagabag Municipal Station",
     type: "police",
     municipality: "Bagabag",
-    lat: 16.59825, lng: 121.26410,
+    lat: 16.60758, lng: 121.25343,
     phone: "(078) 321-4020", // *unverified
     address: "Bagabag, Nueva Vizcaya",
     email: ""
@@ -229,7 +229,7 @@ const RESPONDERS = [
     name: "BFP Bagabag Fire Station",
     type: "fire",
     municipality: "Bagabag",
-    lat: 16.59870, lng: 121.26385,
+    lat: 16.60740, lng: 121.25310,
     phone: "(078) 321-4030", // *unverified
     address: "Bagabag, Nueva Vizcaya",
     email: ""
@@ -247,7 +247,7 @@ const RESPONDERS = [
     name: "Bagabag Rural Health Unit",
     type: "health",
     municipality: "Bagabag",
-    lat: 16.59750, lng: 121.26460,
+    lat: 16.60690, lng: 121.25280,
     phone: "(078) 321-4050", // *unverified
     address: "Bagabag, Nueva Vizcaya",
     email: ""
@@ -260,7 +260,7 @@ const RESPONDERS = [
     name: "MDRRMO Villaverde",
     type: "mdrrmo",
     municipality: "Villaverde",
-    lat: 16.56010, lng: 121.20330,
+    lat: 16.59073, lng: 121.18629,
     phone: "(078) 322-1010", // *unverified
     address: "Municipal Hall, Villaverde, Nueva Vizcaya",
     email: ""
@@ -269,7 +269,7 @@ const RESPONDERS = [
     name: "PNP Villaverde Municipal Station",
     type: "police",
     municipality: "Villaverde",
-    lat: 16.55942, lng: 121.20318,
+    lat: 16.60691, lng: 121.18470,
     phone: "(078) 322-1020", // *unverified
     address: "Villaverde, Nueva Vizcaya",
     email: ""
@@ -287,7 +287,7 @@ const RESPONDERS = [
     name: "Villaverde Rural Health Unit",
     type: "health",
     municipality: "Villaverde",
-    lat: 16.55890, lng: 121.20270,
+    lat: 16.60610, lng: 121.18410,
     phone: "(078) 322-1040", // *unverified
     address: "Villaverde, Nueva Vizcaya",
     email: ""
@@ -300,7 +300,7 @@ const RESPONDERS = [
     name: "MDRRMO Diadi",
     type: "mdrrmo",
     municipality: "Diadi",
-    lat: 16.68415, lng: 121.34125,
+    lat: 16.66050, lng: 121.36980,
     phone: "(078) 321-1110", // *unverified
     address: "Municipal Hall, Diadi, Nueva Vizcaya",
     email: ""
@@ -309,7 +309,7 @@ const RESPONDERS = [
     name: "PNP Diadi Municipal Station",
     type: "police",
     municipality: "Diadi",
-    lat: 16.68342, lng: 121.34118,
+    lat: 16.66022, lng: 121.36953,
     phone: "(078) 321-1120", // *unverified
     address: "Diadi, Nueva Vizcaya",
     email: ""
@@ -318,7 +318,7 @@ const RESPONDERS = [
     name: "BFP Diadi Fire Station",
     type: "fire",
     municipality: "Diadi",
-    lat: 16.68390, lng: 121.34150,
+    lat: 16.65980, lng: 121.36910,
     phone: "(078) 321-1130", // *unverified
     address: "Diadi, Nueva Vizcaya",
     email: ""
@@ -336,7 +336,7 @@ const RESPONDERS = [
     name: "Diadi Rural Health Unit",
     type: "health",
     municipality: "Diadi",
-    lat: 16.68295, lng: 121.34080,
+    lat: 16.65920, lng: 121.36850,
     phone: "(078) 321-1140", // *unverified
     address: "Diadi, Nueva Vizcaya",
     email: ""
@@ -349,7 +349,7 @@ const RESPONDERS = [
     name: "MDRRMO Quezon",
     type: "mdrrmo",
     municipality: "Quezon",
-    lat: 16.48190, lng: 121.31440,
+    lat: 16.49060, lng: 121.26450,
     phone: "(078) 321-2210", // *unverified
     address: "Municipal Hall, Quezon, Nueva Vizcaya",
     email: ""
@@ -358,7 +358,7 @@ const RESPONDERS = [
     name: "PNP Quezon Municipal Station",
     type: "police",
     municipality: "Quezon",
-    lat: 16.48124, lng: 121.31428,
+    lat: 16.49026, lng: 121.26423,
     phone: "(078) 321-2220", // *unverified
     address: "Quezon, Nueva Vizcaya",
     email: ""
@@ -367,7 +367,7 @@ const RESPONDERS = [
     name: "BFP Quezon Fire Station",
     type: "fire",
     municipality: "Quezon",
-    lat: 16.48160, lng: 121.31460,
+    lat: 16.48990, lng: 121.26390,
     phone: "(078) 321-2230", // *unverified
     address: "Quezon, Nueva Vizcaya",
     email: ""
@@ -376,7 +376,7 @@ const RESPONDERS = [
     name: "Quezon Rural Health Unit",
     type: "health",
     municipality: "Quezon",
-    lat: 16.48070, lng: 121.31390,
+    lat: 16.48930, lng: 121.26340,
     phone: "(078) 321-2240", // *unverified
     address: "Quezon, Nueva Vizcaya",
     email: ""
@@ -438,7 +438,7 @@ const RESPONDERS = [
     name: "PNP Aritao Municipal Station",
     type: "police",
     municipality: "Aritao",
-    lat: 16.29524, lng: 121.03128,
+    lat: 16.29656, lng: 121.03251,
     phone: "(078) 321-5020", // *unverified
     address: "Aritao, Nueva Vizcaya",
     email: ""
@@ -478,7 +478,7 @@ const RESPONDERS = [
     name: "MDRRMO Dupax del Norte",
     type: "mdrrmo",
     municipality: "Dupax del Norte",
-    lat: 16.28850, lng: 121.13430,
+    lat: 16.30750, lng: 121.10190,
     phone: "(078) 321-6010", // *unverified
     address: "Municipal Hall, Dupax del Norte, Nueva Vizcaya",
     email: ""
@@ -487,7 +487,7 @@ const RESPONDERS = [
     name: "PNP Dupax del Norte Municipal Station",
     type: "police",
     municipality: "Dupax del Norte",
-    lat: 16.28784, lng: 121.13415,
+    lat: 16.30693, lng: 121.10169,
     phone: "(078) 321-6020", // *unverified
     address: "Dupax del Norte, Nueva Vizcaya",
     email: ""
@@ -496,7 +496,7 @@ const RESPONDERS = [
     name: "BFP Dupax del Norte Fire Station",
     type: "fire",
     municipality: "Dupax del Norte",
-    lat: 16.28820, lng: 121.13390,
+    lat: 16.30720, lng: 121.10140,
     phone: "(078) 321-6030", // *unverified
     address: "Dupax del Norte, Nueva Vizcaya",
     email: ""
@@ -505,7 +505,7 @@ const RESPONDERS = [
     name: "Dupax del Norte Rural Health Unit",
     type: "health",
     municipality: "Dupax del Norte",
-    lat: 16.28710, lng: 121.13450,
+    lat: 16.30650, lng: 121.10220,
     phone: "(078) 321-6040", // *unverified
     address: "Dupax del Norte, Nueva Vizcaya",
     email: ""
@@ -518,7 +518,7 @@ const RESPONDERS = [
     name: "MDRRMO Dupax del Sur",
     type: "mdrrmo",
     municipality: "Dupax del Sur",
-    lat: 16.25965, lng: 121.10995,
+    lat: 16.28790, lng: 121.10180,
     phone: "(078) 321-7010", // *unverified
     address: "Municipal Hall, Dupax del Sur, Nueva Vizcaya",
     email: ""
@@ -527,7 +527,7 @@ const RESPONDERS = [
     name: "PNP Dupax del Sur Municipal Station",
     type: "police",
     municipality: "Dupax del Sur",
-    lat: 16.25892, lng: 121.10984,
+    lat: 16.28752, lng: 121.10152,
     phone: "(078) 321-7020", // *unverified
     address: "Dupax del Sur, Nueva Vizcaya",
     email: ""
@@ -536,7 +536,7 @@ const RESPONDERS = [
     name: "BFP Dupax del Sur Fire Station",
     type: "fire",
     municipality: "Dupax del Sur",
-    lat: 16.25940, lng: 121.11020,
+    lat: 16.28710, lng: 121.10110,
     phone: "(078) 321-7030", // *unverified
     address: "Dupax del Sur, Nueva Vizcaya",
     email: ""
@@ -545,7 +545,7 @@ const RESPONDERS = [
     name: "Dupax del Sur Rural Health Unit",
     type: "health",
     municipality: "Dupax del Sur",
-    lat: 16.25840, lng: 121.10930,
+    lat: 16.28680, lng: 121.10050,
     phone: "(078) 321-7040", // *unverified
     address: "Dupax del Sur, Nueva Vizcaya",
     email: ""
@@ -558,7 +558,7 @@ const RESPONDERS = [
     name: "MDRRMO Kasibu",
     type: "mdrrmo",
     municipality: "Kasibu",
-    lat: 16.32480, lng: 121.28965,
+    lat: 16.31530, lng: 121.29410,
     phone: "(078) 321-9010", // *unverified
     address: "Municipal Hall, Kasibu, Nueva Vizcaya",
     email: ""
@@ -567,7 +567,7 @@ const RESPONDERS = [
     name: "PNP Kasibu Municipal Station",
     type: "police",
     municipality: "Kasibu",
-    lat: 16.32415, lng: 121.28942,
+    lat: 16.31494, lng: 121.29372,
     phone: "(078) 321-9020", // *unverified
     address: "Kasibu, Nueva Vizcaya",
     email: ""
@@ -594,7 +594,7 @@ const RESPONDERS = [
     name: "Kasibu Rural Health Unit",
     type: "health",
     municipality: "Kasibu",
-    lat: 16.32380, lng: 121.28910,
+    lat: 16.31420, lng: 121.29310,
     phone: "(078) 321-9050", // *unverified
     address: "Kasibu, Nueva Vizcaya",
     email: ""
@@ -607,7 +607,7 @@ const RESPONDERS = [
     name: "MDRRMO Kayapa",
     type: "mdrrmo",
     municipality: "Kayapa",
-    lat: 16.32350, lng: 120.92325,
+    lat: 16.35840, lng: 120.88650,
     phone: "(078) 321-3210", // *unverified
     address: "Municipal Hall, Kayapa, Nueva Vizcaya",
     email: ""
@@ -616,7 +616,7 @@ const RESPONDERS = [
     name: "PNP Kayapa Municipal Station",
     type: "police",
     municipality: "Kayapa",
-    lat: 16.32284, lng: 120.92314,
+    lat: 16.35805, lng: 120.88612,
     phone: "(078) 321-3220", // *unverified
     address: "Kayapa, Nueva Vizcaya",
     email: ""
@@ -625,7 +625,7 @@ const RESPONDERS = [
     name: "BFP Kayapa Fire Station",
     type: "fire",
     municipality: "Kayapa",
-    lat: 16.32320, lng: 120.92350,
+    lat: 16.35760, lng: 120.88580,
     phone: "(078) 321-3230", // *unverified
     address: "Kayapa, Nueva Vizcaya",
     email: ""
@@ -643,7 +643,7 @@ const RESPONDERS = [
     name: "Kayapa Rural Health Unit",
     type: "health",
     municipality: "Kayapa",
-    lat: 16.32210, lng: 120.92270,
+    lat: 16.35710, lng: 120.88520,
     phone: "(078) 321-3240", // *unverified
     address: "Kayapa, Nueva Vizcaya",
     email: ""
@@ -656,7 +656,7 @@ const RESPONDERS = [
     name: "MDRRMO Santa Fe",
     type: "mdrrmo",
     municipality: "Santa Fe",
-    lat: 16.15615, lng: 120.92850,
+    lat: 16.15930, lng: 120.93820,
     phone: "(078) 321-8010", // *unverified
     address: "Municipal Hall, Santa Fe, Nueva Vizcaya",
     email: ""
@@ -665,7 +665,7 @@ const RESPONDERS = [
     name: "PNP Santa Fe Municipal Station",
     type: "police",
     municipality: "Santa Fe",
-    lat: 16.15542, lng: 120.92841,
+    lat: 16.15895, lng: 120.93792,
     phone: "(078) 321-8020", // *unverified
     address: "Santa Fe, Nueva Vizcaya",
     email: ""
@@ -674,7 +674,7 @@ const RESPONDERS = [
     name: "BFP Santa Fe Fire Station",
     type: "fire",
     municipality: "Santa Fe",
-    lat: 16.15590, lng: 120.92810,
+    lat: 16.15850, lng: 120.93750,
     phone: "(078) 321-8030", // *unverified
     address: "Santa Fe, Nueva Vizcaya",
     email: ""
@@ -683,7 +683,7 @@ const RESPONDERS = [
     name: "Santa Fe Rural Health Unit",
     type: "health",
     municipality: "Santa Fe",
-    lat: 16.15490, lng: 120.92880,
+    lat: 16.15810, lng: 120.93690,
     phone: "(078) 321-8040", // *unverified
     address: "Santa Fe, Nueva Vizcaya",
     email: ""
@@ -696,7 +696,7 @@ const RESPONDERS = [
     name: "MDRRMO Alfonso Castañeda",
     type: "mdrrmo",
     municipality: "Alfonso Castañeda",
-    lat: 15.79860, lng: 121.28445,
+    lat: 15.79350, lng: 121.30270,
     phone: "(078) 321-0110", // *unverified
     address: "Municipal Hall, Alfonso Castañeda, Nueva Vizcaya",
     email: ""
@@ -705,7 +705,7 @@ const RESPONDERS = [
     name: "PNP Alfonso Castañeda Municipal Station",
     type: "police",
     municipality: "Alfonso Castañeda",
-    lat: 15.79812, lng: 121.28424,
+    lat: 15.79293, lng: 121.30283,
     phone: "(078) 321-0120", // *unverified
     address: "Alfonso Castañeda, Nueva Vizcaya",
     email: ""
@@ -714,7 +714,7 @@ const RESPONDERS = [
     name: "BFP Alfonso Castañeda Fire Station",
     type: "fire",
     municipality: "Alfonso Castañeda",
-    lat: 15.79845, lng: 121.28460,
+    lat: 15.79320, lng: 121.30250,
     phone: "(078) 321-0130", // *unverified
     address: "Alfonso Castañeda, Nueva Vizcaya",
     email: ""
@@ -723,7 +723,7 @@ const RESPONDERS = [
     name: "Alfonso Castañeda Rural Health Unit",
     type: "health",
     municipality: "Alfonso Castañeda",
-    lat: 15.79780, lng: 121.28390,
+    lat: 15.79240, lng: 121.30190,
     phone: "(078) 321-0140", // *unverified
     address: "Alfonso Castañeda, Nueva Vizcaya",
     email: ""
