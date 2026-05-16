@@ -97,8 +97,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
       builder: (_) => _AddAnnouncementSheet(
         lguColor: _activeLguColor,
         municipality: _activeMunicipalityName,
-        isProvincialAdmin: _currentUserRole == UserRole.provincialAdmin ||
-            _currentUserRole == UserRole.superAdmin,
+        isProvincialAdmin: _isProvincialView,
       ),
     );
   }
@@ -181,6 +180,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
               ? 'Provincial Dashboard — All Municipalities'
               : '$muniName Admin Dashboard',
           style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+          overflow: TextOverflow.ellipsis,
         ),
         actions: [
           if (_currentUserRole == UserRole.admin ||
@@ -356,15 +356,17 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
           ),
 
           // ── Tab 2: Announcements ──
+          // isProvincialAdmin mirrors _isProvincialView so toggling view
+          // correctly switches between province-wide and municipal scope.
           _AnnouncementsTab(
             lguColor: lguColor,
             municipality: muniName,
-            isProvincialAdmin:
-                _currentUserRole == UserRole.provincialAdmin,
+            isProvincialAdmin: _isProvincialView,
           ),
 
-          // ── Tab 3: Users (provincial admin only) ──
-          if (_currentUserRole == UserRole.provincialAdmin)
+          // ── Tab 3: Users (provincial + super admin only) ──
+          if (_currentUserRole == UserRole.provincialAdmin ||
+              _currentUserRole == UserRole.superAdmin)
             _RoleManagementTab(lguColor: lguColor),
         ],
       ),

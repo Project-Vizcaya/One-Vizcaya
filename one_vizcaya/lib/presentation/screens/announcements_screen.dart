@@ -261,6 +261,8 @@ class _AnnouncementCard extends StatelessWidget {
                     color: Color(0xFF1A1A2E),
                     height: 1.3,
                   ),
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 8),
                 Text(
@@ -270,6 +272,8 @@ class _AnnouncementCard extends StatelessWidget {
                     color: Colors.grey.shade600,
                     height: 1.5,
                   ),
+                  maxLines: 6,
+                  overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 12),
                 Row(

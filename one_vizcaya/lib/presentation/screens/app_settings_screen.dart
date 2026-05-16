@@ -459,6 +459,8 @@ class _ToggleTile extends StatelessWidget {
       subtitle: Text(
         subtitle,
         style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
       ),
       trailing: Switch(
         value: value,
@@ -504,6 +506,8 @@ class _NavigationTile extends StatelessWidget {
       subtitle: Text(
         subtitle,
         style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
       ),
       trailing: Icon(
         Icons.arrow_forward_ios,

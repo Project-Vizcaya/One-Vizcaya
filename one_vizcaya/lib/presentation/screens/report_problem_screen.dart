@@ -493,7 +493,7 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
                       borderRadius: BorderRadius.circular(12),
                       child: Image.file(
                         _selectedImage!,
-                        height: 200,
+                        height: MediaQuery.of(context).size.height * 0.22,
                         width: double.infinity,
                         fit: BoxFit.cover,
                       ),

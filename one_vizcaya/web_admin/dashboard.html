@@ -79,16 +79,19 @@
     .filter-select{padding:7px 12px;border:1.5px solid #E2E8F0;border-radius:8px;font-size:12px;color:#4A5568;background:#fff;cursor:pointer}
 
     /* ── Bottom grid ── */
-    .bottom-grid{display:grid;grid-template-columns:1fr 400px;gap:24px}
-    @media(max-width:1100px){.bottom-grid{grid-template-columns:1fr}}
+    .bottom-grid{display:grid;grid-template-columns:1fr 380px;gap:24px}
+    @media(max-width:1200px){.bottom-grid{grid-template-columns:1fr 340px}}
+    @media(max-width:1000px){.bottom-grid{grid-template-columns:1fr}}
 
     /* ── Reports table ── */
     .reports-filter{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
     .chip{padding:6px 14px;border-radius:20px;border:1.5px solid #E2E8F0;background:#fff;font-size:12px;font-weight:600;cursor:pointer;color:#4A5568;transition:all .2s}
     .chip.active{background:#2E7D32;border-color:#2E7D32;color:#fff}
-    table{width:100%;border-collapse:collapse;font-size:13px}
-    th{text-align:left;padding:10px 12px;font-size:11px;font-weight:700;color:#A0AEC0;text-transform:uppercase;letter-spacing:.5px;border-bottom:2px solid #EDF2F7}
-    td{padding:11px 12px;border-bottom:1px solid #F7FAFC;vertical-align:middle}
+    table{width:100%;border-collapse:collapse;font-size:13px;table-layout:fixed}
+    th{text-align:left;padding:10px 12px;font-size:11px;font-weight:700;color:#A0AEC0;text-transform:uppercase;letter-spacing:.5px;border-bottom:2px solid #EDF2F7;overflow:hidden}
+    td{padding:11px 12px;border-bottom:1px solid #F7FAFC;vertical-align:middle;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .col-cat{width:22%}.col-muni{width:18%}.col-status{width:13%}.col-pri{width:12%}.col-loc{width:22%}.col-date{width:13%}
+    @media(max-width:600px){.col-muni,.col-date{display:none}}
     tr:hover td{background:#F7FAFF}
     tr.clickable{cursor:pointer}
     .badge-status{padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700;white-space:nowrap}
@@ -209,7 +212,7 @@
   <!-- Stats -->
   <div class="stats-grid">
 
-    <div class="stat-card blue" onclick="statCardFilter('all')" title="Show all reports">
+    <div class="stat-card blue" onclick="statCardFilter('all')" tabindex="0" role="button" onkeydown="if(event.key==='Enter'||event.key===' ')statCardFilter('all')" title="Show all reports">
       <div class="stat-strip"></div>
       <div class="stat-inner">
         <div class="stat-row">
@@ -221,7 +224,7 @@
       </div>
     </div>
 
-    <div class="stat-card red" onclick="statCardFilter('critical')" title="Show critical reports">
+    <div class="stat-card red" onclick="statCardFilter('critical')" tabindex="0" role="button" onkeydown="if(event.key==='Enter'||event.key===' ')statCardFilter('critical')" title="Show critical reports">
       <div class="stat-strip"></div>
       <div class="stat-inner">
         <div class="stat-row">
@@ -233,7 +236,7 @@
       </div>
     </div>
 
-    <div class="stat-card orange" onclick="statCardFilter('ongoing')" title="Show ongoing reports">
+    <div class="stat-card orange" onclick="statCardFilter('ongoing')" tabindex="0" role="button" onkeydown="if(event.key==='Enter'||event.key===' ')statCardFilter('ongoing')" title="Show ongoing reports">
       <div class="stat-strip"></div>
       <div class="stat-inner">
         <div class="stat-row">
@@ -245,7 +248,7 @@
       </div>
     </div>
 
-    <div class="stat-card green" onclick="statCardFilter('solved')" title="Show resolved reports">
+    <div class="stat-card green" onclick="statCardFilter('solved')" tabindex="0" role="button" onkeydown="if(event.key==='Enter'||event.key===' ')statCardFilter('solved')" title="Show resolved reports">
       <div class="stat-strip"></div>
       <div class="stat-inner">
         <div class="stat-row">
@@ -266,9 +269,9 @@
       <span class="card-meta" id="map-scope-label">Nueva Vizcaya Province</span>
     </div>
     <div class="map-controls">
-      <button class="toggle-btn active" id="btn-heatmap" onclick="toggleHeatmap()">🔥 Heatmap</button>
-      <button class="toggle-btn active" id="btn-responders" onclick="toggleResponders()">🚨 Responders</button>
-      <button class="toggle-btn" id="btn-reports-pins" onclick="toggleReportPins()">📌 Report Pins</button>
+      <button class="toggle-btn active" id="btn-heatmap" onclick="toggleHeatmap()" aria-pressed="true">🔥 Heatmap</button>
+      <button class="toggle-btn active" id="btn-responders" onclick="toggleResponders()" aria-pressed="true">🚨 Responders</button>
+      <button class="toggle-btn" id="btn-reports-pins" onclick="toggleReportPins()" aria-pressed="false">📌 Report Pins</button>
       <select class="filter-select" id="map-muni-filter" onchange="filterMapByMuni()">
         <option value="all">All Municipalities</option>
       </select>
@@ -318,18 +321,18 @@
           <button class="chip" onclick="filterReports('reported',this)">Reported</button>
           <button class="chip" onclick="filterReports('ongoing',this)">Ongoing</button>
           <button class="chip" onclick="filterReports('solved',this)">Solved</button>
-          <button class="chip" style="border-color:#FED7D7;color:#C53030" onclick="filterReportsByCritical(this)">🚨 Critical</button>
+          <button class="chip" id="chip-critical" style="border-color:#FED7D7;color:#C53030" onclick="filterReportsByCritical(this)">🚨 Critical</button>
         </div>
         <div class="scroll-table">
           <table>
             <thead>
               <tr>
-                <th>Category</th>
-                <th>Municipality</th>
-                <th>Status</th>
-                <th>Priority</th>
-                <th>Location</th>
-                <th>Reported</th>
+                <th class="col-cat">Category</th>
+                <th class="col-muni">Municipality</th>
+                <th class="col-status">Status</th>
+                <th class="col-pri">Priority</th>
+                <th class="col-loc">Location</th>
+                <th class="col-date">Reported</th>
               </tr>
             </thead>
             <tbody id="reports-tbody">
@@ -347,7 +350,7 @@
         <span class="card-meta" id="resp-count-label">Loading…</span>
       </div>
       <div class="card-body" style="padding-top:14px">
-        <select class="filter-select" id="resp-dir-muni-filter" onchange="renderResponderDirectory(currentRespDirFilter)"
+        <select class="filter-select" id="resp-dir-muni-filter" onchange="filterRespDirMuni()"
                 style="width:100%;margin-bottom:10px;border-radius:10px">
           <option value="all">All Municipalities</option>
         </select>
@@ -389,17 +392,17 @@
 
       <div id="new-announcement-form" style="display:none;margin-bottom:20px;padding:16px;background:#F7FAFF;border-radius:12px;border:1px solid #E2E8F0">
         <div style="margin-bottom:12px">
-          <label style="font-size:11px;font-weight:700;color:#718096;display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px">Title</label>
+          <label for="ann-title" style="font-size:11px;font-weight:700;color:#718096;display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px">Title</label>
           <input type="text" id="ann-title" placeholder="Announcement title"
                  style="width:100%;border:1.5px solid #E2E8F0;border-radius:8px;padding:10px 12px;font-size:13px;outline:none;font-family:inherit"/>
         </div>
         <div style="margin-bottom:12px">
-          <label style="font-size:11px;font-weight:700;color:#718096;display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px">Message</label>
+          <label for="ann-body" style="font-size:11px;font-weight:700;color:#718096;display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px">Message</label>
           <textarea id="ann-body" placeholder="Write the announcement message here…" rows="3"
                     style="width:100%;border:1.5px solid #E2E8F0;border-radius:8px;padding:10px 12px;font-size:13px;outline:none;resize:vertical;font-family:inherit"></textarea>
         </div>
         <div style="margin-bottom:16px">
-          <label style="font-size:11px;font-weight:700;color:#718096;display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px">Target Audience</label>
+          <label for="ann-target" style="font-size:11px;font-weight:700;color:#718096;display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px">Target Audience</label>
           <select id="ann-target" style="border:1.5px solid #E2E8F0;border-radius:8px;padding:8px 12px;font-size:13px;width:100%;background:#fff">
             <option value="all">🌐 Province-wide (All Municipalities)</option>
           </select>
@@ -746,14 +749,16 @@ function statCardFilter(type) {
   if (type === 'critical') {
     criticalOnly  = true;
     currentFilter = 'all';
-    document.querySelector('.chip[onclick*="critical"]')?.classList.add('active');
+    document.getElementById('chip-critical')?.classList.add('active');
   } else {
     criticalOnly  = false;
     currentFilter = type;
-    document.querySelector(`.chip[onclick*="'${type}'"]`)?.classList.add('active');
+    const chipMap = { all: 0, reported: 1, ongoing: 2, solved: 3 };
+    const chips = document.querySelectorAll('.reports-filter .chip');
+    if (chipMap[type] !== undefined) chips[chipMap[type]]?.classList.add('active');
   }
   applyFilter();
-  document.querySelector('.card-title')?.closest('.card')
+  document.getElementById('reports-tbody')?.closest('.card')
     ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
@@ -820,7 +825,9 @@ function updateHeatmap() {
 function toggleHeatmap() {
   showHeatmap = !showHeatmap;
   if (heatmapLayer) heatmapLayer.setMap(showHeatmap ? map : null);
-  document.getElementById('btn-heatmap').classList.toggle('active', showHeatmap);
+  const btn = document.getElementById('btn-heatmap');
+  btn.classList.toggle('active', showHeatmap);
+  btn.setAttribute('aria-pressed', showHeatmap);
 }
 
 // ── Responder markers ─────────────────────────────────────────────────────────
@@ -875,13 +882,15 @@ function renderResponderMarkers() {
 function toggleResponders() {
   showResponders = !showResponders;
   responderMarkers.forEach(m => m.setMap(showResponders ? map : null));
-  document.getElementById('btn-responders').classList.toggle('active', showResponders);
+  const btn = document.getElementById('btn-responders');
+  btn.classList.toggle('active', showResponders);
+  btn.setAttribute('aria-pressed', showResponders);
 }
 
 function filterRespondersByType() { renderResponderMarkers(); }
 function filterMapByMuni() {
   renderResponderMarkers();
-  const muniFilter = document.getElementById('map-muni-filter').value;
+  const muniFilter = document.getElementById('map-muni-filter')?.value || 'all';
   if (muniFilter !== 'all') {
     const first = RESPONDERS.find(r => r.municipality === muniFilter);
     if (first) { map.setCenter({lat: first.lat, lng: first.lng}); map.setZoom(13); }
@@ -927,7 +936,9 @@ function toggleReportPins() {
   showReportPins = !showReportPins;
   if (showReportPins) renderReportPins();
   else reportPins.forEach(m => m.setMap(null));
-  document.getElementById('btn-reports-pins').classList.toggle('active', showReportPins);
+  const btn = document.getElementById('btn-reports-pins');
+  btn.classList.toggle('active', showReportPins);
+  btn.setAttribute('aria-pressed', showReportPins);
 }
 
 // ── Responder directory ───────────────────────────────────────────────────────
@@ -951,7 +962,7 @@ function renderResponderDirectory(filter) {
 
   document.getElementById('responder-list').innerHTML = list.map(r => {
     const info = RESPONDER_ICONS[r.type] || RESPONDER_ICONS.mdrrmo;
-    return `<div class="responder-card" onclick="focusResponder(${r.lat},${r.lng},'${r.name}')">
+    return `<div class="responder-card" onclick="focusResponder(${r.lat},${r.lng},${JSON.stringify(r.name)})">
       <div class="resp-icon" style="background:${info.color}22">${info.emoji}</div>
       <div class="resp-info">
         <div class="resp-name">${r.name}</div>
@@ -1073,7 +1084,7 @@ async function loadUsers() {
         </select>
         <select class="muni-select" id="muni-${u.uid}">
           <option value="">— No municipality —</option>
-          ${muniOptions.replace(`value="${muni}"`, `value="${muni}" selected`)}
+          ${muni ? muniOptions.replace(new RegExp(`value="${muni.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')}"`), `value="${muni}" selected`) : muniOptions}
         </select>
         <button class="btn-save-role" onclick="saveUserRole('${u.uid}')">Save</button>
         <span class="save-ok" id="ok-${u.uid}" style="display:none">✓ Saved</span>
@@ -1107,12 +1118,18 @@ async function saveUserRole(uid) {
   btn.textContent = 'Save';
 }
 
+// ── Responder directory municipality filter ────────────────────────────────────
+function filterRespDirMuni() {
+  renderResponderDirectory(currentRespDirFilter);
+}
+
 // ── Announcements ─────────────────────────────────────────────────────────────
 function initAnnouncements() {
   document.getElementById('announcements-card').style.display = 'block';
 
   // Populate target dropdown with all municipalities
   const sel = document.getElementById('ann-target');
+  if (!sel) return;
   NV_MUNICIPALITIES.forEach(m => {
     const opt = document.createElement('option');
     opt.value = m.name; opt.textContent = '📍 ' + m.name;

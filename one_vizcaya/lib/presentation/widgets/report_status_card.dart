@@ -183,9 +183,13 @@ class ReportStatusCard extends StatelessWidget {
                     children: [
                       const Icon(Icons.map, size: 16, color: Colors.grey),
                       const SizedBox(width: 8),
-                      Text(
-                        'Coordinates: ${report.latitude!.toStringAsFixed(4)}, ${report.longitude!.toStringAsFixed(4)}',
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.grey),
+                      Expanded(
+                        child: Text(
+                          'Coordinates: ${report.latitude!.toStringAsFixed(4)}, ${report.longitude!.toStringAsFixed(4)}',
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.grey),
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
+                        ),
                       ),
                     ],
                   ),
