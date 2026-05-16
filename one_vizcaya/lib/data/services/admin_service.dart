@@ -6,19 +6,11 @@ class AdminService {
   factory AdminService() => _instance;
   AdminService._internal();
 
-  // ── Hardcoded legacy admin UIDs (backward compat) ──
-  static const List<String> _hardcodedAdminUids = [
-    'KXeL25cxqiaTSHj8CJGCPvNpIh23',
-    'XgWMpOQxnGg21a2wtCjJys3u3Ze2',
-    'xT02JP6jbecjKRqKPy3zXQ7mtHt2', // Aaron's phone — Bambang admin
-  ];
-
   List<String>? _firestoreAdminUids;
   DateTime? _lastFetched;
   static const _cacheDuration = Duration(minutes: 10);
 
   Future<bool> isAdmin(String uid) async {
-    if (_hardcodedAdminUids.contains(uid)) return true;
     try {
       final firestoreAdmins = await _getFirestoreAdmins();
       return firestoreAdmins.contains(uid);
@@ -41,8 +33,6 @@ class AdminService {
         if (role != UserRole.citizen) return role;
       }
     } catch (_) {}
-    // Backward compat: legacy hardcoded admins get admin role
-    if (await isAdmin(uid)) return UserRole.admin;
     return UserRole.citizen;
   }
 

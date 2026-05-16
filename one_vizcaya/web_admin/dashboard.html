@@ -354,6 +354,9 @@
                 style="width:100%;margin-bottom:10px;border-radius:10px">
           <option value="all">All Municipalities</option>
         </select>
+        <input type="text" id="resp-search" placeholder="Search responders…"
+          oninput="renderResponderDirectory(currentRespDirFilter)"
+          style="width:100%;padding:8px 12px;border:1px solid #ddd;border-radius:20px;font-size:13px;margin-top:8px;box-sizing:border-box;">
         <div class="resp-filter" id="resp-chips">
           <button class="chip active" onclick="filterRespDir('all',this)">All</button>
           <button class="chip" onclick="filterRespDir('mdrrmo',this)">MDRRMO</button>
@@ -402,10 +405,13 @@
                     style="width:100%;border:1.5px solid #E2E8F0;border-radius:8px;padding:10px 12px;font-size:13px;outline:none;resize:vertical;font-family:inherit"></textarea>
         </div>
         <div style="margin-bottom:16px">
-          <label for="ann-target" style="font-size:11px;font-weight:700;color:#718096;display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px">Target Audience</label>
-          <select id="ann-target" style="border:1.5px solid #E2E8F0;border-radius:8px;padding:8px 12px;font-size:13px;width:100%;background:#fff">
+          <label for="ann-municipality" style="font-size:11px;font-weight:700;color:#718096;display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px">Municipality</label>
+          <select id="ann-municipality" style="border:1.5px solid #E2E8F0;border-radius:8px;padding:8px 12px;font-size:13px;width:100%;background:#fff">
             <option value="all">🌐 Province-wide (All Municipalities)</option>
           </select>
+          <label style="display:flex;align-items:center;gap:8px;margin-top:8px;font-size:13px;cursor:pointer;">
+            <input type="checkbox" id="ann-urgent" style="width:16px;height:16px;"> Mark as Urgent
+          </label>
         </div>
         <div style="display:flex;gap:8px">
           <button onclick="postAnnouncement()" style="padding:8px 22px;background:#2E7D32;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">Post</button>
@@ -430,6 +436,10 @@
 <script src="js/municipalities.js"></script>
 
 <script>
+function escHtml(str) {
+  return String(str ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
 // Municipality seal images — served locally from img/seals/
 const MUNI_SEALS = {
   "Bayombong":         "img/seals/bayombong.png",
@@ -945,10 +955,15 @@ function toggleReportPins() {
 function renderResponderDirectory(filter) {
   currentRespDirFilter = filter;
   const muniFilter = document.getElementById('resp-dir-muni-filter')?.value || 'all';
+  const searchTerm = (document.getElementById('resp-search')?.value || '').toLowerCase().trim();
   let list = RESPONDERS.filter(r => {
     if (userRole === 'municipal_admin' && r.municipality !== userMunicipality) return false;
     if (muniFilter !== 'all' && r.municipality !== muniFilter) return false;
     if (filter !== 'all' && r.type !== filter) return false;
+    if (searchTerm) {
+      const searchable = (r.name + ' ' + r.address + ' ' + r.municipality).toLowerCase();
+      if (!searchable.includes(searchTerm)) return false;
+    }
     return true;
   });
 
@@ -1057,7 +1072,7 @@ async function loadUsers() {
   if (!canManage) return;
   document.getElementById('users-card').style.display = 'block';
   try {
-    const snap = await db.collection('users').limit(50).get();
+    const snap = await db.collection('users').orderBy('name').limit(200).get();
     const users = snap.docs.map(d => ({ uid: d.id, ...d.data() }));
     document.getElementById('users-count-label').textContent = users.length + ' users';
     const muniOptions = NV_MUNICIPALITIES.map(m =>
@@ -1105,7 +1120,11 @@ async function saveUserRole(uid) {
   btn.textContent = '…';
   try {
     const update = { role };
-    if (muni) update.municipality = muni;
+    if (muni) {
+      update.municipality = muni;
+    } else {
+      update.municipality = firebase.firestore.FieldValue.delete();
+    }
     await db.collection('users').doc(uid).update(update);
     ok.style.display = 'inline';
     document.querySelector(`#row-${uid} .user-role-label`).innerHTML =
@@ -1120,6 +1139,7 @@ async function saveUserRole(uid) {
 
 // ── Responder directory municipality filter ────────────────────────────────────
 function filterRespDirMuni() {
+  document.getElementById('resp-search').value = '';
   renderResponderDirectory(currentRespDirFilter);
 }
 
@@ -1127,8 +1147,8 @@ function filterRespDirMuni() {
 function initAnnouncements() {
   document.getElementById('announcements-card').style.display = 'block';
 
-  // Populate target dropdown with all municipalities
-  const sel = document.getElementById('ann-target');
+  // Populate municipality dropdown with all municipalities
+  const sel = document.getElementById('ann-municipality');
   if (!sel) return;
   NV_MUNICIPALITIES.forEach(m => {
     const opt = document.createElement('option');
@@ -1141,7 +1161,7 @@ function initAnnouncements() {
   }
 
   db.collection('announcements')
-    .orderBy('createdAt', 'desc')
+    .orderBy('timestamp', 'desc')
     .limit(30)
     .onSnapshot(snap => {
       const anns = snap.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -1157,10 +1177,10 @@ function renderAnnouncements(anns) {
   }
   const canDelete = ['provincial_admin', 'super_admin', 'admin'].includes(firestoreRole);
   el.innerHTML = anns.map(a => {
-    const when = a.createdAt?.toDate
-      ? a.createdAt.toDate().toLocaleDateString('en-PH', { year:'numeric', month:'short', day:'numeric' })
+    const when = a.timestamp?.toDate
+      ? a.timestamp.toDate().toLocaleDateString('en-PH', { year:'numeric', month:'short', day:'numeric' })
       : '—';
-    const target = a.target === 'all' ? '🌐 Province-wide' : '📍 ' + a.target;
+    const muni = a.municipality === 'all' ? '🌐 Province-wide' : '📍 ' + escHtml(a.municipality || '');
     const del = canDelete
       ? `<button onclick="deleteAnnouncement('${a.id}')"
            style="padding:4px 10px;background:#FFF5F5;color:#C53030;border:1px solid #FED7D7;border-radius:6px;font-size:11px;cursor:pointer;flex-shrink:0">Delete</button>`
@@ -1168,9 +1188,9 @@ function renderAnnouncements(anns) {
     return `<div style="border:1px solid #EDF2F7;border-radius:12px;padding:14px 16px;margin-bottom:10px">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">
         <div style="flex:1;min-width:0">
-          <div style="font-size:14px;font-weight:700;color:#2D3748">${a.title || 'Untitled'}</div>
-          <div style="font-size:11px;color:#A0AEC0;margin:3px 0 8px">${target} &bull; ${when}</div>
-          <div style="font-size:13px;color:#4A5568;line-height:1.5">${(a.body || '').replace(/\n/g,'<br/>')}</div>
+          <div style="font-size:14px;font-weight:700;color:#2D3748">${escHtml(a.title || 'Untitled')}</div>
+          <div style="font-size:11px;color:#A0AEC0;margin:3px 0 8px">${muni} &bull; ${when}</div>
+          <div style="font-size:13px;color:#4A5568;line-height:1.5">${escHtml(a.body).replace(/\n/g,'<br/>')}</div>
         </div>
         ${del}
       </div>
@@ -1179,19 +1199,21 @@ function renderAnnouncements(anns) {
 }
 
 async function postAnnouncement() {
-  const title  = document.getElementById('ann-title').value.trim();
-  const body   = document.getElementById('ann-body').value.trim();
-  const target = document.getElementById('ann-target').value;
+  const title      = document.getElementById('ann-title').value.trim();
+  const body       = document.getElementById('ann-body').value.trim();
+  const municipality = document.getElementById('ann-municipality').value;
+  const isUrgent   = document.getElementById('ann-urgent')?.checked ?? false;
   if (!title) { alert('Please enter a title.'); return; }
   if (!body)  { alert('Please enter a message.'); return; }
   try {
     await db.collection('announcements').add({
-      title, body, target,
-      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      title, body, municipality, isUrgent,
+      timestamp: firebase.firestore.FieldValue.serverTimestamp(),
       createdBy: currentUser.uid
     });
     document.getElementById('ann-title').value = '';
     document.getElementById('ann-body').value  = '';
+    document.getElementById('ann-urgent').checked = false;
     document.getElementById('new-announcement-form').style.display = 'none';
   } catch (e) {
     alert('Failed to post announcement: ' + e.message);

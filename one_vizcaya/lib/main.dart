@@ -16,6 +16,7 @@ import 'presentation/screens/other_screens.dart';
 import 'presentation/screens/admin_dashboard_screen.dart';
 import 'presentation/screens/profile_management_screen.dart';
 import 'presentation/screens/app_settings_screen.dart';
+import 'presentation/widgets/auth_gate.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -128,7 +129,7 @@ class OneVizcayaApp extends StatelessWidget {
           brightness: Brightness.light,
         ),
       ),
-      home: const LoginScreen(),
+      home: const AuthGate(),
       routes: {
         '/login': (context) => const LoginScreen(),
         '/setup': (context) => const MunicipalitySetupScreen(),

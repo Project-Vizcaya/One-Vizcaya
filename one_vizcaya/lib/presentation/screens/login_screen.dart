@@ -14,7 +14,6 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen>
     with SingleTickerProviderStateMixin {
   bool _isLoading = false;
-  bool _obscurePassword = true;
   bool _hasValidInput = false;
   final _phoneController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
@@ -81,7 +80,10 @@ class _LoginScreenState extends State<LoginScreen>
             Navigator.of(context).push(
               MaterialPageRoute(
                 builder: (context) =>
-                    PhoneVerificationScreen(verificationId: verificationId),
+                    PhoneVerificationScreen(
+                      verificationId: verificationId,
+                      phoneNumber: phoneNumber,
+                    ),
               ),
             );
           }
@@ -235,18 +237,6 @@ class _LoginScreenState extends State<LoginScreen>
                                   Icons.phone_outlined,
                                   color: Colors.grey.shade400,
                                   size: 20,
-                                ),
-                              ),
-                              suffixIcon: IconButton(
-                                icon: Icon(
-                                  _obscurePassword
-                                      ? Icons.visibility_off
-                                      : Icons.visibility,
-                                  color: Colors.grey.shade500,
-                                  size: 20,
-                                ),
-                                onPressed: () => setState(
-                                  () => _obscurePassword = !_obscurePassword,
                                 ),
                               ),
                               filled: true,
@@ -408,7 +398,12 @@ class _LoginScreenState extends State<LoginScreen>
 
 class PhoneVerificationScreen extends StatefulWidget {
   final String verificationId;
-  const PhoneVerificationScreen({super.key, required this.verificationId});
+  final String phoneNumber;
+  const PhoneVerificationScreen({
+    super.key,
+    required this.verificationId,
+    required this.phoneNumber,
+  });
 
   @override
   _PhoneVerificationScreenState createState() =>
@@ -418,6 +413,13 @@ class PhoneVerificationScreen extends StatefulWidget {
 class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
   final _codeController = TextEditingController();
   bool _isLoading = false;
+  late String _currentVerificationId;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentVerificationId = widget.verificationId;
+  }
 
   Future<void> _verifyCode() async {
     if (_codeController.text.isEmpty) return;
@@ -425,7 +427,7 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
 
     try {
       final credential = PhoneAuthProvider.credential(
-        verificationId: widget.verificationId,
+        verificationId: _currentVerificationId,
         smsCode: _codeController.text,
       );
       await FirebaseAuth.instance.signInWithCredential(credential);
@@ -540,10 +542,22 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
               // ── SMS Cooldown Button ──
               SmsCooldownButton(
                 onSend: () async {
-                  // Re-trigger phone verification via parent if needed
-                  ToastUtils.showInfo(
-                    'A new code has been sent to your phone.',
-                  );
+                  try {
+                    await FirebaseAuth.instance.verifyPhoneNumber(
+                      phoneNumber: widget.phoneNumber,
+                      verificationCompleted: (_) {},
+                      verificationFailed: (e) {
+                        ToastUtils.showError('Resend failed: ${e.message}');
+                      },
+                      codeSent: (newVerificationId, _) {
+                        _currentVerificationId = newVerificationId;
+                        ToastUtils.showInfo('A new code has been sent.');
+                      },
+                      codeAutoRetrievalTimeout: (_) {},
+                    );
+                  } catch (e) {
+                    ToastUtils.showError('Resend failed: $e');
+                  }
                 },
               ),
 

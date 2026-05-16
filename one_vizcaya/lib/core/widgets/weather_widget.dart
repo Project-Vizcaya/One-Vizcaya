@@ -76,9 +76,6 @@ class _WeatherWidgetState extends State<WeatherWidget> {
 
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       LocationPermission permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-      }
 
       if (serviceEnabled &&
           (permission == LocationPermission.always ||
