@@ -448,7 +448,7 @@ class AnnouncementsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final lguColor = oneVizcayaState.activeTheme['appBarColor'] as Color;
     final user = FirebaseAuth.instance.currentUser;
-    final municipality = oneVizcayaState.municipality;
+    final municipality = oneVizcayaState.selectedMunicipality.value;
 
     return Scaffold(
       appBar: AppBar(
