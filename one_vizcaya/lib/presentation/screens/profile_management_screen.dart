@@ -412,11 +412,15 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
                                 color: Colors.grey.shade500,
                               ),
                               const SizedBox(width: 2),
-                              Text(
-                                _profile!.location,
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  color: Colors.grey.shade500,
+                              Flexible(
+                                child: Text(
+                                  _profile!.location,
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: Colors.grey.shade500,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                  maxLines: 1,
                                 ),
                               ),
                             ],

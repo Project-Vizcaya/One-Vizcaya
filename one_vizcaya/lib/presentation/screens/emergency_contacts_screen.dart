@@ -227,6 +227,8 @@ class EmergencyContactsScreen extends StatelessWidget {
               .textTheme
               .bodyLarge
               ?.copyWith(fontWeight: FontWeight.bold, fontSize: 14),
+          overflow: TextOverflow.ellipsis,
+          maxLines: 1,
         ),
         subtitle: Text(
           number,
@@ -234,6 +236,8 @@ class EmergencyContactsScreen extends StatelessWidget {
               .textTheme
               .bodyMedium
               ?.copyWith(fontSize: 15, color: Colors.grey.shade700),
+          overflow: TextOverflow.ellipsis,
+          maxLines: 1,
         ),
         trailing: Container(
           decoration: BoxDecoration(

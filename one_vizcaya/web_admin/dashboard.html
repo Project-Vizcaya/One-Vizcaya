@@ -951,7 +951,7 @@ function renderResponderDirectory(filter) {
 
   document.getElementById('responder-list').innerHTML = list.map(r => {
     const info = RESPONDER_ICONS[r.type] || RESPONDER_ICONS.mdrrmo;
-    return `<div class="responder-card" onclick="focusResponder(${r.lat},${r.lng},'${r.name}')">
+    return `<div class="responder-card" onclick="focusResponder(${r.lat},${r.lng},${JSON.stringify(r.name)})">
       <div class="resp-icon" style="background:${info.color}22">${info.emoji}</div>
       <div class="resp-info">
         <div class="resp-name">${r.name}</div>
