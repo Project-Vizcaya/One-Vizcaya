@@ -36,7 +36,9 @@ class _ReportStatusScreenState extends State<ReportStatusScreen> {
         backgroundColor: activeLguColor,
         title: Text('My Reports to $activeMunicipalityName'),
       ),
-      body: Column(
+      body: SafeArea(
+        top: false,
+        child: Column(
         children: [
           // Priority filter chips
           Container(
@@ -123,6 +125,7 @@ class _ReportStatusScreenState extends State<ReportStatusScreen> {
             ),
           ),
         ],
+        ),
       ),
     );
   }

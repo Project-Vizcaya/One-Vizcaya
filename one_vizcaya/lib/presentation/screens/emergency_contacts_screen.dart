@@ -267,23 +267,26 @@ class EmergencyContactsScreen extends StatelessWidget {
         foregroundColor: Colors.white,
         title: Text('$activeMunicipalityName Emergency'),
       ),
-      body: ListView(
-        padding: const EdgeInsets.only(bottom: 24),
-        children: [
-          // ── Local contacts ──
-          if (localContacts.isNotEmpty) ...[
+      body: SafeArea(
+        top: false,
+        child: ListView(
+          padding: const EdgeInsets.only(bottom: 24),
+          children: [
+            // ── Local contacts ──
+            if (localContacts.isNotEmpty) ...[
+              _buildSectionHeader(
+                  '$activeMunicipalityName Local Contacts', activeLguColor),
+              ...localContacts.map(
+                  (c) => _buildContactTile(c, activeLguColor, context)),
+            ],
+
+            // ── National / Provincial hotlines ──
             _buildSectionHeader(
-                '$activeMunicipalityName Local Contacts', activeLguColor),
-            ...localContacts.map(
+                'National & Provincial Hotlines', activeLguColor),
+            ..._nationalHotlines.map(
                 (c) => _buildContactTile(c, activeLguColor, context)),
           ],
-
-          // ── National / Provincial hotlines ──
-          _buildSectionHeader(
-              'National & Provincial Hotlines', activeLguColor),
-          ..._nationalHotlines.map(
-              (c) => _buildContactTile(c, activeLguColor, context)),
-        ],
+        ),
       ),
     );
   }
