@@ -208,6 +208,7 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
 
       _locationController.clear();
       _descriptionController.clear();
+      if (!mounted) return;
       setState(() {
         _selectedCategory = null;
         _currentPosition = null;

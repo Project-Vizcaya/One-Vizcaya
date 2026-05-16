@@ -53,7 +53,7 @@ service cloud.firestore {
 
     // Config (admin UID lists, app config)
     match /config/{docId} {
-      allow read: if isAuth();
+      allow read: if isAdmin();
       allow write: if isAdmin();
     }
 

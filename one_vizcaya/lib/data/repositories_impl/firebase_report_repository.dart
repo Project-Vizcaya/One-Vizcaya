@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import '../../domain/models/problem_report.dart';
 import '../../domain/repositories/report_repository.dart';
 import '../../core/utils/toast_utils.dart';
@@ -37,7 +38,10 @@ class FirebaseReportRepository implements ReportRepository {
               .map((doc) => ProblemReport.fromFirestore(doc))
               .toList(),
         )
-        .handleError((_) => <ProblemReport>[]);
+        .handleError((e) {
+          debugPrint('getUserReports error: $e');
+          return <ProblemReport>[];
+        });
   }
 
   @override
