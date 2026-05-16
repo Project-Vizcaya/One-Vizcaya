@@ -26,7 +26,7 @@ class _HomeScreenState extends State<HomeScreen> {
         final welcomeMsg = activeTheme['welcomeMsg'] as String;
 
         return Scaffold(
-          backgroundColor: Color.lerp(Colors.white, appBarColor, 0.06)!,
+          backgroundColor: Color.lerp(Colors.white, appBarColor, 0.10)!,
           body: SafeArea(
             child: _selectedNavIndex == 0
                 ? _buildHomePage(context, municipality, appBarColor, secondaryColor, welcomeMsg)
@@ -144,11 +144,11 @@ class _HomeScreenState extends State<HomeScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Container(
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: Color.lerp(Colors.white, appBarColor, 0.03),
                 borderRadius: BorderRadius.circular(20),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.04),
+                    color: appBarColor.withValues(alpha: 0.08),
                     blurRadius: 16,
                     offset: const Offset(0, 4),
                   ),
@@ -269,14 +269,14 @@ class _HomeScreenState extends State<HomeScreen> {
                   icon: Icons.report_problem_rounded,
                   label: 'Report\nProblem',
                   iconColor: Colors.white,
-                  bgColor: appBarColor,
+                  bgColor: const Color(0xFF4CAF50),
                   onTap: () => Navigator.of(context).pushNamed('/report'),
                 ),
                 _ServiceGridItem(
                   icon: Icons.history_rounded,
                   label: 'My\nReports',
                   iconColor: Colors.white,
-                  bgColor: secondaryColor,
+                  bgColor: const Color(0xFFFF9800),
                   onTap: () => Navigator.of(context).pushNamed('/status'),
                 ),
                 _ServiceGridItem(
@@ -315,7 +315,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   icon: Icons.campaign_rounded,
                   label: 'Announce\nments',
                   iconColor: Colors.white,
-                  bgColor: appBarColor,
+                  bgColor: const Color(0xFF1565C0),
                   onTap: () =>
                       Navigator.of(context).pushNamed('/announcements'),
                 ),
@@ -369,11 +369,11 @@ class _HomeScreenState extends State<HomeScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Container(
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: Color.lerp(Colors.white, appBarColor, 0.03),
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.04),
+                    color: appBarColor.withValues(alpha: 0.08),
                     blurRadius: 12,
                     offset: const Offset(0, 4),
                   ),
