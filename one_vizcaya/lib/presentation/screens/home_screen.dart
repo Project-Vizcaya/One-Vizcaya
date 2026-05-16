@@ -63,6 +63,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     child: Row(
                       children: [
+                        _buildSealImage(municipality, size: 28),
+                        const SizedBox(width: 8),
                         Flexible(
                           child: Text(
                             municipality,
@@ -154,28 +156,17 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Container(
-                        width: 12,
-                        height: 12,
-                        decoration: BoxDecoration(
-                          color: appBarColor,
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        municipality,
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: appBarColor,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                    ],
+                  _buildSealImage(municipality, size: 72),
+                  const SizedBox(height: 10),
+                  Text(
+                    municipality,
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: appBarColor,
+                      letterSpacing: 0.5,
+                    ),
+                    textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 12),
                   Text(
@@ -413,6 +404,36 @@ class _HomeScreenState extends State<HomeScreen> {
     return const Color(0xFF616161);
   }
 
+  static const Map<String, String> _muniSealAssets = {
+    'Alfonso Castañeda': 'assets/images/seals/alfonso-castaneda.png',
+    'Ambaguio': 'assets/images/seals/ambaguio.png',
+    'Aritao': 'assets/images/seals/aritao.png',
+    'Bagabag': 'assets/images/seals/bagabag.png',
+    'Bambang': 'assets/images/seals/bambang.png',
+    'Bayombong': 'assets/images/seals/bayombong.png',
+    'Diadi': 'assets/images/seals/diadi.png',
+    'Dupax del Norte': 'assets/images/seals/dupax-del-norte.png',
+    'Dupax del Sur': 'assets/images/seals/dupax-del-sur.png',
+    'Kasibu': 'assets/images/seals/kasibu.png',
+    'Kayapa': 'assets/images/seals/kayapa.png',
+    'Quezon': 'assets/images/seals/quezon.png',
+    'Santa Fe': 'assets/images/seals/santa-fe.png',
+    'Solano': 'assets/images/seals/solano.png',
+    'Villaverde': 'assets/images/seals/villaverde.png',
+  };
+
+  Widget _buildSealImage(String municipality, {double size = 40}) {
+    final asset = _muniSealAssets[municipality];
+    if (asset == null) return const SizedBox.shrink();
+    return Image.asset(
+      asset,
+      width: size,
+      height: size,
+      fit: BoxFit.contain,
+      errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+    );
+  }
+
   void _showMunicipalityPicker(
     BuildContext context,
     String current,
@@ -457,22 +478,34 @@ class _HomeScreenState extends State<HomeScreen> {
                   final isSelected = m == current;
                   final mColor = _getMunicipalityColor(m);
                   return ListTile(
-                    leading: Container(
-                      width: 32,
-                      height: 32,
-                      decoration: BoxDecoration(
-                        color: isSelected
-                            ? mColor
-                            : mColor.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: isSelected
-                          ? const Icon(
-                              Icons.check,
-                              color: Colors.white,
-                              size: 18,
-                            )
-                          : null,
+                    leading: Stack(
+                      alignment: Alignment.bottomRight,
+                      children: [
+                        Container(
+                          width: 44,
+                          height: 44,
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? mColor.withValues(alpha: 0.12)
+                                : Colors.grey.shade100,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.all(4),
+                            child: _buildSealImage(m, size: 36),
+                          ),
+                        ),
+                        if (isSelected)
+                          Container(
+                            width: 16,
+                            height: 16,
+                            decoration: BoxDecoration(
+                              color: mColor,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(Icons.check, color: Colors.white, size: 10),
+                          ),
+                      ],
                     ),
                     title: Text(
                       m,
