@@ -398,7 +398,7 @@ class _SupportScreenState extends State<SupportScreen> {
 
             // ── Footer ──
             Padding(
-              padding: const EdgeInsets.fromLTRB(24, 16, 24, 48),
+              padding: EdgeInsets.fromLTRB(24, 16, 24, MediaQuery.of(context).padding.bottom + 48),
               child: Column(
                 children: [
                   const Divider(),

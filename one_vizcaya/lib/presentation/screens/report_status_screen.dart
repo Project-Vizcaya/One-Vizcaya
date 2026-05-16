@@ -36,40 +36,65 @@ class _ReportStatusScreenState extends State<ReportStatusScreen> {
         backgroundColor: activeLguColor,
         title: Text('My Reports to $activeMunicipalityName'),
       ),
-      body: Column(
+      body: SafeArea(
+        top: false,
+        child: Column(
         children: [
           // Priority filter chips
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             color: Colors.grey.shade100,
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: [
-                  const Text('Filter: ', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                  const SizedBox(width: 4),
-                  FilterChip(
-                    label: const Text('All'),
-                    selected: _filterPriority == null,
-                    selectedColor: activeLguColor.withAlpha((255 * 0.2).round()),
-                    onSelected: (_) => setState(() => _filterPriority = null),
-                  ),
-                  const SizedBox(width: 6),
-                  ...ReportPriority.values.reversed.map((priority) {
-                    return Padding(
-                      padding: const EdgeInsets.only(right: 6),
-                      child: FilterChip(
-                        avatar: Icon(priority.icon, size: 14, color: priority.color),
-                        label: Text(priority.displayName),
-                        selected: _filterPriority == priority,
-                        selectedColor: priority.color.withAlpha((255 * 0.2).round()),
-                        onSelected: (_) => setState(() => _filterPriority = priority),
+            child: Stack(
+              children: [
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  child: Row(
+                    children: [
+                      const Text('Filter: ', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                      const SizedBox(width: 4),
+                      FilterChip(
+                        label: const Text('All'),
+                        selected: _filterPriority == null,
+                        selectedColor: activeLguColor.withAlpha((255 * 0.2).round()),
+                        onSelected: (_) => setState(() => _filterPriority = null),
                       ),
-                    );
-                  }),
-                ],
-              ),
+                      const SizedBox(width: 6),
+                      ...ReportPriority.values.reversed.map((priority) {
+                        return Padding(
+                          padding: const EdgeInsets.only(right: 6),
+                          child: FilterChip(
+                            avatar: Icon(priority.icon, size: 14, color: priority.color),
+                            label: Text(priority.displayName),
+                            selected: _filterPriority == priority,
+                            selectedColor: priority.color.withAlpha((255 * 0.2).round()),
+                            onSelected: (_) => setState(() => _filterPriority = priority),
+                          ),
+                        );
+                      }),
+                    ],
+                  ),
+                ),
+                // Fade hint indicating more chips to the right
+                Positioned(
+                  right: 0, top: 0, bottom: 0,
+                  child: IgnorePointer(
+                    child: Container(
+                      width: 32,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.centerLeft,
+                          end: Alignment.centerRight,
+                          colors: [
+                            Colors.grey.shade100.withValues(alpha: 0),
+                            Colors.grey.shade100,
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
           // Reports list
@@ -123,6 +148,7 @@ class _ReportStatusScreenState extends State<ReportStatusScreen> {
             ),
           ),
         ],
+        ),
       ),
     );
   }

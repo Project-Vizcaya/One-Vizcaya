@@ -467,6 +467,7 @@ function getMuniSealUrl(muniName) {
 firebase.initializeApp(FIREBASE_CONFIG);
 const auth = firebase.auth();
 const db   = firebase.firestore();
+db.settings({ experimentalForceLongPolling: true, merge: true });
 
 // ── State ────────────────────────────────────────────────────────────────────
 let currentUser      = null;

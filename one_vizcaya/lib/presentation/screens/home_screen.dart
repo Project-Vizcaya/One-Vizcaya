@@ -22,13 +22,14 @@ class _HomeScreenState extends State<HomeScreen> {
       builder: (context, municipality, child) {
         final activeTheme = oneVizcayaState.activeTheme;
         final appBarColor = activeTheme['appBarColor'] as Color;
+        final secondaryColor = (activeTheme['secondaryColor'] as Color?) ?? appBarColor;
         final welcomeMsg = activeTheme['welcomeMsg'] as String;
 
         return Scaffold(
-          backgroundColor: Color.lerp(Colors.white, appBarColor, 0.06)!,
+          backgroundColor: Color.lerp(Colors.white, appBarColor, 0.10)!,
           body: SafeArea(
             child: _selectedNavIndex == 0
-                ? _buildHomePage(context, municipality, appBarColor, welcomeMsg)
+                ? _buildHomePage(context, municipality, appBarColor, secondaryColor, welcomeMsg)
                 : _selectedNavIndex == 1
                 ? _buildReportsPage(context, municipality, appBarColor)
                 : _buildProfileRedirect(context),
@@ -43,6 +44,7 @@ class _HomeScreenState extends State<HomeScreen> {
     BuildContext context,
     String municipality,
     Color appBarColor,
+    Color secondaryColor,
     String welcomeMsg,
   ) {
     return SingleChildScrollView(
@@ -116,11 +118,11 @@ class _HomeScreenState extends State<HomeScreen> {
                     width: 38,
                     height: 38,
                     decoration: BoxDecoration(
-                      color: const Color(0xFF4CAF50),
+                      color: appBarColor,
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
-                          color: const Color(0xFF4CAF50).withValues(alpha: 0.3),
+                          color: appBarColor.withValues(alpha: 0.3),
                           blurRadius: 8,
                           offset: const Offset(0, 2),
                         ),
@@ -141,13 +143,12 @@ class _HomeScreenState extends State<HomeScreen> {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Container(
-              padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: Color.lerp(Colors.white, appBarColor, 0.03),
                 borderRadius: BorderRadius.circular(20),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.04),
+                    color: appBarColor.withValues(alpha: 0.08),
                     blurRadius: 16,
                     offset: const Offset(0, 4),
                   ),
@@ -156,27 +157,46 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  _buildSealImage(municipality, size: 72),
-                  const SizedBox(height: 10),
-                  Text(
-                    municipality,
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: appBarColor,
-                      letterSpacing: 0.5,
+                  // Colored accent strip
+                  Container(
+                    height: 6,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [appBarColor, secondaryColor],
+                      ),
+                      borderRadius: const BorderRadius.vertical(
+                        top: Radius.circular(20),
+                      ),
                     ),
-                    textAlign: TextAlign.center,
                   ),
-                  const SizedBox(height: 12),
-                  Text(
-                    welcomeMsg,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w500,
-                      color: Color(0xFF555555),
-                      height: 1.4,
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+                    child: Column(
+                      children: [
+                        _buildSealImage(municipality, size: 72),
+                        const SizedBox(height: 10),
+                        Text(
+                          municipality,
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: appBarColor,
+                            letterSpacing: 0.5,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          welcomeMsg,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w500,
+                            color: Color(0xFF555555),
+                            height: 1.4,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
@@ -192,12 +212,12 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
+                Text(
                   'Announcements',
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF333333),
+                    color: appBarColor,
                   ),
                 ),
                 GestureDetector(
@@ -207,7 +227,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     'See all',
                     style: TextStyle(
                       fontSize: 13,
-                      color: Colors.grey.shade500,
+                      color: appBarColor.withValues(alpha: 0.7),
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -226,14 +246,14 @@ class _HomeScreenState extends State<HomeScreen> {
           const SizedBox(height: 24),
 
           // ── Citizen Services Header ──
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 20),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Text(
               'Citizen Services',
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
-                color: Color(0xFF333333),
+                color: appBarColor,
               ),
             ),
           ),
@@ -272,14 +292,14 @@ class _HomeScreenState extends State<HomeScreen> {
           const SizedBox(height: 24),
 
           // ── Information & Support Header ──
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 20),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Text(
               'Information & Support',
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
-                color: Color(0xFF333333),
+                color: appBarColor,
               ),
             ),
           ),
@@ -325,12 +345,12 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
+                Text(
                   'Recently Resolved',
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF333333),
+                    color: appBarColor,
                   ),
                 ),
                 Text(
@@ -349,11 +369,11 @@ class _HomeScreenState extends State<HomeScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Container(
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: Color.lerp(Colors.white, appBarColor, 0.03),
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.04),
+                    color: appBarColor.withValues(alpha: 0.08),
                     blurRadius: 12,
                     offset: const Offset(0, 4),
                   ),
@@ -565,16 +585,19 @@ class _HomeScreenState extends State<HomeScreen> {
                   icon: Icons.home_rounded,
                   isSelected: _selectedNavIndex == 0,
                   onTap: () => setState(() => _selectedNavIndex = 0),
+                  selectedColor: appBarColor,
                 ),
                 _BottomNavItem(
                   icon: Icons.camera_alt_rounded,
                   isSelected: false,
                   onTap: () => Navigator.of(context).pushNamed('/report'),
+                  selectedColor: appBarColor,
                 ),
                 _BottomNavItem(
                   icon: Icons.grid_view_rounded,
                   isSelected: _selectedNavIndex == 2,
                   onTap: () => setState(() => _selectedNavIndex = 2),
+                  selectedColor: appBarColor,
                 ),
               ],
             ),
@@ -648,11 +671,13 @@ class _BottomNavItem extends StatelessWidget {
   final IconData icon;
   final bool isSelected;
   final VoidCallback onTap;
+  final Color selectedColor;
 
   const _BottomNavItem({
     required this.icon,
     required this.isSelected,
     required this.onTap,
+    required this.selectedColor,
   });
 
   @override
@@ -662,7 +687,7 @@ class _BottomNavItem extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF4CAF50) : Colors.transparent,
+          color: isSelected ? selectedColor : Colors.transparent,
           borderRadius: BorderRadius.circular(14),
         ),
         child: Icon(
