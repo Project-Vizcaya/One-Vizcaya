@@ -270,7 +270,9 @@ class EmergencyContactsScreen extends StatelessWidget {
       body: SafeArea(
         top: false,
         child: ListView(
-          padding: const EdgeInsets.only(bottom: 24),
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).padding.bottom + 32,
+          ),
           children: [
             // ── Local contacts ──
             if (localContacts.isNotEmpty) ...[
