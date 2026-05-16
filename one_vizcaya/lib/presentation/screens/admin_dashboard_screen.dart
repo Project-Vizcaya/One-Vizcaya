@@ -102,6 +102,231 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
     );
   }
 
+  void _showAddUserByPhoneSheet() {
+    final phoneController = TextEditingController();
+    bool isSearching = false;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      useSafeArea: true,
+      builder: (sheetCtx) => StatefulBuilder(
+        builder: (sheetCtx, setSheetState) => Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(sheetCtx).viewInsets.bottom + 24,
+            left: 24,
+            right: 24,
+            top: 16,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              const Text(
+                'Assign Admin Role',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Enter the registered phone number of the user.',
+                style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+              ),
+              const SizedBox(height: 20),
+              TextField(
+                controller: phoneController,
+                keyboardType: TextInputType.phone,
+                decoration: InputDecoration(
+                  labelText: 'Phone Number',
+                  hintText: '+639XXXXXXXXX',
+                  prefixIcon: const Icon(Icons.phone_outlined),
+                  filled: true,
+                  fillColor: const Color(0xFFF7F7F7),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: BorderSide.none,
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: BorderSide(color: _activeLguColor, width: 1.5),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                height: 50,
+                child: ElevatedButton.icon(
+                  icon: isSearching
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2, color: Colors.white),
+                        )
+                      : const Icon(Icons.search),
+                  label: const Text('Find User'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _activeLguColor,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14)),
+                    elevation: 0,
+                  ),
+                  onPressed: isSearching
+                      ? null
+                      : () async {
+                          final phone = phoneController.text.trim();
+                          if (phone.isEmpty) {
+                            ToastUtils.showError('Enter a phone number.');
+                            return;
+                          }
+                          setSheetState(() => isSearching = true);
+                          try {
+                            final query = await FirebaseFirestore.instance
+                                .collection('users')
+                                .where('phoneNumber', isEqualTo: phone)
+                                .limit(1)
+                                .get();
+
+                            if (!mounted) return;
+
+                            if (query.docs.isEmpty) {
+                              setSheetState(() => isSearching = false);
+                              ToastUtils.showError(
+                                  'No user found with that phone number.');
+                              return;
+                            }
+
+                            final doc = query.docs.first;
+                            final data = doc.data();
+                            final uid = doc.id;
+                            final name = data['name'] as String? ?? '(No name)';
+                            final roleStr = data['role'] as String? ?? 'citizen';
+                            final currentRole = AppUser.roleFromString(roleStr);
+
+                            if (mounted) Navigator.pop(sheetCtx);
+
+                            // Reuse the existing role dialog from _RoleManagementTab
+                            // by opening it directly
+                            UserRole selected = currentRole;
+                            await showDialog(
+                              context: context,
+                              builder: (ctx) => StatefulBuilder(
+                                builder: (ctx, setDialogState) => AlertDialog(
+                                  shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(16)),
+                                  title: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      const Text('Assign Role',
+                                          style: TextStyle(
+                                              fontWeight: FontWeight.bold)),
+                                      Text(name,
+                                          style: TextStyle(
+                                              fontSize: 13,
+                                              fontWeight: FontWeight.normal,
+                                              color: Colors.grey.shade600)),
+                                      Text(phone,
+                                          style: TextStyle(
+                                              fontSize: 12,
+                                              color: Colors.grey.shade400)),
+                                    ],
+                                  ),
+                                  content: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: UserRole.values.map((role) {
+                                      return RadioListTile<UserRole>(
+                                        dense: true,
+                                        activeColor: _activeLguColor,
+                                        title: Text(role.displayName,
+                                            style: const TextStyle(
+                                                fontSize: 14)),
+                                        subtitle: _roleDescription(role),
+                                        value: role,
+                                        groupValue: selected,
+                                        onChanged: (v) {
+                                          if (v != null) {
+                                            setDialogState(
+                                                () => selected = v);
+                                          }
+                                        },
+                                      );
+                                    }).toList(),
+                                  ),
+                                  actions: [
+                                    TextButton(
+                                        onPressed: () =>
+                                            Navigator.pop(ctx),
+                                        child: const Text('Cancel')),
+                                    ElevatedButton(
+                                      onPressed: () async {
+                                        Navigator.pop(ctx);
+                                        await roleService.assignRole(
+                                            uid, selected);
+                                        if (mounted) {
+                                          ToastUtils.showSuccess(
+                                              'Role assigned to $name.');
+                                        }
+                                      },
+                                      style: ElevatedButton.styleFrom(
+                                          backgroundColor: _activeLguColor,
+                                          foregroundColor: Colors.white),
+                                      child: const Text('Save'),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          } catch (e) {
+                            if (mounted) {
+                              setSheetState(() => isSearching = false);
+                              ToastUtils.showError('Search failed: $e');
+                            }
+                          }
+                        },
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget? _roleDescription(UserRole role) {
+    switch (role) {
+      case UserRole.citizen:
+        return const Text('Standard app user', style: TextStyle(fontSize: 11));
+      case UserRole.admin:
+        return const Text('Legacy admin (view only)', style: TextStyle(fontSize: 11));
+      case UserRole.municipalAdmin:
+        return const Text('Manages reports & announcements for their municipality',
+            style: TextStyle(fontSize: 11));
+      case UserRole.provincialAdmin:
+        return const Text('Full access across all municipalities',
+            style: TextStyle(fontSize: 11));
+      case UserRole.superAdmin:
+        return const Text('Full access — provincial + municipal view switching',
+            style: TextStyle(fontSize: 11));
+    }
+  }
+
   void _showReportDetail(ProblemReport report) {
     showModalBottomSheet(
       context: context,
@@ -226,14 +451,24 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
       floatingActionButton: ListenableBuilder(
         listenable: tabController,
         builder: (context, _) {
-          if (tabController.index != 1) return const SizedBox.shrink();
-          return FloatingActionButton.extended(
-            onPressed: _showAddAnnouncementSheet,
-            backgroundColor: lguColor,
-            foregroundColor: Colors.white,
-            icon: const Icon(Icons.add),
-            label: const Text('Post Announcement'),
-          );
+          if (tabController.index == 1) {
+            return FloatingActionButton.extended(
+              onPressed: _showAddAnnouncementSheet,
+              backgroundColor: lguColor,
+              foregroundColor: Colors.white,
+              icon: const Icon(Icons.add),
+              label: const Text('Post Announcement'),
+            );
+          }
+          if (tabController.index == 2) {
+            return FloatingActionButton(
+              onPressed: _showAddUserByPhoneSheet,
+              backgroundColor: lguColor,
+              foregroundColor: Colors.white,
+              child: const Icon(Icons.person_add),
+            );
+          }
+          return const SizedBox.shrink();
         },
       ),
 
