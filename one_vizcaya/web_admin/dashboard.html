@@ -44,19 +44,19 @@
     .stat-card.blue .stat-strip{background:linear-gradient(90deg,#1B5E20,#66BB6A)}
     .stat-card.red .stat-strip{background:linear-gradient(90deg,#B71C1C,#EF5350)}
     .stat-card.orange .stat-strip{background:linear-gradient(90deg,#E65100,#FF8F00)}
-    .stat-card.green .stat-strip{background:linear-gradient(90deg,#E65100,#F9A825)}
+    .stat-card.green .stat-strip{background:linear-gradient(90deg,#1B5E20,#43A047)}
     .stat-inner{padding:20px 20px 18px;flex:1;display:flex;flex-direction:column;gap:6px}
     .stat-row{display:flex;align-items:center;justify-content:space-between;gap:10px}
     .stat-icon{width:50px;height:50px;border-radius:13px;display:flex;align-items:center;justify-content:center;font-size:23px;flex-shrink:0}
     .stat-card.blue .stat-icon{background:#E8F5E9}
     .stat-card.red .stat-icon{background:#FFEBEE}
     .stat-card.orange .stat-icon{background:#FFF3E0}
-    .stat-card.green .stat-icon{background:#FFF8E1}
+    .stat-card.green .stat-icon{background:#E8F5E9}
     .stat-value{font-size:38px;font-weight:800;line-height:1;letter-spacing:-1px}
     .stat-card.blue .stat-value{color:#2E7D32}
     .stat-card.red .stat-value{color:#B71C1C}
     .stat-card.orange .stat-value{color:#E65100}
-    .stat-card.green .stat-value{color:#F57F17}
+    .stat-card.green .stat-value{color:#2E7D32}
     .stat-label{font-size:13px;font-weight:600;color:#4A5568}
     .stat-sub{font-size:11px;color:#A0AEC0;margin-top:1px}
 
@@ -347,6 +347,10 @@
         <span class="card-meta" id="resp-count-label">Loading…</span>
       </div>
       <div class="card-body" style="padding-top:14px">
+        <select class="filter-select" id="resp-dir-muni-filter" onchange="renderResponderDirectory(currentRespDirFilter)"
+                style="width:100%;margin-bottom:10px;border-radius:10px">
+          <option value="all">All Municipalities</option>
+        </select>
         <div class="resp-filter" id="resp-chips">
           <button class="chip active" onclick="filterRespDir('all',this)">All</button>
           <button class="chip" onclick="filterRespDir('mdrrmo',this)">MDRRMO</button>
@@ -371,6 +375,43 @@
     <div class="card-body">
       <div class="users-list" id="users-list">
         <div class="empty-state"><div>⏳</div>Loading users…</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Announcements -->
+  <div class="card" id="announcements-card" style="display:none">
+    <div class="card-header">
+      <div class="card-title">📢 Announcements</div>
+      <button onclick="toggleNewAnnouncement()" class="chip" style="border-color:#2E7D32;color:#2E7D32;font-size:12px">+ New Announcement</button>
+    </div>
+    <div class="card-body">
+
+      <div id="new-announcement-form" style="display:none;margin-bottom:20px;padding:16px;background:#F7FAFF;border-radius:12px;border:1px solid #E2E8F0">
+        <div style="margin-bottom:12px">
+          <label style="font-size:11px;font-weight:700;color:#718096;display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px">Title</label>
+          <input type="text" id="ann-title" placeholder="Announcement title"
+                 style="width:100%;border:1.5px solid #E2E8F0;border-radius:8px;padding:10px 12px;font-size:13px;outline:none;font-family:inherit"/>
+        </div>
+        <div style="margin-bottom:12px">
+          <label style="font-size:11px;font-weight:700;color:#718096;display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px">Message</label>
+          <textarea id="ann-body" placeholder="Write the announcement message here…" rows="3"
+                    style="width:100%;border:1.5px solid #E2E8F0;border-radius:8px;padding:10px 12px;font-size:13px;outline:none;resize:vertical;font-family:inherit"></textarea>
+        </div>
+        <div style="margin-bottom:16px">
+          <label style="font-size:11px;font-weight:700;color:#718096;display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px">Target Audience</label>
+          <select id="ann-target" style="border:1.5px solid #E2E8F0;border-radius:8px;padding:8px 12px;font-size:13px;width:100%;background:#fff">
+            <option value="all">🌐 Province-wide (All Municipalities)</option>
+          </select>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button onclick="postAnnouncement()" style="padding:8px 22px;background:#2E7D32;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">Post</button>
+          <button onclick="toggleNewAnnouncement()" style="padding:8px 16px;background:#EDF2F7;color:#4A5568;border:none;border-radius:8px;font-size:13px;cursor:pointer">Cancel</button>
+        </div>
+      </div>
+
+      <div id="ann-list">
+        <div class="empty-state"><div>⏳</div>Loading announcements…</div>
       </div>
     </div>
   </div>
@@ -489,10 +530,11 @@ auth.onAuthStateChanged(async user => {
 
   initMap();
   listenToReports();
-  renderResponderDirectory('all');
   populateMuniFilter();
+  renderResponderDirectory('all');
   initViewAsSwitcher();
   loadUsers();
+  initAnnouncements();
 });
 
 // ── Google Maps init ─────────────────────────────────────────────────────────
@@ -891,8 +933,10 @@ function toggleReportPins() {
 // ── Responder directory ───────────────────────────────────────────────────────
 function renderResponderDirectory(filter) {
   currentRespDirFilter = filter;
+  const muniFilter = document.getElementById('resp-dir-muni-filter')?.value || 'all';
   let list = RESPONDERS.filter(r => {
     if (userRole === 'municipal_admin' && r.municipality !== userMunicipality) return false;
+    if (muniFilter !== 'all' && r.municipality !== muniFilter) return false;
     if (filter !== 'all' && r.type !== filter) return false;
     return true;
   });
@@ -937,16 +981,22 @@ function focusResponder(lat, lng, name) {
 
 // ── Municipality filter populate ──────────────────────────────────────────────
 function populateMuniFilter() {
-  const sel = document.getElementById('map-muni-filter');
-  const munis = [...new Set(RESPONDERS.map(r => r.municipality))].sort();
+  const mapSel  = document.getElementById('map-muni-filter');
+  const dirSel  = document.getElementById('resp-dir-muni-filter');
+  const munis   = NV_MUNICIPALITIES.map(m => m.name);
+
   if (userRole === 'municipal_admin') {
-    sel.innerHTML = `<option value="${userMunicipality}">${userMunicipality}</option>`;
-    sel.disabled = true;
+    mapSel.innerHTML = `<option value="${userMunicipality}">${userMunicipality}</option>`;
+    mapSel.disabled  = true;
+    dirSel.innerHTML = `<option value="${userMunicipality}">${userMunicipality}</option>`;
+    dirSel.disabled  = true;
   } else {
     munis.forEach(m => {
-      const opt = document.createElement('option');
-      opt.value = m; opt.textContent = m;
-      sel.appendChild(opt);
+      [mapSel, dirSel].forEach(sel => {
+        const opt = document.createElement('option');
+        opt.value = m; opt.textContent = m;
+        sel.appendChild(opt);
+      });
     });
   }
 }
@@ -1055,6 +1105,94 @@ async function saveUserRole(uid) {
   }
   btn.disabled = false;
   btn.textContent = 'Save';
+}
+
+// ── Announcements ─────────────────────────────────────────────────────────────
+function initAnnouncements() {
+  document.getElementById('announcements-card').style.display = 'block';
+
+  // Populate target dropdown with all municipalities
+  const sel = document.getElementById('ann-target');
+  NV_MUNICIPALITIES.forEach(m => {
+    const opt = document.createElement('option');
+    opt.value = m.name; opt.textContent = '📍 ' + m.name;
+    sel.appendChild(opt);
+  });
+  if (userRole === 'municipal_admin') {
+    sel.value = userMunicipality;
+    sel.disabled = true;
+  }
+
+  db.collection('announcements')
+    .orderBy('createdAt', 'desc')
+    .limit(30)
+    .onSnapshot(snap => {
+      const anns = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      renderAnnouncements(anns);
+    }, err => console.error('Announcements error:', err));
+}
+
+function renderAnnouncements(anns) {
+  const el = document.getElementById('ann-list');
+  if (anns.length === 0) {
+    el.innerHTML = '<div class="empty-state"><div>📢</div>No announcements yet. Create one above.</div>';
+    return;
+  }
+  const canDelete = ['provincial_admin', 'super_admin', 'admin'].includes(firestoreRole);
+  el.innerHTML = anns.map(a => {
+    const when = a.createdAt?.toDate
+      ? a.createdAt.toDate().toLocaleDateString('en-PH', { year:'numeric', month:'short', day:'numeric' })
+      : '—';
+    const target = a.target === 'all' ? '🌐 Province-wide' : '📍 ' + a.target;
+    const del = canDelete
+      ? `<button onclick="deleteAnnouncement('${a.id}')"
+           style="padding:4px 10px;background:#FFF5F5;color:#C53030;border:1px solid #FED7D7;border-radius:6px;font-size:11px;cursor:pointer;flex-shrink:0">Delete</button>`
+      : '';
+    return `<div style="border:1px solid #EDF2F7;border-radius:12px;padding:14px 16px;margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:14px;font-weight:700;color:#2D3748">${a.title || 'Untitled'}</div>
+          <div style="font-size:11px;color:#A0AEC0;margin:3px 0 8px">${target} &bull; ${when}</div>
+          <div style="font-size:13px;color:#4A5568;line-height:1.5">${(a.body || '').replace(/\n/g,'<br/>')}</div>
+        </div>
+        ${del}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function postAnnouncement() {
+  const title  = document.getElementById('ann-title').value.trim();
+  const body   = document.getElementById('ann-body').value.trim();
+  const target = document.getElementById('ann-target').value;
+  if (!title) { alert('Please enter a title.'); return; }
+  if (!body)  { alert('Please enter a message.'); return; }
+  try {
+    await db.collection('announcements').add({
+      title, body, target,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      createdBy: currentUser.uid
+    });
+    document.getElementById('ann-title').value = '';
+    document.getElementById('ann-body').value  = '';
+    document.getElementById('new-announcement-form').style.display = 'none';
+  } catch (e) {
+    alert('Failed to post announcement: ' + e.message);
+  }
+}
+
+async function deleteAnnouncement(id) {
+  if (!confirm('Delete this announcement? This cannot be undone.')) return;
+  try {
+    await db.collection('announcements').doc(id).delete();
+  } catch (e) {
+    alert('Failed to delete: ' + e.message);
+  }
+}
+
+function toggleNewAnnouncement() {
+  const f = document.getElementById('new-announcement-form');
+  f.style.display = f.style.display === 'none' ? 'block' : 'none';
 }
 
 // ── Hide loading overlay ──────────────────────────────────────────────────────
