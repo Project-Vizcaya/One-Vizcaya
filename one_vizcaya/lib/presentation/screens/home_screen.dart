@@ -379,8 +379,8 @@ class _HomeScreenState extends State<HomeScreen> {
   ) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      Navigator.of(context).pushNamed('/status');
       setState(() => _selectedNavIndex = 0);
+      Navigator.of(context).pushNamed('/status');
     });
     return const Center(
       child: CircularProgressIndicator(color: Color(0xFF4CAF50)),
@@ -390,8 +390,8 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildProfileRedirect(BuildContext context) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      Navigator.of(context).pushNamed('/profile');
       setState(() => _selectedNavIndex = 0);
+      Navigator.of(context).pushNamed('/profile');
     });
     return const Center(
       child: CircularProgressIndicator(color: Color(0xFF4CAF50)),

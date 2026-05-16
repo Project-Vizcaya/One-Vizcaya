@@ -37,16 +37,13 @@ class ProfileService {
       final data = profile.toMap();
 
       // Also set createdAt on first write
-      await _firestore
-          .collection('users')
-          .doc(profile.uid)
-          .set(
-            {
-              ...data,
-              'createdAt': FieldValue.serverTimestamp(),
-            },
-            SetOptions(merge: true),
-          );
+      final ref = _firestore.collection('users').doc(profile.uid);
+      final existing = await ref.get();
+      final payload = <String, dynamic>{...data};
+      if (!existing.exists || existing.data()?['createdAt'] == null) {
+        payload['createdAt'] = FieldValue.serverTimestamp();
+      }
+      await ref.set(payload, SetOptions(merge: true));
 
       ToastUtils.showSuccess('Profile saved successfully');
     } catch (e) {

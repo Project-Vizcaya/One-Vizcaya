@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../state/municipality_state.dart';
 import '../../core/constants/app_constants.dart';
 import '../../core/utils/toast_utils.dart';
@@ -445,17 +447,106 @@ class AnnouncementsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final lguColor = oneVizcayaState.activeTheme['appBarColor'] as Color;
+    final user = FirebaseAuth.instance.currentUser;
+    final municipality = oneVizcayaState.municipality;
+
     return Scaffold(
       appBar: AppBar(
         backgroundColor: lguColor,
         foregroundColor: Colors.white,
         title: const Text('Announcements'),
       ),
-      body: const Center(
-        child: Text(
-          'No announcements yet.',
-          style: TextStyle(color: Colors.grey),
-        ),
+      body: StreamBuilder<QuerySnapshot>(
+        stream: FirebaseFirestore.instance
+            .collection('announcements')
+            .where('municipality', whereIn: [municipality, 'All'])
+            .orderBy('timestamp', descending: true)
+            .snapshots(),
+        builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            return const Center(child: Text('Failed to load announcements.'));
+          }
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          final docs = snapshot.data?.docs ?? [];
+          if (docs.isEmpty) {
+            return const Center(
+              child: Text(
+                'No announcements yet.',
+                style: TextStyle(color: Colors.grey),
+              ),
+            );
+          }
+          return ListView.separated(
+            padding: const EdgeInsets.all(16),
+            itemCount: docs.length,
+            separatorBuilder: (_, __) => const SizedBox(height: 12),
+            itemBuilder: (context, index) {
+              final data = docs[index].data() as Map<String, dynamic>;
+              final title = data['title'] as String? ?? '';
+              final body = data['body'] as String? ?? '';
+              final isUrgent = data['isUrgent'] as bool? ?? false;
+              final postedBy = data['postedBy'] as String? ?? '';
+              final ts = data['timestamp'];
+              String dateStr = '';
+              if (ts is Timestamp) {
+                final dt = ts.toDate().toLocal();
+                dateStr =
+                    '${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')}';
+              }
+
+              return Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: isUrgent ? Colors.red.shade50 : Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: isUrgent
+                      ? Border.all(color: Colors.red, width: 1.5)
+                      : Border.all(color: Colors.grey.shade200),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        if (isUrgent) ...[
+                          const Icon(Icons.warning_amber_rounded,
+                              color: Colors.red, size: 16),
+                          const SizedBox(width: 6),
+                        ],
+                        Expanded(
+                          child: Text(
+                            title,
+                            style: const TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 15),
+                          ),
+                        ),
+                        if (dateStr.isNotEmpty)
+                          Text(dateStr,
+                              style: const TextStyle(
+                                  fontSize: 11, color: Colors.grey)),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Text(body,
+                        style: const TextStyle(fontSize: 14, height: 1.4)),
+                    if (postedBy.isNotEmpty) ...[
+                      const SizedBox(height: 6),
+                      Text(
+                        '— $postedBy',
+                        style: TextStyle(
+                            fontSize: 11,
+                            color: Colors.grey.shade500,
+                            fontStyle: FontStyle.italic),
+                      ),
+                    ],
+                  ],
+                ),
+              );
+            },
+          );
+        },
       ),
     );
   }
