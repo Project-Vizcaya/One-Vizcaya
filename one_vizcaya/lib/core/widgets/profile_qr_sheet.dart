@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:qr_flutter/qr_flutter.dart';
@@ -26,11 +27,19 @@ class ProfileQrSheet extends StatelessWidget {
     final uid = user?.uid ?? 'unknown';
     final phone = user?.phoneNumber ?? 'Unknown';
 
-    final qrData =
-        'onevizcaya://citizen'
-        '?uid=$uid'
-        '&phone=$phone'
-        '&municipality=$municipality';
+    // Partially mask phone: show first 2 chars + XXXXX + last 4 digits
+    String maskedPhone = phone;
+    if (phone.length >= 7) {
+      maskedPhone = '${phone.substring(0, 2)}XXXXX${phone.substring(phone.length - 4)}';
+    }
+
+    final qrData = jsonEncode({
+      'type': 'onevizcaya_citizen',
+      'uid': uid,
+      'phone': phone,
+      'municipality': municipality,
+      'version': '1',
+    });
 
     return Container(
       decoration: const BoxDecoration(
@@ -61,7 +70,7 @@ class ProfileQrSheet extends StatelessWidget {
 
             // ── Title ──
             Text(
-              'Citizen ID',
+              'Citizen Digital ID',
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
@@ -70,7 +79,7 @@ class ProfileQrSheet extends StatelessWidget {
             ),
             const SizedBox(height: 4),
             Text(
-              'Show this QR code to LGU staff for verification',
+              'Scan to verify citizen identity',
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 13, color: Colors.grey.shade500),
             ),
@@ -130,14 +139,14 @@ class ProfileQrSheet extends StatelessWidget {
                   const SizedBox(height: 6),
                   _InfoRow(
                     label: 'Phone',
-                    value: phone,
+                    value: maskedPhone,
                     icon: Icons.phone,
                     color: lguColor,
                   ),
                   const SizedBox(height: 6),
                   _InfoRow(
                     label: 'Citizen ID',
-                    value: uid.length > 16 ? '${uid.substring(0, 16)}...' : uid,
+                    value: uid.length > 8 ? uid.substring(0, 8) : uid,
                     icon: Icons.badge,
                     color: lguColor,
                   ),
@@ -196,9 +205,12 @@ class ProfileQrSheet extends StatelessWidget {
               children: [
                 Icon(Icons.lock_outline, size: 12, color: Colors.grey.shade400),
                 const SizedBox(width: 4),
-                Text(
-                  'This QR is linked to your verified phone number',
-                  style: TextStyle(fontSize: 11, color: Colors.grey.shade400),
+                Flexible(
+                  child: Text(
+                    'Issued by $municipality LGU · One Vizcaya v1',
+                    style: TextStyle(fontSize: 11, color: Colors.grey.shade400),
+                    textAlign: TextAlign.center,
+                  ),
                 ),
               ],
             ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 import '../../domain/models/problem_report.dart';
 import '../../domain/enums/report_status.dart';
 
@@ -194,10 +195,56 @@ class ReportStatusCard extends StatelessWidget {
                     ],
                   ),
                 ],
+                const SizedBox(height: 12),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: OutlinedButton.icon(
+                    icon: const Icon(Icons.qr_code, size: 16),
+                    label: const Text('Show QR', style: TextStyle(fontSize: 12)),
+                    onPressed: () => _showReportQr(context),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: lguColor,
+                      side: BorderSide(color: lguColor),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  void _showReportQr(BuildContext context) {
+    final qrValue = 'onevizcaya://status?reportId=${report.id}';
+    showModalBottomSheet(
+      context: context,
+      builder: (_) => Container(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'Report QR Code',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            ),
+            const SizedBox(height: 16),
+            QrImageView(data: qrValue, size: 200),
+            const SizedBox(height: 12),
+            const Text(
+              'Show to LGU staff to track this report',
+              style: TextStyle(color: Colors.grey, fontSize: 12),
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
       ),
     );
   }
