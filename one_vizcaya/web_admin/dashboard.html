@@ -326,6 +326,24 @@
         </div>
       </div>
       <div style="margin-top:20px;display:grid;grid-template-columns:repeat(4,1fr);gap:12px" id="analytics-kpis"></div>
+      <div id="analytics-muni-breakdown" style="display:none;margin-top:20px">
+        <div style="font-size:12px;font-weight:700;color:#718096;text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px">Municipality Breakdown</div>
+        <div style="overflow-x:auto">
+          <table style="width:100%;border-collapse:collapse;font-size:13px">
+            <thead>
+              <tr style="background:#F7FAFC">
+                <th style="text-align:left;padding:10px 12px;font-size:11px;font-weight:700;color:#A0AEC0;text-transform:uppercase;letter-spacing:.5px;border-bottom:2px solid #EDF2F7">Municipality</th>
+                <th style="text-align:right;padding:10px 12px;font-size:11px;font-weight:700;color:#A0AEC0;text-transform:uppercase;letter-spacing:.5px;border-bottom:2px solid #EDF2F7">Total</th>
+                <th style="text-align:right;padding:10px 12px;font-size:11px;font-weight:700;color:#A0AEC0;text-transform:uppercase;letter-spacing:.5px;border-bottom:2px solid #EDF2F7">Pending</th>
+                <th style="text-align:right;padding:10px 12px;font-size:11px;font-weight:700;color:#A0AEC0;text-transform:uppercase;letter-spacing:.5px;border-bottom:2px solid #EDF2F7">Ongoing</th>
+                <th style="text-align:right;padding:10px 12px;font-size:11px;font-weight:700;color:#A0AEC0;text-transform:uppercase;letter-spacing:.5px;border-bottom:2px solid #EDF2F7">Solved</th>
+                <th style="text-align:right;padding:10px 12px;font-size:11px;font-weight:700;color:#A0AEC0;text-transform:uppercase;letter-spacing:.5px;border-bottom:2px solid #EDF2F7">Res. Rate</th>
+              </tr>
+            </thead>
+            <tbody id="analytics-muni-tbody"></tbody>
+          </table>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -996,6 +1014,47 @@ function renderAnalytics() {
       <div style="font-size:22px;font-weight:800;color:${k.color}">${k.value}</div>
       <div style="font-size:11px;color:#718096;margin-top:4px;font-weight:600">${k.label}</div>
     </div>`).join('');
+
+  // Municipality breakdown (provincial/super admin only)
+  const isProvincialView = ['provincial_admin','super_admin','admin'].includes(userRole);
+  const breakdownEl = document.getElementById('analytics-muni-breakdown');
+  if (breakdownEl) {
+    if (isProvincialView) {
+      breakdownEl.style.display = 'block';
+      const muniStats = {};
+      NV_MUNICIPALITIES.forEach(m => { muniStats[m.name] = { total:0, pending:0, ongoing:0, solved:0 }; });
+      allReports.forEach(r => {
+        const s = muniStats[r.municipality];
+        if (!s) return;
+        s.total++;
+        if (r.status === 'reported') s.pending++;
+        else if (r.status === 'ongoing') s.ongoing++;
+        else if (r.status === 'solved') s.solved++;
+      });
+      const tbody = document.getElementById('analytics-muni-tbody');
+      const rows = Object.entries(muniStats)
+        .filter(([,s]) => s.total > 0)
+        .sort((a,b) => b[1].total - a[1].total);
+      if (rows.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;color:#A0AEC0">No reports yet</td></tr>';
+      } else {
+        tbody.innerHTML = rows.map(([name, s]) => {
+          const rate = s.total ? Math.round(s.solved/s.total*100) : 0;
+          const rateColor = rate >= 70 ? '#2E7D32' : rate >= 40 ? '#E65100' : '#B71C1C';
+          return `<tr style="border-bottom:1px solid #F7FAFC">
+            <td style="padding:10px 12px;font-weight:600">${escHtml(name)}</td>
+            <td style="padding:10px 12px;text-align:right;font-weight:700">${s.total}</td>
+            <td style="padding:10px 12px;text-align:right;color:#276749">${s.pending}</td>
+            <td style="padding:10px 12px;text-align:right;color:#C05621">${s.ongoing}</td>
+            <td style="padding:10px 12px;text-align:right;color:#2E7D32">${s.solved}</td>
+            <td style="padding:10px 12px;text-align:right;font-weight:700;color:${rateColor}">${rate}%</td>
+          </tr>`;
+        }).join('');
+      }
+    } else {
+      breakdownEl.style.display = 'none';
+    }
+  }
 }
 
 // ── Report table ─────────────────────────────────────────────────────────────
