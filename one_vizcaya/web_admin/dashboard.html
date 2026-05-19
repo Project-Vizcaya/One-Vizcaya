@@ -479,7 +479,7 @@ function getMuniSealUrl(muniName) {
 firebase.initializeApp(FIREBASE_CONFIG);
 const auth = firebase.auth();
 const db   = firebase.firestore();
-db.settings({ experimentalForceLongPolling: true, merge: true });
+// Long-polling removed — it breaks WebSocket connections in normal browsers.
 
 // ── State ────────────────────────────────────────────────────────────────────
 let currentUser      = null;
@@ -1347,17 +1347,16 @@ function initAnnouncements() {
     if (postedByField && !postedByField.value) postedByField.placeholder = `LGU ${userMunicipality}`;
   }
 
-  let annQuery = db.collection('announcements').orderBy('timestamp', 'desc').limit(50);
-  if (userRole === 'municipal_admin') {
-    annQuery = db.collection('announcements')
-      .where('municipality', 'in', [userMunicipality, 'All'])
-      .orderBy('timestamp', 'desc')
-      .limit(50);
-  }
-  annQuery.onSnapshot(snap => {
-    const anns = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    renderAnnouncements(anns);
-  }, err => console.error('Announcements error:', err));
+  // Fetch all announcements ordered by timestamp; filter client-side for municipal_admin
+  // to avoid requiring a Firestore composite index on (municipality, timestamp).
+  db.collection('announcements').orderBy('timestamp', 'desc').limit(100)
+    .onSnapshot(snap => {
+      let anns = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      if (userRole === 'municipal_admin') {
+        anns = anns.filter(a => a.municipality === userMunicipality || a.municipality === 'All');
+      }
+      renderAnnouncements(anns);
+    }, err => console.error('Announcements error:', err));
 }
 
 function renderAnnouncements(anns) {
