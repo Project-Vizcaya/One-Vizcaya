@@ -1,3 +1,5 @@
+// DEPLOYMENT: requires Firebase Blaze (pay-as-you-go) plan.
+// Run: cd functions && npm install && firebase deploy --only functions
 const { onDocumentCreated, onDocumentUpdated } = require("firebase-functions/v2/firestore");
 const { onSchedule } = require("firebase-functions/v2/scheduler");
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
@@ -506,3 +508,100 @@ exports.grantDemoAdminRole = onCall(async (request) => {
 
   return { message: `Granted ${targetRole} to ${uid}` };
 });
+
+/**
+ * Sends a push notification via FCM when a new notification document
+ * is created in users/{userId}/notifications/{notifId}.
+ */
+exports.onNewNotification = onDocumentCreated(
+  "users/{userId}/notifications/{notifId}",
+  async (event) => {
+    const data = event.data?.data();
+    if (!data) return;
+
+    const userId = event.params.userId;
+
+    // Get the user's FCM token
+    const db = admin.firestore();
+    const userDoc = await db.collection("users").doc(userId).get();
+    if (!userDoc.exists) return;
+
+    const fcmToken = userDoc.data()?.fcmToken;
+    if (!fcmToken) return;
+
+    const title = data.title || "One Vizcaya Update";
+    const body = data.body || "";
+
+    try {
+      await admin.messaging().send({
+        token: fcmToken,
+        notification: { title, body },
+        android: {
+          notification: {
+            channelId: "one_vizcaya_reports",
+            priority: "high",
+            color: "#2E7D32",
+          },
+        },
+        data: {
+          type: data.type || "notification",
+          reportId: data.reportId || "",
+          click_action: "FLUTTER_NOTIFICATION_CLICK",
+        },
+      });
+    } catch (e) {
+      console.error("FCM send failed:", e);
+    }
+  }
+);
+
+/**
+ * Sends a push notification to all users in a municipality
+ * when a broadcast document is created.
+ */
+exports.onNewBroadcast = onDocumentCreated(
+  "broadcasts/{broadcastId}",
+  async (event) => {
+    const data = event.data?.data();
+    if (!data) return;
+
+    const { title, body, scope } = data;
+    if (!title || !body) return;
+
+    const db = admin.firestore();
+
+    // Query users in the target scope
+    let query = db.collection("users").where("fcmToken", "!=", null);
+    if (scope && scope !== "All Province") {
+      query = query.where("municipality", "==", scope);
+    }
+
+    const usersSnap = await query.get();
+    if (usersSnap.empty) return;
+
+    const tokens = usersSnap.docs
+      .map((d) => d.data().fcmToken)
+      .filter(Boolean);
+
+    if (tokens.length === 0) return;
+
+    // Send in batches of 500 (FCM limit)
+    for (let i = 0; i < tokens.length; i += 500) {
+      const batch = tokens.slice(i, i + 500);
+      await admin
+        .messaging()
+        .sendEachForMulticast({
+          tokens: batch,
+          notification: { title, body },
+          android: {
+            notification: {
+              channelId: "one_vizcaya_broadcasts",
+              priority: "high",
+              color: "#1B5E20",
+            },
+          },
+        })
+        .catch((e) => console.error("Batch FCM failed:", e));
+    }
+  }
+);
