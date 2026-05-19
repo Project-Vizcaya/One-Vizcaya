@@ -405,9 +405,22 @@
           Live Reports
           <div class="live-dot"></div>
         </div>
-        <span class="card-meta" id="report-count-label">Loading…</span>
+        <div style="display:flex;align-items:center;gap:10px">
+          <span class="card-meta" id="report-count-label">Loading…</span>
+          <button onclick="exportCSV()" style="padding:5px 12px;background:#EBF8FF;color:#2B6CB0;border:1px solid #BEE3F8;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer">⬇ Export CSV</button>
+        </div>
       </div>
       <div class="card-body">
+        <div id="date-range-filter" style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+          <span style="font-size:12px;font-weight:700;color:#718096">Date Range:</span>
+          <input type="date" id="filter-date-from" onchange="applyDateFilter()"
+            style="padding:6px 10px;border:1.5px solid #E2E8F0;border-radius:8px;font-size:12px;color:#4A5568;background:#fff;cursor:pointer"/>
+          <span style="font-size:12px;color:#A0AEC0">to</span>
+          <input type="date" id="filter-date-to" onchange="applyDateFilter()"
+            style="padding:6px 10px;border:1.5px solid #E2E8F0;border-radius:8px;font-size:12px;color:#4A5568;background:#fff;cursor:pointer"/>
+          <button onclick="clearDateFilter()" style="padding:5px 12px;border:1.5px solid #E2E8F0;background:#fff;border-radius:8px;font-size:11px;font-weight:600;color:#718096;cursor:pointer">Clear</button>
+          <span id="date-filter-count" style="font-size:12px;color:#A0AEC0"></span>
+        </div>
         <div class="reports-filter">
           <button class="chip active" onclick="filterReports('all',this)">All</button>
           <button class="chip" onclick="filterReports('reported',this)">Reported</button>
@@ -1108,6 +1121,73 @@ function filterReportsByCritical(btn) {
   document.querySelectorAll('.reports-filter .chip').forEach(b => b.classList.remove('active'));
   if (criticalOnly) btn.classList.add('active');
   applyFilter();
+}
+
+function applyDateFilter() {
+  const fromVal = document.getElementById('filter-date-from').value;
+  const toVal   = document.getElementById('filter-date-to').value;
+  const from = fromVal ? new Date(fromVal + 'T00:00:00') : null;
+  const to   = toVal   ? new Date(toVal   + 'T23:59:59') : null;
+
+  let base = allReports;
+  if (currentFilter !== 'all') base = base.filter(r => r.status === currentFilter);
+  if (criticalOnly) base = base.filter(r => r.priority === 'critical');
+
+  filteredReports = base.filter(r => {
+    if (!r.reportedAt) return true;
+    if (from && r.reportedAt < from) return false;
+    if (to   && r.reportedAt > to)   return false;
+    return true;
+  });
+
+  const countEl = document.getElementById('date-filter-count');
+  if (countEl) {
+    if (from || to) {
+      countEl.textContent = `${filteredReports.length} report${filteredReports.length!==1?'s':''} in range`;
+    } else {
+      countEl.textContent = '';
+    }
+  }
+
+  renderTable(filteredReports);
+}
+
+function clearDateFilter() {
+  document.getElementById('filter-date-from').value = '';
+  document.getElementById('filter-date-to').value = '';
+  const countEl = document.getElementById('date-filter-count');
+  if (countEl) countEl.textContent = '';
+  applyFilter(); // re-apply status/priority filters without date range
+}
+
+function exportCSV() {
+  const fromVal = document.getElementById('filter-date-from')?.value || '';
+  const toVal   = document.getElementById('filter-date-to')?.value || '';
+  const dateSuffix = fromVal || toVal ? `_${fromVal||'start'}_to_${toVal||'end'}` : '';
+  const filename = `OneVizcaya_Reports${dateSuffix}_${new Date().toISOString().slice(0,10)}.csv`;
+
+  const rows = [['Category','Municipality','Status','Priority','Location','Reported At','Description']];
+  filteredReports.forEach(r => {
+    const dt = r.reportedAt ? r.reportedAt.toISOString().slice(0,10) : '';
+    rows.push([
+      r.category||'',
+      r.municipality||'',
+      r.status||'',
+      r.priority||'',
+      r.location||'',
+      dt,
+      (r.description||'').replace(/"/g,'""'),
+    ]);
+  });
+
+  const csv = rows.map(row => row.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\r\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 function renderTable(reports) {
