@@ -421,7 +421,10 @@
     <div class="card">
       <div class="card-header">
         <div class="card-title">🚨 Responder Directory</div>
-        <span class="card-meta" id="resp-count-label">Loading…</span>
+        <div style="display:flex;align-items:center;gap:8px">
+          <button onclick="openResponderModal(null)" class="toggle-btn" style="font-size:11px;padding:5px 12px">+ Add</button>
+          <span class="card-meta" id="resp-count-label">Loading…</span>
+        </div>
       </div>
       <div class="card-body" style="padding-top:14px">
         <select class="filter-select" id="resp-dir-muni-filter" onchange="filterRespDirMuni()"
@@ -603,6 +606,7 @@ let barangayInfoWindow = null;
 let barangayCache    = {};
 let muniPolygonMap   = {}; // muniName → google.maps.Polygon, for toggling visibility
 let currentRespDirFilter = 'all';
+let firestoreResponders = null; // null = not loaded yet, [] = loaded but empty
 
 // ── Auth guard ───────────────────────────────────────────────────────────────
 auth.onAuthStateChanged(async user => {
@@ -662,7 +666,7 @@ auth.onAuthStateChanged(async user => {
   initMap();
   listenToReports();
   populateMuniFilter();
-  renderResponderDirectory('all');
+  loadFirestoreResponders();
   initViewAsSwitcher();
   loadUsers();
   initAnnouncements();
@@ -1535,16 +1539,44 @@ function toggleReportPins() {
 }
 
 // ── Responder directory ───────────────────────────────────────────────────────
+async function loadFirestoreResponders() {
+  try {
+    const snap = await db.collection('responders').orderBy('name').get();
+    if (snap.empty) {
+      // Seed from static data on first run
+      const batch = db.batch();
+      RESPONDERS.forEach(r => {
+        const ref = db.collection('responders').doc();
+        batch.set(ref, { ...r, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+      });
+      await batch.commit();
+      // Re-load after seeding
+      const seeded = await db.collection('responders').orderBy('name').get();
+      firestoreResponders = seeded.docs.map(d => ({ id: d.id, ...d.data() }));
+    } else {
+      firestoreResponders = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    }
+    renderResponderDirectory(currentRespDirFilter);
+  } catch (e) {
+    console.warn('Responder Firestore load failed, using static data:', e);
+    firestoreResponders = null;
+    renderResponderDirectory(currentRespDirFilter);
+  }
+}
+
 function renderResponderDirectory(filter) {
   currentRespDirFilter = filter;
+  const source = firestoreResponders !== null ? firestoreResponders : RESPONDERS;
   const muniFilter = document.getElementById('resp-dir-muni-filter')?.value || 'all';
   const searchTerm = (document.getElementById('resp-search')?.value || '').toLowerCase().trim();
-  let list = RESPONDERS.filter(r => {
+  const isAdmin = ['super_admin','provincial_admin','admin','municipal_admin'].includes(firestoreRole);
+
+  let list = source.filter(r => {
     if (userRole === 'municipal_admin' && r.municipality !== userMunicipality) return false;
     if (muniFilter !== 'all' && r.municipality !== muniFilter) return false;
     if (filter !== 'all' && r.type !== filter) return false;
     if (searchTerm) {
-      const searchable = (r.name + ' ' + r.address + ' ' + r.municipality).toLowerCase();
+      const searchable = (r.name + ' ' + (r.address||'') + ' ' + r.municipality).toLowerCase();
       if (!searchable.includes(searchTerm)) return false;
     }
     return true;
@@ -1560,19 +1592,108 @@ function renderResponderDirectory(filter) {
 
   document.getElementById('responder-list').innerHTML = list.map(r => {
     const info = RESPONDER_ICONS[r.type] || RESPONDER_ICONS.mdrrmo;
-    return `<div class="responder-card" onclick="focusResponder(${r.lat},${r.lng},${JSON.stringify(r.name)})">
+    const adminBtns = isAdmin && r.id ? `
+      <div style="display:flex;gap:6px;margin-top:8px">
+        <button onclick="event.stopPropagation();editResponder('${r.id}')" style="flex:1;padding:5px;background:#EBF8FF;color:#2B6CB0;border:1px solid #BEE3F8;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer">✏️ Edit</button>
+        <button onclick="event.stopPropagation();deleteResponder('${r.id}','${escHtml(r.name)}')" style="flex:1;padding:5px;background:#FFF5F5;color:#C53030;border:1px solid #FED7D7;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer">🗑️ Delete</button>
+      </div>` : '';
+    return `<div class="responder-card" onclick="focusResponder(${r.lat||0},${r.lng||0},${JSON.stringify(r.name)})">
       <div class="resp-icon" style="background:${info.color}22">${info.emoji}</div>
       <div class="resp-info">
-        <div class="resp-name">${r.name}</div>
-        <div class="resp-muni">${r.municipality} &bull; ${info.label}</div>
-        <div class="resp-phone">${r.phone}</div>
+        <div class="resp-name">${escHtml(r.name)}</div>
+        <div class="resp-muni">${escHtml(r.municipality)} &bull; ${info.label}</div>
+        <div class="resp-phone">${escHtml(r.phone||'')}</div>
         <div class="resp-contact-btn">
-          <a href="tel:${r.phone.replace(/[^+0-9]/g,'')}" class="btn-call">📞 Call</a>
-          <a href="sms:${r.phone.replace(/[^+0-9]/g,'')}" class="btn-sms">💬 SMS</a>
+          <a href="tel:${(r.phone||'').replace(/[^+0-9]/g,'')}" class="btn-call">📞 Call</a>
+          <a href="sms:${(r.phone||'').replace(/[^+0-9]/g,'')}" class="btn-sms">💬 SMS</a>
         </div>
+        ${adminBtns}
       </div>
     </div>`;
   }).join('');
+}
+
+function openResponderModal(responder) {
+  const isEdit = responder !== null;
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+  modal.id = 'responder-modal';
+  modal.innerHTML = `
+    <div class="modal-box">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+        <h3 style="margin:0">${isEdit ? '✏️ Edit' : '➕ Add'} Responder</h3>
+        <button onclick="this.closest('.modal-overlay').remove()" style="border:none;background:none;font-size:22px;cursor:pointer;color:#718096">✕</button>
+      </div>
+      <label style="font-size:12px;font-weight:700;color:#718096;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px">Name / Unit</label>
+      <input class="modal-input" id="resp-name" value="${escHtml(responder?.name||'')}" placeholder="e.g. Bambang BFP Station 1"/>
+      <label style="font-size:12px;font-weight:700;color:#718096;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px">Type</label>
+      <select class="modal-input" id="resp-type">
+        ${['fire','police','medical','disaster','rescue','municipal','mdrrmo','hospital','health','dpwh'].map(t=>`<option value="${t}" ${responder?.type===t?'selected':''}>${t.charAt(0).toUpperCase()+t.slice(1)}</option>`).join('')}
+      </select>
+      <label style="font-size:12px;font-weight:700;color:#718096;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px">Municipality</label>
+      <select class="modal-input" id="resp-muni">
+        ${NV_MUNICIPALITIES.map(m=>`<option value="${m.name}" ${responder?.municipality===m.name?'selected':''}>${m.name}</option>`).join('')}
+      </select>
+      <label style="font-size:12px;font-weight:700;color:#718096;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px">Phone</label>
+      <input class="modal-input" id="resp-phone" value="${escHtml(responder?.phone||'')}" placeholder="+639XXXXXXXXX"/>
+      <label style="font-size:12px;font-weight:700;color:#718096;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px">Latitude</label>
+      <input class="modal-input" id="resp-lat" type="number" step="0.0001" value="${responder?.lat||''}" placeholder="16.XXXX"/>
+      <label style="font-size:12px;font-weight:700;color:#718096;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px">Longitude</label>
+      <input class="modal-input" id="resp-lng" type="number" step="0.0001" value="${responder?.lng||''}" placeholder="121.XXXX"/>
+      <div class="modal-btn-row">
+        <button onclick="this.closest('.modal-overlay').remove()" style="padding:10px 20px;border:1.5px solid #E2E8F0;background:#fff;border-radius:10px;cursor:pointer;font-weight:600">Cancel</button>
+        <button onclick="saveResponder('${responder?.id||''}')" style="padding:10px 22px;background:#2E7D32;color:#fff;border:none;border-radius:10px;font-weight:700;cursor:pointer">Save</button>
+      </div>
+      <div id="resp-error" style="color:#C53030;font-size:12px;margin-top:8px;display:none"></div>
+    </div>`;
+  document.body.appendChild(modal);
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+}
+
+async function saveResponder(existingId) {
+  const name  = document.getElementById('resp-name').value.trim();
+  const type  = document.getElementById('resp-type').value;
+  const muni  = document.getElementById('resp-muni').value;
+  const phone = document.getElementById('resp-phone').value.trim();
+  const lat   = parseFloat(document.getElementById('resp-lat').value);
+  const lng   = parseFloat(document.getElementById('resp-lng').value);
+  const errEl = document.getElementById('resp-error');
+
+  if (!name) { errEl.textContent='Name is required'; errEl.style.display='block'; return; }
+  if (!muni) { errEl.textContent='Municipality is required'; errEl.style.display='block'; return; }
+
+  const data = { name, type, municipality: muni, phone, lat: isNaN(lat)?null:lat, lng: isNaN(lng)?null:lng, updatedAt: firebase.firestore.FieldValue.serverTimestamp() };
+
+  try {
+    if (existingId) {
+      await db.collection('responders').doc(existingId).update(data);
+    } else {
+      data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+      await db.collection('responders').add(data);
+    }
+    document.getElementById('responder-modal')?.remove();
+    await loadFirestoreResponders();
+    if (typeof writeAuditLog === 'function') writeAuditLog(existingId ? 'responder_updated' : 'responder_added', { name, municipality: muni });
+  } catch (e) {
+    errEl.textContent = 'Save failed: ' + e.message;
+    errEl.style.display = 'block';
+  }
+}
+
+function editResponder(id) {
+  const r = firestoreResponders?.find(x => x.id === id);
+  if (r) openResponderModal(r);
+}
+
+async function deleteResponder(id, name) {
+  if (!confirm(`Delete responder "${name}"? This cannot be undone.`)) return;
+  try {
+    await db.collection('responders').doc(id).delete();
+    if (typeof writeAuditLog === 'function') writeAuditLog('responder_deleted', { name, id });
+    await loadFirestoreResponders();
+  } catch (e) {
+    alert('Delete failed: ' + e.message);
+  }
 }
 
 function filterRespDir(type, btn) {
