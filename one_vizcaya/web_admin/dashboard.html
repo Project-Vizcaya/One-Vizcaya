@@ -343,6 +343,9 @@
       <select class="filter-select" id="map-muni-filter" onchange="filterMapByMuni()">
         <option value="all">All Municipalities</option>
       </select>
+      <select class="filter-select" id="map-barangay-filter" onchange="filterReportsByBarangay()" style="display:none">
+        <option value="all">All Barangays</option>
+      </select>
       <select class="filter-select" id="resp-type-filter" onchange="filterRespondersByType()">
         <option value="all">All Responder Types</option>
         <option value="mdrrmo">MDRRMO</option>
@@ -1309,6 +1312,33 @@ function filterMapByMuni() {
     map.setCenter(NV_CENTER); map.setZoom(NV_ZOOM);
   }
   if (showBarangays) renderBarangays();
+  updateBarangayDropdown(muniFilter);
+}
+
+// ── Barangay report filter ────────────────────────────────────────────────────
+async function updateBarangayDropdown(muniName) {
+  const sel = document.getElementById('map-barangay-filter');
+  if (!muniName || muniName === 'all') { sel.style.display = 'none'; sel.value = 'all'; return; }
+
+  const geojson = await fetchBarangayGeoJSON(muniName);
+  if (!geojson?.features) { sel.style.display = 'none'; return; }
+
+  const names = geojson.features
+    .map(f => f.properties?.adm4_en || f.properties?.name || '')
+    .filter(Boolean)
+    .sort();
+
+  sel.innerHTML = '<option value="all">All Barangays</option>' + names.map(n=>`<option value="${n}">${n}</option>`).join('');
+  sel.style.display = 'block';
+}
+
+function filterReportsByBarangay() {
+  const bgy = document.getElementById('map-barangay-filter').value;
+  const filtered = bgy === 'all' ? filteredReports : filteredReports.filter(r =>
+    (r.location||'').toLowerCase().includes(bgy.toLowerCase()) ||
+    (r.barangay||'').toLowerCase() === bgy.toLowerCase()
+  );
+  renderTable(filtered);
 }
 
 // ── Barangay PSGC map ─────────────────────────────────────────────────────────
