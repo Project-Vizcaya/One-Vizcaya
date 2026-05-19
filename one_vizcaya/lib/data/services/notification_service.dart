@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../core/utils/toast_utils.dart';
+import '../../presentation/state/municipality_state.dart';
 
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -37,6 +38,7 @@ class NotificationService {
       if (user != null) {
         _saveTokenForCurrentUser();
         _listenForStatusNotifications(user.uid);
+        _listenForBroadcasts(user.uid, oneVizcayaState.selectedMunicipality.value);
       }
     });
 
@@ -52,7 +54,10 @@ class NotificationService {
 
     // If already logged in at init time, start listening immediately
     final user = FirebaseAuth.instance.currentUser;
-    if (user != null) _listenForStatusNotifications(user.uid);
+    if (user != null) {
+      _listenForStatusNotifications(user.uid);
+      _listenForBroadcasts(user.uid, oneVizcayaState.selectedMunicipality.value);
+    }
   }
 
   // Listens to users/{uid}/notifications for documents where read == false
@@ -73,6 +78,34 @@ class NotificationService {
         ToastUtils.showSuccess('$title: $body');
         // Mark as read
         await doc.reference.update({'read': true});
+      }
+    });
+  }
+
+  void _listenForBroadcasts(String uid, String municipality) {
+    final startTime = Timestamp.now();
+    _firestore
+        .collection('broadcasts')
+        .where('timestamp', isGreaterThan: startTime)
+        .snapshots()
+        .listen((snap) async {
+      for (final doc in snap.docChanges.where((c) => c.type == DocumentChangeType.added)) {
+        final data = doc.doc.data()!;
+        final scope = data['scope'] as String? ?? 'All Province';
+        if (scope != 'All Province' && scope != municipality) continue;
+        final title = data['title'] as String? ?? 'Announcement';
+        final body = data['body'] as String? ?? '';
+        ToastUtils.showInfo('📢 $title: $body');
+        try {
+          await _firestore.collection('users').doc(uid).collection('notifications').add({
+            'type': 'broadcast',
+            'title': title,
+            'body': body,
+            'status': 'info',
+            'timestamp': FieldValue.serverTimestamp(),
+            'read': false,
+          });
+        } catch (_) {}
       }
     });
   }
