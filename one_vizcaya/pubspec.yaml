@@ -1,5 +1,5 @@
 name: one_vizcaya
-description: "One Vizcaya is a cross-platform mobile application built with Flutter and Firebase, designed to bridge the communication gap between the citizens of Bambang, Nueva Vizcaya, and their Local Government Unit (LGU)."
+description: "One Vizcaya is a cross-platform mobile application built with Flutter and Firebase, connecting the citizens of all 15 municipalities of Nueva Vizcaya to their Local Government Units (LGU)."
 publish_to: 'none'
 version: 1.1.1+2
 
@@ -29,6 +29,9 @@ dependencies:
   qr_flutter: ^4.1.0
   firebase_messaging: ^15.1.0
   flutter_image_compress: ^2.3.0
+  flutter_localizations:
+    sdk: flutter
+  intl: ^0.20.2
   pdf: ^3.11.0
   printing: ^5.13.0
 
@@ -50,6 +53,7 @@ flutter_native_splash:
 
 flutter:
   uses-material-design: true
+  generate: true
 
   assets:
     - assets/images/Seal_of_Nueva_Vizcaya.svg.png
