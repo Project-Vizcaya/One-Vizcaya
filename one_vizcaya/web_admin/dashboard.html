@@ -380,7 +380,10 @@
   <div class="card" id="users-card" style="display:none">
     <div class="card-header">
       <div class="card-title">👥 Manage User Roles</div>
-      <span class="card-meta" id="users-count-label"></span>
+      <div style="display:flex;align-items:center;gap:10px">
+        <span class="card-meta" id="users-count-label"></span>
+        <button onclick="loadUsers()" style="padding:4px 12px;background:#EDF2F7;color:#4A5568;border:none;border-radius:6px;font-size:11px;cursor:pointer;font-weight:600">↻ Refresh</button>
+      </div>
     </div>
     <div class="card-body">
       <div class="users-list" id="users-list">
@@ -408,10 +411,15 @@
           <textarea id="ann-body" placeholder="Write the announcement message here…" rows="3"
                     style="width:100%;border:1.5px solid #E2E8F0;border-radius:8px;padding:10px 12px;font-size:13px;outline:none;resize:vertical;font-family:inherit"></textarea>
         </div>
+        <div style="margin-bottom:12px">
+          <label for="ann-posted-by" style="font-size:11px;font-weight:700;color:#718096;display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px">Posted By</label>
+          <input type="text" id="ann-posted-by" placeholder="e.g. LGU Bambang / Mayor Juan dela Cruz"
+                 style="width:100%;border:1.5px solid #E2E8F0;border-radius:8px;padding:10px 12px;font-size:13px;outline:none;font-family:inherit"/>
+        </div>
         <div style="margin-bottom:16px">
           <label for="ann-municipality" style="font-size:11px;font-weight:700;color:#718096;display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px">Municipality</label>
           <select id="ann-municipality" style="border:1.5px solid #E2E8F0;border-radius:8px;padding:8px 12px;font-size:13px;width:100%;background:#fff">
-            <option value="all">🌐 Province-wide (All Municipalities)</option>
+            <option value="All">🌐 Province-wide (All Municipalities)</option>
           </select>
           <label style="display:flex;align-items:center;gap:8px;margin-top:8px;font-size:13px;cursor:pointer;">
             <input type="checkbox" id="ann-urgent" style="width:16px;height:16px;"> Mark as Urgent
@@ -752,9 +760,18 @@ function applyFilter() {
   let list = [...allReports];
   if (currentFilter !== 'all') list = list.filter(r => r.status === currentFilter);
   if (criticalOnly)            list = list.filter(r => r.priority === 'critical');
+  // Sort: newest first, solved reports pushed to bottom
+  list.sort((a, b) => {
+    const aSolved = a.status === 'solved', bSolved = b.status === 'solved';
+    if (aSolved !== bSolved) return aSolved ? 1 : -1;
+    return (b.reportedAt || 0) - (a.reportedAt || 0);
+  });
   filteredReports = list;
   renderTable(list);
-  document.getElementById('report-count-label').textContent = list.length + ' report(s)';
+  const total = list.length;
+  const shown = Math.min(total, 100);
+  document.getElementById('report-count-label').textContent =
+    total > 100 ? `Showing ${shown} of ${total} report(s)` : `${total} report(s)`;
 }
 
 function filterReports(status, btn) {
@@ -913,8 +930,17 @@ function filterMapByMuni() {
   renderResponderMarkers();
   const muniFilter = document.getElementById('map-muni-filter')?.value || 'all';
   if (muniFilter !== 'all') {
-    const first = RESPONDERS.find(r => r.municipality === muniFilter);
-    if (first) { map.setCenter({lat: first.lat, lng: first.lng}); map.setZoom(13); }
+    const bounds = getMuniBounds(muniFilter);
+    if (bounds) {
+      map.fitBounds(bounds, 40);
+    } else {
+      // Fallback: center on first responder in that municipality
+      const first = RESPONDERS.find(r => r.municipality === muniFilter);
+      if (first) { map.setCenter({lat: first.lat, lng: first.lng}); map.setZoom(13); }
+    }
+    // Reset barangay button title when a municipality is properly selected
+    const bgyBtn = document.getElementById('btn-barangays');
+    if (bgyBtn) bgyBtn.title = 'Show barangay boundaries (select a municipality first)';
   } else {
     map.setCenter(NV_CENTER); map.setZoom(NV_ZOOM);
   }
@@ -985,6 +1011,8 @@ async function renderBarangays() {
   btn.textContent = '🗺️ Barangays';
   btn.disabled = false;
 
+  // Guard: user may have toggled off while fetch was in flight
+  if (!showBarangays) return;
   if (!geojson || !geojson.features) return;
 
   geojson.features.forEach(feature => {
@@ -1315,15 +1343,21 @@ function initAnnouncements() {
   if (userRole === 'municipal_admin') {
     sel.value = userMunicipality;
     sel.disabled = true;
+    const postedByField = document.getElementById('ann-posted-by');
+    if (postedByField && !postedByField.value) postedByField.placeholder = `LGU ${userMunicipality}`;
   }
 
-  db.collection('announcements')
-    .orderBy('timestamp', 'desc')
-    .limit(30)
-    .onSnapshot(snap => {
-      const anns = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      renderAnnouncements(anns);
-    }, err => console.error('Announcements error:', err));
+  let annQuery = db.collection('announcements').orderBy('timestamp', 'desc').limit(50);
+  if (userRole === 'municipal_admin') {
+    annQuery = db.collection('announcements')
+      .where('municipality', 'in', [userMunicipality, 'All'])
+      .orderBy('timestamp', 'desc')
+      .limit(50);
+  }
+  annQuery.onSnapshot(snap => {
+    const anns = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    renderAnnouncements(anns);
+  }, err => console.error('Announcements error:', err));
 }
 
 function renderAnnouncements(anns) {
@@ -1337,7 +1371,7 @@ function renderAnnouncements(anns) {
     const when = a.timestamp?.toDate
       ? a.timestamp.toDate().toLocaleDateString('en-PH', { year:'numeric', month:'short', day:'numeric' })
       : '—';
-    const muni = a.municipality === 'all' ? '🌐 Province-wide' : '📍 ' + escHtml(a.municipality || '');
+    const muni = a.municipality === 'All' ? '🌐 Province-wide' : '📍 ' + escHtml(a.municipality || '');
     const del = canDelete
       ? `<button onclick="deleteAnnouncement('${a.id}')"
            style="padding:4px 10px;background:#FFF5F5;color:#C53030;border:1px solid #FED7D7;border-radius:6px;font-size:11px;cursor:pointer;flex-shrink:0">Delete</button>`
@@ -1358,19 +1392,21 @@ function renderAnnouncements(anns) {
 async function postAnnouncement() {
   const title      = document.getElementById('ann-title').value.trim();
   const body       = document.getElementById('ann-body').value.trim();
+  const postedBy   = document.getElementById('ann-posted-by').value.trim() || 'LGU';
   const municipality = document.getElementById('ann-municipality').value;
   const isUrgent   = document.getElementById('ann-urgent')?.checked ?? false;
   if (!title) { alert('Please enter a title.'); return; }
   if (!body)  { alert('Please enter a message.'); return; }
   try {
     await db.collection('announcements').add({
-      title, body, municipality, isUrgent,
+      title, body, municipality, isUrgent, postedBy,
       timestamp: firebase.firestore.FieldValue.serverTimestamp(),
       createdBy: currentUser.uid
     });
-    document.getElementById('ann-title').value = '';
-    document.getElementById('ann-body').value  = '';
-    document.getElementById('ann-urgent').checked = false;
+    document.getElementById('ann-title').value     = '';
+    document.getElementById('ann-body').value      = '';
+    document.getElementById('ann-posted-by').value = '';
+    document.getElementById('ann-urgent').checked  = false;
     document.getElementById('new-announcement-form').style.display = 'none';
   } catch (e) {
     alert('Failed to post announcement: ' + e.message);
