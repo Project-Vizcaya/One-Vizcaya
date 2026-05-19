@@ -1705,6 +1705,69 @@ function toggleNewAnnouncement() {
   f.style.display = f.style.display === 'none' ? 'block' : 'none';
 }
 
+// ── Broadcast Alert ───────────────────────────────────────────────────────────
+function openBroadcastModal() {
+  const muniOptions = ['All Province', ...NV_MUNICIPALITIES.map(m=>m.name)];
+  const defaultScope = userRole === 'municipal_admin' ? userMunicipality : 'All Province';
+
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+  modal.id = 'broadcast-modal';
+  modal.innerHTML = `
+    <div class="modal-box">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+        <h3 style="margin:0">📱 Broadcast Alert to Citizens</h3>
+        <button onclick="this.closest('.modal-overlay').remove()" style="border:none;background:none;font-size:22px;cursor:pointer;color:#718096">✕</button>
+      </div>
+      <label style="font-size:12px;font-weight:700;color:#718096;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px">Alert Title</label>
+      <input class="modal-input" id="bc-title" placeholder="e.g. Road Closure Notice" maxlength="80"/>
+      <label style="font-size:12px;font-weight:700;color:#718096;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px">Message</label>
+      <textarea class="modal-input" id="bc-body" rows="4" placeholder="Type your message to citizens…" maxlength="500" style="resize:vertical"></textarea>
+      <label style="font-size:12px;font-weight:700;color:#718096;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px">Scope</label>
+      <select class="modal-input" id="bc-scope" ${userRole==='municipal_admin'?'disabled':''}>
+        ${muniOptions.map(m=>`<option value="${m}" ${m===defaultScope?'selected':''}>${m}</option>`).join('')}
+      </select>
+      <div class="modal-btn-row">
+        <button onclick="this.closest('.modal-overlay').remove()" style="padding:10px 20px;border:1.5px solid #E2E8F0;background:#fff;border-radius:10px;cursor:pointer;font-weight:600">Cancel</button>
+        <button onclick="sendBroadcast()" style="padding:10px 22px;background:#2E7D32;color:#fff;border:none;border-radius:10px;font-weight:700;cursor:pointer" id="bc-send-btn">Send Broadcast</button>
+      </div>
+      <div id="bc-error" style="color:#C53030;font-size:12px;margin-top:8px;display:none"></div>
+    </div>`;
+  document.body.appendChild(modal);
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+}
+
+async function sendBroadcast() {
+  const title  = document.getElementById('bc-title').value.trim();
+  const body   = document.getElementById('bc-body').value.trim();
+  const scope  = document.getElementById('bc-scope').value;
+  const errEl  = document.getElementById('bc-error');
+  const btn    = document.getElementById('bc-send-btn');
+
+  if (!title) { errEl.textContent = 'Please enter a title.'; errEl.style.display='block'; return; }
+  if (!body)  { errEl.textContent = 'Please enter a message.'; errEl.style.display='block'; return; }
+
+  btn.textContent = '⏳ Sending…'; btn.disabled = true; errEl.style.display = 'none';
+
+  try {
+    await db.collection('broadcasts').add({
+      title,
+      body,
+      scope,
+      sentBy: currentUser?.phoneNumber || 'Admin',
+      sentByRole: firestoreRole,
+      timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+    });
+    document.getElementById('broadcast-modal')?.remove();
+    alert('✅ Broadcast sent to citizens!');
+  } catch (e) {
+    errEl.textContent = 'Failed to send: ' + e.message;
+    errEl.style.display = 'block';
+    btn.textContent = 'Send Broadcast';
+    btn.disabled = false;
+  }
+}
+
 // ── Hide loading overlay ──────────────────────────────────────────────────────
 function onMapsReady() {
   document.getElementById('loading-overlay').style.display = 'none';
