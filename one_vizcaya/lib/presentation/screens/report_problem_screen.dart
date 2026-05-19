@@ -33,6 +33,7 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
   ReportCategory? _selectedCategory;
   final _descriptionController = TextEditingController();
   final _locationController = TextEditingController();
+  late final TextEditingController _barangayController;
   bool _isOffline = false;
   bool _isAnonymous = false;
   bool _isGettingLocation = false;
@@ -49,6 +50,12 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
   DateTime? _photoTimestamp;
   double? _photoLatitude;
   double? _photoLongitude;
+
+  @override
+  void initState() {
+    super.initState();
+    _barangayController = TextEditingController();
+  }
 
   Future<void> _getLocation() async {
     setState(() => _isGettingLocation = true);
@@ -203,12 +210,16 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
         photoLatitude: _photoLatitude,
         photoLongitude: _photoLongitude,
         isAnonymous: _isAnonymous,
+        barangay: _barangayController.text.trim().isEmpty
+            ? null
+            : _barangayController.text.trim(),
       );
 
       await _reportRepository.submitReport(report, userId);
 
       _locationController.clear();
       _descriptionController.clear();
+      _barangayController.clear();
       if (!mounted) return;
       setState(() {
         _selectedCategory = null;
@@ -438,6 +449,19 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
               ),
               const SizedBox(height: 16),
               TextFormField(
+                controller: _barangayController,
+                decoration: InputDecoration(
+                  labelText: 'Barangay (optional)',
+                  hintText: 'Enter your barangay name',
+                  prefixIcon: Icon(Icons.location_city_outlined, color: primaryLguColor),
+                  focusedBorder: OutlineInputBorder(
+                    borderSide: BorderSide(color: primaryLguColor, width: 2),
+                  ),
+                  labelStyle: TextStyle(color: primaryLguColor),
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
                 controller: _descriptionController,
                 decoration: InputDecoration(
                   labelText: 'Brief Description',
@@ -613,6 +637,7 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
   void dispose() {
     _descriptionController.dispose();
     _locationController.dispose();
+    _barangayController.dispose();
     super.dispose();
   }
 
