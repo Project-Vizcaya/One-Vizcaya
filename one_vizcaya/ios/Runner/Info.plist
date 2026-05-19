@@ -5,7 +5,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Flutter Application 1</string>
+	<string>One Vizcaya</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -13,7 +13,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>flutter_application_1</string>
+	<string>one_vizcaya</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
@@ -45,5 +45,20 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>fetch</string>
+		<string>remote-notification</string>
+	</array>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>One Vizcaya needs your location to show nearby emergency services and submit accurate incident reports.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>One Vizcaya needs your location to send real-time alerts and dispatch responders to your exact position.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>One Vizcaya needs camera access to let you attach photos to incident reports.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>One Vizcaya needs access to your photo library so you can attach images to incident reports.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>One Vizcaya needs permission to save photos to your library.</string>
 </dict>
 </plist>
