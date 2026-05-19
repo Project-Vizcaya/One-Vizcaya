@@ -502,6 +502,7 @@ let barangayPolygons = [];
 let barangayLabels   = [];
 let barangayInfoWindow = null;
 let barangayCache    = {};
+let muniPolygonMap   = {}; // muniName → google.maps.Polygon, for toggling visibility
 let currentRespDirFilter = 'all';
 
 // ── Auth guard ───────────────────────────────────────────────────────────────
@@ -601,7 +602,7 @@ function initMap() {
 let _muniGeoJSON = null;
 async function fetchMuniGeoJSON() {
   if (_muniGeoJSON) return _muniGeoJSON;
-  const url = 'https://raw.githubusercontent.com/faeldon/philippines-json-maps/master/2023/geojson/municities/lowres/municities-provdist-205000000.0.01.json';
+  const url = 'https://raw.githubusercontent.com/faeldon/philippines-json-maps/master/2023/geojson/municities/lowres/municities-provdist-205000000.0.001.json';
   try {
     const res = await fetch(url);
     if (!res.ok) return null;
@@ -680,6 +681,7 @@ async function loadMunicipalityBoundaries() {
       fillColor, fillOpacity,
       zIndex: isActive ? 2 : 1
     });
+    muniPolygonMap[muni.name] = polygon;
 
     if (isProvincial && center) {
       const label = new google.maps.Marker({
@@ -1032,6 +1034,8 @@ function clearBarangayOverlays() {
   barangayPolygons = [];
   barangayLabels   = [];
   if (barangayInfoWindow) { barangayInfoWindow.close(); barangayInfoWindow = null; }
+  // Restore any municipality polygon that was hidden while barangays were shown
+  Object.values(muniPolygonMap).forEach(p => p.setVisible(true));
 }
 
 async function renderBarangays() {
@@ -1040,11 +1044,13 @@ async function renderBarangays() {
 
   const muniFilter = document.getElementById('map-muni-filter')?.value || 'all';
   if (muniFilter === 'all') {
-    // Show a hint instead of loading all 15 municipalities at once
     const btn = document.getElementById('btn-barangays');
     btn.title = 'Select a municipality to show barangay boundaries';
     return;
   }
+
+  // Hide the municipality fill polygon so barangay outlines aren't obscured
+  if (muniPolygonMap[muniFilter]) muniPolygonMap[muniFilter].setVisible(false);
 
   const btn = document.getElementById('btn-barangays');
   btn.textContent = '⏳ Loading…';
