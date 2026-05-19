@@ -192,12 +192,11 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
                   title: 'Language',
                   subtitle: 'Select your preferred language',
                   value: _selectedLanguage,
-                  options: const ['English', 'Filipino'],
-                  onChanged: (val) {
-                    if (val != null) {
-                      setState(() => _selectedLanguage = val);
-                      _saveSetting('language', val);
-                      ToastUtils.showInfo('Language support coming soon');
+                  options: const ['English', 'Tagalog'],
+                  onChanged: (newValue) {
+                    if (newValue != null) {
+                      oneVizcayaState.setLanguage(newValue);
+                      setState(() => _selectedLanguage = newValue);
                     }
                   },
                   lguColor: _lguColor,

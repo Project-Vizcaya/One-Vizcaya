@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../state/municipality_state.dart';
 import '../../core/constants/app_constants.dart';
@@ -553,21 +554,142 @@ class AnnouncementsScreen extends StatelessWidget {
 class NotificationsScreen extends StatelessWidget {
   const NotificationsScreen({super.key});
 
+  String _formatTime(dynamic ts) {
+    if (ts == null) return '';
+    final dt = ts is Timestamp ? ts.toDate() : DateTime.now();
+    final diff = DateTime.now().difference(dt);
+    if (diff.inMinutes < 1) return 'Just now';
+    if (diff.inHours < 1) return '${diff.inMinutes}m ago';
+    if (diff.inDays < 1) return '${diff.inHours}h ago';
+    if (diff.inDays < 7) return '${diff.inDays}d ago';
+    return '${dt.month}/${dt.day}/${dt.year}';
+  }
+
   @override
   Widget build(BuildContext context) {
     final lguColor = oneVizcayaState.activeTheme['appBarColor'] as Color;
+    final user = FirebaseAuth.instance.currentUser;
+
     return Scaffold(
       appBar: AppBar(
         backgroundColor: lguColor,
         foregroundColor: Colors.white,
         title: const Text('Notifications'),
       ),
-      body: const Center(
-        child: Text(
-          'No notifications yet.',
-          style: TextStyle(color: Colors.grey),
-        ),
-      ),
+      body: user == null
+          ? const Center(child: Text('Please log in to see notifications.'))
+          : StreamBuilder<QuerySnapshot>(
+              stream: FirebaseFirestore.instance
+                  .collection('users')
+                  .doc(user.uid)
+                  .collection('notifications')
+                  .orderBy('timestamp', descending: true)
+                  .limit(50)
+                  .snapshots(),
+              builder: (context, snap) {
+                if (snap.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                final docs = snap.data?.docs ?? [];
+                if (docs.isEmpty) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.notifications_none,
+                            size: 64, color: Colors.grey.shade300),
+                        const SizedBox(height: 16),
+                        const Text('No notifications yet.',
+                            style: TextStyle(color: Colors.grey)),
+                      ],
+                    ),
+                  );
+                }
+                return ListView.separated(
+                  padding: const EdgeInsets.symmetric(
+                      vertical: 12, horizontal: 16),
+                  itemCount: docs.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 8),
+                  itemBuilder: (context, i) {
+                    final data = docs[i].data() as Map<String, dynamic>;
+                    final isRead = data['read'] == true;
+                    final statusColors = {
+                      'solved': const Color(0xFF2E7D32),
+                      'ongoing': const Color(0xFFE65100),
+                      'reported': const Color(0xFF1565C0),
+                    };
+                    final statusColor =
+                        statusColors[data['status']] ?? lguColor;
+                    return Container(
+                      decoration: BoxDecoration(
+                        color: isRead
+                            ? Colors.white
+                            : lguColor.withOpacity(0.06),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: isRead
+                              ? Colors.grey.shade200
+                              : lguColor.withOpacity(0.25),
+                        ),
+                      ),
+                      child: ListTile(
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 8),
+                        leading: CircleAvatar(
+                          backgroundColor: statusColor.withOpacity(0.15),
+                          child: Icon(
+                            data['status'] == 'solved'
+                                ? Icons.check_circle
+                                : data['status'] == 'ongoing'
+                                    ? Icons.construction
+                                    : Icons.flag,
+                            color: statusColor,
+                            size: 20,
+                          ),
+                        ),
+                        title: Text(
+                          data['title'] ?? 'Update',
+                          style: TextStyle(
+                            fontWeight: isRead
+                                ? FontWeight.normal
+                                : FontWeight.w700,
+                            fontSize: 14,
+                          ),
+                        ),
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const SizedBox(height: 4),
+                            Text(data['body'] ?? '',
+                                style: const TextStyle(fontSize: 13)),
+                            const SizedBox(height: 4),
+                            Text(
+                              _formatTime(data['timestamp']),
+                              style: const TextStyle(
+                                  fontSize: 11, color: Colors.grey),
+                            ),
+                          ],
+                        ),
+                        trailing: !isRead
+                            ? Container(
+                                width: 10,
+                                height: 10,
+                                decoration: BoxDecoration(
+                                    color: lguColor,
+                                    shape: BoxShape.circle),
+                              )
+                            : null,
+                        onTap: () {
+                          if (!isRead) {
+                            docs[i].reference.update({'read': true});
+                          }
+                        },
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
     );
   }
 }

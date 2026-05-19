@@ -26,12 +26,12 @@ class AppConstants {
 
   // SMS hotlines per municipality. Update these without touching screen code.
   static const Map<String, String> municipalityHotlines = {
-    'Bambang': '+639170000000',
-    'Solano': '+639181111111',
-    'Bayombong': '+639170000000',
+    'Bambang': '+639123456789',
+    'Solano': '+639123456789',
+    'Bayombong': '+639123456789',
     // All unlisted municipalities fall back to the default below
   };
-  static const String defaultHotline = '+639170000000';
+  static const String defaultHotline = '+639123456789';
 
   static String hotlineFor(String municipality) =>
       municipalityHotlines[municipality] ?? defaultHotline;

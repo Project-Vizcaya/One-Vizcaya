@@ -5,7 +5,7 @@ import '../../core/utils/toast_utils.dart';
 
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  // Background messages are handled by the OS notification tray automatically.
+  // Background messages handled by OS notification tray.
 }
 
 class NotificationService {
@@ -29,25 +29,50 @@ class NotificationService {
       await _saveTokenForCurrentUser();
     }
 
-    // Save token when it refreshes
     _messaging.onTokenRefresh.listen((newToken) {
       _saveToken(newToken);
     });
 
-    // Listen to auth state so token is saved when user logs in
     FirebaseAuth.instance.authStateChanges().listen((user) {
       if (user != null) {
         _saveTokenForCurrentUser();
+        _listenForStatusNotifications(user.uid);
       }
     });
 
-    // Show foreground messages as toasts
+    // Show FCM foreground messages as toasts
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
       final notification = message.notification;
       if (notification != null) {
         final title = notification.title ?? 'Update';
         final body = notification.body ?? '';
         ToastUtils.showSuccess('$title: $body');
+      }
+    });
+
+    // If already logged in at init time, start listening immediately
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) _listenForStatusNotifications(user.uid);
+  }
+
+  // Listens to users/{uid}/notifications for documents where read == false
+  // and shows an in-app toast. Marks them as read after showing.
+  void _listenForStatusNotifications(String uid) {
+    _firestore
+        .collection('users')
+        .doc(uid)
+        .collection('notifications')
+        .where('read', isEqualTo: false)
+        .orderBy('timestamp', descending: true)
+        .snapshots()
+        .listen((snap) async {
+      for (final doc in snap.docs) {
+        final data = doc.data();
+        final title = data['title'] as String? ?? 'Update';
+        final body = data['body'] as String? ?? '';
+        ToastUtils.showSuccess('$title: $body');
+        // Mark as read
+        await doc.reference.update({'read': true});
       }
     });
   }
@@ -67,8 +92,6 @@ class NotificationService {
         {'fcmToken': token},
         SetOptions(merge: true),
       );
-    } catch (_) {
-      // Non-fatal — token will be saved on next login
-    }
+    } catch (_) {}
   }
 }

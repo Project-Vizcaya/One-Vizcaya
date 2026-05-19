@@ -166,7 +166,49 @@
     .view-switch{display:flex;align-items:center;gap:6px;font-size:12px;color:rgba(255,255,255,.85)}
     .view-switch select{padding:5px 10px;border:1px solid rgba(255,255,255,.4);border-radius:8px;background:rgba(255,255,255,.15);color:#fff;font-size:12px;cursor:pointer}
     .view-switch select option{color:#333;background:#fff}
+    /* ── Broadcast modal ── */
+    .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9000;display:flex;align-items:center;justify-content:center;padding:16px}
+    .modal-box{background:#fff;border-radius:20px;padding:28px;width:100%;max-width:480px;box-shadow:0 24px 80px rgba(0,0,0,.35)}
+    .modal-box h3{font-size:17px;font-weight:800;color:#1A202C;margin:0 0 20px}
+    .modal-input{width:100%;border:1.5px solid #E2E8F0;border-radius:10px;padding:11px 14px;font-size:14px;font-family:inherit;margin-bottom:12px;outline:none;transition:border .2s;box-sizing:border-box}
+    .modal-input:focus{border-color:#2E7D32}
+    .modal-btn-row{display:flex;gap:10px;justify-content:flex-end;margin-top:8px}
+
+    /* ── Analytics responsive ── */
+    @media(max-width:900px){#analytics-card .card-body > div:first-child{grid-template-columns:1fr}}
+    @media(max-width:900px){
+      #analytics-card .card-body > div[style*="grid-template-columns:1fr 1fr 1fr"]{grid-template-columns:1fr!important}
+      #analytics-card .card-body > div[style*="grid-template-columns:repeat(4"]{grid-template-columns:repeat(2,1fr)!important}
+    }
+
+    /* ── Mobile improvements ── */
+    @media(max-width:768px){
+      .navbar{padding:0 16px;height:60px}
+      .nav-title{font-size:15px}
+      .nav-subtitle{display:none}
+      .nav-user{display:none}
+      .container{padding:16px 12px 40px}
+      .stats-grid{grid-template-columns:repeat(2,1fr);gap:12px}
+      .stat-value{font-size:28px}
+      .card-header{flex-wrap:wrap;gap:8px}
+      .map-controls{gap:6px}
+      .toggle-btn{padding:6px 10px;font-size:11px}
+      .bottom-grid{grid-template-columns:1fr}
+      .reports-filter{gap:6px}
+      .chip{padding:5px 10px;font-size:11px}
+      th,td{padding:8px 8px}
+      .col-muni,.col-date,.col-loc{display:none}
+      .role-banner{padding:8px 16px;font-size:12px}
+    }
+    @media(max-width:480px){
+      .stats-grid{grid-template-columns:1fr 1fr}
+      .stat-inner{padding:14px}
+      .stat-value{font-size:24px}
+      #map{height:260px}
+      .card-body{padding:14px}
+    }
   </style>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
 <body>
 
@@ -262,6 +304,31 @@
 
   </div>
 
+  <!-- ── Analytics ── -->
+  <div class="card" id="analytics-card" style="display:none">
+    <div class="card-header">
+      <div class="card-title">📊 Analytics Overview</div>
+      <span class="card-meta" id="analytics-period">Last 30 days</span>
+    </div>
+    <div class="card-body">
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px">
+        <div>
+          <div style="font-size:12px;font-weight:700;color:#718096;margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px">Reports by Week</div>
+          <canvas id="chart-weekly" height="180"></canvas>
+        </div>
+        <div>
+          <div style="font-size:12px;font-weight:700;color:#718096;margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px">By Category</div>
+          <canvas id="chart-category" height="180"></canvas>
+        </div>
+        <div>
+          <div style="font-size:12px;font-weight:700;color:#718096;margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px">Status Breakdown</div>
+          <canvas id="chart-status" height="180"></canvas>
+        </div>
+      </div>
+      <div style="margin-top:20px;display:grid;grid-template-columns:repeat(4,1fr);gap:12px" id="analytics-kpis"></div>
+    </div>
+  </div>
+
   <!-- Map -->
   <div class="card">
     <div class="card-header">
@@ -275,6 +342,9 @@
       <button class="toggle-btn" id="btn-barangays" onclick="toggleBarangays()" aria-pressed="false" title="Show barangay boundaries (select a municipality first)">🗺️ Barangays</button>
       <select class="filter-select" id="map-muni-filter" onchange="filterMapByMuni()">
         <option value="all">All Municipalities</option>
+      </select>
+      <select class="filter-select" id="map-barangay-filter" onchange="filterReportsByBarangay()" style="display:none">
+        <option value="all">All Barangays</option>
       </select>
       <select class="filter-select" id="resp-type-filter" onchange="filterRespondersByType()">
         <option value="all">All Responder Types</option>
@@ -392,11 +462,27 @@
     </div>
   </div>
 
+  <!-- Audit Log -->
+  <div class="card" id="audit-card" style="display:none">
+    <div class="card-header">
+      <div class="card-title">📋 Audit Log</div>
+      <button onclick="loadAuditLog()" class="toggle-btn" style="font-size:11px;padding:5px 12px">🔄 Refresh</button>
+    </div>
+    <div class="card-body" style="padding:0">
+      <div id="audit-list" style="max-height:320px;overflow-y:auto">
+        <div style="padding:20px;text-align:center;color:#A0AEC0;font-size:13px">Click Refresh to load audit log</div>
+      </div>
+    </div>
+  </div>
+
   <!-- Announcements -->
   <div class="card" id="announcements-card" style="display:none">
     <div class="card-header">
       <div class="card-title">📢 Announcements</div>
-      <button onclick="toggleNewAnnouncement()" class="chip" style="border-color:#2E7D32;color:#2E7D32;font-size:12px">+ New Announcement</button>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button onclick="openBroadcastModal()" class="toggle-btn" style="font-size:12px;padding:6px 14px">📱 Broadcast Alert</button>
+        <button onclick="toggleNewAnnouncement()" class="chip" style="border-color:#2E7D32;color:#2E7D32;font-size:12px">+ New Announcement</button>
+      </div>
     </div>
     <div class="card-body">
 
@@ -481,6 +567,19 @@ const auth = firebase.auth();
 const db   = firebase.firestore();
 // Long-polling removed — it breaks WebSocket connections in normal browsers.
 
+// ── Audit log helper ──────────────────────────────────────────────────────────
+function writeAuditLog(action, details) {
+  if (!currentUser) return;
+  db.collection('audit_logs').add({
+    action,
+    details,
+    adminPhone: currentUser.phoneNumber || 'unknown',
+    adminRole: firestoreRole,
+    adminMunicipality: userMunicipality,
+    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+  }).catch(() => {}); // non-blocking, best-effort
+}
+
 // ── State ────────────────────────────────────────────────────────────────────
 let currentUser      = null;
 let userRole         = null;   // current view role (may be overridden by switchView)
@@ -502,6 +601,7 @@ let barangayPolygons = [];
 let barangayLabels   = [];
 let barangayInfoWindow = null;
 let barangayCache    = {};
+let muniPolygonMap   = {}; // muniName → google.maps.Polygon, for toggling visibility
 let currentRespDirFilter = 'all';
 
 // ── Auth guard ───────────────────────────────────────────────────────────────
@@ -601,7 +701,7 @@ function initMap() {
 let _muniGeoJSON = null;
 async function fetchMuniGeoJSON() {
   if (_muniGeoJSON) return _muniGeoJSON;
-  const url = 'https://raw.githubusercontent.com/faeldon/philippines-json-maps/master/2023/geojson/municities/lowres/municities-provdist-205000000.0.01.json';
+  const url = 'https://raw.githubusercontent.com/faeldon/philippines-json-maps/master/2023/geojson/municities/lowres/municities-provdist-205000000.0.001.json';
   try {
     const res = await fetch(url);
     if (!res.ok) return null;
@@ -680,6 +780,7 @@ async function loadMunicipalityBoundaries() {
       fillColor, fillOpacity,
       zIndex: isActive ? 2 : 1
     });
+    muniPolygonMap[muni.name] = polygon;
 
     if (isProvincial && center) {
       const label = new google.maps.Marker({
@@ -796,6 +897,101 @@ function updateStats() {
   } else {
     document.getElementById('stat-avg-time').textContent = 'No resolved data yet';
   }
+  renderAnalytics();
+}
+
+// ── Analytics charts ─────────────────────────────────────────────────────────
+let chartWeekly, chartCategory, chartStatus;
+
+function renderAnalytics() {
+  document.getElementById('analytics-card').style.display = 'block';
+
+  const now = new Date();
+
+  // Weekly bar chart (last 6 weeks)
+  const weekBuckets = Array.from({length: 6}, (_, i) => {
+    const d = new Date(now - (5 - i) * 7 * 24 * 60 * 60 * 1000);
+    return { label: `${d.getMonth()+1}/${d.getDate()}`, count: 0 };
+  });
+  allReports.forEach(r => {
+    if (!r.reportedAt) return;
+    for (let i = weekBuckets.length - 1; i >= 0; i--) {
+      const cutDate = new Date(now - (5 - i) * 7 * 24 * 60 * 60 * 1000);
+      if (r.reportedAt >= cutDate) { weekBuckets[i].count++; break; }
+    }
+  });
+
+  // Category doughnut
+  const catMap = {};
+  allReports.forEach(r => { if (r.category) catMap[r.category] = (catMap[r.category]||0) + 1; });
+  const catEntries = Object.entries(catMap).sort((a,b)=>b[1]-a[1]).slice(0,6);
+
+  // Status pie
+  const statusCounts = {
+    Reported: allReports.filter(r=>r.status==='reported').length,
+    Ongoing:  allReports.filter(r=>r.status==='ongoing').length,
+    Solved:   allReports.filter(r=>r.status==='solved').length,
+  };
+
+  const chartDefaults = { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { font: { size: 11 }, boxWidth: 12 } } } };
+
+  if (chartWeekly) chartWeekly.destroy();
+  chartWeekly = new Chart(document.getElementById('chart-weekly'), {
+    type: 'bar',
+    data: {
+      labels: weekBuckets.map(b=>b.label),
+      datasets: [{ label: 'Reports', data: weekBuckets.map(b=>b.count),
+        backgroundColor: 'rgba(46,125,50,.7)', borderColor: '#2E7D32', borderWidth: 1, borderRadius: 4 }]
+    },
+    options: { ...chartDefaults, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
+  });
+
+  if (chartCategory) chartCategory.destroy();
+  chartCategory = new Chart(document.getElementById('chart-category'), {
+    type: 'doughnut',
+    data: {
+      labels: catEntries.map(([k])=>k.length>18?k.slice(0,16)+'…':k),
+      datasets: [{ data: catEntries.map(([,v])=>v),
+        backgroundColor: ['#2E7D32','#1565C0','#E65100','#6A1B9A','#00838F','#F9A825'],
+        borderWidth: 2 }]
+    },
+    options: { ...chartDefaults }
+  });
+
+  if (chartStatus) chartStatus.destroy();
+  chartStatus = new Chart(document.getElementById('chart-status'), {
+    type: 'pie',
+    data: {
+      labels: Object.keys(statusCounts),
+      datasets: [{ data: Object.values(statusCounts),
+        backgroundColor: ['#276749','#C05621','#2E7D32'], borderWidth: 2 }]
+    },
+    options: { ...chartDefaults }
+  });
+
+  // KPI cards
+  const resolved = allReports.filter(r=>r.status==='solved');
+  const resRate = allReports.length ? Math.round(resolved.length/allReports.length*100) : 0;
+  const resolvedWithTime = resolved.filter(r=>r.resolvedAt&&r.reportedAt);
+  const avgHrs = resolvedWithTime.length
+    ? Math.round(resolvedWithTime.reduce((s,r)=>{
+        const res = r.resolvedAt.toDate ? r.resolvedAt.toDate() : new Date(r.resolvedAt);
+        return s + (res - r.reportedAt);
+      }, 0) / resolvedWithTime.length / 3600000)
+    : null;
+  const topCat = catEntries[0]?.[0] || '—';
+  const critical = allReports.filter(r=>r.priority==='critical'&&r.status!=='solved').length;
+
+  document.getElementById('analytics-kpis').innerHTML = [
+    { label: 'Resolution Rate', value: resRate + '%', color: '#2E7D32' },
+    { label: 'Avg Resolution Time', value: avgHrs != null ? avgHrs + 'h' : '—', color: '#1565C0' },
+    { label: 'Top Category', value: topCat.length > 20 ? topCat.slice(0,18)+'…' : topCat, color: '#E65100' },
+    { label: 'Unresolved Critical', value: critical, color: '#B71C1C' },
+  ].map(k=>`
+    <div style="background:#F7FAFC;border-radius:12px;padding:14px;text-align:center">
+      <div style="font-size:22px;font-weight:800;color:${k.color}">${k.value}</div>
+      <div style="font-size:11px;color:#718096;margin-top:4px;font-weight:600">${k.label}</div>
+    </div>`).join('');
 }
 
 // ── Report table ─────────────────────────────────────────────────────────────
@@ -872,7 +1068,7 @@ function renderTable(reports) {
     const sl  = statusLabel[r.status]     || r.status   || '—';
     const anon = r.isAnonymous ? '<span class="anon-badge">Anon</span>' : '';
     const hasGps = r.latitude && r.longitude;
-    return `<tr class="clickable" onclick="focusReport(${r.latitude||'null'},${r.longitude||'null'})">
+    return `<tr class="clickable" onclick="openReportDetail('${r.id}','${r.userId||''}')">
       <td><strong style="font-size:12px">${r.category||'—'}</strong>${anon}</td>
       <td style="font-size:12px">${r.municipality||'—'}</td>
       <td><span class="badge-status ${sc}">${sl}</span></td>
@@ -889,6 +1085,134 @@ function focusReport(lat, lng) {
   map.setCenter({ lat: parseFloat(lat), lng: parseFloat(lng) });
   map.setZoom(15);
   document.getElementById('map').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+async function openReportDetail(reportId, userId) {
+  if (!reportId || !userId) return;
+  const r = allReports.find(x => x.id === reportId);
+  if (!r) return;
+
+  const statusLabels = { reported: 'Reported', ongoing: 'Ongoing', solved: 'Solved' };
+
+  const modal = document.createElement('div');
+  modal.id = 'report-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9000;display:flex;align-items:center;justify-content:center;padding:16px';
+  modal.innerHTML = `
+    <div style="background:#fff;border-radius:20px;padding:28px;width:100%;max-width:520px;max-height:90vh;overflow-y:auto;box-shadow:0 24px 80px rgba(0,0,0,.35)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+        <h2 style="font-size:18px;font-weight:800;color:#1A202C;margin:0">Report Detail</h2>
+        <button onclick="document.getElementById('report-modal').remove()" style="border:none;background:none;font-size:22px;cursor:pointer;color:#718096">✕</button>
+      </div>
+      <div style="display:grid;gap:12px;font-size:14px">
+        <div style="background:#F7FAFC;border-radius:10px;padding:14px">
+          <div style="font-size:11px;font-weight:700;color:#A0AEC0;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Category</div>
+          <div style="font-weight:600;color:#2D3748">${escHtml(r.category||'—')}</div>
+        </div>
+        <div style="background:#F7FAFC;border-radius:10px;padding:14px">
+          <div style="font-size:11px;font-weight:700;color:#A0AEC0;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Description</div>
+          <div style="color:#4A5568;line-height:1.6">${escHtml(r.description||'—')}</div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div style="background:#F7FAFC;border-radius:10px;padding:14px">
+            <div style="font-size:11px;font-weight:700;color:#A0AEC0;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Municipality</div>
+            <div style="font-weight:600;color:#2D3748">${escHtml(r.municipality||'—')}</div>
+          </div>
+          <div style="background:#F7FAFC;border-radius:10px;padding:14px">
+            <div style="font-size:11px;font-weight:700;color:#A0AEC0;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Priority</div>
+            <div style="font-weight:700;color:#E53E3E;text-transform:capitalize">${escHtml(r.priority||'—')}</div>
+          </div>
+        </div>
+        <div style="background:#F7FAFC;border-radius:10px;padding:14px">
+          <div style="font-size:11px;font-weight:700;color:#A0AEC0;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Location</div>
+          <div style="color:#4A5568">${escHtml(r.location||'—')}</div>
+        </div>
+        ${r.imageUrl ? `<img src="${r.imageUrl}" style="width:100%;border-radius:10px;object-fit:cover;max-height:200px" alt="Report photo"/>` : ''}
+        <div style="background:#F7FAFC;border-radius:10px;padding:14px">
+          <div style="font-size:11px;font-weight:700;color:#A0AEC0;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Update Status</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            ${['reported','ongoing','solved'].map(s => `
+              <button onclick="updateReportStatus('${userId}','${reportId}','${s}',this)"
+                style="flex:1;min-width:90px;padding:10px;border-radius:10px;border:2px solid ${r.status===s?'#2E7D32':'#E2E8F0'};
+                       background:${r.status===s?'#2E7D32':'#fff'};color:${r.status===s?'#fff':'#4A5568'};
+                       font-weight:700;font-size:13px;cursor:pointer;text-transform:capitalize;transition:all .2s">
+                ${statusLabels[s]}
+              </button>`).join('')}
+          </div>
+        </div>
+        ${r.isAnonymous ? '<div style="background:#FFF5F5;border-radius:10px;padding:12px;font-size:12px;color:#C53030;font-weight:600">🔒 Anonymous Report — citizen cannot be notified</div>' : ''}
+        <div style="background:#F7FAFC;border-radius:10px;padding:14px">
+          <div style="font-size:11px;font-weight:700;color:#A0AEC0;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Admin Notes</div>
+          <textarea id="report-notes" rows="3" placeholder="Add a progress update or internal note…" maxlength="500"
+            style="width:100%;border:1.5px solid #E2E8F0;border-radius:8px;padding:10px;font-size:13px;font-family:inherit;resize:vertical;outline:none;box-sizing:border-box"
+          >${escHtml(r.adminNotes||'')}</textarea>
+          <input id="report-responder" placeholder="Assigned responder name (optional)" maxlength="80" value="${escHtml(r.assignedResponder||'')}"
+            style="width:100%;border:1.5px solid #E2E8F0;border-radius:8px;padding:10px;font-size:13px;font-family:inherit;margin-top:8px;outline:none;box-sizing:border-box"/>
+          <button onclick="saveReportNotes('${r.userId||''}','${r.id}')"
+            style="margin-top:10px;padding:9px 18px;background:#1565C0;color:#fff;border:none;border-radius:8px;font-weight:700;font-size:13px;cursor:pointer">
+            💾 Save Notes
+          </button>
+        </div>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+}
+
+async function saveReportNotes(userId, reportId) {
+  if (!userId || !reportId) return;
+  const notes = document.getElementById('report-notes')?.value.trim() || '';
+  const responder = document.getElementById('report-responder')?.value.trim() || '';
+  try {
+    await db.collection('users').doc(userId).collection('reports').doc(reportId).update({
+      adminNotes: notes,
+      assignedResponder: responder,
+      lastUpdatedBy: currentUser?.phoneNumber || 'Admin',
+      lastUpdatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+    });
+    writeAuditLog('report_notes_updated', { reportId, userId, responder });
+    document.getElementById('report-modal')?.remove();
+  } catch (e) {
+    alert('Failed to save notes: ' + e.message);
+  }
+}
+
+async function updateReportStatus(userId, reportId, newStatus, btn) {
+  if (!userId || !reportId) return;
+  const r = allReports.find(x => x.id === reportId);
+  if (!r || r.status === newStatus) return;
+
+  btn.textContent = '⏳';
+  btn.disabled = true;
+
+  try {
+    const reportRef = db.collection('users').doc(userId).collection('reports').doc(reportId);
+    const update = { status: newStatus };
+    if (newStatus === 'solved') update.resolvedAt = firebase.firestore.FieldValue.serverTimestamp();
+    await reportRef.update(update);
+
+    writeAuditLog('status_update', { reportId, userId, newStatus, category: r.category, municipality: r.municipality });
+
+    // Write in-app notification for the citizen (skip if anonymous)
+    if (!r.isAnonymous && userId) {
+      const statusLabels = { reported: 'Reported', ongoing: 'Ongoing', solved: 'Solved ✓' };
+      await db.collection('users').doc(userId).collection('notifications').add({
+        type: 'report_status',
+        title: 'Report Status Updated',
+        body: `Your report about "${r.category}" has been marked as ${statusLabels[newStatus]}.`,
+        reportId: reportId,
+        status: newStatus,
+        timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+        read: false,
+      });
+    }
+
+    // Close modal and refresh
+    document.getElementById('report-modal')?.remove();
+  } catch (e) {
+    console.error('Status update failed:', e);
+    btn.textContent = 'Error';
+    btn.disabled = false;
+  }
 }
 
 // ── Heatmap ──────────────────────────────────────────────────────────────────
@@ -988,6 +1312,33 @@ function filterMapByMuni() {
     map.setCenter(NV_CENTER); map.setZoom(NV_ZOOM);
   }
   if (showBarangays) renderBarangays();
+  updateBarangayDropdown(muniFilter);
+}
+
+// ── Barangay report filter ────────────────────────────────────────────────────
+async function updateBarangayDropdown(muniName) {
+  const sel = document.getElementById('map-barangay-filter');
+  if (!muniName || muniName === 'all') { sel.style.display = 'none'; sel.value = 'all'; return; }
+
+  const geojson = await fetchBarangayGeoJSON(muniName);
+  if (!geojson?.features) { sel.style.display = 'none'; return; }
+
+  const names = geojson.features
+    .map(f => f.properties?.adm4_en || f.properties?.name || '')
+    .filter(Boolean)
+    .sort();
+
+  sel.innerHTML = '<option value="all">All Barangays</option>' + names.map(n=>`<option value="${n}">${n}</option>`).join('');
+  sel.style.display = 'block';
+}
+
+function filterReportsByBarangay() {
+  const bgy = document.getElementById('map-barangay-filter').value;
+  const filtered = bgy === 'all' ? filteredReports : filteredReports.filter(r =>
+    (r.location||'').toLowerCase().includes(bgy.toLowerCase()) ||
+    (r.barangay||'').toLowerCase() === bgy.toLowerCase()
+  );
+  renderTable(filtered);
 }
 
 // ── Barangay PSGC map ─────────────────────────────────────────────────────────
@@ -1032,6 +1383,8 @@ function clearBarangayOverlays() {
   barangayPolygons = [];
   barangayLabels   = [];
   if (barangayInfoWindow) { barangayInfoWindow.close(); barangayInfoWindow = null; }
+  // Restore any municipality polygon that was hidden while barangays were shown
+  Object.values(muniPolygonMap).forEach(p => p.setVisible(true));
 }
 
 async function renderBarangays() {
@@ -1040,11 +1393,13 @@ async function renderBarangays() {
 
   const muniFilter = document.getElementById('map-muni-filter')?.value || 'all';
   if (muniFilter === 'all') {
-    // Show a hint instead of loading all 15 municipalities at once
     const btn = document.getElementById('btn-barangays');
     btn.title = 'Select a municipality to show barangay boundaries';
     return;
   }
+
+  // Hide the municipality fill polygon so barangay outlines aren't obscured
+  if (muniPolygonMap[muniFilter]) muniPolygonMap[muniFilter].setVisible(false);
 
   const btn = document.getElementById('btn-barangays');
   btn.textContent = '⏳ Loading…';
@@ -1294,11 +1649,42 @@ function switchView(val) {
   window.location.reload();
 }
 
+// ── Audit Log ─────────────────────────────────────────────────────────────────
+function loadAuditLog() {
+  const el = document.getElementById('audit-list');
+  el.innerHTML = '<div style="padding:20px;text-align:center"><div class="loader-ring" style="border-color:rgba(46,125,50,.3);border-top-color:#2E7D32;width:20px;height:20px;margin:0 auto"></div></div>';
+
+  let q = db.collection('audit_logs').orderBy('timestamp','desc').limit(50);
+  if (userRole === 'municipal_admin') q = q.where('adminMunicipality','==',userMunicipality);
+
+  q.get().then(snap => {
+    if (snap.empty) { el.innerHTML = '<div style="padding:20px;text-align:center;color:#A0AEC0;font-size:13px">No audit entries yet.</div>'; return; }
+    const actionLabels = { status_update:'Status Update', announcement_created:'Announcement Created', announcement_deleted:'Announcement Deleted', role_assigned:'Role Assigned', report_notes_updated:'Report Notes Updated' };
+    el.innerHTML = snap.docs.map(d => {
+      const a = d.data();
+      const when = a.timestamp?.toDate ? a.timestamp.toDate().toLocaleString('en-PH') : '—';
+      const label = actionLabels[a.action] || a.action;
+      const details = Object.entries(a.details||{}).map(([k,v])=>`<span style="color:#718096">${k}:</span> ${escHtml(String(v))}`).join(' · ');
+      return `<div style="padding:12px 18px;border-bottom:1px solid #F7FAFC;font-size:13px">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span style="font-weight:700;color:#2D3748">${label}</span>
+          <span style="font-size:11px;color:#A0AEC0">${when}</span>
+        </div>
+        <div style="margin-top:3px;font-size:12px">${details}</div>
+        <div style="margin-top:2px;font-size:11px;color:#A0AEC0">by ${escHtml(a.adminPhone||'?')} (${escHtml(a.adminRole||'?')})</div>
+      </div>`;
+    }).join('');
+  }).catch(e => { el.innerHTML = `<div style="padding:20px;color:#C53030;font-size:13px">Error: ${e.message}</div>`; });
+}
+
 // ── Manage Users (provincial / super admin only) ──────────────────────────────
 async function loadUsers() {
   const canManage = userRole === 'provincial_admin' || userRole === 'admin' || userRole === 'super_admin';
   if (!canManage) return;
   document.getElementById('users-card').style.display = 'block';
+  if (['super_admin','provincial_admin','admin'].includes(firestoreRole)) {
+    document.getElementById('audit-card').style.display = 'block';
+  }
   try {
     const snap = await db.collection('users').orderBy('name').limit(200).get();
     const users = snap.docs.map(d => ({ uid: d.id, ...d.data() }));
@@ -1354,6 +1740,7 @@ async function saveUserRole(uid) {
       update.municipality = firebase.firestore.FieldValue.delete();
     }
     await db.collection('users').doc(uid).update(update);
+    writeAuditLog('role_assigned', { targetUid: uid, role, municipality: muni });
     ok.style.display = 'inline';
     document.querySelector(`#row-${uid} .user-role-label`).innerHTML =
       `Current: <strong>${role}</strong>${muni ? ' · ' + muni : ''}`;
@@ -1445,6 +1832,7 @@ async function postAnnouncement() {
       timestamp: firebase.firestore.FieldValue.serverTimestamp(),
       createdBy: currentUser.uid
     });
+    writeAuditLog('announcement_created', { municipality, title });
     document.getElementById('ann-title').value     = '';
     document.getElementById('ann-body').value      = '';
     document.getElementById('ann-posted-by').value = '';
@@ -1459,6 +1847,7 @@ async function deleteAnnouncement(id) {
   if (!confirm('Delete this announcement? This cannot be undone.')) return;
   try {
     await db.collection('announcements').doc(id).delete();
+    writeAuditLog('announcement_deleted', { announcementId: id });
   } catch (e) {
     alert('Failed to delete: ' + e.message);
   }
@@ -1467,6 +1856,69 @@ async function deleteAnnouncement(id) {
 function toggleNewAnnouncement() {
   const f = document.getElementById('new-announcement-form');
   f.style.display = f.style.display === 'none' ? 'block' : 'none';
+}
+
+// ── Broadcast Alert ───────────────────────────────────────────────────────────
+function openBroadcastModal() {
+  const muniOptions = ['All Province', ...NV_MUNICIPALITIES.map(m=>m.name)];
+  const defaultScope = userRole === 'municipal_admin' ? userMunicipality : 'All Province';
+
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+  modal.id = 'broadcast-modal';
+  modal.innerHTML = `
+    <div class="modal-box">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+        <h3 style="margin:0">📱 Broadcast Alert to Citizens</h3>
+        <button onclick="this.closest('.modal-overlay').remove()" style="border:none;background:none;font-size:22px;cursor:pointer;color:#718096">✕</button>
+      </div>
+      <label style="font-size:12px;font-weight:700;color:#718096;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px">Alert Title</label>
+      <input class="modal-input" id="bc-title" placeholder="e.g. Road Closure Notice" maxlength="80"/>
+      <label style="font-size:12px;font-weight:700;color:#718096;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px">Message</label>
+      <textarea class="modal-input" id="bc-body" rows="4" placeholder="Type your message to citizens…" maxlength="500" style="resize:vertical"></textarea>
+      <label style="font-size:12px;font-weight:700;color:#718096;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px">Scope</label>
+      <select class="modal-input" id="bc-scope" ${userRole==='municipal_admin'?'disabled':''}>
+        ${muniOptions.map(m=>`<option value="${m}" ${m===defaultScope?'selected':''}>${m}</option>`).join('')}
+      </select>
+      <div class="modal-btn-row">
+        <button onclick="this.closest('.modal-overlay').remove()" style="padding:10px 20px;border:1.5px solid #E2E8F0;background:#fff;border-radius:10px;cursor:pointer;font-weight:600">Cancel</button>
+        <button onclick="sendBroadcast()" style="padding:10px 22px;background:#2E7D32;color:#fff;border:none;border-radius:10px;font-weight:700;cursor:pointer" id="bc-send-btn">Send Broadcast</button>
+      </div>
+      <div id="bc-error" style="color:#C53030;font-size:12px;margin-top:8px;display:none"></div>
+    </div>`;
+  document.body.appendChild(modal);
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+}
+
+async function sendBroadcast() {
+  const title  = document.getElementById('bc-title').value.trim();
+  const body   = document.getElementById('bc-body').value.trim();
+  const scope  = document.getElementById('bc-scope').value;
+  const errEl  = document.getElementById('bc-error');
+  const btn    = document.getElementById('bc-send-btn');
+
+  if (!title) { errEl.textContent = 'Please enter a title.'; errEl.style.display='block'; return; }
+  if (!body)  { errEl.textContent = 'Please enter a message.'; errEl.style.display='block'; return; }
+
+  btn.textContent = '⏳ Sending…'; btn.disabled = true; errEl.style.display = 'none';
+
+  try {
+    await db.collection('broadcasts').add({
+      title,
+      body,
+      scope,
+      sentBy: currentUser?.phoneNumber || 'Admin',
+      sentByRole: firestoreRole,
+      timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+    });
+    document.getElementById('broadcast-modal')?.remove();
+    alert('✅ Broadcast sent to citizens!');
+  } catch (e) {
+    errEl.textContent = 'Failed to send: ' + e.message;
+    errEl.style.display = 'block';
+    btn.textContent = 'Send Broadcast';
+    btn.disabled = false;
+  }
 }
 
 // ── Hide loading overlay ──────────────────────────────────────────────────────
