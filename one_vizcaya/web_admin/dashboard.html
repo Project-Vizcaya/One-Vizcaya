@@ -166,7 +166,10 @@
     .view-switch{display:flex;align-items:center;gap:6px;font-size:12px;color:rgba(255,255,255,.85)}
     .view-switch select{padding:5px 10px;border:1px solid rgba(255,255,255,.4);border-radius:8px;background:rgba(255,255,255,.15);color:#fff;font-size:12px;cursor:pointer}
     .view-switch select option{color:#333;background:#fff}
+    /* ── Analytics responsive ── */
+    @media(max-width:900px){#analytics-card .card-body > div:first-child{grid-template-columns:1fr}}
   </style>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
 <body>
 
@@ -260,6 +263,31 @@
       </div>
     </div>
 
+  </div>
+
+  <!-- ── Analytics ── -->
+  <div class="card" id="analytics-card" style="display:none">
+    <div class="card-header">
+      <div class="card-title">📊 Analytics Overview</div>
+      <span class="card-meta" id="analytics-period">Last 30 days</span>
+    </div>
+    <div class="card-body">
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px">
+        <div>
+          <div style="font-size:12px;font-weight:700;color:#718096;margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px">Reports by Week</div>
+          <canvas id="chart-weekly" height="180"></canvas>
+        </div>
+        <div>
+          <div style="font-size:12px;font-weight:700;color:#718096;margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px">By Category</div>
+          <canvas id="chart-category" height="180"></canvas>
+        </div>
+        <div>
+          <div style="font-size:12px;font-weight:700;color:#718096;margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px">Status Breakdown</div>
+          <canvas id="chart-status" height="180"></canvas>
+        </div>
+      </div>
+      <div style="margin-top:20px;display:grid;grid-template-columns:repeat(4,1fr);gap:12px" id="analytics-kpis"></div>
+    </div>
   </div>
 
   <!-- Map -->
@@ -798,6 +826,101 @@ function updateStats() {
   } else {
     document.getElementById('stat-avg-time').textContent = 'No resolved data yet';
   }
+  renderAnalytics();
+}
+
+// ── Analytics charts ─────────────────────────────────────────────────────────
+let chartWeekly, chartCategory, chartStatus;
+
+function renderAnalytics() {
+  document.getElementById('analytics-card').style.display = 'block';
+
+  const now = new Date();
+
+  // Weekly bar chart (last 6 weeks)
+  const weekBuckets = Array.from({length: 6}, (_, i) => {
+    const d = new Date(now - (5 - i) * 7 * 24 * 60 * 60 * 1000);
+    return { label: `${d.getMonth()+1}/${d.getDate()}`, count: 0 };
+  });
+  allReports.forEach(r => {
+    if (!r.reportedAt) return;
+    for (let i = weekBuckets.length - 1; i >= 0; i--) {
+      const cutDate = new Date(now - (5 - i) * 7 * 24 * 60 * 60 * 1000);
+      if (r.reportedAt >= cutDate) { weekBuckets[i].count++; break; }
+    }
+  });
+
+  // Category doughnut
+  const catMap = {};
+  allReports.forEach(r => { if (r.category) catMap[r.category] = (catMap[r.category]||0) + 1; });
+  const catEntries = Object.entries(catMap).sort((a,b)=>b[1]-a[1]).slice(0,6);
+
+  // Status pie
+  const statusCounts = {
+    Reported: allReports.filter(r=>r.status==='reported').length,
+    Ongoing:  allReports.filter(r=>r.status==='ongoing').length,
+    Solved:   allReports.filter(r=>r.status==='solved').length,
+  };
+
+  const chartDefaults = { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { font: { size: 11 }, boxWidth: 12 } } } };
+
+  if (chartWeekly) chartWeekly.destroy();
+  chartWeekly = new Chart(document.getElementById('chart-weekly'), {
+    type: 'bar',
+    data: {
+      labels: weekBuckets.map(b=>b.label),
+      datasets: [{ label: 'Reports', data: weekBuckets.map(b=>b.count),
+        backgroundColor: 'rgba(46,125,50,.7)', borderColor: '#2E7D32', borderWidth: 1, borderRadius: 4 }]
+    },
+    options: { ...chartDefaults, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
+  });
+
+  if (chartCategory) chartCategory.destroy();
+  chartCategory = new Chart(document.getElementById('chart-category'), {
+    type: 'doughnut',
+    data: {
+      labels: catEntries.map(([k])=>k.length>18?k.slice(0,16)+'…':k),
+      datasets: [{ data: catEntries.map(([,v])=>v),
+        backgroundColor: ['#2E7D32','#1565C0','#E65100','#6A1B9A','#00838F','#F9A825'],
+        borderWidth: 2 }]
+    },
+    options: { ...chartDefaults }
+  });
+
+  if (chartStatus) chartStatus.destroy();
+  chartStatus = new Chart(document.getElementById('chart-status'), {
+    type: 'pie',
+    data: {
+      labels: Object.keys(statusCounts),
+      datasets: [{ data: Object.values(statusCounts),
+        backgroundColor: ['#276749','#C05621','#2E7D32'], borderWidth: 2 }]
+    },
+    options: { ...chartDefaults }
+  });
+
+  // KPI cards
+  const resolved = allReports.filter(r=>r.status==='solved');
+  const resRate = allReports.length ? Math.round(resolved.length/allReports.length*100) : 0;
+  const resolvedWithTime = resolved.filter(r=>r.resolvedAt&&r.reportedAt);
+  const avgHrs = resolvedWithTime.length
+    ? Math.round(resolvedWithTime.reduce((s,r)=>{
+        const res = r.resolvedAt.toDate ? r.resolvedAt.toDate() : new Date(r.resolvedAt);
+        return s + (res - r.reportedAt);
+      }, 0) / resolvedWithTime.length / 3600000)
+    : null;
+  const topCat = catEntries[0]?.[0] || '—';
+  const critical = allReports.filter(r=>r.priority==='critical'&&r.status!=='solved').length;
+
+  document.getElementById('analytics-kpis').innerHTML = [
+    { label: 'Resolution Rate', value: resRate + '%', color: '#2E7D32' },
+    { label: 'Avg Resolution Time', value: avgHrs != null ? avgHrs + 'h' : '—', color: '#1565C0' },
+    { label: 'Top Category', value: topCat.length > 20 ? topCat.slice(0,18)+'…' : topCat, color: '#E65100' },
+    { label: 'Unresolved Critical', value: critical, color: '#B71C1C' },
+  ].map(k=>`
+    <div style="background:#F7FAFC;border-radius:12px;padding:14px;text-align:center">
+      <div style="font-size:22px;font-weight:800;color:${k.color}">${k.value}</div>
+      <div style="font-size:11px;color:#718096;margin-top:4px;font-weight:600">${k.label}</div>
+    </div>`).join('');
 }
 
 // ── Report table ─────────────────────────────────────────────────────────────
