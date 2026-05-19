@@ -874,7 +874,7 @@ function renderTable(reports) {
     const sl  = statusLabel[r.status]     || r.status   || '—';
     const anon = r.isAnonymous ? '<span class="anon-badge">Anon</span>' : '';
     const hasGps = r.latitude && r.longitude;
-    return `<tr class="clickable" onclick="focusReport(${r.latitude||'null'},${r.longitude||'null'})">
+    return `<tr class="clickable" onclick="openReportDetail('${r.id}','${r.userId||''}')">
       <td><strong style="font-size:12px">${r.category||'—'}</strong>${anon}</td>
       <td style="font-size:12px">${r.municipality||'—'}</td>
       <td><span class="badge-status ${sc}">${sl}</span></td>
@@ -891,6 +891,102 @@ function focusReport(lat, lng) {
   map.setCenter({ lat: parseFloat(lat), lng: parseFloat(lng) });
   map.setZoom(15);
   document.getElementById('map').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+async function openReportDetail(reportId, userId) {
+  if (!reportId || !userId) return;
+  const r = allReports.find(x => x.id === reportId);
+  if (!r) return;
+
+  const statusLabels = { reported: 'Reported', ongoing: 'Ongoing', solved: 'Solved' };
+
+  const modal = document.createElement('div');
+  modal.id = 'report-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9000;display:flex;align-items:center;justify-content:center;padding:16px';
+  modal.innerHTML = `
+    <div style="background:#fff;border-radius:20px;padding:28px;width:100%;max-width:520px;max-height:90vh;overflow-y:auto;box-shadow:0 24px 80px rgba(0,0,0,.35)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+        <h2 style="font-size:18px;font-weight:800;color:#1A202C;margin:0">Report Detail</h2>
+        <button onclick="document.getElementById('report-modal').remove()" style="border:none;background:none;font-size:22px;cursor:pointer;color:#718096">✕</button>
+      </div>
+      <div style="display:grid;gap:12px;font-size:14px">
+        <div style="background:#F7FAFC;border-radius:10px;padding:14px">
+          <div style="font-size:11px;font-weight:700;color:#A0AEC0;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Category</div>
+          <div style="font-weight:600;color:#2D3748">${escHtml(r.category||'—')}</div>
+        </div>
+        <div style="background:#F7FAFC;border-radius:10px;padding:14px">
+          <div style="font-size:11px;font-weight:700;color:#A0AEC0;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Description</div>
+          <div style="color:#4A5568;line-height:1.6">${escHtml(r.description||'—')}</div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div style="background:#F7FAFC;border-radius:10px;padding:14px">
+            <div style="font-size:11px;font-weight:700;color:#A0AEC0;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Municipality</div>
+            <div style="font-weight:600;color:#2D3748">${escHtml(r.municipality||'—')}</div>
+          </div>
+          <div style="background:#F7FAFC;border-radius:10px;padding:14px">
+            <div style="font-size:11px;font-weight:700;color:#A0AEC0;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Priority</div>
+            <div style="font-weight:700;color:#E53E3E;text-transform:capitalize">${escHtml(r.priority||'—')}</div>
+          </div>
+        </div>
+        <div style="background:#F7FAFC;border-radius:10px;padding:14px">
+          <div style="font-size:11px;font-weight:700;color:#A0AEC0;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Location</div>
+          <div style="color:#4A5568">${escHtml(r.location||'—')}</div>
+        </div>
+        ${r.imageUrl ? `<img src="${r.imageUrl}" style="width:100%;border-radius:10px;object-fit:cover;max-height:200px" alt="Report photo"/>` : ''}
+        <div style="background:#F7FAFC;border-radius:10px;padding:14px">
+          <div style="font-size:11px;font-weight:700;color:#A0AEC0;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Update Status</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            ${['reported','ongoing','solved'].map(s => `
+              <button onclick="updateReportStatus('${userId}','${reportId}','${s}',this)"
+                style="flex:1;min-width:90px;padding:10px;border-radius:10px;border:2px solid ${r.status===s?'#2E7D32':'#E2E8F0'};
+                       background:${r.status===s?'#2E7D32':'#fff'};color:${r.status===s?'#fff':'#4A5568'};
+                       font-weight:700;font-size:13px;cursor:pointer;text-transform:capitalize;transition:all .2s">
+                ${statusLabels[s]}
+              </button>`).join('')}
+          </div>
+        </div>
+        ${r.isAnonymous ? '<div style="background:#FFF5F5;border-radius:10px;padding:12px;font-size:12px;color:#C53030;font-weight:600">🔒 Anonymous Report — citizen cannot be notified</div>' : ''}
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+}
+
+async function updateReportStatus(userId, reportId, newStatus, btn) {
+  if (!userId || !reportId) return;
+  const r = allReports.find(x => x.id === reportId);
+  if (!r || r.status === newStatus) return;
+
+  btn.textContent = '⏳';
+  btn.disabled = true;
+
+  try {
+    const reportRef = db.collection('users').doc(userId).collection('reports').doc(reportId);
+    const update = { status: newStatus };
+    if (newStatus === 'solved') update.resolvedAt = firebase.firestore.FieldValue.serverTimestamp();
+    await reportRef.update(update);
+
+    // Write in-app notification for the citizen (skip if anonymous)
+    if (!r.isAnonymous && userId) {
+      const statusLabels = { reported: 'Reported', ongoing: 'Ongoing', solved: 'Solved ✓' };
+      await db.collection('users').doc(userId).collection('notifications').add({
+        type: 'report_status',
+        title: 'Report Status Updated',
+        body: `Your report about "${r.category}" has been marked as ${statusLabels[newStatus]}.`,
+        reportId: reportId,
+        status: newStatus,
+        timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+        read: false,
+      });
+    }
+
+    // Close modal and refresh
+    document.getElementById('report-modal')?.remove();
+  } catch (e) {
+    console.error('Status update failed:', e);
+    btn.textContent = 'Error';
+    btn.disabled = false;
+  }
 }
 
 // ── Heatmap ──────────────────────────────────────────────────────────────────
