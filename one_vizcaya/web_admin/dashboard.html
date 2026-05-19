@@ -166,6 +166,14 @@
     .view-switch{display:flex;align-items:center;gap:6px;font-size:12px;color:rgba(255,255,255,.85)}
     .view-switch select{padding:5px 10px;border:1px solid rgba(255,255,255,.4);border-radius:8px;background:rgba(255,255,255,.15);color:#fff;font-size:12px;cursor:pointer}
     .view-switch select option{color:#333;background:#fff}
+    /* ── Broadcast modal ── */
+    .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9000;display:flex;align-items:center;justify-content:center;padding:16px}
+    .modal-box{background:#fff;border-radius:20px;padding:28px;width:100%;max-width:480px;box-shadow:0 24px 80px rgba(0,0,0,.35)}
+    .modal-box h3{font-size:17px;font-weight:800;color:#1A202C;margin:0 0 20px}
+    .modal-input{width:100%;border:1.5px solid #E2E8F0;border-radius:10px;padding:11px 14px;font-size:14px;font-family:inherit;margin-bottom:12px;outline:none;transition:border .2s;box-sizing:border-box}
+    .modal-input:focus{border-color:#2E7D32}
+    .modal-btn-row{display:flex;gap:10px;justify-content:flex-end;margin-top:8px}
+
     /* ── Analytics responsive ── */
     @media(max-width:900px){#analytics-card .card-body > div:first-child{grid-template-columns:1fr}}
   </style>
@@ -424,7 +432,10 @@
   <div class="card" id="announcements-card" style="display:none">
     <div class="card-header">
       <div class="card-title">📢 Announcements</div>
-      <button onclick="toggleNewAnnouncement()" class="chip" style="border-color:#2E7D32;color:#2E7D32;font-size:12px">+ New Announcement</button>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button onclick="openBroadcastModal()" class="toggle-btn" style="font-size:12px;padding:6px 14px">📱 Broadcast Alert</button>
+        <button onclick="toggleNewAnnouncement()" class="chip" style="border-color:#2E7D32;color:#2E7D32;font-size:12px">+ New Announcement</button>
+      </div>
     </div>
     <div class="card-body">
 
