@@ -176,6 +176,37 @@
 
     /* ── Analytics responsive ── */
     @media(max-width:900px){#analytics-card .card-body > div:first-child{grid-template-columns:1fr}}
+    @media(max-width:900px){
+      #analytics-card .card-body > div[style*="grid-template-columns:1fr 1fr 1fr"]{grid-template-columns:1fr!important}
+      #analytics-card .card-body > div[style*="grid-template-columns:repeat(4"]{grid-template-columns:repeat(2,1fr)!important}
+    }
+
+    /* ── Mobile improvements ── */
+    @media(max-width:768px){
+      .navbar{padding:0 16px;height:60px}
+      .nav-title{font-size:15px}
+      .nav-subtitle{display:none}
+      .nav-user{display:none}
+      .container{padding:16px 12px 40px}
+      .stats-grid{grid-template-columns:repeat(2,1fr);gap:12px}
+      .stat-value{font-size:28px}
+      .card-header{flex-wrap:wrap;gap:8px}
+      .map-controls{gap:6px}
+      .toggle-btn{padding:6px 10px;font-size:11px}
+      .bottom-grid{grid-template-columns:1fr}
+      .reports-filter{gap:6px}
+      .chip{padding:5px 10px;font-size:11px}
+      th,td{padding:8px 8px}
+      .col-muni,.col-date,.col-loc{display:none}
+      .role-banner{padding:8px 16px;font-size:12px}
+    }
+    @media(max-width:480px){
+      .stats-grid{grid-template-columns:1fr 1fr}
+      .stat-inner{padding:14px}
+      .stat-value{font-size:24px}
+      #map{height:260px}
+      .card-body{padding:14px}
+    }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
