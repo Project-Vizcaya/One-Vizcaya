@@ -428,6 +428,19 @@
     </div>
   </div>
 
+  <!-- Audit Log -->
+  <div class="card" id="audit-card" style="display:none">
+    <div class="card-header">
+      <div class="card-title">📋 Audit Log</div>
+      <button onclick="loadAuditLog()" class="toggle-btn" style="font-size:11px;padding:5px 12px">🔄 Refresh</button>
+    </div>
+    <div class="card-body" style="padding:0">
+      <div id="audit-list" style="max-height:320px;overflow-y:auto">
+        <div style="padding:20px;text-align:center;color:#A0AEC0;font-size:13px">Click Refresh to load audit log</div>
+      </div>
+    </div>
+  </div>
+
   <!-- Announcements -->
   <div class="card" id="announcements-card" style="display:none">
     <div class="card-header">
@@ -519,6 +532,19 @@ firebase.initializeApp(FIREBASE_CONFIG);
 const auth = firebase.auth();
 const db   = firebase.firestore();
 // Long-polling removed — it breaks WebSocket connections in normal browsers.
+
+// ── Audit log helper ──────────────────────────────────────────────────────────
+function writeAuditLog(action, details) {
+  if (!currentUser) return;
+  db.collection('audit_logs').add({
+    action,
+    details,
+    adminPhone: currentUser.phoneNumber || 'unknown',
+    adminRole: firestoreRole,
+    adminMunicipality: userMunicipality,
+    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+  }).catch(() => {}); // non-blocking, best-effort
+}
 
 // ── State ────────────────────────────────────────────────────────────────────
 let currentUser      = null;
@@ -1100,6 +1126,8 @@ async function updateReportStatus(userId, reportId, newStatus, btn) {
     if (newStatus === 'solved') update.resolvedAt = firebase.firestore.FieldValue.serverTimestamp();
     await reportRef.update(update);
 
+    writeAuditLog('status_update', { reportId, userId, newStatus, category: r.category, municipality: r.municipality });
+
     // Write in-app notification for the citizen (skip if anonymous)
     if (!r.isAnonymous && userId) {
       const statusLabels = { reported: 'Reported', ongoing: 'Ongoing', solved: 'Solved ✓' };
@@ -1530,11 +1558,42 @@ function switchView(val) {
   window.location.reload();
 }
 
+// ── Audit Log ─────────────────────────────────────────────────────────────────
+function loadAuditLog() {
+  const el = document.getElementById('audit-list');
+  el.innerHTML = '<div style="padding:20px;text-align:center"><div class="loader-ring" style="border-color:rgba(46,125,50,.3);border-top-color:#2E7D32;width:20px;height:20px;margin:0 auto"></div></div>';
+
+  let q = db.collection('audit_logs').orderBy('timestamp','desc').limit(50);
+  if (userRole === 'municipal_admin') q = q.where('adminMunicipality','==',userMunicipality);
+
+  q.get().then(snap => {
+    if (snap.empty) { el.innerHTML = '<div style="padding:20px;text-align:center;color:#A0AEC0;font-size:13px">No audit entries yet.</div>'; return; }
+    const actionLabels = { status_update:'Status Update', announcement_created:'Announcement Created', announcement_deleted:'Announcement Deleted', role_assigned:'Role Assigned', report_notes_updated:'Report Notes Updated' };
+    el.innerHTML = snap.docs.map(d => {
+      const a = d.data();
+      const when = a.timestamp?.toDate ? a.timestamp.toDate().toLocaleString('en-PH') : '—';
+      const label = actionLabels[a.action] || a.action;
+      const details = Object.entries(a.details||{}).map(([k,v])=>`<span style="color:#718096">${k}:</span> ${escHtml(String(v))}`).join(' · ');
+      return `<div style="padding:12px 18px;border-bottom:1px solid #F7FAFC;font-size:13px">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span style="font-weight:700;color:#2D3748">${label}</span>
+          <span style="font-size:11px;color:#A0AEC0">${when}</span>
+        </div>
+        <div style="margin-top:3px;font-size:12px">${details}</div>
+        <div style="margin-top:2px;font-size:11px;color:#A0AEC0">by ${escHtml(a.adminPhone||'?')} (${escHtml(a.adminRole||'?')})</div>
+      </div>`;
+    }).join('');
+  }).catch(e => { el.innerHTML = `<div style="padding:20px;color:#C53030;font-size:13px">Error: ${e.message}</div>`; });
+}
+
 // ── Manage Users (provincial / super admin only) ──────────────────────────────
 async function loadUsers() {
   const canManage = userRole === 'provincial_admin' || userRole === 'admin' || userRole === 'super_admin';
   if (!canManage) return;
   document.getElementById('users-card').style.display = 'block';
+  if (['super_admin','provincial_admin','admin'].includes(firestoreRole)) {
+    document.getElementById('audit-card').style.display = 'block';
+  }
   try {
     const snap = await db.collection('users').orderBy('name').limit(200).get();
     const users = snap.docs.map(d => ({ uid: d.id, ...d.data() }));
@@ -1590,6 +1649,7 @@ async function saveUserRole(uid) {
       update.municipality = firebase.firestore.FieldValue.delete();
     }
     await db.collection('users').doc(uid).update(update);
+    writeAuditLog('role_assigned', { targetUid: uid, role, municipality: muni });
     ok.style.display = 'inline';
     document.querySelector(`#row-${uid} .user-role-label`).innerHTML =
       `Current: <strong>${role}</strong>${muni ? ' · ' + muni : ''}`;
@@ -1681,6 +1741,7 @@ async function postAnnouncement() {
       timestamp: firebase.firestore.FieldValue.serverTimestamp(),
       createdBy: currentUser.uid
     });
+    writeAuditLog('announcement_created', { municipality, title });
     document.getElementById('ann-title').value     = '';
     document.getElementById('ann-body').value      = '';
     document.getElementById('ann-posted-by').value = '';
@@ -1695,6 +1756,7 @@ async function deleteAnnouncement(id) {
   if (!confirm('Delete this announcement? This cannot be undone.')) return;
   try {
     await db.collection('announcements').doc(id).delete();
+    writeAuditLog('announcement_deleted', { announcementId: id });
   } catch (e) {
     alert('Failed to delete: ' + e.message);
   }
