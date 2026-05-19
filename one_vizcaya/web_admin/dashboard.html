@@ -272,6 +272,7 @@
       <button class="toggle-btn active" id="btn-heatmap" onclick="toggleHeatmap()" aria-pressed="true">🔥 Heatmap</button>
       <button class="toggle-btn active" id="btn-responders" onclick="toggleResponders()" aria-pressed="true">🚨 Responders</button>
       <button class="toggle-btn" id="btn-reports-pins" onclick="toggleReportPins()" aria-pressed="false">📌 Report Pins</button>
+      <button class="toggle-btn" id="btn-barangays" onclick="toggleBarangays()" aria-pressed="false" title="Show barangay boundaries (select a municipality first)">🗺️ Barangays</button>
       <select class="filter-select" id="map-muni-filter" onchange="filterMapByMuni()">
         <option value="all">All Municipalities</option>
       </select>
@@ -292,6 +293,9 @@
       <div class="legend-item"><div class="legend-dot" style="background:#FFD600"></div>Medium</div>
       <div class="legend-item"><div class="legend-dot" style="background:#FF6D00"></div>High</div>
       <div class="legend-item"><div class="legend-dot" style="background:#D50000"></div>Critical</div>
+      <span style="margin-left:8px;color:#CBD5E0">|</span>
+      <strong style="font-size:11px;color:#718096;margin:0 4px">Barangays:</strong>
+      <div class="legend-item"><div class="legend-dot" style="background:#1565C0;opacity:.5"></div>Boundary</div>
       <span style="margin-left:8px;color:#CBD5E0">|</span>
       <strong style="font-size:11px;color:#718096;margin:0 4px">Responders:</strong>
       <div class="legend-item">🚨 MDRRMO</div>
@@ -485,6 +489,11 @@ let reportPins       = [];
 let showHeatmap      = true;
 let showResponders   = true;
 let showReportPins   = false;
+let showBarangays    = false;
+let barangayPolygons = [];
+let barangayLabels   = [];
+let barangayInfoWindow = null;
+let barangayCache    = {};
 let currentRespDirFilter = 'all';
 
 // ── Auth guard ───────────────────────────────────────────────────────────────
@@ -674,6 +683,7 @@ function zoomToMunicipality(muniName) {
   const sel = document.getElementById('map-muni-filter');
   if (sel) sel.value = muniName;
   filterRespondersByType();
+  if (showBarangays) renderBarangays();
 }
 
 // ── Reports listener ─────────────────────────────────────────────────────────
@@ -907,6 +917,152 @@ function filterMapByMuni() {
     if (first) { map.setCenter({lat: first.lat, lng: first.lng}); map.setZoom(13); }
   } else {
     map.setCenter(NV_CENTER); map.setZoom(NV_ZOOM);
+  }
+  if (showBarangays) renderBarangays();
+}
+
+// ── Barangay PSGC map ─────────────────────────────────────────────────────────
+const MUNI_PSGC = {
+  'Ambaguio':          '205001000',
+  'Aritao':            '205002000',
+  'Bagabag':           '205003000',
+  'Bambang':           '205004000',
+  'Bayombong':         '205005000',
+  'Diadi':             '205006000',
+  'Dupax del Norte':   '205007000',
+  'Dupax del Sur':     '205008000',
+  'Kasibu':            '205009000',
+  'Kayapa':            '205010000',
+  'Quezon':            '205011000',
+  'Santa Fe':          '205012000',
+  'Solano':            '205013000',
+  'Villaverde':        '205014000',
+  'Alfonso Castañeda': '205015000',
+};
+
+async function fetchBarangayGeoJSON(muniName) {
+  if (barangayCache[muniName]) return barangayCache[muniName];
+  const psgc = MUNI_PSGC[muniName];
+  if (!psgc) return null;
+  const url = `https://raw.githubusercontent.com/faeldon/philippines-json-maps/master/2023/geojson/municities/lowres/bgysubmuns-municity-${psgc}.0.001.json`;
+  try {
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    const data = await res.json();
+    barangayCache[muniName] = data;
+    return data;
+  } catch (e) {
+    console.warn('Barangay fetch failed:', e);
+    return null;
+  }
+}
+
+function clearBarangayOverlays() {
+  barangayPolygons.forEach(p => p.setMap(null));
+  barangayLabels.forEach(m => m.setMap(null));
+  barangayPolygons = [];
+  barangayLabels   = [];
+  if (barangayInfoWindow) { barangayInfoWindow.close(); barangayInfoWindow = null; }
+}
+
+async function renderBarangays() {
+  clearBarangayOverlays();
+  if (!showBarangays) return;
+
+  const muniFilter = document.getElementById('map-muni-filter')?.value || 'all';
+  if (muniFilter === 'all') {
+    // Show a hint instead of loading all 15 municipalities at once
+    const btn = document.getElementById('btn-barangays');
+    btn.title = 'Select a municipality to show barangay boundaries';
+    return;
+  }
+
+  const btn = document.getElementById('btn-barangays');
+  btn.textContent = '⏳ Loading…';
+  btn.disabled = true;
+
+  const geojson = await fetchBarangayGeoJSON(muniFilter);
+  btn.textContent = '🗺️ Barangays';
+  btn.disabled = false;
+
+  if (!geojson || !geojson.features) return;
+
+  geojson.features.forEach(feature => {
+    const name = feature.properties?.adm4_en || feature.properties?.name || '';
+    const geom = feature.geometry;
+    if (!geom) return;
+
+    const rings = geom.type === 'Polygon' ? [geom.coordinates] : geom.coordinates;
+    let allPaths = [];
+    let centroidLat = 0, centroidLng = 0, pointCount = 0;
+
+    rings.forEach(ring => {
+      ring.forEach(coords => {
+        const path = coords.map(([lng, lat]) => ({ lat, lng }));
+        allPaths.push(path);
+        coords.forEach(([lng, lat]) => {
+          centroidLat += lat; centroidLng += lng; pointCount++;
+        });
+      });
+    });
+
+    const polygon = new google.maps.Polygon({
+      paths: allPaths,
+      map,
+      strokeColor:   '#1565C0',
+      strokeOpacity: 0.85,
+      strokeWeight:  1.5,
+      fillColor:     '#1E88E5',
+      fillOpacity:   0.08,
+      clickable:     true,
+      zIndex:        5,
+    });
+
+    const center = pointCount > 0
+      ? { lat: centroidLat / pointCount, lng: centroidLng / pointCount }
+      : null;
+
+    const label = center ? new google.maps.Marker({
+      position: center,
+      map,
+      icon: { path: google.maps.SymbolPath.CIRCLE, scale: 0 },
+      label: { text: name, fontSize: '9px', fontWeight: '600', color: '#0D47A1' },
+      title: name,
+      zIndex: 6,
+    }) : null;
+    if (label) barangayLabels.push(label);
+
+    const infoContent = `
+      <div style="font-family:system-ui;padding:4px 2px">
+        <div style="font-weight:800;font-size:13px;color:#1565C0">Brgy. ${name}</div>
+        <div style="font-size:11px;color:#718096;margin-top:2px">${muniFilter}, Nueva Vizcaya</div>
+      </div>`;
+
+    polygon.addListener('click', evt => {
+      if (barangayInfoWindow) barangayInfoWindow.close();
+      barangayInfoWindow = new google.maps.InfoWindow({ content: infoContent, position: evt.latLng });
+      barangayInfoWindow.open(map);
+    });
+    polygon.addListener('mouseover', () => {
+      polygon.setOptions({ fillOpacity: 0.22, strokeWeight: 2.5 });
+    });
+    polygon.addListener('mouseout', () => {
+      polygon.setOptions({ fillOpacity: 0.08, strokeWeight: 1.5 });
+    });
+
+    barangayPolygons.push(polygon);
+  });
+}
+
+function toggleBarangays() {
+  showBarangays = !showBarangays;
+  const btn = document.getElementById('btn-barangays');
+  btn.classList.toggle('active', showBarangays);
+  btn.setAttribute('aria-pressed', showBarangays);
+  if (showBarangays) {
+    renderBarangays();
+  } else {
+    clearBarangayOverlays();
   }
 }
 
