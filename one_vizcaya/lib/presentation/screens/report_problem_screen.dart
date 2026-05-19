@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:geolocator/geolocator.dart';
@@ -233,9 +234,18 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
             'Your report has been successfully routed to the $municipality '
             'municipal engineering database.$priorityMsg',
       );
+    } on FirebaseException catch (e) {
+      setState(() => _isSubmitting = false);
+      if (e.code == 'unavailable') {
+        ToastUtils.showError(
+          'No internet connection. Please try again when online, or use SMS mode.',
+        );
+      } else {
+        ToastUtils.showError('Submission failed: ${e.message}');
+      }
     } catch (e) {
       setState(() => _isSubmitting = false);
-      ToastUtils.showError('Error preparing report: $e');
+      ToastUtils.showError('An error occurred. Please try again.');
     }
   }
 
