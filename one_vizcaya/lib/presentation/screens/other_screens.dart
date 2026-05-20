@@ -30,57 +30,17 @@ class SupportScreen extends StatefulWidget {
 class _SupportScreenState extends State<SupportScreen> {
   int? _expandedIndex;
 
-  static const List<Map<String, String>> _faqs = [
-    {
-      'q': 'How do I submit a report?',
-      'a':
-          'Tap "Report Problem" on the home screen. Select a category, describe the issue, attach a photo if available, and tap "Submit Report". Your report will be routed to your selected municipality\'s LGU automatically.',
-    },
-    {
-      'q': 'How long does it take for my report to be resolved?',
-      'a':
-          'Resolution time depends on the severity and type of issue. Critical and High priority reports are typically addressed within 24–72 hours. Medium and Low priority reports may take up to 7 days. You can track status in "My Reports".',
-    },
-    {
-      'q': 'Can I report issues from a different municipality?',
-      'a':
-          'Yes! Tap your municipality name at the top of the home screen to switch to a different municipality before submitting your report.',
-    },
-    {
-      'q': 'What types of issues can I report?',
-      'a':
-          'You can report: Road & Infrastructure damage, Flooding & Drainage issues, Public Safety concerns, Environmental violations, Public Health hazards, and Disaster & Risk Management situations.',
-    },
-    {
-      'q': 'Is my personal information safe?',
-      'a':
-          'Yes. One Vizcaya complies with Republic Act No. 10173 (Data Privacy Act of 2012). We only collect your phone number and municipality. Your data is encrypted using Google Firebase\'s enterprise-grade security and is never sold to third parties.',
-    },
-    {
-      'q': 'Why was my SMS verification blocked?',
-      'a':
-          'Firebase automatically blocks devices that request too many OTPs in a short period. Please wait 24 hours before trying again. This is a security measure to prevent spam.',
-    },
-    {
-      'q': 'Can I delete my account?',
-      'a':
-          'Yes. Under RA 10173, you have the right to request account deletion. Contact the LGU administrator or the PDRRMO Nueva Vizcaya at 09178500670 to process your deletion request within 30 days.',
-    },
-    {
-      'q': 'Why does the weather show "Offline Fallback Data"?',
-      'a':
-          'This appears when the app cannot access your GPS location or the weather service is temporarily unavailable. Tap the refresh icon on the weather widget to retry, or ensure location permissions are enabled in your phone settings.',
-    },
-    {
-      'q': 'What is the National Emergency Hotline?',
-      'a':
-          'The National Emergency Hotline is 911. For Nueva Vizcaya-specific emergencies, contact PDRRMO at 09178500670. You can find all local emergency numbers in the "Emergency Contacts" section.',
-    },
-    {
-      'q': 'How do I update my municipality selection?',
-      'a':
-          'On the home screen, tap your municipality name at the top left to open the municipality picker. Select your new municipality and it will take effect immediately.',
-    },
+  List<Map<String, String>> get _faqs => [
+    {'q': AppStrings.get('faq1q'), 'a': AppStrings.get('faq1a')},
+    {'q': AppStrings.get('faq2q'), 'a': AppStrings.get('faq2a')},
+    {'q': AppStrings.get('faq3q'), 'a': AppStrings.get('faq3a')},
+    {'q': AppStrings.get('faq4q'), 'a': AppStrings.get('faq4a')},
+    {'q': AppStrings.get('faq5q'), 'a': AppStrings.get('faq5a')},
+    {'q': AppStrings.get('faq6q'), 'a': AppStrings.get('faq6a')},
+    {'q': AppStrings.get('faq7q'), 'a': AppStrings.get('faq7a')},
+    {'q': AppStrings.get('faq8q'), 'a': AppStrings.get('faq8a')},
+    {'q': AppStrings.get('faq9q'), 'a': AppStrings.get('faq9a')},
+    {'q': AppStrings.get('faq10q'), 'a': AppStrings.get('faq10a')},
   ];
 
   static const List<Map<String, dynamic>> _contactOptions = [
@@ -143,9 +103,9 @@ class _SupportScreenState extends State<SupportScreen> {
       appBar: AppBar(
         backgroundColor: lguColor,
         foregroundColor: Colors.white,
-        title: const Text(
-          'Support & FAQs',
-          style: TextStyle(fontWeight: FontWeight.w600),
+        title: Text(
+          AppStrings.get('faqTitle'),
+          style: const TextStyle(fontWeight: FontWeight.w600),
         ),
         elevation: 0,
       ),
@@ -458,7 +418,7 @@ class AnnouncementsScreen extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: lguColor,
         foregroundColor: Colors.white,
-        title: const Text('Announcements'),
+        title: Text(AppStrings.get('announcementsTitle')),
       ),
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance
@@ -468,17 +428,17 @@ class AnnouncementsScreen extends StatelessWidget {
             .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.hasError) {
-            return const Center(child: Text('Failed to load announcements.'));
+            return Center(child: Text(AppStrings.get('failedLoadAnnouncements')));
           }
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
           final docs = snapshot.data?.docs ?? [];
           if (docs.isEmpty) {
-            return const Center(
+            return Center(
               child: Text(
-                'No announcements yet.',
-                style: TextStyle(color: Colors.grey),
+                AppStrings.get('noAnnouncements'),
+                style: const TextStyle(color: Colors.grey),
               ),
             );
           }
@@ -563,7 +523,7 @@ class NotificationsScreen extends StatelessWidget {
     if (ts == null) return '';
     final dt = ts is Timestamp ? ts.toDate() : DateTime.now();
     final diff = DateTime.now().difference(dt);
-    if (diff.inMinutes < 1) return 'Just now';
+    if (diff.inMinutes < 1) return AppStrings.get('justNow');
     if (diff.inHours < 1) return '${diff.inMinutes}m ago';
     if (diff.inDays < 1) return '${diff.inHours}h ago';
     if (diff.inDays < 7) return '${diff.inDays}d ago';
@@ -579,10 +539,10 @@ class NotificationsScreen extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: lguColor,
         foregroundColor: Colors.white,
-        title: const Text('Notifications'),
+        title: Text(AppStrings.get('notificationsTitle')),
       ),
       body: user == null
-          ? const Center(child: Text('Please log in to see notifications.'))
+          ? Center(child: Text(AppStrings.get('loginForNotifications')))
           : StreamBuilder<QuerySnapshot>(
               stream: FirebaseFirestore.instance
                   .collection('users')
@@ -607,7 +567,7 @@ class NotificationsScreen extends StatelessWidget {
                             semanticLabel: 'No notifications'),
                         const SizedBox(height: 16),
                         Text(
-                          'All caught up!',
+                          AppStrings.get('allCaughtUp'),
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.w500,
@@ -616,7 +576,7 @@ class NotificationsScreen extends StatelessWidget {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          "You'll be notified when your report status changes",
+                          AppStrings.get('notifyWhenChanged'),
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             fontSize: 13,

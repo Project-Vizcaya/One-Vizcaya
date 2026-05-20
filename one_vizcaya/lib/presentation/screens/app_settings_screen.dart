@@ -257,7 +257,7 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
                   title: AppStrings.get('language'),
                   subtitle: AppStrings.get('languageSubtitle'),
                   value: _selectedLanguage,
-                  options: const ['English', 'Tagalog'],
+                  options: const ['English', 'Tagalog', 'Ilocano'],
                   onChanged: (newValue) {
                     if (newValue != null) {
                       oneVizcayaState.setLanguage(newValue);
@@ -339,14 +339,12 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Clear Cache'),
-        content: const Text(
-          'This will clear all locally cached data. Your reports and account will not be affected.',
-        ),
+        title: Text(AppStrings.get('clearCacheTitle')),
+        content: Text(AppStrings.get('clearCacheContent')),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
+            child: Text(AppStrings.get('cancel')),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -356,7 +354,7 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
               ToastUtils.showSuccess('Cache cleared successfully');
             },
             style: ElevatedButton.styleFrom(backgroundColor: _lguColor),
-            child: const Text('Clear', style: TextStyle(color: Colors.white)),
+            child: Text(AppStrings.get('clearCacheButton'), style: const TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -370,29 +368,29 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         icon: const Icon(Icons.warning_amber_rounded,
             color: Colors.red, size: 48),
-        title: Text('Delete Account',
+        title: Text(AppStrings.get('deleteAccountTitle'),
             style: TextStyle(color: Colors.red.shade700)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('This will permanently delete:',
-                style: TextStyle(fontWeight: FontWeight.w600)),
+            Text(AppStrings.get('deleteAccountWarning'),
+                style: const TextStyle(fontWeight: FontWeight.w600)),
             const SizedBox(height: 8),
             ...[
-              'All your submitted reports',
-              'Your profile and contact information',
-              'Your notification history',
+              AppStrings.get('deleteItem1'),
+              AppStrings.get('deleteItem2'),
+              AppStrings.get('deleteItem3'),
             ].map((item) => Padding(
                   padding: const EdgeInsets.symmetric(vertical: 2),
                   child: Row(children: [
                     const Icon(Icons.close, color: Colors.red, size: 16),
                     const SizedBox(width: 6),
-                    Text(item),
+                    Flexible(child: Text(item)),
                   ]),
                 )),
             const SizedBox(height: 12),
-            Text('This cannot be undone.',
+            Text(AppStrings.get('deleteCannotUndo'),
                 style: TextStyle(
                     color: Colors.red.shade700,
                     fontWeight: FontWeight.w600)),
@@ -401,15 +399,15 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
+            child: Text(AppStrings.get('cancel')),
           ),
           TextButton(
             onPressed: () {
               Navigator.pop(ctx);
               _showDeleteConfirmationDialog(context);
             },
-            child: const Text('Continue',
-                style: TextStyle(color: Colors.red)),
+            child: Text(AppStrings.get('continueButton'),
+                style: const TextStyle(color: Colors.red)),
           ),
         ],
       ),
@@ -427,14 +425,14 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
         builder: (ctx, setDialogState) {
           return AlertDialog(
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            title: const Text('Confirm Deletion'),
+            title: Text(AppStrings.get('confirmDeletion')),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Type DELETE to confirm permanent account deletion:',
-                  style: TextStyle(fontSize: 13),
+                Text(
+                  AppStrings.get('typeDeleteToConfirm'),
+                  style: const TextStyle(fontSize: 13),
                 ),
                 const SizedBox(height: 12),
                 TextField(
@@ -483,7 +481,7 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(ctx),
-                child: const Text('Cancel'),
+                child: Text(AppStrings.get('cancel')),
               ),
               ElevatedButton(
                 onPressed: _isDeleteTyped
@@ -496,7 +494,7 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
                   backgroundColor: const Color(0xFFE53935),
                   disabledBackgroundColor: Colors.grey.shade300,
                 ),
-                child: const Text('Delete', style: TextStyle(color: Colors.white)),
+                child: Text(AppStrings.get('deleteButton'), style: const TextStyle(color: Colors.white)),
               ),
             ],
           );
@@ -553,8 +551,8 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
       if (context.mounted) {
         Navigator.of(context).pop(); // close progress dialog
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Your account has been permanently deleted. Goodbye.'),
+          SnackBar(
+            content: Text(AppStrings.get('accountDeleted')),
             duration: Duration(seconds: 4),
             behavior: SnackBarBehavior.floating,
           ),
