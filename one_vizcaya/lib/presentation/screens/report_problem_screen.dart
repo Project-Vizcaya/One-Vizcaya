@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:geolocator/geolocator.dart';
@@ -32,6 +33,7 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
   ReportCategory? _selectedCategory;
   final _descriptionController = TextEditingController();
   final _locationController = TextEditingController();
+  late final TextEditingController _barangayController;
   bool _isOffline = false;
   bool _isAnonymous = false;
   bool _isGettingLocation = false;
@@ -48,6 +50,12 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
   DateTime? _photoTimestamp;
   double? _photoLatitude;
   double? _photoLongitude;
+
+  @override
+  void initState() {
+    super.initState();
+    _barangayController = TextEditingController();
+  }
 
   Future<void> _getLocation() async {
     setState(() => _isGettingLocation = true);
@@ -202,12 +210,16 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
         photoLatitude: _photoLatitude,
         photoLongitude: _photoLongitude,
         isAnonymous: _isAnonymous,
+        barangay: _barangayController.text.trim().isEmpty
+            ? null
+            : _barangayController.text.trim(),
       );
 
       await _reportRepository.submitReport(report, userId);
 
       _locationController.clear();
       _descriptionController.clear();
+      _barangayController.clear();
       if (!mounted) return;
       setState(() {
         _selectedCategory = null;
@@ -233,9 +245,18 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
             'Your report has been successfully routed to the $municipality '
             'municipal engineering database.$priorityMsg',
       );
+    } on FirebaseException catch (e) {
+      setState(() => _isSubmitting = false);
+      if (e.code == 'unavailable') {
+        ToastUtils.showError(
+          'No internet connection. Please try again when online, or use SMS mode.',
+        );
+      } else {
+        ToastUtils.showError('Submission failed: ${e.message}');
+      }
     } catch (e) {
       setState(() => _isSubmitting = false);
-      ToastUtils.showError('Error preparing report: $e');
+      ToastUtils.showError('An error occurred. Please try again.');
     }
   }
 
@@ -428,6 +449,19 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
               ),
               const SizedBox(height: 16),
               TextFormField(
+                controller: _barangayController,
+                decoration: InputDecoration(
+                  labelText: 'Barangay (optional)',
+                  hintText: 'Enter your barangay name',
+                  prefixIcon: Icon(Icons.location_city_outlined, color: primaryLguColor),
+                  focusedBorder: OutlineInputBorder(
+                    borderSide: BorderSide(color: primaryLguColor, width: 2),
+                  ),
+                  labelStyle: TextStyle(color: primaryLguColor),
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
                 controller: _descriptionController,
                 decoration: InputDecoration(
                   labelText: 'Brief Description',
@@ -603,6 +637,7 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
   void dispose() {
     _descriptionController.dispose();
     _locationController.dispose();
+    _barangayController.dispose();
     super.dispose();
   }
 

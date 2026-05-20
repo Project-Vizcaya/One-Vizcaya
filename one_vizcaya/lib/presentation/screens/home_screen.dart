@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../core/constants/app_constants.dart';
 import '../state/municipality_state.dart';
 import '../../features/announcements/presentation/widgets/announcements_carousel.dart';
@@ -14,6 +15,26 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedNavIndex = 0;
+  bool _isOffline = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkConnectivity();
+  }
+
+  Future<void> _checkConnectivity() async {
+    try {
+      await FirebaseFirestore.instance
+          .collection('_ping')
+          .doc('ping')
+          .get(const GetOptions(source: Source.server))
+          .timeout(const Duration(seconds: 5));
+      if (mounted) setState(() => _isOffline = false);
+    } catch (_) {
+      if (mounted) setState(() => _isOffline = true);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -28,11 +49,41 @@ class _HomeScreenState extends State<HomeScreen> {
         return Scaffold(
           backgroundColor: Color.lerp(Colors.white, appBarColor, 0.10)!,
           body: SafeArea(
-            child: _selectedNavIndex == 0
-                ? _buildHomePage(context, municipality, appBarColor, secondaryColor, welcomeMsg)
-                : _selectedNavIndex == 1
-                ? _buildReportsPage(context, municipality, appBarColor)
-                : _buildProfileRedirect(context),
+            child: Column(
+              children: [
+                if (_isOffline)
+                  Container(
+                    width: double.infinity,
+                    color: const Color(0xFFF57F17),
+                    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.wifi_off, color: Colors.white, size: 16),
+                        const SizedBox(width: 8),
+                        const Expanded(
+                          child: Text(
+                            'You\'re offline. Showing cached data. Report submission requires internet.',
+                            style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.refresh, color: Colors.white, size: 16),
+                          onPressed: _checkConnectivity,
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                        ),
+                      ],
+                    ),
+                  ),
+                Expanded(
+                  child: _selectedNavIndex == 0
+                      ? _buildHomePage(context, municipality, appBarColor, secondaryColor, welcomeMsg)
+                      : _selectedNavIndex == 1
+                      ? _buildReportsPage(context, municipality, appBarColor)
+                      : _buildProfileRedirect(context),
+                ),
+              ],
+            ),
           ),
           bottomNavigationBar: _buildBottomNav(appBarColor),
         );

@@ -35,6 +35,9 @@ class ProblemReport {
   // SLA tracking
   final DateTime? resolvedAt;
 
+  // Barangay
+  final String? barangay;
+
   ProblemReport({
     required this.id,
     required this.category,
@@ -58,6 +61,7 @@ class ProblemReport {
     this.escalatedAt,
     this.isAnonymous = false,
     this.resolvedAt,
+    this.barangay,
   });
 
   factory ProblemReport.fromFirestore(DocumentSnapshot doc) {
@@ -92,6 +96,7 @@ class ProblemReport {
       escalatedAt: (data['escalatedAt'] as Timestamp?)?.toDate(),
       isAnonymous: data['isAnonymous'] as bool? ?? false,
       resolvedAt: (data['resolvedAt'] as Timestamp?)?.toDate(),
+      barangay: data['barangay'] as String?,
     );
   }
 
@@ -124,6 +129,7 @@ class ProblemReport {
       'resolvedAt': resolvedAt != null
           ? Timestamp.fromDate(resolvedAt!)
           : null,
+      'barangay': barangay ?? '',
     };
   }
 }
