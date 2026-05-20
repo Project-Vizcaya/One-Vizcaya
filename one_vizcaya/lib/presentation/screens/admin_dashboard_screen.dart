@@ -190,18 +190,33 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                   onPressed: isSearching
                       ? null
                       : () async {
-                          final phone = phoneController.text.trim();
-                          if (phone.isEmpty) {
+                          final raw = phoneController.text.trim();
+                          if (raw.isEmpty) {
                             ToastUtils.showError('Enter a phone number.');
                             return;
                           }
+                          // Normalize to E.164: 09XXXXXXXXX → +639XXXXXXXXX
+                          String phone = raw;
+                          if (raw.startsWith('0')) {
+                            phone = '+63${raw.substring(1)}';
+                          } else if (raw.startsWith('63') && !raw.startsWith('+')) {
+                            phone = '+$raw';
+                          }
                           setSheetState(() => isSearching = true);
                           try {
-                            final query = await FirebaseFirestore.instance
+                            // Try E.164 format first, fall back to raw input
+                            var query = await FirebaseFirestore.instance
                                 .collection('users')
                                 .where('phoneNumber', isEqualTo: phone)
                                 .limit(1)
                                 .get();
+                            if (query.docs.isEmpty && phone != raw) {
+                              query = await FirebaseFirestore.instance
+                                  .collection('users')
+                                  .where('phoneNumber', isEqualTo: raw)
+                                  .limit(1)
+                                  .get();
+                            }
 
                             if (!mounted) return;
 
