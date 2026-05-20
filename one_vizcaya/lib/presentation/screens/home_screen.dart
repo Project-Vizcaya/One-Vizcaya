@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../core/constants/app_constants.dart';
+import '../../core/l10n/app_strings.dart';
 import '../state/municipality_state.dart';
 import '../../features/announcements/presentation/widgets/announcements_carousel.dart';
 import '../../features/reports/presentation/widgets/community_feed.dart';
@@ -58,16 +59,16 @@ class _HomeScreenState extends State<HomeScreen> {
                     padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
                     child: Row(
                       children: [
-                        const Icon(Icons.wifi_off, color: Colors.white, size: 16),
+                        const Icon(Icons.wifi_off, color: Colors.white, size: 16, semanticLabel: 'No internet connection'),
                         const SizedBox(width: 8),
-                        const Expanded(
+                        Expanded(
                           child: Text(
-                            'You\'re offline. Showing cached data. Report submission requires internet.',
-                            style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
+                            AppStrings.get('offlineBanner'),
+                            style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
                           ),
                         ),
                         IconButton(
-                          icon: const Icon(Icons.refresh, color: Colors.white, size: 16),
+                          icon: const Icon(Icons.refresh, color: Colors.white, size: 16, semanticLabel: 'Retry connection'),
                           onPressed: _checkConnectivity,
                           padding: EdgeInsets.zero,
                           constraints: const BoxConstraints(),
@@ -135,54 +136,61 @@ class _HomeScreenState extends State<HomeScreen> {
                           Icons.keyboard_arrow_down,
                           color: Colors.grey.shade600,
                           size: 22,
+                          semanticLabel: 'Change municipality',
                         ),
                       ],
                     ),
                   ),
                 ),
-                Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.06),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: IconButton(
-                    icon: const Icon(
-                      Icons.notifications_outlined,
-                      color: Color(0xFF333333),
-                      size: 22,
-                    ),
-                    onPressed: () =>
-                        Navigator.of(context).pushNamed('/notifications'),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                GestureDetector(
-                  onTap: () => Navigator.of(context).pushNamed('/profile'),
+                Tooltip(
+                  message: 'Notifications',
                   child: Container(
-                    width: 38,
-                    height: 38,
                     decoration: BoxDecoration(
-                      color: appBarColor,
+                      color: Colors.white,
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
-                          color: appBarColor.withValues(alpha: 0.3),
+                          color: Colors.black.withValues(alpha: 0.06),
                           blurRadius: 8,
                           offset: const Offset(0, 2),
                         ),
                       ],
                     ),
-                    child: const Icon(
-                      Icons.person,
-                      color: Colors.white,
-                      size: 20,
+                    child: IconButton(
+                      icon: const Icon(
+                        Icons.notifications_outlined,
+                        color: Color(0xFF333333),
+                        size: 22,
+                      ),
+                      onPressed: () =>
+                          Navigator.of(context).pushNamed('/notifications'),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Tooltip(
+                  message: 'Profile',
+                  child: GestureDetector(
+                    onTap: () => Navigator.of(context).pushNamed('/profile'),
+                    child: Container(
+                      width: 38,
+                      height: 38,
+                      decoration: BoxDecoration(
+                        color: appBarColor,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: appBarColor.withValues(alpha: 0.3),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: const Icon(
+                        Icons.person,
+                        color: Colors.white,
+                        size: 20,
+                      ),
                     ),
                   ),
                 ),
@@ -264,22 +272,25 @@ class _HomeScreenState extends State<HomeScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'Announcements',
+                  AppStrings.get('announcements'),
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
                     color: appBarColor,
                   ),
                 ),
-                GestureDetector(
-                  onTap: () =>
-                      Navigator.of(context).pushNamed('/announcements'),
-                  child: Text(
-                    'See all',
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: appBarColor.withValues(alpha: 0.7),
-                      fontWeight: FontWeight.w500,
+                Semantics(
+                  label: 'See all announcements',
+                  child: GestureDetector(
+                    onTap: () =>
+                        Navigator.of(context).pushNamed('/announcements'),
+                    child: Text(
+                      AppStrings.get('seeAll'),
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: appBarColor.withValues(alpha: 0.7),
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   ),
                 ),
@@ -300,7 +311,7 @@ class _HomeScreenState extends State<HomeScreen> {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Text(
-              'Citizen Services',
+              AppStrings.get('citizenServices'),
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
@@ -318,21 +329,21 @@ class _HomeScreenState extends State<HomeScreen> {
               children: [
                 _ServiceGridItem(
                   icon: Icons.report_problem_rounded,
-                  label: 'Report\nProblem',
+                  label: AppStrings.get('reportProblemLabel'),
                   iconColor: Colors.white,
                   bgColor: const Color(0xFF4CAF50),
                   onTap: () => Navigator.of(context).pushNamed('/report'),
                 ),
                 _ServiceGridItem(
                   icon: Icons.history_rounded,
-                  label: 'My\nReports',
+                  label: AppStrings.get('myReportsLabel'),
                   iconColor: Colors.white,
                   bgColor: const Color(0xFFFF9800),
                   onTap: () => Navigator.of(context).pushNamed('/status'),
                 ),
                 _ServiceGridItem(
                   icon: Icons.local_hospital_rounded,
-                  label: 'Emergency\nContacts',
+                  label: AppStrings.get('emergencyContactsLabel'),
                   iconColor: Colors.white,
                   bgColor: const Color(0xFFE53935),
                   onTap: () => Navigator.of(context).pushNamed('/contacts'),
@@ -346,7 +357,7 @@ class _HomeScreenState extends State<HomeScreen> {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Text(
-              'Information & Support',
+              AppStrings.get('informationSupport'),
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
@@ -364,7 +375,7 @@ class _HomeScreenState extends State<HomeScreen> {
               children: [
                 _ServiceGridItem(
                   icon: Icons.campaign_rounded,
-                  label: 'Announce\nments',
+                  label: AppStrings.get('announcementsLabel'),
                   iconColor: Colors.white,
                   bgColor: const Color(0xFF1565C0),
                   onTap: () =>
@@ -372,14 +383,14 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 _ServiceGridItem(
                   icon: Icons.help_outline_rounded,
-                  label: 'Support\n& FAQs',
+                  label: AppStrings.get('supportFaqsLabel'),
                   iconColor: Colors.white,
                   bgColor: const Color(0xFF00897B),
                   onTap: () => Navigator.of(context).pushNamed('/support'),
                 ),
                 _ServiceGridItem(
                   icon: Icons.settings_rounded,
-                  label: 'App\nSettings',
+                  label: AppStrings.get('appSettingsLabel'),
                   iconColor: Colors.white,
                   bgColor: const Color(0xFF546E7A),
                   onTap: () => Navigator.of(context).pushNamed('/settings'),
@@ -397,19 +408,21 @@ class _HomeScreenState extends State<HomeScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'Recently Resolved',
+                  AppStrings.get('recentlyResolved'),
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
                     color: appBarColor,
                   ),
                 ),
-                Text(
-                  'Live',
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: Colors.green.shade600,
-                    fontWeight: FontWeight.w600,
+                ExcludeSemantics(
+                  child: Text(
+                    AppStrings.get('liveLabel'),
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Colors.green.shade600,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
               ],
@@ -531,9 +544,9 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
             const SizedBox(height: 16),
-            const Text(
-              'Select Municipality',
-              style: TextStyle(
+            Text(
+              AppStrings.get('selectMunicipality'),
+              style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
                 color: Color(0xFF333333),
@@ -696,7 +709,7 @@ class _ServiceGridItem extends StatelessWidget {
                   ),
                 ],
               ),
-              child: Icon(icon, color: iconColor, size: 24),
+              child: ExcludeSemantics(child: Icon(icon, color: iconColor, size: 24)),
             ),
             const SizedBox(height: 8),
             Text(

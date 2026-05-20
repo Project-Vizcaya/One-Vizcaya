@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../core/l10n/app_strings.dart';
 import 'home_screen.dart';
 
 class OnboardingScreen extends StatefulWidget {
@@ -13,41 +14,36 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
 
-  static const List<_OnboardingPage> _pages = [
+  List<_OnboardingPage> get _pages => [
     _OnboardingPage(
       icon: Icons.location_city,
-      color: Color(0xFF1B5E20),
-      title: 'Welcome to One Vizcaya',
-      subtitle:
-          'Your direct connection to the Local Government Units of Nueva Vizcaya\'s 15 municipalities.',
+      color: const Color(0xFF1B5E20),
+      title: AppStrings.get('onboardTitle1'),
+      subtitle: AppStrings.get('onboardSub1'),
     ),
     _OnboardingPage(
       icon: Icons.report_problem_outlined,
-      color: Color(0xFFE65100),
-      title: 'Report Problems',
-      subtitle:
-          'Spot a road problem, flooding, or any community issue? Report it directly to your LGU — with photos and GPS location for faster action.',
+      color: const Color(0xFFE65100),
+      title: AppStrings.get('onboardTitle2'),
+      subtitle: AppStrings.get('onboardSub2'),
     ),
     _OnboardingPage(
       icon: Icons.track_changes,
-      color: Color(0xFF1565C0),
-      title: 'Track Your Reports',
-      subtitle:
-          'Follow the status of every report you submit. Get notified when your LGU marks it as Ongoing or Resolved.',
+      color: const Color(0xFF1565C0),
+      title: AppStrings.get('onboardTitle3'),
+      subtitle: AppStrings.get('onboardSub3'),
     ),
     _OnboardingPage(
       icon: Icons.campaign_outlined,
-      color: Color(0xFF6A1B9A),
-      title: 'Stay Informed',
-      subtitle:
-          'Receive official announcements from your municipality, check emergency hotlines, and stay safe during disasters.',
+      color: const Color(0xFF6A1B9A),
+      title: AppStrings.get('onboardTitle4'),
+      subtitle: AppStrings.get('onboardSub4'),
     ),
     _OnboardingPage(
       icon: Icons.check_circle_outline,
-      color: Color(0xFF2E7D32),
-      title: 'Ready to Go!',
-      subtitle:
-          'You\'re all set. Help build a better Nueva Vizcaya — one report at a time.',
+      color: const Color(0xFF2E7D32),
+      title: AppStrings.get('onboardTitle5'),
+      subtitle: AppStrings.get('onboardSub5'),
     ),
   ];
 
@@ -79,7 +75,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               child: TextButton(
                 onPressed: _completeOnboarding,
                 child:
-                    const Text('Skip', style: TextStyle(color: Colors.grey)),
+                    Text(AppStrings.get('skip'), style: const TextStyle(color: Colors.grey)),
               ),
             ),
             Expanded(
@@ -95,20 +91,25 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
               child: Column(
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: List.generate(
-                      _pages.length,
-                      (i) => AnimatedContainer(
-                        duration: const Duration(milliseconds: 300),
-                        margin: const EdgeInsets.symmetric(horizontal: 4),
-                        width: _currentPage == i ? 24 : 8,
-                        height: 8,
-                        decoration: BoxDecoration(
-                          color: _currentPage == i
-                              ? _pages[_currentPage].color
-                              : Colors.grey.shade300,
-                          borderRadius: BorderRadius.circular(4),
+                  Semantics(
+                    label: 'Page ${_currentPage + 1} of ${_pages.length}',
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: List.generate(
+                        _pages.length,
+                        (i) => ExcludeSemantics(
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 300),
+                            margin: const EdgeInsets.symmetric(horizontal: 4),
+                            width: _currentPage == i ? 24 : 8,
+                            height: 8,
+                            decoration: BoxDecoration(
+                              color: _currentPage == i
+                                  ? _pages[_currentPage].color
+                                  : Colors.grey.shade300,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                          ),
                         ),
                       ),
                     ),
@@ -131,7 +132,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                               duration: const Duration(milliseconds: 350),
                               curve: Curves.easeInOut),
                       child: Text(
-                        isLast ? 'Get Started' : 'Next',
+                        isLast ? AppStrings.get('getStarted') : AppStrings.get('next'),
                         style: const TextStyle(
                             fontSize: 16, fontWeight: FontWeight.w700),
                       ),

@@ -11,6 +11,7 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import '../../core/constants/app_constants.dart';
+import '../../core/l10n/app_strings.dart';
 import '../../core/utils/toast_utils.dart';
 import '../../domain/enums/report_category.dart';
 import '../../domain/enums/report_status.dart';
@@ -304,15 +305,15 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
               SwitchListTile(
                 title: Text(
                   _isOffline
-                      ? 'Report via SMS (Offline)'
-                      : 'Report via App (Online)',
+                      ? AppStrings.get('reportViaSms')
+                      : AppStrings.get('online'),
                   style: Theme.of(
                     context,
                   ).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold),
                 ),
                 subtitle: Text(
                   _isOffline
-                      ? 'Uses your phone\'s SMS plan. Standard rates may apply.'
+                      ? AppStrings.get('reportViaSmsSubtitle')
                       : 'Uses mobile data or Wi-Fi.',
                 ),
                 value: _isOffline,
@@ -320,14 +321,14 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
                 activeThumbColor: primaryLguColor,
               ),
               SwitchListTile(
-                title: const Text(
-                  'Submit Anonymously',
-                  style: TextStyle(fontWeight: FontWeight.bold),
+                title: Text(
+                  AppStrings.get('submitAnonymously'),
+                  style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
-                subtitle: const Text(
-                  'Your name and phone number will not be attached to this report.',
+                subtitle: Text(
+                  AppStrings.get('anonymousSubtitle'),
                 ),
-                secondary: const Icon(Icons.visibility_off_outlined),
+                secondary: const Icon(Icons.visibility_off_outlined, semanticLabel: 'Anonymous submission'),
                 value: _isAnonymous,
                 onChanged: (value) => setState(() => _isAnonymous = value),
                 activeThumbColor: primaryLguColor,
@@ -335,7 +336,7 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
               const SizedBox(height: 24),
               DropdownButtonFormField<ReportCategory>(
                 value: _selectedCategory,
-                hint: const Text('Select Problem Category'),
+                hint: Text(AppStrings.get('selectCategory')),
                 isExpanded: true,
                 dropdownColor: Colors.white,
                 style: const TextStyle(color: Colors.black87, fontSize: 16),
@@ -361,7 +362,7 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
                     value == null ? 'Please select a category' : null,
                 decoration: InputDecoration(
                   labelText: 'Category',
-                  prefixIcon: Icon(Icons.category, color: primaryLguColor),
+                  prefixIcon: Icon(Icons.category, color: primaryLguColor, semanticLabel: 'Category'),
                   focusedBorder: OutlineInputBorder(
                     borderSide: BorderSide(color: primaryLguColor, width: 2),
                   ),
@@ -407,7 +408,7 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
                 controller: _locationController,
                 decoration: InputDecoration(
                   labelText: 'Location / Landmark',
-                  prefixIcon: Icon(Icons.location_on, color: primaryLguColor),
+                  prefixIcon: Icon(Icons.location_on, color: primaryLguColor, semanticLabel: 'Location'),
                   hintText:
                       'e.g., "In front of $activeMunicipalityName Municipal Hall"',
                   focusedBorder: OutlineInputBorder(
@@ -427,11 +428,11 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
                         height: 16,
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
-                    : const Icon(Icons.gps_fixed),
+                    : const Icon(Icons.gps_fixed, semanticLabel: 'Attach GPS location'),
                 label: Text(
                   _currentPosition != null
                       ? 'Location Attached ✓'
-                      : 'Attach Precise Location (GPS)',
+                      : AppStrings.get('attachPreciseLocation'),
                 ),
                 onPressed: _isOffline || _isGettingLocation
                     ? null
@@ -451,9 +452,9 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
               TextFormField(
                 controller: _barangayController,
                 decoration: InputDecoration(
-                  labelText: 'Barangay (optional)',
+                  labelText: '${AppStrings.get('barangay')} (optional)',
                   hintText: 'Enter your barangay name',
-                  prefixIcon: Icon(Icons.location_city_outlined, color: primaryLguColor),
+                  prefixIcon: Icon(Icons.location_city_outlined, color: primaryLguColor, semanticLabel: 'Barangay'),
                   focusedBorder: OutlineInputBorder(
                     borderSide: BorderSide(color: primaryLguColor, width: 2),
                   ),
@@ -464,15 +465,13 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
               TextFormField(
                 controller: _descriptionController,
                 decoration: InputDecoration(
-                  labelText: 'Brief Description',
-                  prefixIcon: Icon(Icons.description, color: primaryLguColor),
-                  hintText: 'Describe the problem in detail (min. 20 characters).',
+                  labelText: AppStrings.get('briefDescription'),
+                  prefixIcon: Icon(Icons.description, color: primaryLguColor, semanticLabel: 'Brief description'),
+                  hintText: AppStrings.get('descriptionHint'),
                   focusedBorder: OutlineInputBorder(
                     borderSide: BorderSide(color: primaryLguColor, width: 2),
                   ),
                   labelStyle: TextStyle(color: primaryLguColor),
-                  counterText:
-                      '${_descriptionController.text.length} / 20 min',
                 ),
                 maxLines: 4,
                 maxLength: 500,
@@ -481,10 +480,10 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
                         required isFocused,
                         maxLength}) =>
                     Text(
-                  '$currentLength / 20 min',
+                  '$currentLength / 50 min',
                   style: TextStyle(
                     fontSize: 12,
-                    color: currentLength < 20
+                    color: currentLength < 50
                         ? Colors.red.shade400
                         : Colors.grey.shade600,
                   ),
@@ -494,19 +493,19 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
                   if (value == null || value.trim().isEmpty) {
                     return 'Please enter a description';
                   }
-                  if (value.trim().length < 20) {
-                    return 'Description must be at least 20 characters';
+                  if (value.trim().length < 50) {
+                    return 'Description must be at least 50 characters';
                   }
                   return null;
                 },
               ),
               const SizedBox(height: 16),
               OutlinedButton.icon(
-                icon: const Icon(Icons.camera_alt),
+                icon: const Icon(Icons.camera_alt, semanticLabel: 'Attach photo evidence'),
                 label: Text(
                   _selectedImage != null
-                      ? 'Photo Attached ✓'
-                      : 'Attach Photo Evidence (Optional)',
+                      ? AppStrings.get('photoAttached')
+                      : AppStrings.get('attachPhoto'),
                 ),
                 onPressed: _isOffline ? null : () => _showImagePickerOptions(),
                 style: OutlinedButton.styleFrom(
@@ -553,6 +552,7 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
                             Icons.close,
                             color: Colors.white,
                             size: 18,
+                            semanticLabel: 'Remove photo',
                           ),
                         ),
                       ),
@@ -573,10 +573,12 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
                     ),
                     child: Row(
                       children: [
-                        Icon(
-                          Icons.verified,
-                          size: 14,
-                          color: Colors.green.shade700,
+                        ExcludeSemantics(
+                          child: Icon(
+                            Icons.verified,
+                            size: 14,
+                            color: Colors.green.shade700,
+                          ),
                         ),
                         const SizedBox(width: 6),
                         Expanded(
@@ -686,8 +688,8 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
                 children: [
                   _imagePickerOption(
                     icon: Icons.camera_alt_rounded,
-                    label: 'Camera',
-                    sublabel: 'Timestamped',
+                    label: AppStrings.get('photoCamera'),
+                    sublabel: AppStrings.get('timestamped'),
                     onTap: () {
                       Navigator.pop(context);
                       _pickImage(ImageSource.camera);
@@ -695,8 +697,8 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
                   ),
                   _imagePickerOption(
                     icon: Icons.photo_library_rounded,
-                    label: 'Gallery',
-                    sublabel: 'No timestamp',
+                    label: AppStrings.get('photoGallery'),
+                    sublabel: AppStrings.get('noTimestamp'),
                     onTap: () {
                       Navigator.pop(context);
                       _pickImage(ImageSource.gallery);

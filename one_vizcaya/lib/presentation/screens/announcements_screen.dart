@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:timeago/timeago.dart' as timeago;
+import '../../core/l10n/app_strings.dart';
 import '../state/municipality_state.dart';
 import '../../core/utils/toast_utils.dart';
 
@@ -62,9 +63,9 @@ class _AnnouncementsList extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Icon(Icons.error_outline,
-                    size: 48, color: Colors.red.shade300),
+                    size: 48, color: Colors.red.shade300, semanticLabel: 'Error loading announcements'),
                 const SizedBox(height: 16),
-                Text('Failed to load announcements',
+                Text(AppStrings.get('failedLoad'),
                     style: TextStyle(color: Colors.grey.shade600)),
                 const SizedBox(height: 8),
                 Text(
@@ -91,15 +92,16 @@ class _AnnouncementsList extends StatelessWidget {
               children: [
                 Icon(Icons.campaign_outlined,
                     size: 72,
-                    color: lguColor.withValues(alpha: 0.3)),
+                    color: lguColor.withValues(alpha: 0.3),
+                    semanticLabel: 'No announcements'),
                 const SizedBox(height: 16),
-                Text('No announcements yet',
+                Text(AppStrings.get('noAnnouncements'),
                     style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
                         color: Colors.grey.shade600)),
                 const SizedBox(height: 8),
-                Text('Check back later for updates\nfrom your local government.',
+                Text(AppStrings.get('noAnnouncementsSubtitle'),
                     textAlign: TextAlign.center,
                     style: TextStyle(
                         fontSize: 13, color: Colors.grey.shade400)),
@@ -211,10 +213,11 @@ class _AnnouncementCard extends StatelessWidget {
                               Icons.warning_amber_rounded,
                               size: 12,
                               color: Colors.red.shade600,
+                              semanticLabel: 'Urgent',
                             ),
                             const SizedBox(width: 4),
                             Text(
-                              'URGENT',
+                              AppStrings.get('urgentBadge'),
                               style: TextStyle(
                                 fontSize: 10,
                                 fontWeight: FontWeight.bold,
@@ -308,13 +311,13 @@ class _AnnouncementCard extends StatelessWidget {
                     onTap: () => _openSource(sourceUrl),
                     child: Row(
                       children: [
-                        Icon(Icons.open_in_new, size: 14, color: lguColor),
+                        Icon(Icons.open_in_new, size: 14, color: lguColor, semanticLabel: 'Open link'),
                         const SizedBox(width: 6),
                         Expanded(
                           child: Text(
                             sourceLabel.isNotEmpty
                                 ? sourceLabel
-                                : 'View original post',
+                                : AppStrings.get('viewOriginalPost'),
                             style: TextStyle(
                               fontSize: 12,
                               color: lguColor,
@@ -323,7 +326,7 @@ class _AnnouncementCard extends StatelessWidget {
                             ),
                           ),
                         ),
-                        Icon(Icons.chevron_right, size: 16, color: lguColor),
+                        ExcludeSemantics(child: Icon(Icons.chevron_right, size: 16, color: lguColor)),
                       ],
                     ),
                   ),

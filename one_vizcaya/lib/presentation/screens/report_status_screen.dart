@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../../core/l10n/app_strings.dart';
 import '../../domain/models/problem_report.dart';
 import '../../domain/enums/report_priority.dart';
 import '../../domain/repositories/report_repository.dart';
@@ -16,6 +17,40 @@ class ReportStatusScreen extends StatefulWidget {
 
 class _ReportStatusScreenState extends State<ReportStatusScreen> {
   ReportPriority? _filterPriority;
+  String? _highlightedReportId;
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final args = ModalRoute.of(context)?.settings.arguments;
+    if (args is Map && args.containsKey('reportId')) {
+      _highlightedReportId = args['reportId'] as String?;
+    }
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _scrollToHighlighted(List<ProblemReport> reports) {
+    if (_highlightedReportId == null) return;
+    final index = reports.indexWhere((r) => r.id == _highlightedReportId);
+    if (index == -1) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients) {
+        // Approximate item height to scroll to the right position
+        const itemHeight = 120.0;
+        _scrollController.animateTo(
+          index * itemHeight,
+          duration: const Duration(milliseconds: 400),
+          curve: Curves.easeInOut,
+        );
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -24,8 +59,8 @@ class _ReportStatusScreenState extends State<ReportStatusScreen> {
     final user = FirebaseAuth.instance.currentUser;
 
     if (user == null) {
-      return const Scaffold(
-        body: Center(child: Text('Please log in to view reports.')),
+      return Scaffold(
+        body: Center(child: Text(AppStrings.get('loginToView'))),
       );
     }
 
@@ -34,7 +69,7 @@ class _ReportStatusScreenState extends State<ReportStatusScreen> {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: activeLguColor,
-        title: Text('My Reports to $activeMunicipalityName'),
+        title: Text('${AppStrings.get('myReportsTitle')} to $activeMunicipalityName'),
       ),
       body: SafeArea(
         top: false,
@@ -51,7 +86,7 @@ class _ReportStatusScreenState extends State<ReportStatusScreen> {
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   child: Row(
                     children: [
-                      const Text('Filter: ', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                      Text(AppStrings.get('filterLabel'), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
                       const SizedBox(width: 4),
                       FilterChip(
                         label: const Text('All'),
@@ -64,7 +99,7 @@ class _ReportStatusScreenState extends State<ReportStatusScreen> {
                         return Padding(
                           padding: const EdgeInsets.only(right: 6),
                           child: FilterChip(
-                            avatar: Icon(priority.icon, size: 14, color: priority.color),
+                            avatar: Icon(priority.icon, size: 14, color: priority.color, semanticLabel: priority.displayName),
                             label: Text(priority.displayName),
                             selected: _filterPriority == priority,
                             selectedColor: priority.color.withAlpha((255 * 0.2).round()),
@@ -115,9 +150,9 @@ class _ReportStatusScreenState extends State<ReportStatusScreen> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.history, size: 64, color: activeLguColor.withAlpha((255 * 0.3).round())),
+                        Icon(Icons.history, size: 64, color: activeLguColor.withAlpha((255 * 0.3).round()), semanticLabel: 'No reports'),
                         const SizedBox(height: 16),
-                        Text('No reports submitted to $activeMunicipalityName yet.'),
+                        Text('${AppStrings.get('noReportsYet')} ($activeMunicipalityName)'),
                       ],
                     ),
                   );
@@ -132,15 +167,34 @@ class _ReportStatusScreenState extends State<ReportStatusScreen> {
 
                 if (reports.isEmpty) {
                   return Center(
-                    child: Text('No ${_filterPriority?.displayName ?? ""} priority reports found.'),
+                    child: Text(AppStrings.get('noReportsFilter')),
                   );
                 }
 
+                // Trigger scroll to highlighted item after build
+                _scrollToHighlighted(reports);
+
                 return ListView.builder(
+                  controller: _scrollController,
                   padding: const EdgeInsets.all(8.0),
                   itemCount: reports.length,
                   itemBuilder: (context, index) {
                     final report = reports[index];
+                    final isHighlighted = _highlightedReportId != null &&
+                        report.id == _highlightedReportId;
+                    if (isHighlighted) {
+                      return Container(
+                        decoration: BoxDecoration(
+                          border: Border.all(
+                            color: Colors.amber.shade600,
+                            width: 2.5,
+                          ),
+                          borderRadius: BorderRadius.circular(16.0),
+                        ),
+                        margin: const EdgeInsets.symmetric(vertical: 2),
+                        child: ReportStatusCard(report: report, lguColor: activeLguColor),
+                      );
+                    }
                     return ReportStatusCard(report: report, lguColor: activeLguColor);
                   },
                 );
