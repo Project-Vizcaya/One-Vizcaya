@@ -475,27 +475,24 @@ class _ReportStatusCardState extends State<ReportStatusCard>
 
   // ── POLISH 3: Production-quality Photo Viewer ────────────────────────────
   void _openImageViewer(BuildContext context, String url) {
-    bool _zoomHintVisible = true;
+    bool zoomHintVisible = true;
+    bool hintTimerStarted = false;
 
     showDialog(
       context: context,
       barrierColor: Colors.black87,
       builder: (dialogCtx) {
-        // Fade out zoom hint after 2 seconds
-        Future.delayed(const Duration(seconds: 2), () {
-          if (dialogCtx.mounted) {
-            (dialogCtx as Element).markNeedsBuild();
-          }
-        });
-
         return StatefulBuilder(
           builder: (sCtx, setDialogState) {
-            // Start fading hint after 2s
-            Future.delayed(const Duration(seconds: 2), () {
-              if (sCtx.mounted && _zoomHintVisible) {
-                setDialogState(() => _zoomHintVisible = false);
-              }
-            });
+            // Start zoom-hint timer once on first build
+            if (!hintTimerStarted) {
+              hintTimerStarted = true;
+              Future.delayed(const Duration(seconds: 2), () {
+                if (sCtx.mounted) {
+                  setDialogState(() => zoomHintVisible = false);
+                }
+              });
+            }
 
             return Dialog(
               backgroundColor: Colors.black,
@@ -567,7 +564,7 @@ class _ReportStatusCardState extends State<ReportStatusCard>
                     left: 0,
                     right: 0,
                     child: AnimatedOpacity(
-                      opacity: _zoomHintVisible ? 1.0 : 0.0,
+                      opacity: zoomHintVisible ? 1.0 : 0.0,
                       duration: const Duration(milliseconds: 500),
                       child: const Center(
                         child: Text(
