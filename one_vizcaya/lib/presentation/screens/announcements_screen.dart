@@ -62,7 +62,7 @@ class _AnnouncementsList extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Icon(Icons.error_outline,
-                    size: 48, color: Colors.red.shade300),
+                    size: 48, color: Colors.red.shade300, semanticLabel: 'Error loading announcements'),
                 const SizedBox(height: 16),
                 Text('Failed to load announcements',
                     style: TextStyle(color: Colors.grey.shade600)),
@@ -91,7 +91,8 @@ class _AnnouncementsList extends StatelessWidget {
               children: [
                 Icon(Icons.campaign_outlined,
                     size: 72,
-                    color: lguColor.withValues(alpha: 0.3)),
+                    color: lguColor.withValues(alpha: 0.3),
+                    semanticLabel: 'No announcements'),
                 const SizedBox(height: 16),
                 Text('No announcements yet',
                     style: TextStyle(

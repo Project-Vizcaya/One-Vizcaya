@@ -572,10 +572,12 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
                     ),
                     child: Row(
                       children: [
-                        Icon(
-                          Icons.verified,
-                          size: 14,
-                          color: Colors.green.shade700,
+                        ExcludeSemantics(
+                          child: Icon(
+                            Icons.verified,
+                            size: 14,
+                            color: Colors.green.shade700,
+                          ),
                         ),
                         const SizedBox(width: 6),
                         Expanded(
