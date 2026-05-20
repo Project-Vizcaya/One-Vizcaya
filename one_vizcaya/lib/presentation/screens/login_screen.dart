@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:local_auth/local_auth.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/utils/toast_utils.dart';
 import '../../features/auth/presentation/screens/privacy_policy_screen.dart';
 import '../../core/widgets/sms_cooldown_button.dart';
@@ -19,6 +21,7 @@ class _LoginScreenState extends State<LoginScreen>
   final _formKey = GlobalKey<FormState>();
   late AnimationController _fadeController;
   late Animation<double> _fadeAnimation;
+  final LocalAuthentication _localAuth = LocalAuthentication();
 
   @override
   void initState() {
@@ -59,6 +62,10 @@ class _LoginScreenState extends State<LoginScreen>
       phoneNumber = '+63${phoneNumber.substring(1)}';
     }
 
+    // Save phone number for future biometric login
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('saved_phone_number', _phoneController.text.trim());
+
     try {
       await FirebaseAuth.instance.verifyPhoneNumber(
         phoneNumber: phoneNumber,
@@ -94,6 +101,40 @@ class _LoginScreenState extends State<LoginScreen>
       if (mounted) {
         setState(() => _isLoading = false);
         ToastUtils.showError('An error occurred: $e');
+      }
+    }
+  }
+
+  Future<void> _loginWithBiometric() async {
+    try {
+      final canCheck = await _localAuth.canCheckBiometrics;
+      if (!canCheck) {
+        ToastUtils.showError('Biometric authentication is not available on this device.');
+        return;
+      }
+      final authenticated = await _localAuth.authenticate(
+        localizedReason: 'Verify your identity',
+        options: const AuthenticationOptions(
+          biometricOnly: true,
+          stickyAuth: true,
+        ),
+      );
+      if (!authenticated) return;
+
+      final prefs = await SharedPreferences.getInstance();
+      final savedPhone = prefs.getString('saved_phone_number');
+      if (savedPhone == null || savedPhone.isEmpty) {
+        ToastUtils.showError('No saved phone number. Please log in manually first.');
+        return;
+      }
+
+      // Pre-fill and trigger OTP flow
+      _phoneController.text = savedPhone;
+      _checkInput();
+      await _loginWithPhone();
+    } catch (e) {
+      if (mounted) {
+        ToastUtils.showError('Biometric authentication failed: $e');
       }
     }
   }
@@ -354,9 +395,9 @@ class _LoginScreenState extends State<LoginScreen>
               ),
 
               // ── Bottom Login Button ──
-              if (!_isLoading)
+              if (!_isLoading) ...[
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+                  padding: const EdgeInsets.fromLTRB(24, 0, 24, 8),
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 300),
                     curve: Curves.easeOut,
@@ -400,6 +441,26 @@ class _LoginScreenState extends State<LoginScreen>
                     ),
                   ),
                 ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+                  child: OutlinedButton.icon(
+                    onPressed: _loginWithBiometric,
+                    icon: const Icon(Icons.fingerprint, size: 22),
+                    label: const Text(
+                      'Log in with Biometrics',
+                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xFF388E3C),
+                      side: const BorderSide(color: Color(0xFF388E3C)),
+                      minimumSize: const Size(double.infinity, 52),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ],
           ),
         ),

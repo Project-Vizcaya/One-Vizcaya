@@ -602,10 +602,27 @@ class NotificationsScreen extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Icon(Icons.notifications_none,
-                            size: 64, color: Colors.grey.shade300, semanticLabel: 'No notifications'),
+                            size: 64,
+                            color: Colors.grey.shade300,
+                            semanticLabel: 'No notifications'),
                         const SizedBox(height: 16),
-                        const Text('No notifications yet.',
-                            style: TextStyle(color: Colors.grey)),
+                        Text(
+                          'All caught up!',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.grey.shade600,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          "You'll be notified when your report status changes",
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: Colors.grey.shade400,
+                          ),
+                        ),
                       ],
                     ),
                   );

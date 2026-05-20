@@ -30,11 +30,28 @@ class CommunityFeed extends StatelessWidget {
           return const Center(child: CircularProgressIndicator());
         }
         if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-          return const Padding(
-            padding: EdgeInsets.all(16),
-            child: Text(
-              'No resolved reports yet.',
-              style: TextStyle(color: Colors.grey),
+          return Padding(
+            padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.check_circle_outline,
+                    size: 48, color: Colors.green.shade200),
+                const SizedBox(height: 12),
+                const Text(
+                  'No resolved reports yet',
+                  style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.grey),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Reports marked as solved will appear here',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 13, color: Colors.grey.shade400),
+                ),
+              ],
             ),
           );
         }

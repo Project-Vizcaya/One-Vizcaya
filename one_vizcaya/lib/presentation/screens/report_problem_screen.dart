@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
@@ -19,6 +20,7 @@ import '../../domain/models/problem_report.dart';
 import '../../domain/repositories/report_repository.dart';
 import '../../data/repositories_impl/firebase_report_repository.dart';
 import '../../data/services/geolocator_service.dart';
+import '../../data/services/offline_queue_service.dart';
 import '../../data/services/priority_service.dart';
 import '../state/municipality_state.dart';
 
@@ -62,6 +64,7 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
     setState(() => _isGettingLocation = true);
     final position = await _geolocatorService.getCurrentLocation();
     if (position != null) {
+      HapticFeedback.lightImpact();
       setState(() {
         _currentPosition = position;
         _isGettingLocation = false;
@@ -143,6 +146,44 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
     final municipalityReportingTo = oneVizcayaState.selectedMunicipality.value;
 
     if (_isOffline) {
+      // Queue the report for automatic submission when connectivity returns
+      final user = FirebaseAuth.instance.currentUser;
+      String userId;
+      if (user != null) {
+        userId = user.uid;
+      } else {
+        final p = await SharedPreferences.getInstance();
+        String? anonId = p.getString('anon_device_id');
+        if (anonId == null) {
+          anonId = 'anon_${DateTime.now().millisecondsSinceEpoch}_${(1000 + (DateTime.now().microsecond % 9000))}';
+          await p.setString('anon_device_id', anonId);
+        }
+        userId = anonId;
+      }
+      final queuePayload = <String, dynamic>{
+        'userId': userId,
+        'category': _selectedCategory?.displayName ?? '',
+        'description': _descriptionController.text,
+        'location': _locationController.text,
+        'municipality': municipalityReportingTo,
+        'status': 'reported',
+        'priority': 'normal',
+        'priorityScore': 0,
+        'duplicateCount': 0,
+        'reportedAt': DateTime.now().toIso8601String(),
+        'latitude': _currentPosition?.latitude,
+        'longitude': _currentPosition?.longitude,
+        'userId_field': _isAnonymous ? null : userId,
+        'userPhone': _isAnonymous ? null : user?.phoneNumber,
+        'isAnonymous': _isAnonymous,
+        'barangay': _barangayController.text.trim().isEmpty
+            ? null
+            : _barangayController.text.trim(),
+      };
+      await OfflineQueueService().enqueue(queuePayload);
+      ToastUtils.showInfo('Report saved. Will submit automatically when you\'re back online.');
+
+      // Also offer SMS as secondary option
       final reportDetails =
           'Reporting to: $municipalityReportingTo\n'
           'Category: ${_selectedCategory?.displayName}\n'
@@ -230,6 +271,8 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
       );
 
       await _reportRepository.submitReport(report, userId);
+
+      HapticFeedback.mediumImpact();
 
       _locationController.clear();
       _descriptionController.clear();

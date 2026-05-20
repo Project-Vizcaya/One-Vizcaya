@@ -209,6 +209,34 @@
     }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <style>
+    /* ── Overdue badge ── */
+    .badge-overdue{padding:3px 8px;border-radius:20px;font-size:10px;font-weight:700;background:#FFF5F5;color:#C53030;white-space:nowrap;margin-left:4px}
+    /* ── Bulk action bar ── */
+    #bulk-action-bar{position:sticky;top:68px;z-index:500;background:#1565C0;color:#fff;padding:10px 18px;display:none;align-items:center;gap:12px;flex-wrap:wrap;border-radius:0 0 12px 12px;box-shadow:0 4px 12px rgba(21,101,192,.4)}
+    #bulk-action-bar select{padding:6px 10px;border-radius:8px;border:none;font-size:13px;font-weight:600;cursor:pointer}
+    #bulk-action-bar button{padding:7px 16px;border-radius:8px;border:none;font-size:13px;font-weight:700;cursor:pointer}
+    /* ── Session warning banner ── */
+    #session-warning{display:none;position:sticky;top:68px;z-index:600;background:#FFF3CD;color:#856404;padding:10px 20px;font-size:13px;font-weight:600;align-items:center;gap:12px;justify-content:center;border-bottom:2px solid #FFECB5}
+    /* ── Toast ── */
+    #toast-container{position:fixed;bottom:24px;right:24px;z-index:9999;display:flex;flex-direction:column;gap:8px}
+    .toast{background:#1A202C;color:#fff;padding:12px 18px;border-radius:12px;font-size:13px;font-weight:600;box-shadow:0 4px 16px rgba(0,0,0,.35);animation:toastIn .3s ease;max-width:320px}
+    @keyframes toastIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+    /* ── Keyboard shortcut modal ── */
+    #kbd-modal{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9100;display:none;align-items:center;justify-content:center}
+    #kbd-modal .kbd-box{background:#fff;border-radius:16px;padding:24px 28px;min-width:280px;box-shadow:0 16px 60px rgba(0,0,0,.3)}
+    #kbd-modal .kbd-row{display:flex;justify-content:space-between;padding:6px 0;font-size:13px;border-bottom:1px solid #F7FAFC}
+    .kbd-key{background:#EDF2F7;border-radius:6px;padding:2px 8px;font-weight:700;font-size:12px;font-family:monospace}
+    /* ── Notes history feed ── */
+    .note-entry{background:#F7FAFF;border-radius:8px;padding:10px 12px;margin-bottom:8px;font-size:13px}
+    .note-entry-meta{font-size:11px;color:#A0AEC0;margin-bottom:4px}
+    /* ── Canned response select ── */
+    .canned-select{width:100%;border:1.5px solid #E2E8F0;border-radius:8px;padding:8px 10px;font-size:13px;background:#fff;cursor:pointer;margin-bottom:8px}
+    /* ── Assigned-to column ── */
+    .col-assigned{width:13%}
+    @media(max-width:768px){.col-assigned{display:none}}
+  </style>
 </head>
 <body>
 
@@ -219,6 +247,28 @@
   <div class="loader-ring"></div>
   <h2>One Vizcaya Admin</h2>
   <p>Loading dashboard…</p>
+</div>
+
+<!-- Session timeout warning banner -->
+<div id="session-warning" style="display:none;position:sticky;top:68px;z-index:600;background:#FFF3CD;color:#856404;padding:10px 20px;font-size:13px;font-weight:600;align-items:center;gap:12px;justify-content:center;border-bottom:2px solid #FFECB5">
+  ⚠️ Your session will expire in 5 minutes. Save your work.
+  <button onclick="refreshSession()" style="padding:5px 14px;background:#856404;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">Refresh Session</button>
+  <button onclick="document.getElementById('session-warning').style.display='none'" style="padding:5px 10px;background:transparent;border:1px solid #856404;color:#856404;border-radius:8px;font-size:12px;cursor:pointer">Dismiss</button>
+</div>
+
+<!-- Toast container -->
+<div id="toast-container"></div>
+
+<!-- Keyboard shortcuts modal -->
+<div id="kbd-modal">
+  <div class="kbd-box">
+    <div style="font-size:15px;font-weight:800;color:#2D3748;margin-bottom:14px">⌨ Keyboard Shortcuts</div>
+    <div class="kbd-row"><span>Refresh reports</span><span class="kbd-key">R</span></div>
+    <div class="kbd-row"><span>Focus search</span><span class="kbd-key">F</span></div>
+    <div class="kbd-row"><span>Export CSV</span><span class="kbd-key">E</span></div>
+    <div class="kbd-row" style="border-bottom:none"><span>Close modal</span><span class="kbd-key">Esc</span></div>
+    <div style="margin-top:14px;text-align:right"><button onclick="document.getElementById('kbd-modal').style.display='none'" style="padding:7px 18px;background:#2E7D32;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">Close</button></div>
+  </div>
 </div>
 
 <!-- Navbar -->
@@ -248,6 +298,19 @@
 </nav>
 
 <div id="role-banner" class="role-banner" style="display:none"></div>
+
+<!-- Bulk action bar (Feature 3) -->
+<div id="bulk-action-bar" style="display:none;position:sticky;top:68px;z-index:500;background:#1565C0;color:#fff;padding:10px 18px;align-items:center;gap:12px;flex-wrap:wrap;box-shadow:0 4px 12px rgba(21,101,192,.4)">
+  <span id="bulk-count-label" style="font-weight:700;font-size:14px">0 reports selected</span>
+  <select id="bulk-status-select" style="padding:6px 10px;border-radius:8px;border:none;font-size:13px;font-weight:600;cursor:pointer">
+    <option value="">Mark as…</option>
+    <option value="reported">Reported</option>
+    <option value="ongoing">Ongoing</option>
+    <option value="solved">Solved</option>
+  </select>
+  <button onclick="applyBulkStatus()" style="padding:7px 16px;border-radius:8px;border:none;background:#fff;color:#1565C0;font-size:13px;font-weight:700;cursor:pointer">Apply</button>
+  <button onclick="cancelBulkSelection()" style="padding:7px 16px;border-radius:8px;border:1.5px solid rgba(255,255,255,.5);background:transparent;color:#fff;font-size:13px;font-weight:600;cursor:pointer">Cancel</button>
+</div>
 
 <div class="container">
 
@@ -326,6 +389,16 @@
         </div>
       </div>
       <div style="margin-top:20px;display:grid;grid-template-columns:repeat(4,1fr);gap:12px" id="analytics-kpis"></div>
+      <!-- Feature 10: Trend chart -->
+      <div style="margin-top:24px">
+        <div style="font-size:12px;font-weight:700;color:#718096;margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px">Report Trends (Last 8 Weeks)</div>
+        <canvas id="chart-trends" height="120"></canvas>
+      </div>
+      <!-- Feature 9: Citizen satisfaction -->
+      <div id="satisfaction-section" style="margin-top:24px;display:none">
+        <div style="font-size:12px;font-weight:700;color:#718096;margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px">Citizen Satisfaction</div>
+        <div id="satisfaction-content"></div>
+      </div>
       <div id="analytics-muni-breakdown" style="display:none;margin-top:20px">
         <div style="font-size:12px;font-weight:700;color:#718096;text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px">Municipality Breakdown</div>
         <div style="overflow-x:auto">
@@ -427,21 +500,25 @@
           <button class="chip" onclick="filterReports('ongoing',this)">Ongoing</button>
           <button class="chip" onclick="filterReports('solved',this)">Solved</button>
           <button class="chip" id="chip-critical" style="border-color:#FED7D7;color:#C53030" onclick="filterReportsByCritical(this)">🚨 Critical</button>
+          <button class="chip" id="chip-overdue" style="border-color:#FED7D7;color:#C53030" onclick="filterReportsByOverdue(this)">⏰ Overdue</button>
+          <button class="chip" id="chip-assigned-me" style="border-color:#BEE3F8;color:#2B6CB0" onclick="filterReportsByAssignedMe(this)">👤 Assigned to me</button>
         </div>
         <div class="scroll-table">
           <table>
             <thead>
               <tr>
+                <th style="width:36px;padding:10px 8px"><input type="checkbox" id="select-all-checkbox" onchange="toggleSelectAll(this)" title="Select all"/></th>
                 <th class="col-cat">Category</th>
                 <th class="col-muni">Municipality</th>
                 <th class="col-status">Status</th>
                 <th class="col-pri">Priority</th>
+                <th class="col-assigned">Assigned To</th>
                 <th class="col-loc">Location</th>
                 <th class="col-date">Reported</th>
               </tr>
             </thead>
             <tbody id="reports-tbody">
-              <tr><td colspan="6"><div class="empty-state"><div>⏳</div>Loading reports…</div></td></tr>
+              <tr><td colspan="8"><div class="empty-state"><div>⏳</div>Loading reports…</div></td></tr>
             </tbody>
           </table>
         </div>
@@ -545,6 +622,12 @@
             <input type="checkbox" id="ann-urgent" style="width:16px;height:16px;"> Mark as Urgent
           </label>
         </div>
+        <div style="margin-bottom:16px">
+          <label for="ann-schedule" style="font-size:11px;font-weight:700;color:#718096;display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px">Schedule for (optional)</label>
+          <input type="datetime-local" id="ann-schedule"
+                 style="width:100%;border:1.5px solid #E2E8F0;border-radius:8px;padding:10px 12px;font-size:13px;outline:none;font-family:inherit"/>
+          <div style="font-size:11px;color:#A0AEC0;margin-top:4px">Leave empty to post immediately.</div>
+        </div>
         <div style="display:flex;gap:8px">
           <button onclick="postAnnouncement()" style="padding:8px 22px;background:#2E7D32;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">Post</button>
           <button onclick="toggleNewAnnouncement()" style="padding:8px 16px;background:#EDF2F7;color:#4A5568;border:none;border-radius:8px;font-size:13px;cursor:pointer">Cancel</button>
@@ -557,6 +640,12 @@
     </div>
   </div>
 
+</div>
+
+<!-- Footer -->
+<div style="text-align:center;padding:12px 20px 24px;color:#A0AEC0;font-size:12px">
+  One Vizcaya Admin &mdash; Nueva Vizcaya Province &nbsp;|&nbsp;
+  <a href="#" onclick="document.getElementById('kbd-modal').style.display='flex';return false" style="color:#4A5568;font-weight:600;text-decoration:none">⌨ Shortcuts</a>
 </div>
 
 <!-- Firebase + Maps SDKs -->
@@ -614,6 +703,28 @@ function writeAuditLog(action, details) {
   }).catch(() => {}); // non-blocking, best-effort
 }
 
+// ── SLA thresholds per category (Feature 2) ──────────────────────────────────
+const SLA_HOURS = {
+  'Disaster & Risk Management': 4,
+  'Infrastructure & Public Works': 72,
+  'Health & Sanitation': 24,
+  'Peace & Order': 8,
+  'Education & Youth': 120,
+  'Social Services & Welfare': 48,
+  'Environment & Natural Resources': 72,
+  'General Inquiries & Others': 168
+};
+
+// ── Canned responses (Feature 8) ─────────────────────────────────────────────
+const CANNED_RESPONSES = [
+  'Thank you for your report. We have dispatched a team to assess the situation.',
+  'Your report has been received and is currently under investigation.',
+  'We have resolved the reported issue. Please let us know if the problem persists.',
+  'This matter has been escalated to the appropriate department.',
+  'We apologize for the inconvenience. Our team is working to address this promptly.',
+  'The reported infrastructure issue has been logged for the next maintenance schedule.',
+];
+
 // ── State ────────────────────────────────────────────────────────────────────
 let currentUser      = null;
 let userRole         = null;   // current view role (may be overridden by switchView)
@@ -623,6 +734,11 @@ let allReports    = [];
 let filteredReports = [];
 let currentFilter = 'all';
 let criticalOnly  = false;
+let overdueOnly   = false;   // Feature 2
+let assignedMeOnly = false;  // Feature 1
+let selectedReportIds = new Set(); // Feature 3
+let _initialLoadComplete = false; // Feature 6
+let _prevReportCount = 0;         // Feature 6
 
 let unsubscribeReports = null;
 let unsubscribeAnnouncements = null;
@@ -909,7 +1025,14 @@ function listenToReports() {
   }
 
   if (unsubscribeReports) unsubscribeReports(); // cancel previous
+  _initialLoadComplete = false;
   unsubscribeReports = query.onSnapshot(snapshot => {
+    // Feature 6: detect new reports after initial load
+    const changes = snapshot.docChanges();
+    const newDocs = _initialLoadComplete
+      ? changes.filter(c => c.type === 'added')
+      : [];
+
     allReports = snapshot.docs.map(doc => {
       const d = doc.data();
       const segs = doc.ref.path.split('/');
@@ -920,6 +1043,19 @@ function listenToReports() {
         reportedAt: d.reportedAt?.toDate ? d.reportedAt.toDate() : new Date()
       };
     });
+
+    if (!_initialLoadComplete) {
+      _initialLoadComplete = true;
+      _prevReportCount = allReports.length;
+    } else if (newDocs.length > 0) {
+      newDocs.forEach(change => {
+        const d = change.doc.data();
+        const muni = d.municipality || 'unknown municipality';
+        playNewReportChime();
+        showToast('🔔 New report received from ' + muni);
+      });
+      _prevReportCount = allReports.length;
+    }
 
     updateStats();
     applyFilter();
@@ -1052,6 +1188,12 @@ function renderAnalytics() {
       <div style="font-size:11px;color:#718096;margin-top:4px;font-weight:600">${k.label}</div>
     </div>`).join('');
 
+  // Feature 10: Report Trends — 8 weeks, top 3 categories
+  renderTrendChart(catEntries);
+
+  // Feature 9: Citizen Satisfaction
+  renderSatisfactionSection();
+
   // Municipality breakdown (provincial/super admin only)
   const isProvincialView = ['provincial_admin','super_admin','admin'].includes(userRole);
   const breakdownEl = document.getElementById('analytics-muni-breakdown');
@@ -1095,10 +1237,24 @@ function renderAnalytics() {
 }
 
 // ── Report table ─────────────────────────────────────────────────────────────
+// Feature 2: check if a report is overdue
+function isOverdue(r) {
+  if (r.status === 'solved') return false;
+  const sla = SLA_HOURS[r.category];
+  if (!sla) return false;
+  const ageHours = (Date.now() - (r.reportedAt?.getTime ? r.reportedAt.getTime() : Date.now())) / 3600000;
+  return ageHours > sla;
+}
+
 function applyFilter() {
   let list = [...allReports];
   if (currentFilter !== 'all') list = list.filter(r => r.status === currentFilter);
   if (criticalOnly)            list = list.filter(r => r.priority === 'critical');
+  if (overdueOnly)             list = list.filter(r => isOverdue(r));
+  if (assignedMeOnly) {
+    const myName = currentUser?.displayName || currentUser?.phoneNumber || '';
+    list = list.filter(r => r.assignedResponder && r.assignedResponder === myName);
+  }
   // Sort: newest first, solved reports pushed to bottom
   list.sort((a, b) => {
     const aSolved = a.status === 'solved', bSolved = b.status === 'solved';
@@ -1130,8 +1286,10 @@ function applyFilter() {
 }
 
 function filterReports(status, btn) {
-  currentFilter = status;
-  criticalOnly  = false;
+  currentFilter  = status;
+  criticalOnly   = false;
+  overdueOnly    = false;
+  assignedMeOnly = false;
   document.querySelectorAll('.reports-filter .chip').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   applyFilter();
@@ -1157,21 +1315,43 @@ function statCardFilter(type) {
 
 function filterReportsByCritical(btn) {
   criticalOnly  = !criticalOnly;
+  overdueOnly   = false;
+  assignedMeOnly = false;
   currentFilter = 'all';
   document.querySelectorAll('.reports-filter .chip').forEach(b => b.classList.remove('active'));
   if (criticalOnly) btn.classList.add('active');
   applyFilter();
 }
 
+// Feature 2: overdue filter
+function filterReportsByOverdue(btn) {
+  overdueOnly   = !overdueOnly;
+  criticalOnly  = false;
+  assignedMeOnly = false;
+  currentFilter = 'all';
+  document.querySelectorAll('.reports-filter .chip').forEach(b => b.classList.remove('active'));
+  if (overdueOnly) btn.classList.add('active');
+  applyFilter();
+}
+
+// Feature 1: assigned-to-me filter
+function filterReportsByAssignedMe(btn) {
+  assignedMeOnly = !assignedMeOnly;
+  criticalOnly   = false;
+  overdueOnly    = false;
+  currentFilter  = 'all';
+  document.querySelectorAll('.reports-filter .chip').forEach(b => b.classList.remove('active'));
+  if (assignedMeOnly) btn.classList.add('active');
+  applyFilter();
+}
+
 function applyDateFilter() {
-  const from = document.getElementById('filter-date-from')?.value;
-  const to = document.getElementById('filter-date-to')?.value;
-  if (from && to && new Date(from) > new Date(to)) {
+  const fromVal = document.getElementById('filter-date-from')?.value || '';
+  const toVal   = document.getElementById('filter-date-to')?.value || '';
+  if (fromVal && toVal && new Date(fromVal) > new Date(toVal)) {
     alert('⚠️ "From" date must be before "To" date.');
     return;
   }
-  const fromVal = document.getElementById('filter-date-from').value;
-  const toVal   = document.getElementById('filter-date-to').value;
   const from = fromVal ? new Date(fromVal + 'T00:00:00') : null;
   const to   = toVal   ? new Date(toVal   + 'T23:59:59') : null;
 
@@ -1239,7 +1419,7 @@ function exportCSV() {
 function renderTable(reports) {
   const tbody = document.getElementById('reports-tbody');
   if (reports.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="6"><div class="empty-state"><div>🗂️</div>No reports match this filter.</div></td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8"><div class="empty-state"><div>🗂️</div>No reports match this filter.</div></td></tr>';
     return;
   }
 
@@ -1252,11 +1432,19 @@ function renderTable(reports) {
     const sl  = STATUS_LABELS[r.status]     || r.status   || '—';
     const anon = r.isAnonymous ? '<span class="anon-badge">Anon</span>' : '';
     const hasGps = r.latitude && r.longitude;
+    // Feature 2: overdue badge
+    const overdueBadge = isOverdue(r) ? '<span class="badge-overdue">⏰ Overdue</span>' : '';
+    // Feature 1: assigned to
+    const assignedTo = escHtml(r.assignedResponder || '—');
+    // Feature 3: checkbox (stop propagation so clicking checkbox doesn't open detail)
+    const checked = selectedReportIds.has(r.id) ? 'checked' : '';
     return `<tr class="clickable" onclick="openReportDetail('${r.id}','${r.userId||''}')">
-      <td><strong style="font-size:12px">${r.category||'—'}</strong>${anon}</td>
+      <td onclick="event.stopPropagation()" style="padding:11px 8px"><input type="checkbox" data-report-id="${r.id}" data-user-id="${r.userId||''}" ${checked} onchange="onRowCheckChange(this)"/></td>
+      <td><strong style="font-size:12px">${r.category||'—'}</strong>${anon}${overdueBadge}</td>
       <td style="font-size:12px">${r.municipality||'—'}</td>
       <td><span class="badge-status ${sc}">${sl}</span></td>
       <td><span class="badge-priority ${pc}">${pl}</span></td>
+      <td style="font-size:12px;color:#4A5568">${assignedTo}</td>
       <td><div class="report-loc" title="${r.location||''}">${r.location||'—'}</div>
           ${hasGps?`<span style="font-size:10px;color:#48BB78">📍 GPS</span>`:''}</td>
       <td style="font-size:11px;color:#A0AEC0">${dt}</td>
@@ -1326,16 +1514,30 @@ async function openReportDetail(reportId, userId) {
         </div>
         ${r.isAnonymous ? '<div style="background:#FFF5F5;border-radius:10px;padding:12px;font-size:12px;color:#C53030;font-weight:600">🔒 Anonymous Report — citizen cannot be notified</div>' : ''}
         <div style="background:#F7FAFC;border-radius:10px;padding:14px">
-          <div style="font-size:11px;font-weight:700;color:#A0AEC0;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Admin Notes</div>
+          <div style="font-size:11px;font-weight:700;color:#A0AEC0;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Admin Notes History</div>
+          <div id="notes-history-feed" style="margin-bottom:10px">
+            ${buildNotesHistoryHtml(r)}
+          </div>
+          <div style="font-size:11px;font-weight:700;color:#718096;margin-bottom:6px">Add a new note:</div>
+          <select class="canned-select" id="canned-select" onchange="insertCannedResponse(this)">
+            <option value="">Insert canned response…</option>
+            ${CANNED_RESPONSES.map((t,i) => `<option value="${i}">${t.slice(0,60)}…</option>`).join('')}
+          </select>
           <textarea id="report-notes" rows="3" placeholder="Add a progress update or internal note…" maxlength="500"
             style="width:100%;border:1.5px solid #E2E8F0;border-radius:8px;padding:10px;font-size:13px;font-family:inherit;resize:vertical;outline:none;box-sizing:border-box"
-          >${escHtml(r.adminNotes||'')}</textarea>
+          ></textarea>
           <input id="report-responder" placeholder="Assigned responder name (optional)" maxlength="80" value="${escHtml(r.assignedResponder||'')}"
             style="width:100%;border:1.5px solid #E2E8F0;border-radius:8px;padding:10px;font-size:13px;font-family:inherit;margin-top:8px;outline:none;box-sizing:border-box"/>
-          <button onclick="saveReportNotes('${r.userId||''}','${r.id}')"
-            style="margin-top:10px;padding:9px 18px;background:#1565C0;color:#fff;border:none;border-radius:8px;font-weight:700;font-size:13px;cursor:pointer">
-            💾 Save Notes
-          </button>
+          <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+            <button onclick="saveReportNotes('${r.userId||''}','${r.id}')"
+              style="padding:9px 18px;background:#1565C0;color:#fff;border:none;border-radius:8px;font-weight:700;font-size:13px;cursor:pointer">
+              💾 Save Notes
+            </button>
+            <button onclick="exportReportPDF('${r.id}')"
+              style="padding:9px 18px;background:#E65100;color:#fff;border:none;border-radius:8px;font-weight:700;font-size:13px;cursor:pointer">
+              📄 Export PDF
+            </button>
+          </div>
         </div>
       </div>
     </div>`;
@@ -1347,13 +1549,26 @@ async function saveReportNotes(userId, reportId) {
   if (!userId || !reportId) return;
   const notes = document.getElementById('report-notes')?.value.trim() || '';
   const responder = document.getElementById('report-responder')?.value.trim() || '';
-  try {
-    await db.collection('users').doc(userId).collection('reports').doc(reportId).update({
-      adminNotes: notes,
-      assignedResponder: responder,
-      lastUpdatedBy: currentUser?.phoneNumber || 'Admin',
-      lastUpdatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+  const adminName = currentUser?.displayName || currentUser?.phoneNumber || 'Admin';
+  const updateData = {
+    lastUpdatedBy: adminName,
+    lastUpdatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+  };
+  // Feature 12: append to notesHistory array
+  if (notes) {
+    updateData.notesHistory = firebase.firestore.FieldValue.arrayUnion({
+      text: notes,
+      author: adminName,
+      timestamp: new Date().toISOString(),
     });
+  }
+  // Feature 1: record assigned responder and timestamp
+  if (responder !== undefined) {
+    updateData.assignedResponder = responder;
+    if (responder) updateData.assignedAt = firebase.firestore.FieldValue.serverTimestamp();
+  }
+  try {
+    await db.collection('users').doc(userId).collection('reports').doc(reportId).update(updateData);
     writeAuditLog('report_notes_updated', { reportId, userId, responder });
     document.getElementById('report-modal')?.remove();
   } catch (e) {
@@ -1877,7 +2092,9 @@ function editResponder(id) {
 }
 
 async function deleteResponder(id, name) {
-  if (!confirm(`Delete responder "${name}"? This cannot be undone.`)) return;
+  // Feature 13: require user to type DELETE
+  const confirmation = prompt(`Type DELETE to confirm deletion of responder "${name}":`);
+  if (confirmation !== 'DELETE') return;
   try {
     await db.collection('responders').doc(id).delete();
     if (typeof writeAuditLog === 'function') writeAuditLog('responder_deleted', { name, id });
@@ -2098,18 +2315,44 @@ function initAnnouncements() {
       if (userRole === 'municipal_admin') {
         anns = anns.filter(a => a.municipality === userMunicipality || a.municipality === 'All');
       }
-      renderAnnouncements(anns);
+      const now = new Date();
+      // Feature 4: separate scheduled (future) from live posts
+      const scheduled = anns.filter(a => a.scheduledFor?.toDate && a.scheduledFor.toDate() > now);
+      const live = anns.filter(a => !(a.scheduledFor?.toDate && a.scheduledFor.toDate() > now));
+      renderAnnouncements(live, scheduled);
     }, err => console.error('Announcements error:', err));
 }
 
-function renderAnnouncements(anns) {
+function renderAnnouncements(anns, scheduled) {
   const el = document.getElementById('ann-list');
+  const canDelete = ['provincial_admin', 'super_admin', 'admin'].includes(firestoreRole);
+
+  // Feature 4: render scheduled section
+  let scheduledHtml = '';
+  if (scheduled && scheduled.length > 0) {
+    scheduledHtml = `<div style="margin-bottom:16px;padding:12px;background:#EBF8FF;border-radius:10px;border:1px solid #BEE3F8">
+      <div style="font-size:12px;font-weight:700;color:#2B6CB0;margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">📅 Scheduled Posts</div>
+      ${scheduled.map(a => {
+        const schedTime = a.scheduledFor.toDate().toLocaleString('en-PH');
+        const del = canDelete
+          ? `<button onclick="deleteAnnouncement('${a.id}')" style="padding:3px 8px;background:#FFF5F5;color:#C53030;border:1px solid #FED7D7;border-radius:6px;font-size:11px;cursor:pointer">Cancel</button>`
+          : '';
+        return `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #BEE3F8;gap:8px">
+          <div>
+            <span style="font-weight:700;font-size:13px">${escHtml(a.title||'Untitled')}</span>
+            <span style="font-size:11px;color:#4A5568;margin-left:8px">Scheduled: ${schedTime}</span>
+          </div>
+          ${del}
+        </div>`;
+      }).join('')}
+    </div>`;
+  }
+
   if (anns.length === 0) {
-    el.innerHTML = '<div class="empty-state"><div>📢</div>No announcements yet. Create one above.</div>';
+    el.innerHTML = scheduledHtml + '<div class="empty-state"><div>📢</div>No announcements yet. Create one above.</div>';
     return;
   }
-  const canDelete = ['provincial_admin', 'super_admin', 'admin'].includes(firestoreRole);
-  el.innerHTML = anns.map(a => {
+  el.innerHTML = scheduledHtml + anns.map(a => {
     const when = a.timestamp?.toDate
       ? a.timestamp.toDate().toLocaleDateString('en-PH', { year:'numeric', month:'short', day:'numeric' })
       : '—';
@@ -2137,27 +2380,40 @@ async function postAnnouncement() {
   const postedBy   = document.getElementById('ann-posted-by').value.trim() || 'LGU';
   const municipality = document.getElementById('ann-municipality').value;
   const isUrgent   = document.getElementById('ann-urgent')?.checked ?? false;
+  const scheduleVal = document.getElementById('ann-schedule')?.value;
   if (!title) { alert('Please enter a title.'); return; }
   if (!body)  { alert('Please enter a message.'); return; }
   try {
-    await db.collection('announcements').add({
+    const docData = {
       title, body, municipality, isUrgent, postedBy,
       timestamp: firebase.firestore.FieldValue.serverTimestamp(),
       createdBy: currentUser.uid
-    });
-    writeAuditLog('announcement_created', { municipality, title });
+    };
+    // Feature 4: scheduled announcement
+    if (scheduleVal) {
+      const schedDate = new Date(scheduleVal);
+      if (!isNaN(schedDate.getTime())) {
+        docData.scheduledFor = firebase.firestore.Timestamp.fromDate(schedDate);
+      }
+    }
+    await db.collection('announcements').add(docData);
+    writeAuditLog('announcement_created', { municipality, title, scheduled: scheduleVal || false });
     document.getElementById('ann-title').value     = '';
     document.getElementById('ann-body').value      = '';
     document.getElementById('ann-posted-by').value = '';
     document.getElementById('ann-urgent').checked  = false;
+    document.getElementById('ann-schedule').value  = '';
     document.getElementById('new-announcement-form').style.display = 'none';
+    if (scheduleVal) showToast('📅 Announcement scheduled for ' + new Date(scheduleVal).toLocaleString('en-PH'));
   } catch (e) {
     alert('Failed to post announcement: ' + e.message);
   }
 }
 
 async function deleteAnnouncement(id) {
-  if (!confirm('Delete this announcement? This cannot be undone.')) return;
+  // Feature 13: require user to type DELETE
+  const confirmation = prompt('Type DELETE to confirm deletion of this announcement:');
+  if (confirmation !== 'DELETE') return;
   try {
     await db.collection('announcements').doc(id).delete();
     writeAuditLog('announcement_deleted', { announcementId: id });
@@ -2232,6 +2488,346 @@ async function sendBroadcast() {
     btn.textContent = 'Send Broadcast';
     btn.disabled = false;
   }
+}
+
+// ── Feature 2: overdue filter (already defined in applyFilter section) ────────
+
+// ── Feature 3: Bulk status update ────────────────────────────────────────────
+function onRowCheckChange(checkbox) {
+  const id = checkbox.dataset.reportId;
+  if (checkbox.checked) {
+    selectedReportIds.add(id);
+  } else {
+    selectedReportIds.delete(id);
+    document.getElementById('select-all-checkbox').checked = false;
+  }
+  updateBulkBar();
+}
+
+function toggleSelectAll(masterCb) {
+  const checkboxes = document.querySelectorAll('#reports-tbody input[type=checkbox]');
+  checkboxes.forEach(cb => {
+    const id = cb.dataset.reportId;
+    if (masterCb.checked) {
+      selectedReportIds.add(id);
+    } else {
+      selectedReportIds.delete(id);
+    }
+    cb.checked = masterCb.checked;
+  });
+  updateBulkBar();
+}
+
+function updateBulkBar() {
+  const bar = document.getElementById('bulk-action-bar');
+  const count = selectedReportIds.size;
+  if (count > 0) {
+    bar.style.display = 'flex';
+    document.getElementById('bulk-count-label').textContent = count + ' report' + (count === 1 ? '' : 's') + ' selected';
+  } else {
+    bar.style.display = 'none';
+  }
+}
+
+async function applyBulkStatus() {
+  const newStatus = document.getElementById('bulk-status-select').value;
+  if (!newStatus) { alert('Please select a status to apply.'); return; }
+  if (selectedReportIds.size === 0) return;
+  if (!confirm(`Mark ${selectedReportIds.size} report(s) as "${newStatus}"?`)) return;
+
+  const ids = [...selectedReportIds];
+  let successCount = 0;
+  for (const reportId of ids) {
+    const r = allReports.find(x => x.id === reportId);
+    if (!r || !r.userId) continue;
+    try {
+      const update = { status: newStatus };
+      if (newStatus === 'solved') update.resolvedAt = firebase.firestore.FieldValue.serverTimestamp();
+      await db.collection('users').doc(r.userId).collection('reports').doc(reportId).update(update);
+      successCount++;
+    } catch (e) {
+      console.error('Bulk update error for', reportId, e);
+    }
+  }
+  showToast(`✅ ${successCount} report(s) marked as ${newStatus}`);
+  writeAuditLog('bulk_status_update', { count: successCount, newStatus });
+  cancelBulkSelection();
+}
+
+function cancelBulkSelection() {
+  selectedReportIds.clear();
+  document.getElementById('select-all-checkbox').checked = false;
+  document.getElementById('bulk-action-bar').style.display = 'none';
+  document.getElementById('bulk-status-select').value = '';
+  // Uncheck all row checkboxes
+  document.querySelectorAll('#reports-tbody input[type=checkbox]').forEach(cb => { cb.checked = false; });
+}
+
+// ── Feature 6: Sound and toast ────────────────────────────────────────────────
+function playNewReportChime() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.frequency.value = 880; osc.type = 'sine';
+    gain.gain.setValueAtTime(0.3, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
+    osc.start(); osc.stop(ctx.currentTime + 0.5);
+  } catch (e) { /* AudioContext may be blocked without user gesture */ }
+}
+
+function showToast(message) {
+  const container = document.getElementById('toast-container');
+  if (!container) return;
+  const toast = document.createElement('div');
+  toast.className = 'toast';
+  toast.textContent = message;
+  container.appendChild(toast);
+  setTimeout(() => { toast.remove(); }, 4000);
+}
+
+// ── Feature 7: PDF Export ─────────────────────────────────────────────────────
+function exportReportPDF(reportId) {
+  const r = allReports.find(x => x.id === reportId);
+  if (!r) { alert('Report not found.'); return; }
+  if (typeof window.jspdf === 'undefined' && typeof jsPDF === 'undefined') {
+    alert('jsPDF library not loaded. Check internet connection.'); return;
+  }
+  const { jsPDF } = window.jspdf || window;
+  const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+
+  const margin = 48;
+  let y = margin;
+
+  // Header
+  doc.setFontSize(18); doc.setFont(undefined, 'bold');
+  doc.text('ONE VIZCAYA — Incident Report', margin, y); y += 24;
+  doc.setFontSize(10); doc.setFont(undefined, 'normal');
+  doc.setDrawColor(46, 125, 50);
+  doc.line(margin, y, 595 - margin, y); y += 16;
+
+  // Fields helper
+  const field = (label, value) => {
+    doc.setFont(undefined, 'bold'); doc.setFontSize(9);
+    doc.text(label.toUpperCase(), margin, y);
+    doc.setFont(undefined, 'normal'); doc.setFontSize(11);
+    const lines = doc.splitTextToSize(String(value || '—'), 595 - margin * 2);
+    doc.text(lines, margin, y + 12);
+    y += 12 + lines.length * 14 + 6;
+  };
+
+  field('Report ID', r.id);
+  field('Category', r.category);
+  field('Priority', r.priority);
+  field('Status', r.status);
+  field('Municipality', r.municipality);
+  field('Barangay', r.barangay || '—');
+  field('Description', r.description);
+  field('Location', r.location);
+  const reportedAtStr = r.reportedAt ? r.reportedAt.toLocaleString('en-PH') : '—';
+  field('Reported At', reportedAtStr);
+  field('Assigned Responder', r.assignedResponder || '—');
+
+  // Notes history
+  if (r.notesHistory && r.notesHistory.length > 0) {
+    y += 4;
+    doc.setFont(undefined, 'bold'); doc.setFontSize(9);
+    doc.text('ADMIN NOTES HISTORY', margin, y); y += 14;
+    r.notesHistory.slice().reverse().forEach(n => {
+      doc.setFont(undefined, 'normal'); doc.setFontSize(10);
+      const noteLines = doc.splitTextToSize(`[${n.timestamp ? new Date(n.timestamp).toLocaleString('en-PH') : '?'}] ${n.author||'Admin'}: ${n.text}`, 595 - margin * 2);
+      doc.text(noteLines, margin, y);
+      y += noteLines.length * 13 + 4;
+    });
+  } else if (r.adminNotes) {
+    field('Admin Notes', r.adminNotes);
+  }
+
+  // Footer
+  y = 800;
+  doc.setDrawColor(200, 200, 200);
+  doc.line(margin, y - 4, 595 - margin, y - 4);
+  doc.setFontSize(9); doc.setFont(undefined, 'italic');
+  const adminName = currentUser?.displayName || currentUser?.phoneNumber || 'Admin';
+  doc.text(`Generated on ${new Date().toLocaleString('en-PH')} by ${adminName}`, margin, y + 8);
+
+  doc.save(`OneVizcaya_Report_${r.id}.pdf`);
+}
+
+// ── Feature 8: Canned responses ───────────────────────────────────────────────
+function insertCannedResponse(sel) {
+  const idx = parseInt(sel.value);
+  if (isNaN(idx)) return;
+  const ta = document.getElementById('report-notes');
+  if (!ta) return;
+  const prefix = ta.value.trim() ? ta.value.trim() + '\n' : '';
+  ta.value = prefix + CANNED_RESPONSES[idx];
+  sel.value = '';
+}
+
+// ── Feature 9: Citizen satisfaction ──────────────────────────────────────────
+function renderSatisfactionSection() {
+  const isAllowed = ['provincial_admin','super_admin','admin','municipal_admin'].includes(userRole);
+  const section = document.getElementById('satisfaction-section');
+  if (!section || !isAllowed) return;
+  section.style.display = 'block';
+
+  const ratedReports = allReports.filter(r => r.status === 'solved' && typeof r.feedbackRating === 'number');
+  const contentEl = document.getElementById('satisfaction-content');
+  if (!contentEl) return;
+
+  if (ratedReports.length === 0) {
+    contentEl.innerHTML = '<div style="color:#A0AEC0;font-size:13px">No feedback received yet.</div>';
+    return;
+  }
+
+  const avg = ratedReports.reduce((sum, r) => sum + r.feedbackRating, 0) / ratedReports.length;
+  const dist = {5:0, 4:0, 3:0, 2:0, 1:0};
+  ratedReports.forEach(r => { const star = Math.round(r.feedbackRating); if (dist[star] !== undefined) dist[star]++; });
+
+  const barsHtml = [5,4,3,2,1].map(star => {
+    const pct = ratedReports.length ? Math.round(dist[star]/ratedReports.length*100) : 0;
+    return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;font-size:12px">
+      <span style="width:20px;text-align:right">${star}★</span>
+      <div style="flex:1;background:#EDF2F7;border-radius:4px;height:8px;overflow:hidden">
+        <div style="width:${pct}%;background:#F6AD55;height:100%;border-radius:4px"></div>
+      </div>
+      <span style="width:30px;color:#718096">${pct}%</span>
+    </div>`;
+  }).join('');
+
+  contentEl.innerHTML = `
+    <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap">
+      <div style="text-align:center">
+        <div style="font-size:32px;font-weight:800;color:#E65100">${avg.toFixed(1)}</div>
+        <div style="font-size:13px;color:#718096">/ 5.0 ⭐</div>
+        <div style="font-size:11px;color:#A0AEC0;margin-top:4px">${ratedReports.length} rated report${ratedReports.length!==1?'s':''}</div>
+      </div>
+      <div style="flex:1;min-width:180px">${barsHtml}</div>
+    </div>`;
+}
+
+// ── Feature 10: Trend chart ───────────────────────────────────────────────────
+let chartTrends;
+function renderTrendChart(catEntries) {
+  const canvas = document.getElementById('chart-trends');
+  if (!canvas) return;
+
+  const now = new Date();
+  const weeks = Array.from({length: 8}, (_, i) => {
+    const d = new Date(now - (7 - i) * 7 * 24 * 3600 * 1000);
+    return { label: `${d.getMonth()+1}/${d.getDate()}`, start: new Date(now - (7 - i) * 7 * 24 * 3600 * 1000) };
+  });
+
+  const topCats = catEntries.slice(0, 3).map(([k]) => k);
+  const colors = ['#2E7D32','#1565C0','#E65100'];
+
+  const datasets = topCats.map((cat, ci) => {
+    const data = weeks.map((w, wi) => {
+      const end = wi < 7 ? weeks[wi + 1]?.start || now : now;
+      return allReports.filter(r => r.category === cat && r.reportedAt >= w.start && r.reportedAt < end).length;
+    });
+    return {
+      label: cat.length > 22 ? cat.slice(0,20)+'…' : cat,
+      data,
+      borderColor: colors[ci],
+      backgroundColor: colors[ci] + '22',
+      borderWidth: 2,
+      tension: 0.3,
+      fill: false,
+      pointRadius: 3,
+    };
+  });
+
+  if (chartTrends) chartTrends.destroy();
+  chartTrends = new Chart(canvas, {
+    type: 'line',
+    data: { labels: weeks.map(w => w.label), datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { font: { size: 11 }, boxWidth: 12 } } },
+      scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+    }
+  });
+}
+
+// ── Feature 11: Keyboard shortcuts ───────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  const tag = document.activeElement?.tagName?.toLowerCase();
+  const inInput = tag === 'input' || tag === 'textarea' || tag === 'select';
+
+  if (e.key === 'Escape') {
+    // Close any open modal
+    ['report-modal','responder-modal','broadcast-modal','kbd-modal'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) { el.style.display = 'none'; el.remove ? el.remove() : null; }
+    });
+    document.getElementById('kbd-modal').style.display = 'none';
+    return;
+  }
+
+  if (inInput) return;
+
+  if (e.key === 'r' || e.key === 'R') {
+    e.preventDefault();
+    listenToReports();
+    showToast('🔄 Reports refreshed');
+  } else if (e.key === 'f' || e.key === 'F') {
+    e.preventDefault();
+    const searchInput = document.getElementById('resp-search');
+    if (searchInput) { searchInput.focus(); searchInput.scrollIntoView({ behavior: 'smooth' }); }
+  } else if (e.key === 'e' || e.key === 'E') {
+    e.preventDefault();
+    exportCSV();
+  }
+});
+
+// ── Feature 12: Notes history helpers ────────────────────────────────────────
+function buildNotesHistoryHtml(r) {
+  const entries = [];
+  // New notesHistory array format
+  if (r.notesHistory && r.notesHistory.length > 0) {
+    r.notesHistory.slice().reverse().forEach(n => {
+      const when = n.timestamp ? new Date(n.timestamp).toLocaleString('en-PH') : '?';
+      entries.push(`<div class="note-entry">
+        <div class="note-entry-meta">${escHtml(n.author||'Admin')} &bull; ${when}</div>
+        <div>${escHtml(n.text||'')}</div>
+      </div>`);
+    });
+  } else if (r.adminNotes) {
+    // Backward compatibility — old single-string format
+    entries.push(`<div class="note-entry">
+      <div class="note-entry-meta">Legacy note</div>
+      <div>${escHtml(r.adminNotes)}</div>
+    </div>`);
+  }
+  if (entries.length === 0) return '<div style="font-size:12px;color:#A0AEC0;padding:4px 0">No notes yet.</div>';
+  return entries.join('');
+}
+
+// ── Feature 14: Session timeout warning ──────────────────────────────────────
+let _sessionTimeoutTimer = null;
+
+auth.onIdTokenChanged(user => {
+  if (!user) return;
+  if (_sessionTimeoutTimer) clearTimeout(_sessionTimeoutTimer);
+  // Firebase tokens expire 1 hour after issue; warn 5 minutes before expiry = 55 minutes
+  const WARN_MS = 55 * 60 * 1000;
+  _sessionTimeoutTimer = setTimeout(() => {
+    const banner = document.getElementById('session-warning');
+    if (banner) banner.style.display = 'flex';
+  }, WARN_MS);
+});
+
+function refreshSession() {
+  firebase.auth().currentUser?.getIdToken(true)
+    .then(() => {
+      const banner = document.getElementById('session-warning');
+      if (banner) banner.style.display = 'none';
+      showToast('✅ Session refreshed successfully');
+    })
+    .catch(e => alert('Session refresh failed: ' + e.message));
 }
 
 // ── Hide loading overlay ──────────────────────────────────────────────────────

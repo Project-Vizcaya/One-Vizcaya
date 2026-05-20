@@ -1,5 +1,7 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:timeago/timeago.dart' as timeago;
 import '../../core/l10n/app_strings.dart';
@@ -32,7 +34,7 @@ class AnnouncementsScreen extends StatelessWidget {
 
 // Uses a real-time stream (snapshots) so new announcements appear instantly
 // and the screen doesn't silently fail on Firestore permission errors.
-class _AnnouncementsList extends StatelessWidget {
+class _AnnouncementsList extends StatefulWidget {
   final String municipality;
   final Color lguColor;
 
@@ -40,21 +42,67 @@ class _AnnouncementsList extends StatelessWidget {
       {required this.municipality, required this.lguColor});
 
   @override
-  Widget build(BuildContext context) {
-    // Fetch all announcements ordered by time; filter by municipality in client.
-    // A single collection-wide query avoids the composite-index requirement that
-    // caused the original "Failed to load announcements" error.
-    final stream = FirebaseFirestore.instance
+  State<_AnnouncementsList> createState() => _AnnouncementsListState();
+}
+
+class _AnnouncementsListState extends State<_AnnouncementsList> {
+  Set<String> _bookmarkedIds = {};
+  bool _showBookmarked = false;
+
+  static const String _prefsKey = 'bookmarked_announcements';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadBookmarks();
+  }
+
+  Future<void> _loadBookmarks() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(_prefsKey);
+    if (raw != null) {
+      final list = (jsonDecode(raw) as List).cast<String>();
+      if (mounted) setState(() => _bookmarkedIds = list.toSet());
+    }
+  }
+
+  Future<void> _toggleBookmark(String id) async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      if (_bookmarkedIds.contains(id)) {
+        _bookmarkedIds.remove(id);
+      } else {
+        _bookmarkedIds.add(id);
+      }
+    });
+    await prefs.setString(_prefsKey, jsonEncode(_bookmarkedIds.toList()));
+  }
+
+  Stream<QuerySnapshot> _buildStream() {
+    return FirebaseFirestore.instance
         .collection('announcements')
         .orderBy('timestamp', descending: true)
         .snapshots();
+  }
 
+  Future<void> _onRefresh() async {
+    // Force a fresh Firestore fetch
+    await FirebaseFirestore.instance
+        .collection('announcements')
+        .orderBy('timestamp', descending: true)
+        .get(const GetOptions(source: Source.server))
+        .catchError((_) {});
+    if (mounted) setState(() {});
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return StreamBuilder<QuerySnapshot>(
-      stream: stream,
+      stream: _buildStream(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return Center(
-              child: CircularProgressIndicator(color: lguColor));
+              child: CircularProgressIndicator(color: widget.lguColor));
         }
 
         if (snapshot.hasError) {
@@ -63,7 +111,9 @@ class _AnnouncementsList extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Icon(Icons.error_outline,
-                    size: 48, color: Colors.red.shade300, semanticLabel: 'Error loading announcements'),
+                    size: 48,
+                    color: Colors.red.shade300,
+                    semanticLabel: 'Error loading announcements'),
                 const SizedBox(height: 16),
                 Text(AppStrings.get('failedLoad'),
                     style: TextStyle(color: Colors.grey.shade600)),
@@ -71,7 +121,8 @@ class _AnnouncementsList extends StatelessWidget {
                 Text(
                   '${snapshot.error}',
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 11, color: Colors.grey.shade400),
+                  style:
+                      TextStyle(fontSize: 11, color: Colors.grey.shade400),
                 ),
               ],
             ),
@@ -79,47 +130,150 @@ class _AnnouncementsList extends StatelessWidget {
         }
 
         // Filter: show announcements for this municipality OR province-wide ('All')
-        final docs = (snapshot.data?.docs ?? []).where((doc) {
+        final allDocs = (snapshot.data?.docs ?? []).where((doc) {
           final data = doc.data() as Map<String, dynamic>;
           final muni = data['municipality'] as String? ?? '';
-          return muni == municipality || muni == 'All';
+          return muni == widget.municipality || muni == 'All';
         }).toList();
 
-        if (docs.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.campaign_outlined,
-                    size: 72,
-                    color: lguColor.withValues(alpha: 0.3),
-                    semanticLabel: 'No announcements'),
-                const SizedBox(height: 16),
-                Text(AppStrings.get('noAnnouncements'),
-                    style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.grey.shade600)),
-                const SizedBox(height: 8),
-                Text(AppStrings.get('noAnnouncementsSubtitle'),
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                        fontSize: 13, color: Colors.grey.shade400)),
-              ],
-            ),
-          );
-        }
+        // Apply bookmark filter if active
+        final docs = _showBookmarked
+            ? allDocs.where((d) => _bookmarkedIds.contains(d.id)).toList()
+            : allDocs;
 
-        return ListView.builder(
-          padding: EdgeInsets.fromLTRB(
-            16, 16, 16,
-            MediaQuery.of(context).padding.bottom + 16,
+        return RefreshIndicator(
+          color: Colors.green,
+          onRefresh: _onRefresh,
+          child: CustomScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            slivers: [
+              // ── Filter chips row ──
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding:
+                      const EdgeInsets.fromLTRB(16, 12, 16, 4),
+                  child: Wrap(
+                    spacing: 8,
+                    children: [
+                      FilterChip(
+                        label: const Text('All'),
+                        selected: !_showBookmarked,
+                        onSelected: (_) =>
+                            setState(() => _showBookmarked = false),
+                        selectedColor:
+                            widget.lguColor.withValues(alpha: 0.15),
+                        checkmarkColor: widget.lguColor,
+                        labelStyle: TextStyle(
+                          color: !_showBookmarked
+                              ? widget.lguColor
+                              : Colors.grey.shade600,
+                          fontWeight: !_showBookmarked
+                              ? FontWeight.w600
+                              : FontWeight.normal,
+                        ),
+                      ),
+                      FilterChip(
+                        avatar: Icon(
+                          _showBookmarked
+                              ? Icons.bookmark
+                              : Icons.bookmark_border,
+                          size: 16,
+                          color: _showBookmarked
+                              ? Colors.green
+                              : Colors.grey.shade600,
+                        ),
+                        label: const Text('Bookmarked'),
+                        selected: _showBookmarked,
+                        onSelected: (_) =>
+                            setState(() => _showBookmarked = !_showBookmarked),
+                        selectedColor:
+                            Colors.green.withValues(alpha: 0.15),
+                        checkmarkColor: Colors.green,
+                        labelStyle: TextStyle(
+                          color: _showBookmarked
+                              ? Colors.green
+                              : Colors.grey.shade600,
+                          fontWeight: _showBookmarked
+                              ? FontWeight.w600
+                              : FontWeight.normal,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              if (docs.isEmpty)
+                SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          _showBookmarked
+                              ? Icons.bookmark_border
+                              : Icons.campaign_outlined,
+                          size: 64,
+                          color: widget.lguColor.withValues(alpha: 0.3),
+                          semanticLabel: _showBookmarked
+                              ? 'No bookmarks'
+                              : 'No announcements',
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          _showBookmarked
+                              ? 'No bookmarked announcements'
+                              : AppStrings.get('noAnnouncements'),
+                          style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.grey.shade600),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          _showBookmarked
+                              ? 'Tap the bookmark icon on any announcement to save it here'
+                              : 'Check back later for updates from ${widget.municipality} LGU',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                              fontSize: 13,
+                              color: Colors.grey.shade400),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+              else
+                SliverPadding(
+                  padding: EdgeInsets.fromLTRB(
+                    16,
+                    8,
+                    16,
+                    MediaQuery.of(context).padding.bottom + 16,
+                  ),
+                  sliver: SliverList(
+                    delegate: SliverChildBuilderDelegate(
+                      (context, index) {
+                        final doc = docs[index];
+                        final data =
+                            doc.data() as Map<String, dynamic>;
+                        return _AnnouncementCard(
+                          data: data,
+                          docId: doc.id,
+                          lguColor: widget.lguColor,
+                          isBookmarked:
+                              _bookmarkedIds.contains(doc.id),
+                          onBookmarkToggle: () =>
+                              _toggleBookmark(doc.id),
+                        );
+                      },
+                      childCount: docs.length,
+                    ),
+                  ),
+                ),
+            ],
           ),
-          itemCount: docs.length,
-          itemBuilder: (context, index) {
-            final data = docs[index].data() as Map<String, dynamic>;
-            return _AnnouncementCard(data: data, lguColor: lguColor);
-          },
         );
       },
     );
@@ -128,9 +282,18 @@ class _AnnouncementsList extends StatelessWidget {
 
 class _AnnouncementCard extends StatelessWidget {
   final Map<String, dynamic> data;
+  final String docId;
   final Color lguColor;
+  final bool isBookmarked;
+  final VoidCallback onBookmarkToggle;
 
-  const _AnnouncementCard({required this.data, required this.lguColor});
+  const _AnnouncementCard({
+    required this.data,
+    required this.docId,
+    required this.lguColor,
+    required this.isBookmarked,
+    required this.onBookmarkToggle,
+  });
 
   Future<void> _openSource(String url) async {
     final uri = Uri.parse(url);
@@ -239,7 +402,9 @@ class _AnnouncementCard extends StatelessWidget {
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: Text(
-                        municipality == 'All' ? 'Province-Wide' : municipality,
+                        municipality == 'All'
+                            ? 'Province-Wide'
+                            : municipality,
                         style: TextStyle(
                           fontSize: 10,
                           fontWeight: FontWeight.w600,
@@ -256,6 +421,26 @@ class _AnnouncementCard extends StatelessWidget {
                           color: Colors.grey.shade400,
                         ),
                       ),
+                    const SizedBox(width: 8),
+                    // ── Bookmark button ──
+                    Semantics(
+                      label: isBookmarked
+                          ? 'Remove bookmark'
+                          : 'Bookmark announcement',
+                      button: true,
+                      child: GestureDetector(
+                        onTap: onBookmarkToggle,
+                        child: Icon(
+                          isBookmarked
+                              ? Icons.bookmark
+                              : Icons.bookmark_border,
+                          size: 22,
+                          color: isBookmarked
+                              ? Colors.green
+                              : Colors.grey.shade400,
+                        ),
+                      ),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 10),
@@ -287,8 +472,7 @@ class _AnnouncementCard extends StatelessWidget {
                     CircleAvatar(
                       radius: 14,
                       backgroundColor: lguColor.withValues(alpha: 0.15),
-                      child:
-                          Icon(Icons.person, size: 16, color: lguColor),
+                      child: Icon(Icons.person, size: 16, color: lguColor),
                     ),
                     const SizedBox(width: 8),
                     Expanded(
@@ -311,7 +495,10 @@ class _AnnouncementCard extends StatelessWidget {
                     onTap: () => _openSource(sourceUrl),
                     child: Row(
                       children: [
-                        Icon(Icons.open_in_new, size: 14, color: lguColor, semanticLabel: 'Open link'),
+                        Icon(Icons.open_in_new,
+                            size: 14,
+                            color: lguColor,
+                            semanticLabel: 'Open link'),
                         const SizedBox(width: 6),
                         Expanded(
                           child: Text(
@@ -326,7 +513,10 @@ class _AnnouncementCard extends StatelessWidget {
                             ),
                           ),
                         ),
-                        ExcludeSemantics(child: Icon(Icons.chevron_right, size: 16, color: lguColor)),
+                        ExcludeSemantics(
+                          child: Icon(Icons.chevron_right,
+                              size: 16, color: lguColor),
+                        ),
                       ],
                     ),
                   ),
