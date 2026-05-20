@@ -582,14 +582,12 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Reset Settings'),
-        content: const Text(
-          'This will restore all settings to their default values. Your account and reports will not be affected.',
-        ),
+        title: Text(AppStrings.get('resetSettings')),
+        content: Text(AppStrings.get('resetSettingsContent')),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
+            child: Text(AppStrings.get('cancel')),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -605,7 +603,7 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
               ToastUtils.showSuccess('Settings reset to defaults');
             },
             style: ElevatedButton.styleFrom(backgroundColor: _lguColor),
-            child: const Text('Reset', style: TextStyle(color: Colors.white)),
+            child: Text(AppStrings.get('resetButton'), style: const TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -645,10 +643,10 @@ class _DeletionProgressDialog extends StatefulWidget {
 class _DeletionProgressDialogState extends State<_DeletionProgressDialog> {
   int _step = 1;
 
-  static const _steps = [
-    'Deleting reports...',
-    'Deleting profile...',
-    'Removing account...',
+  List<String> get _steps => [
+    AppStrings.get('deletingReports'),
+    AppStrings.get('deletingProfile'),
+    AppStrings.get('removingAccount'),
   ];
 
   @override
@@ -668,7 +666,7 @@ class _DeletionProgressDialogState extends State<_DeletionProgressDialog> {
   Widget build(BuildContext context) {
     return AlertDialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      title: const Text('Deleting Account'),
+      title: Text(AppStrings.get('deletingAccount')),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [

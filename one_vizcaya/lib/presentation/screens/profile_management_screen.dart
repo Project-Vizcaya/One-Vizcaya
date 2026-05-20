@@ -8,6 +8,7 @@ import '../../data/services/profile_service.dart';
 import '../../domain/models/user_profile.dart';
 import '../../features/auth/domain/entities/app_user.dart';
 import '../../core/constants/app_constants.dart';
+import '../../core/l10n/app_strings.dart';
 import '../../core/utils/toast_utils.dart';
 import '../../core/widgets/profile_qr_sheet.dart';
 
@@ -494,7 +495,7 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
                           child: OutlinedButton.icon(
                             onPressed: _showEditProfileSheet,
                             icon: const Icon(Icons.edit_outlined, size: 18),
-                            label: const Text('Edit Profile'),
+                            label: Text(AppStrings.get('editProfile')),
                             style: OutlinedButton.styleFrom(
                               foregroundColor: const Color(0xFF4CAF50),
                               side: const BorderSide(color: Color(0xFFE0E0E0)),
@@ -586,7 +587,7 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
                                   const SizedBox(width: 8),
                                   Expanded(
                                     child: Text(
-                                      "You haven't submitted any reports yet. Make your voice heard!",
+                                      AppStrings.get('noReportsEmptyState'),
                                       style: TextStyle(
                                         fontSize: 12,
                                         color: Colors.grey.shade600,
