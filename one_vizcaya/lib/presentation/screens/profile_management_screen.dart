@@ -125,6 +125,7 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
       backgroundColor: Colors.transparent,
       builder: (context) => Container(
         decoration: const BoxDecoration(
@@ -132,7 +133,8 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
           borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
         ),
         padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom,
+          bottom: MediaQuery.of(context).viewInsets.bottom +
+              MediaQuery.of(context).padding.bottom + 16,
           left: 24,
           right: 24,
           top: 16,

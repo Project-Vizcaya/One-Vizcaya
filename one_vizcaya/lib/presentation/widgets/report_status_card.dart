@@ -244,6 +244,7 @@ class _ReportStatusCardState extends State<ReportStatusCard>
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) {
         return StatefulBuilder(
@@ -254,7 +255,7 @@ class _ReportStatusCardState extends State<ReportStatusCard>
                   color: Colors.white,
                   borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
                 ),
-                padding: const EdgeInsets.fromLTRB(24, 32, 24, 48),
+                padding: EdgeInsets.fromLTRB(24, 32, 24, MediaQuery.of(ctx).padding.bottom + 48),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -283,12 +284,14 @@ class _ReportStatusCardState extends State<ReportStatusCard>
                 borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
               ),
               padding: EdgeInsets.only(
-                bottom: MediaQuery.of(ctx).viewInsets.bottom + 16,
+                bottom: MediaQuery.of(ctx).viewInsets.bottom +
+                    MediaQuery.of(ctx).padding.bottom + 16,
                 left: 24,
                 right: 24,
                 top: 16,
               ),
-              child: Column(
+              child: SingleChildScrollView(
+               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -465,6 +468,7 @@ class _ReportStatusCardState extends State<ReportStatusCard>
                     ),
                   ),
                 ],
+               ),
               ),
             );
           },
@@ -897,8 +901,13 @@ class _ReportStatusCardState extends State<ReportStatusCard>
         'onevizcaya://status?reportId=${widget.report.id}';
     showModalBottomSheet(
       context: context,
-      builder: (_) => Container(
-        padding: const EdgeInsets.all(24),
+      isScrollControlled: true,
+      useSafeArea: true,
+      builder: (ctx) => Container(
+        padding: EdgeInsets.only(
+          left: 24, right: 24, top: 24,
+          bottom: MediaQuery.of(ctx).padding.bottom + 24,
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [

@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/utils/toast_utils.dart';
 import '../../features/auth/presentation/screens/privacy_policy_screen.dart';
 import '../../core/widgets/sms_cooldown_button.dart';
+import '../state/municipality_state.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -607,7 +609,33 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
         verificationId: _currentVerificationId,
         smsCode: _codeController.text,
       );
-      await FirebaseAuth.instance.signInWithCredential(credential);
+      final result = await FirebaseAuth.instance.signInWithCredential(credential);
+      final user = result.user;
+
+      // Auto-create Firestore user document on first login so that:
+      // 1) Admin role-assignment search can find this user by phoneNumber
+      // 2) Profile screen always has a document to read/update
+      if (user != null) {
+        final ref = FirebaseFirestore.instance.collection('users').doc(user.uid);
+        final existing = await ref.get();
+        if (!existing.exists) {
+          await ref.set({
+            'uid': user.uid,
+            'phoneNumber': user.phoneNumber ?? '',
+            'name': '',
+            'email': '',
+            'location': '',
+            'municipality': oneVizcayaState.selectedMunicipality.value,
+            'role': 'citizen',
+            'createdAt': FieldValue.serverTimestamp(),
+          });
+        } else if (existing.data()?['phoneNumber'] == null ||
+                   (existing.data()?['phoneNumber'] as String).isEmpty) {
+          // Patch missing phoneNumber on older documents
+          await ref.update({'phoneNumber': user.phoneNumber ?? ''});
+        }
+      }
+
       if (mounted) {
         Navigator.of(
           context,
