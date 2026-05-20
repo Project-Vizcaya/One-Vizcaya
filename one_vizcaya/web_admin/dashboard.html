@@ -1346,14 +1346,12 @@ function filterReportsByAssignedMe(btn) {
 }
 
 function applyDateFilter() {
-  const from = document.getElementById('filter-date-from')?.value;
-  const to = document.getElementById('filter-date-to')?.value;
-  if (from && to && new Date(from) > new Date(to)) {
+  const fromVal = document.getElementById('filter-date-from')?.value || '';
+  const toVal   = document.getElementById('filter-date-to')?.value || '';
+  if (fromVal && toVal && new Date(fromVal) > new Date(toVal)) {
     alert('⚠️ "From" date must be before "To" date.');
     return;
   }
-  const fromVal = document.getElementById('filter-date-from').value;
-  const toVal   = document.getElementById('filter-date-to').value;
   const from = fromVal ? new Date(fromVal + 'T00:00:00') : null;
   const to   = toVal   ? new Date(toVal   + 'T23:59:59') : null;
 
@@ -2490,6 +2488,346 @@ async function sendBroadcast() {
     btn.textContent = 'Send Broadcast';
     btn.disabled = false;
   }
+}
+
+// ── Feature 2: overdue filter (already defined in applyFilter section) ────────
+
+// ── Feature 3: Bulk status update ────────────────────────────────────────────
+function onRowCheckChange(checkbox) {
+  const id = checkbox.dataset.reportId;
+  if (checkbox.checked) {
+    selectedReportIds.add(id);
+  } else {
+    selectedReportIds.delete(id);
+    document.getElementById('select-all-checkbox').checked = false;
+  }
+  updateBulkBar();
+}
+
+function toggleSelectAll(masterCb) {
+  const checkboxes = document.querySelectorAll('#reports-tbody input[type=checkbox]');
+  checkboxes.forEach(cb => {
+    const id = cb.dataset.reportId;
+    if (masterCb.checked) {
+      selectedReportIds.add(id);
+    } else {
+      selectedReportIds.delete(id);
+    }
+    cb.checked = masterCb.checked;
+  });
+  updateBulkBar();
+}
+
+function updateBulkBar() {
+  const bar = document.getElementById('bulk-action-bar');
+  const count = selectedReportIds.size;
+  if (count > 0) {
+    bar.style.display = 'flex';
+    document.getElementById('bulk-count-label').textContent = count + ' report' + (count === 1 ? '' : 's') + ' selected';
+  } else {
+    bar.style.display = 'none';
+  }
+}
+
+async function applyBulkStatus() {
+  const newStatus = document.getElementById('bulk-status-select').value;
+  if (!newStatus) { alert('Please select a status to apply.'); return; }
+  if (selectedReportIds.size === 0) return;
+  if (!confirm(`Mark ${selectedReportIds.size} report(s) as "${newStatus}"?`)) return;
+
+  const ids = [...selectedReportIds];
+  let successCount = 0;
+  for (const reportId of ids) {
+    const r = allReports.find(x => x.id === reportId);
+    if (!r || !r.userId) continue;
+    try {
+      const update = { status: newStatus };
+      if (newStatus === 'solved') update.resolvedAt = firebase.firestore.FieldValue.serverTimestamp();
+      await db.collection('users').doc(r.userId).collection('reports').doc(reportId).update(update);
+      successCount++;
+    } catch (e) {
+      console.error('Bulk update error for', reportId, e);
+    }
+  }
+  showToast(`✅ ${successCount} report(s) marked as ${newStatus}`);
+  writeAuditLog('bulk_status_update', { count: successCount, newStatus });
+  cancelBulkSelection();
+}
+
+function cancelBulkSelection() {
+  selectedReportIds.clear();
+  document.getElementById('select-all-checkbox').checked = false;
+  document.getElementById('bulk-action-bar').style.display = 'none';
+  document.getElementById('bulk-status-select').value = '';
+  // Uncheck all row checkboxes
+  document.querySelectorAll('#reports-tbody input[type=checkbox]').forEach(cb => { cb.checked = false; });
+}
+
+// ── Feature 6: Sound and toast ────────────────────────────────────────────────
+function playNewReportChime() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.frequency.value = 880; osc.type = 'sine';
+    gain.gain.setValueAtTime(0.3, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
+    osc.start(); osc.stop(ctx.currentTime + 0.5);
+  } catch (e) { /* AudioContext may be blocked without user gesture */ }
+}
+
+function showToast(message) {
+  const container = document.getElementById('toast-container');
+  if (!container) return;
+  const toast = document.createElement('div');
+  toast.className = 'toast';
+  toast.textContent = message;
+  container.appendChild(toast);
+  setTimeout(() => { toast.remove(); }, 4000);
+}
+
+// ── Feature 7: PDF Export ─────────────────────────────────────────────────────
+function exportReportPDF(reportId) {
+  const r = allReports.find(x => x.id === reportId);
+  if (!r) { alert('Report not found.'); return; }
+  if (typeof window.jspdf === 'undefined' && typeof jsPDF === 'undefined') {
+    alert('jsPDF library not loaded. Check internet connection.'); return;
+  }
+  const { jsPDF } = window.jspdf || window;
+  const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+
+  const margin = 48;
+  let y = margin;
+
+  // Header
+  doc.setFontSize(18); doc.setFont(undefined, 'bold');
+  doc.text('ONE VIZCAYA — Incident Report', margin, y); y += 24;
+  doc.setFontSize(10); doc.setFont(undefined, 'normal');
+  doc.setDrawColor(46, 125, 50);
+  doc.line(margin, y, 595 - margin, y); y += 16;
+
+  // Fields helper
+  const field = (label, value) => {
+    doc.setFont(undefined, 'bold'); doc.setFontSize(9);
+    doc.text(label.toUpperCase(), margin, y);
+    doc.setFont(undefined, 'normal'); doc.setFontSize(11);
+    const lines = doc.splitTextToSize(String(value || '—'), 595 - margin * 2);
+    doc.text(lines, margin, y + 12);
+    y += 12 + lines.length * 14 + 6;
+  };
+
+  field('Report ID', r.id);
+  field('Category', r.category);
+  field('Priority', r.priority);
+  field('Status', r.status);
+  field('Municipality', r.municipality);
+  field('Barangay', r.barangay || '—');
+  field('Description', r.description);
+  field('Location', r.location);
+  const reportedAtStr = r.reportedAt ? r.reportedAt.toLocaleString('en-PH') : '—';
+  field('Reported At', reportedAtStr);
+  field('Assigned Responder', r.assignedResponder || '—');
+
+  // Notes history
+  if (r.notesHistory && r.notesHistory.length > 0) {
+    y += 4;
+    doc.setFont(undefined, 'bold'); doc.setFontSize(9);
+    doc.text('ADMIN NOTES HISTORY', margin, y); y += 14;
+    r.notesHistory.slice().reverse().forEach(n => {
+      doc.setFont(undefined, 'normal'); doc.setFontSize(10);
+      const noteLines = doc.splitTextToSize(`[${n.timestamp ? new Date(n.timestamp).toLocaleString('en-PH') : '?'}] ${n.author||'Admin'}: ${n.text}`, 595 - margin * 2);
+      doc.text(noteLines, margin, y);
+      y += noteLines.length * 13 + 4;
+    });
+  } else if (r.adminNotes) {
+    field('Admin Notes', r.adminNotes);
+  }
+
+  // Footer
+  y = 800;
+  doc.setDrawColor(200, 200, 200);
+  doc.line(margin, y - 4, 595 - margin, y - 4);
+  doc.setFontSize(9); doc.setFont(undefined, 'italic');
+  const adminName = currentUser?.displayName || currentUser?.phoneNumber || 'Admin';
+  doc.text(`Generated on ${new Date().toLocaleString('en-PH')} by ${adminName}`, margin, y + 8);
+
+  doc.save(`OneVizcaya_Report_${r.id}.pdf`);
+}
+
+// ── Feature 8: Canned responses ───────────────────────────────────────────────
+function insertCannedResponse(sel) {
+  const idx = parseInt(sel.value);
+  if (isNaN(idx)) return;
+  const ta = document.getElementById('report-notes');
+  if (!ta) return;
+  const prefix = ta.value.trim() ? ta.value.trim() + '\n' : '';
+  ta.value = prefix + CANNED_RESPONSES[idx];
+  sel.value = '';
+}
+
+// ── Feature 9: Citizen satisfaction ──────────────────────────────────────────
+function renderSatisfactionSection() {
+  const isAllowed = ['provincial_admin','super_admin','admin','municipal_admin'].includes(userRole);
+  const section = document.getElementById('satisfaction-section');
+  if (!section || !isAllowed) return;
+  section.style.display = 'block';
+
+  const ratedReports = allReports.filter(r => r.status === 'solved' && typeof r.feedbackRating === 'number');
+  const contentEl = document.getElementById('satisfaction-content');
+  if (!contentEl) return;
+
+  if (ratedReports.length === 0) {
+    contentEl.innerHTML = '<div style="color:#A0AEC0;font-size:13px">No feedback received yet.</div>';
+    return;
+  }
+
+  const avg = ratedReports.reduce((sum, r) => sum + r.feedbackRating, 0) / ratedReports.length;
+  const dist = {5:0, 4:0, 3:0, 2:0, 1:0};
+  ratedReports.forEach(r => { const star = Math.round(r.feedbackRating); if (dist[star] !== undefined) dist[star]++; });
+
+  const barsHtml = [5,4,3,2,1].map(star => {
+    const pct = ratedReports.length ? Math.round(dist[star]/ratedReports.length*100) : 0;
+    return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;font-size:12px">
+      <span style="width:20px;text-align:right">${star}★</span>
+      <div style="flex:1;background:#EDF2F7;border-radius:4px;height:8px;overflow:hidden">
+        <div style="width:${pct}%;background:#F6AD55;height:100%;border-radius:4px"></div>
+      </div>
+      <span style="width:30px;color:#718096">${pct}%</span>
+    </div>`;
+  }).join('');
+
+  contentEl.innerHTML = `
+    <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap">
+      <div style="text-align:center">
+        <div style="font-size:32px;font-weight:800;color:#E65100">${avg.toFixed(1)}</div>
+        <div style="font-size:13px;color:#718096">/ 5.0 ⭐</div>
+        <div style="font-size:11px;color:#A0AEC0;margin-top:4px">${ratedReports.length} rated report${ratedReports.length!==1?'s':''}</div>
+      </div>
+      <div style="flex:1;min-width:180px">${barsHtml}</div>
+    </div>`;
+}
+
+// ── Feature 10: Trend chart ───────────────────────────────────────────────────
+let chartTrends;
+function renderTrendChart(catEntries) {
+  const canvas = document.getElementById('chart-trends');
+  if (!canvas) return;
+
+  const now = new Date();
+  const weeks = Array.from({length: 8}, (_, i) => {
+    const d = new Date(now - (7 - i) * 7 * 24 * 3600 * 1000);
+    return { label: `${d.getMonth()+1}/${d.getDate()}`, start: new Date(now - (7 - i) * 7 * 24 * 3600 * 1000) };
+  });
+
+  const topCats = catEntries.slice(0, 3).map(([k]) => k);
+  const colors = ['#2E7D32','#1565C0','#E65100'];
+
+  const datasets = topCats.map((cat, ci) => {
+    const data = weeks.map((w, wi) => {
+      const end = wi < 7 ? weeks[wi + 1]?.start || now : now;
+      return allReports.filter(r => r.category === cat && r.reportedAt >= w.start && r.reportedAt < end).length;
+    });
+    return {
+      label: cat.length > 22 ? cat.slice(0,20)+'…' : cat,
+      data,
+      borderColor: colors[ci],
+      backgroundColor: colors[ci] + '22',
+      borderWidth: 2,
+      tension: 0.3,
+      fill: false,
+      pointRadius: 3,
+    };
+  });
+
+  if (chartTrends) chartTrends.destroy();
+  chartTrends = new Chart(canvas, {
+    type: 'line',
+    data: { labels: weeks.map(w => w.label), datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { font: { size: 11 }, boxWidth: 12 } } },
+      scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+    }
+  });
+}
+
+// ── Feature 11: Keyboard shortcuts ───────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  const tag = document.activeElement?.tagName?.toLowerCase();
+  const inInput = tag === 'input' || tag === 'textarea' || tag === 'select';
+
+  if (e.key === 'Escape') {
+    // Close any open modal
+    ['report-modal','responder-modal','broadcast-modal','kbd-modal'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) { el.style.display = 'none'; el.remove ? el.remove() : null; }
+    });
+    document.getElementById('kbd-modal').style.display = 'none';
+    return;
+  }
+
+  if (inInput) return;
+
+  if (e.key === 'r' || e.key === 'R') {
+    e.preventDefault();
+    listenToReports();
+    showToast('🔄 Reports refreshed');
+  } else if (e.key === 'f' || e.key === 'F') {
+    e.preventDefault();
+    const searchInput = document.getElementById('resp-search');
+    if (searchInput) { searchInput.focus(); searchInput.scrollIntoView({ behavior: 'smooth' }); }
+  } else if (e.key === 'e' || e.key === 'E') {
+    e.preventDefault();
+    exportCSV();
+  }
+});
+
+// ── Feature 12: Notes history helpers ────────────────────────────────────────
+function buildNotesHistoryHtml(r) {
+  const entries = [];
+  // New notesHistory array format
+  if (r.notesHistory && r.notesHistory.length > 0) {
+    r.notesHistory.slice().reverse().forEach(n => {
+      const when = n.timestamp ? new Date(n.timestamp).toLocaleString('en-PH') : '?';
+      entries.push(`<div class="note-entry">
+        <div class="note-entry-meta">${escHtml(n.author||'Admin')} &bull; ${when}</div>
+        <div>${escHtml(n.text||'')}</div>
+      </div>`);
+    });
+  } else if (r.adminNotes) {
+    // Backward compatibility — old single-string format
+    entries.push(`<div class="note-entry">
+      <div class="note-entry-meta">Legacy note</div>
+      <div>${escHtml(r.adminNotes)}</div>
+    </div>`);
+  }
+  if (entries.length === 0) return '<div style="font-size:12px;color:#A0AEC0;padding:4px 0">No notes yet.</div>';
+  return entries.join('');
+}
+
+// ── Feature 14: Session timeout warning ──────────────────────────────────────
+let _sessionTimeoutTimer = null;
+
+auth.onIdTokenChanged(user => {
+  if (!user) return;
+  if (_sessionTimeoutTimer) clearTimeout(_sessionTimeoutTimer);
+  // Firebase tokens expire 1 hour after issue; warn 5 minutes before expiry = 55 minutes
+  const WARN_MS = 55 * 60 * 1000;
+  _sessionTimeoutTimer = setTimeout(() => {
+    const banner = document.getElementById('session-warning');
+    if (banner) banner.style.display = 'flex';
+  }, WARN_MS);
+});
+
+function refreshSession() {
+  firebase.auth().currentUser?.getIdToken(true)
+    .then(() => {
+      const banner = document.getElementById('session-warning');
+      if (banner) banner.style.display = 'none';
+      showToast('✅ Session refreshed successfully');
+    })
+    .catch(e => alert('Session refresh failed: ' + e.message));
 }
 
 // ── Hide loading overlay ──────────────────────────────────────────────────────
