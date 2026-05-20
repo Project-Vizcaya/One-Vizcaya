@@ -409,17 +409,28 @@
 
 <div id="role-banner" class="role-banner" style="display:none"></div>
 
-<!-- Bulk action bar (Feature 3) -->
-<div id="bulk-action-bar" style="display:none;position:sticky;top:68px;z-index:500;background:#1565C0;color:#fff;padding:10px 18px;align-items:center;gap:12px;flex-wrap:wrap;box-shadow:0 4px 12px rgba(21,101,192,.4)">
+<!-- Bulk action bar (Feature 3 — POLISH 3) -->
+<div id="bulk-action-bar" style="position:sticky;top:68px;z-index:500;background:#1565C0;color:#fff;padding:10px 18px;align-items:center;gap:12px;flex-wrap:wrap;box-shadow:0 4px 12px rgba(21,101,192,.4)">
   <span id="bulk-count-label" style="font-weight:700;font-size:14px">0 reports selected</span>
-  <select id="bulk-status-select" style="padding:6px 10px;border-radius:8px;border:none;font-size:13px;font-weight:600;cursor:pointer">
-    <option value="">Mark as…</option>
-    <option value="reported">Reported</option>
-    <option value="ongoing">Ongoing</option>
-    <option value="solved">Solved</option>
-  </select>
-  <button onclick="applyBulkStatus()" style="padding:7px 16px;border-radius:8px;border:none;background:#fff;color:#1565C0;font-size:13px;font-weight:700;cursor:pointer">Apply</button>
-  <button onclick="cancelBulkSelection()" style="padding:7px 16px;border-radius:8px;border:1.5px solid rgba(255,255,255,.5);background:transparent;color:#fff;font-size:13px;font-weight:600;cursor:pointer">Cancel</button>
+  <div id="bulk-main-row" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+    <select id="bulk-status-select" style="padding:6px 10px;border-radius:8px;border:none;font-size:13px;font-weight:600;cursor:pointer">
+      <option value="">Mark as…</option>
+      <option value="reported">Reported</option>
+      <option value="ongoing">Ongoing</option>
+      <option value="solved">Solved</option>
+    </select>
+    <button onclick="requestBulkApply()" style="padding:7px 16px;border-radius:8px;border:none;background:#fff;color:#1565C0;font-size:13px;font-weight:700;cursor:pointer">Apply</button>
+    <button onclick="cancelBulkSelection()" style="padding:7px 16px;border-radius:8px;border:1.5px solid rgba(255,255,255,.5);background:transparent;color:#fff;font-size:13px;font-weight:600;cursor:pointer">Cancel</button>
+  </div>
+  <div id="bulk-confirm-row">
+    <span id="bulk-confirm-label" style="font-size:13px;font-weight:700"></span>
+    <button onclick="applyBulkStatus()" style="padding:6px 14px;border-radius:8px;border:none;background:#fff;color:#1565C0;font-size:13px;font-weight:800;cursor:pointer">Yes</button>
+    <button onclick="cancelBulkConfirm()" style="padding:6px 12px;border-radius:8px;border:1.5px solid rgba(255,255,255,.5);background:transparent;color:#fff;font-size:13px;cursor:pointer">Cancel</button>
+  </div>
+  <span id="bulk-progress-label" style="font-size:13px;font-weight:600;display:none">
+    <span class="loader-ring" style="width:14px;height:14px;border-width:2px;display:inline-block;vertical-align:middle;margin-right:6px"></span>
+    <span id="bulk-progress-text">Updating…</span>
+  </span>
 </div>
 
 <div class="container">
@@ -526,9 +537,16 @@
         </div>
       </div>
       <div style="margin-top:20px;display:grid;grid-template-columns:repeat(4,1fr);gap:12px" id="analytics-kpis"></div>
-      <!-- Feature 10: Trend chart -->
+      <!-- Feature 10 + POLISH 10: Trend chart with time range selector -->
       <div style="margin-top:24px">
-        <div style="font-size:12px;font-weight:700;color:#718096;margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px">Report Trends (Last 8 Weeks)</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:10px">
+          <div style="font-size:12px;font-weight:700;color:#718096;text-transform:uppercase;letter-spacing:.5px">Report Trends</div>
+          <div style="display:flex;gap:6px" id="trend-range-btns">
+            <button onclick="setTrendRange(4,this)" class="chip" style="font-size:11px;padding:4px 10px">4 Weeks</button>
+            <button onclick="setTrendRange(8,this)" class="chip active" style="font-size:11px;padding:4px 10px">8 Weeks</button>
+            <button onclick="setTrendRange(12,this)" class="chip" style="font-size:11px;padding:4px 10px">3 Months</button>
+          </div>
+        </div>
         <canvas id="chart-trends" height="120"></canvas>
       </div>
       <!-- Feature 9: Citizen satisfaction -->
@@ -778,9 +796,10 @@
         </div>
         <div style="margin-bottom:16px">
           <label for="ann-schedule" style="font-size:11px;font-weight:700;color:#718096;display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px">Schedule for (optional)</label>
-          <input type="datetime-local" id="ann-schedule"
+          <input type="datetime-local" id="ann-schedule" oninput="validateScheduleTime(this)"
                  style="width:100%;border:1.5px solid #E2E8F0;border-radius:8px;padding:10px 12px;font-size:13px;outline:none;font-family:inherit"/>
-          <div style="font-size:11px;color:#A0AEC0;margin-top:4px">Leave empty to post immediately.</div>
+          <div id="ann-schedule-error" style="font-size:11px;color:#C53030;margin-top:4px;display:none">⚠ Schedule time must be at least 15 minutes from now.</div>
+          <div style="font-size:11px;color:#A0AEC0;margin-top:4px">Leave empty to post immediately. Minimum 15 minutes ahead if scheduling.</div>
         </div>
         <div style="display:flex;gap:8px">
           <button onclick="postAnnouncement()" style="padding:8px 22px;background:#2E7D32;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">Post</button>
@@ -1220,15 +1239,33 @@ function listenToReports() {
 
 // ── Stats ────────────────────────────────────────────────────────────────────
 function updateStats() {
-  const total    = allReports.length;
-  const critical = allReports.filter(r => r.priority === 'critical' && r.status !== 'solved').length;
-  const ongoing  = allReports.filter(r => r.status === 'ongoing').length;
-  const solved   = allReports.filter(r => r.status === 'solved').length;
+  const total      = allReports.length;
+  const critical   = allReports.filter(r => r.priority === 'critical' && r.status !== 'solved').length;
+  const ongoing    = allReports.filter(r => r.status === 'ongoing').length;
+  const solved     = allReports.filter(r => r.status === 'solved').length;
+  // POLISH 1: unassigned count
+  const unassigned = allReports.filter(r => r.status !== 'solved' && !r.assignedResponder).length;
+  // POLISH 2: overdue count + header badge
+  const overdueCount = allReports.filter(r => isOverdue(r)).length;
 
   document.getElementById('stat-total').textContent    = total;
   document.getElementById('stat-critical').textContent = critical;
   document.getElementById('stat-ongoing').textContent  = ongoing;
   document.getElementById('stat-resolved').textContent = solved;
+  const unassignedEl = document.getElementById('stat-unassigned');
+  if (unassignedEl) unassignedEl.textContent = unassigned;
+  const overdueCountEl = document.getElementById('stat-overdue-count');
+  if (overdueCountEl) overdueCountEl.textContent = overdueCount;
+  // POLISH 2: overdue badge in header
+  const overdueBadgeEl = document.getElementById('overdue-header-badge');
+  if (overdueBadgeEl) {
+    if (overdueCount > 0) {
+      overdueBadgeEl.textContent = overdueCount + ' overdue';
+      overdueBadgeEl.style.display = 'inline';
+    } else {
+      overdueBadgeEl.style.display = 'none';
+    }
+  }
 
   const resolvedWithTime = allReports.filter(
     r => r.status === 'solved' && r.resolvedAt?.toDate && r.reportedAt
@@ -1665,6 +1702,25 @@ async function openReportDetail(reportId, userId) {
                 ${STATUS_LABELS[s]}
               </button>`).join('')}
           </div>
+          ${(() => {
+            // POLISH 2: SLA progress bar in modal
+            const slaH = SLA_HOURS[r.category];
+            if (!slaH || r.status === 'solved') return '';
+            const ageH = (Date.now() - (r.reportedAt?.getTime ? r.reportedAt.getTime() : Date.now())) / 3600000;
+            const pct = Math.min(Math.round(ageH / slaH * 100), 100);
+            const fill = pct >= 100 ? '#C53030' : pct >= 75 ? '#E65100' : '#2E7D32';
+            const slaTooltip = `SLA: ${slaH}h | Age: ${Math.round(ageH)}h | ${pct >= 100 ? Math.round(ageH-slaH)+'h overdue' : Math.round(slaH-ageH)+'h remaining'}`;
+            return `<div style="margin-top:10px">
+              <div style="display:flex;justify-content:space-between;font-size:11px;color:#718096;margin-bottom:4px">
+                <span>SLA Progress</span>
+                <span title="${slaTooltip}" style="cursor:help">${pct}% — ${slaTooltip}</span>
+              </div>
+              <div class="sla-progress-bar" title="${slaTooltip}">
+                <div class="sla-progress-fill" style="width:${pct}%;background:${fill}"></div>
+              </div>
+            </div>`;
+          })()}
+          ${r.assignedAt ? `<div style="margin-top:8px;font-size:11px;color:#718096">Assigned ${timeAgo(new Date(r.assignedAt?.toDate ? r.assignedAt.toDate() : r.assignedAt))}</div>` : ''}
         </div>
         ${r.isAnonymous ? '<div style="background:#FFF5F5;border-radius:10px;padding:12px;font-size:12px;color:#C53030;font-weight:600">🔒 Anonymous Report — citizen cannot be notified</div>' : ''}
         <div style="background:#F7FAFC;border-radius:10px;padding:14px">
@@ -1673,15 +1729,46 @@ async function openReportDetail(reportId, userId) {
             ${buildNotesHistoryHtml(r)}
           </div>
           <div style="font-size:11px;font-weight:700;color:#718096;margin-bottom:6px">Add a new note:</div>
-          <select class="canned-select" id="canned-select" onchange="insertCannedResponse(this)">
-            <option value="">Insert canned response…</option>
-            ${CANNED_RESPONSES.map((t,i) => `<option value="${i}">${t.slice(0,60)}…</option>`).join('')}
-          </select>
+          <!-- POLISH 8: canned mode toggle + grouped options -->
+          <div class="canned-mode-toggle">
+            <span>Mode:</span>
+            <button class="canned-mode-btn" id="canned-mode-append" onclick="setCannedMode('append',this)" style="background:#2E7D32;border-color:#2E7D32;color:#fff">Append</button>
+            <button class="canned-mode-btn" id="canned-mode-replace" onclick="setCannedMode('replace',this)">Replace</button>
+          </div>
+          <div style="position:relative">
+            <select class="canned-select" id="canned-select" onchange="insertCannedResponse(this)" onmouseover="showCannedPreview(this)" onmouseout="hideCannedPreview()">
+              <option value="">Insert canned response…</option>
+              <optgroup label="Acknowledgement">
+                <option value="0">${CANNED_RESPONSES[0].slice(0,60)}…</option>
+                <option value="1">${CANNED_RESPONSES[1].slice(0,60)}…</option>
+              </optgroup>
+              <optgroup label="Resolution">
+                <option value="2">${CANNED_RESPONSES[2].slice(0,60)}…</option>
+                <option value="5">${CANNED_RESPONSES[5].slice(0,60)}…</option>
+              </optgroup>
+              <optgroup label="Escalation">
+                <option value="3">${CANNED_RESPONSES[3].slice(0,60)}…</option>
+              </optgroup>
+              <optgroup label="Apology">
+                <option value="4">${CANNED_RESPONSES[4].slice(0,60)}…</option>
+              </optgroup>
+              <optgroup label="Custom">
+                ${(JSON.parse(localStorage.getItem('custom_canned_responses')||'[]')).map((t,i)=>`<option value="custom_${i}">${t.slice(0,60)}…</option>`).join('')}
+                <option value="add_custom">+ Add custom…</option>
+              </optgroup>
+            </select>
+            <div class="canned-preview" id="canned-preview-box"></div>
+          </div>
           <textarea id="report-notes" rows="3" placeholder="Add a progress update or internal note…" maxlength="500"
+            oninput="updateNoteCharCount(this)"
             style="width:100%;border:1.5px solid #E2E8F0;border-radius:8px;padding:10px;font-size:13px;font-family:inherit;resize:vertical;outline:none;box-sizing:border-box"
           ></textarea>
-          <input id="report-responder" placeholder="Assigned responder name (optional)" maxlength="80" value="${escHtml(r.assignedResponder||'')}"
-            style="width:100%;border:1.5px solid #E2E8F0;border-radius:8px;padding:10px;font-size:13px;font-family:inherit;margin-top:8px;outline:none;box-sizing:border-box"/>
+          <div class="note-char-count" id="note-char-count">0 / 500</div>
+          <!-- POLISH 1: responder dropdown -->
+          <select id="report-responder" style="width:100%;border:1.5px solid #E2E8F0;border-radius:8px;padding:10px;font-size:13px;font-family:inherit;margin-top:8px;outline:none;box-sizing:border-box;background:#fff">
+            <option value="">— Unassigned —</option>
+            ${(firestoreResponders||[]).map(resp=>`<option value="${escHtml(resp.name)}" ${r.assignedResponder===resp.name?'selected':''}>${escHtml(resp.name)} (${resp.type||''})</option>`).join('')}
+          </select>
           <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
             <button onclick="saveReportNotes('${r.userId||''}','${r.id}')"
               style="padding:9px 18px;background:#1565C0;color:#fff;border:none;border-radius:8px;font-weight:700;font-size:13px;cursor:pointer">

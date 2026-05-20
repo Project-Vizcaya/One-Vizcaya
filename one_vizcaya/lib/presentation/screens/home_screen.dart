@@ -6,6 +6,7 @@ import '../state/municipality_state.dart';
 import '../../features/announcements/presentation/widgets/announcements_carousel.dart';
 import '../../features/reports/presentation/widgets/community_feed.dart';
 import '../../core/widgets/weather_widget.dart';
+import '../../data/services/offline_queue_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -17,11 +18,19 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedNavIndex = 0;
   bool _isOffline = false;
+  int _queuedReportCount = 0;
 
   @override
   void initState() {
     super.initState();
     _checkConnectivity();
+    _refreshQueueCount();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _refreshQueueCount();
   }
 
   Future<void> _checkConnectivity() async {
@@ -37,6 +46,30 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  Future<void> _refreshQueueCount() async {
+    final queue = await OfflineQueueService().getQueue();
+    if (mounted) setState(() => _queuedReportCount = queue.length);
+  }
+
+  void _showQueueBottomSheet(BuildContext context) async {
+    final queue = await OfflineQueueService().getQueue();
+    if (!context.mounted) return;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) => _QueueBottomSheet(
+        queue: queue,
+        onClearQueue: () async {
+          await OfflineQueueService().clearQueue();
+          if (ctx.mounted) Navigator.of(ctx).pop();
+          _refreshQueueCount();
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return ValueListenableBuilder<String>(
@@ -48,10 +81,11 @@ class _HomeScreenState extends State<HomeScreen> {
         final welcomeMsg = activeTheme['welcomeMsg'] as String;
 
         return Scaffold(
-          backgroundColor: Color.lerp(Colors.white, appBarColor, 0.10)!,
+          backgroundColor: Color.lerp(Theme.of(context).scaffoldBackgroundColor, appBarColor, 0.10)!,
           body: SafeArea(
             child: Column(
               children: [
+                // ── Offline banner ──
                 if (_isOffline)
                   Container(
                     width: double.infinity,
@@ -76,6 +110,54 @@ class _HomeScreenState extends State<HomeScreen> {
                       ],
                     ),
                   ),
+
+                // ── Queued reports banner ──
+                AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 350),
+                  transitionBuilder: (child, animation) => SlideTransition(
+                    position: Tween<Offset>(
+                      begin: const Offset(0, -1),
+                      end: Offset.zero,
+                    ).animate(animation),
+                    child: child,
+                  ),
+                  child: _queuedReportCount > 0
+                      ? GestureDetector(
+                          key: const ValueKey('queue_banner'),
+                          onTap: () => _showQueueBottomSheet(context),
+                          child: Container(
+                            width: double.infinity,
+                            color: const Color(0xFFFFF3E0),
+                            padding: const EdgeInsets.symmetric(
+                              vertical: 8,
+                              horizontal: 16,
+                            ),
+                            child: Row(
+                              children: [
+                                const Text('📤', style: TextStyle(fontSize: 14)),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    '$_queuedReportCount ${_queuedReportCount == 1 ? 'report' : 'reports'} queued — will submit when you\'re back online',
+                                    style: const TextStyle(
+                                      color: Color(0xFFE65100),
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                                Icon(
+                                  Icons.chevron_right,
+                                  color: const Color(0xFFE65100),
+                                  size: 16,
+                                ),
+                              ],
+                            ),
+                          ),
+                        )
+                      : const SizedBox.shrink(key: ValueKey('queue_empty')),
+                ),
+
                 Expanded(
                   child: _selectedNavIndex == 0
                       ? _buildHomePage(context, municipality, appBarColor, secondaryColor, welcomeMsg)
@@ -122,10 +204,10 @@ class _HomeScreenState extends State<HomeScreen> {
                         Flexible(
                           child: Text(
                             municipality,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
-                              color: Color(0xFF333333),
+                              color: Theme.of(context).textTheme.titleLarge?.color,
                             ),
                             overflow: TextOverflow.ellipsis,
                             maxLines: 1,
@@ -146,7 +228,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   message: 'Notifications',
                   child: Container(
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: Theme.of(context).cardColor,
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
@@ -157,9 +239,9 @@ class _HomeScreenState extends State<HomeScreen> {
                       ],
                     ),
                     child: IconButton(
-                      icon: const Icon(
+                      icon: Icon(
                         Icons.notifications_outlined,
-                        color: Color(0xFF333333),
+                        color: Theme.of(context).textTheme.bodyLarge?.color,
                         size: 22,
                       ),
                       onPressed: () =>
@@ -203,7 +285,7 @@ class _HomeScreenState extends State<HomeScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Container(
               decoration: BoxDecoration(
-                color: Color.lerp(Colors.white, appBarColor, 0.03),
+                color: Color.lerp(Theme.of(context).cardColor, appBarColor, 0.03),
                 borderRadius: BorderRadius.circular(20),
                 boxShadow: [
                   BoxShadow(
@@ -248,10 +330,10 @@ class _HomeScreenState extends State<HomeScreen> {
                         Text(
                           welcomeMsg,
                           textAlign: TextAlign.center,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.w500,
-                            color: Color(0xFF555555),
+                            color: Theme.of(context).textTheme.bodyMedium?.color,
                             height: 1.4,
                           ),
                         ),
@@ -433,7 +515,7 @@ class _HomeScreenState extends State<HomeScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Container(
               decoration: BoxDecoration(
-                color: Color.lerp(Colors.white, appBarColor, 0.03),
+                color: Color.lerp(Theme.of(context).cardColor, appBarColor, 0.03),
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
@@ -527,9 +609,9 @@ class _HomeScreenState extends State<HomeScreen> {
       context: context,
       backgroundColor: Colors.transparent,
       builder: (context) => Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        decoration: BoxDecoration(
+          color: Theme.of(context).cardColor,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -546,10 +628,10 @@ class _HomeScreenState extends State<HomeScreen> {
             const SizedBox(height: 16),
             Text(
               AppStrings.get('selectMunicipality'),
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
-                color: Color(0xFF333333),
+                color: Theme.of(context).textTheme.titleLarge?.color,
               ),
             ),
             const SizedBox(height: 8),
@@ -597,7 +679,9 @@ class _HomeScreenState extends State<HomeScreen> {
                         fontWeight: isSelected
                             ? FontWeight.w600
                             : FontWeight.normal,
-                        color: isSelected ? mColor : const Color(0xFF333333),
+                        color: isSelected
+                            ? mColor
+                            : Theme.of(context).textTheme.bodyLarge?.color,
                       ),
                     ),
                     tileColor: isSelected
@@ -624,7 +708,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildBottomNav(Color appBarColor) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.06),
@@ -667,6 +751,174 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+// ── Queue bottom sheet ──
+class _QueueBottomSheet extends StatelessWidget {
+  final List<Map<String, dynamic>> queue;
+  final VoidCallback onClearQueue;
+
+  const _QueueBottomSheet({
+    required this.queue,
+    required this.onClearQueue,
+  });
+
+  IconData _categoryIcon(String? category) {
+    switch (category?.toLowerCase()) {
+      case 'road':
+        return Icons.construction;
+      case 'flood':
+        return Icons.water;
+      case 'waste':
+        return Icons.delete_outline;
+      case 'electricity':
+        return Icons.bolt;
+      default:
+        return Icons.report_problem_outlined;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Theme.of(context).scaffoldBackgroundColor,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).padding.bottom + 16,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const SizedBox(height: 12),
+          Container(
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: Colors.grey.shade300,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Row(
+              children: [
+                const Text('📤', style: TextStyle(fontSize: 18)),
+                const SizedBox(width: 8),
+                Text(
+                  'Queued Reports (${queue.length})',
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
+          if (queue.isEmpty)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 24),
+              child: Text(
+                'No queued reports',
+                style: TextStyle(color: Colors.grey),
+              ),
+            )
+          else
+            ConstrainedBox(
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.of(context).size.height * 0.4,
+              ),
+              child: ListView.builder(
+                shrinkWrap: true,
+                itemCount: queue.length,
+                itemBuilder: (context, index) {
+                  final item = queue[index];
+                  final category = item['category'] as String? ?? 'Report';
+                  final description = item['description'] as String? ?? '';
+                  return ListTile(
+                    leading: Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE65100).withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Icon(
+                        _categoryIcon(category),
+                        color: const Color(0xFFE65100),
+                        size: 20,
+                      ),
+                    ),
+                    title: Text(
+                      category,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14,
+                      ),
+                    ),
+                    subtitle: description.isNotEmpty
+                        ? Text(
+                            description,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey.shade600,
+                            ),
+                          )
+                        : null,
+                    trailing: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 3,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFF9800).withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: const Color(0xFFFF9800).withValues(alpha: 0.4),
+                        ),
+                      ),
+                      child: const Text(
+                        'Pending',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFFE65100),
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          const Divider(height: 1),
+          const SizedBox(height: 12),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: OutlinedButton.icon(
+              onPressed: queue.isEmpty ? null : onClearQueue,
+              icon: const Icon(Icons.delete_outline, color: Color(0xFFE53935)),
+              label: const Text(
+                'Clear Queue',
+                style: TextStyle(color: Color(0xFFE53935)),
+              ),
+              style: OutlinedButton.styleFrom(
+                minimumSize: const Size(double.infinity, 48),
+                side: const BorderSide(color: Color(0xFFE53935)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -717,10 +969,10 @@ class _ServiceGridItem extends StatelessWidget {
               textAlign: TextAlign.center,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.w500,
-                color: Color(0xFF555555),
+                color: Theme.of(context).textTheme.bodySmall?.color,
                 height: 1.2,
               ),
             ),
