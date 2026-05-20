@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../data/services/admin_service.dart';
 import '../../data/services/profile_service.dart';
 import '../../domain/models/user_profile.dart';
@@ -24,10 +25,17 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
   UserProfile? _profile;
   bool _isLoading = true;
 
+  // FEATURE 6: Citizen report statistics
+  bool _statsLoading = true;
+  int _totalReports = 0;
+  int _resolvedReports = 0;
+  int _pendingReports = 0;
+
   @override
   void initState() {
     super.initState();
     _loadProfile();
+    _loadStats();
   }
 
   Future<void> _loadProfile() async {
@@ -49,6 +57,42 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
         _profile = profile;
         _isLoading = false;
       });
+    }
+  }
+
+  // FEATURE 6: Load citizen report statistics
+  Future<void> _loadStats() async {
+    final user = _auth.currentUser;
+    if (user == null) {
+      if (mounted) setState(() => _statsLoading = false);
+      return;
+    }
+    try {
+      final snapshot = await FirebaseFirestore.instance
+          .collection('reports')
+          .where('userId', isEqualTo: user.uid)
+          .get();
+      int total = snapshot.docs.length;
+      int resolved = 0;
+      int pending = 0;
+      for (final doc in snapshot.docs) {
+        final status = doc.data()['status'] as String? ?? '';
+        if (status == 'solved') {
+          resolved++;
+        } else {
+          pending++;
+        }
+      }
+      if (mounted) {
+        setState(() {
+          _totalReports = total;
+          _resolvedReports = resolved;
+          _pendingReports = pending;
+          _statsLoading = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _statsLoading = false);
     }
   }
 
@@ -449,6 +493,61 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
                   ),
                 ),
 
+                // ── FEATURE 6: Citizen Report Statistics ──
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(18),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.04),
+                            blurRadius: 12,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: _statsLoading
+                          ? const Center(
+                              child: SizedBox(
+                                height: 48,
+                                child: CircularProgressIndicator(
+                                  color: Color(0xFF4CAF50),
+                                  strokeWidth: 2,
+                                ),
+                              ),
+                            )
+                          : Row(
+                              children: [
+                                _StatBox(
+                                  label: 'Total',
+                                  value: _totalReports,
+                                  bgColor: const Color(0xFFE3F2FD),
+                                  valueColor: const Color(0xFF1565C0),
+                                ),
+                                const SizedBox(width: 8),
+                                _StatBox(
+                                  label: 'Resolved',
+                                  value: _resolvedReports,
+                                  bgColor: const Color(0xFFE8F5E9),
+                                  valueColor: const Color(0xFF2E7D32),
+                                ),
+                                const SizedBox(width: 8),
+                                _StatBox(
+                                  label: 'Pending',
+                                  value: _pendingReports,
+                                  bgColor: const Color(0xFFFFF3E0),
+                                  valueColor: const Color(0xFFE65100),
+                                ),
+                              ],
+                            ),
+                    ),
+                  ),
+                ),
+
                 // ── Profile Menu ──
                 SliverToBoxAdapter(
                   child: Container(
@@ -612,6 +711,56 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Divider(height: 1, color: Colors.grey.shade200),
+    );
+  }
+}
+
+// ── FEATURE 6: Stat box widget ────────────────────────────────────────────
+class _StatBox extends StatelessWidget {
+  final String label;
+  final int value;
+  final Color bgColor;
+  final Color valueColor;
+
+  const _StatBox({
+    required this.label,
+    required this.value,
+    required this.bgColor,
+    required this.valueColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        decoration: BoxDecoration(
+          color: bgColor,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              '$value',
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                color: valueColor,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: valueColor.withValues(alpha: 0.8),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

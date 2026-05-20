@@ -1,10 +1,14 @@
 import 'dart:async';
+import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
+import 'package:in_app_review/in_app_review.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/utils/toast_utils.dart';
 import '../../presentation/state/municipality_state.dart';
+import 'offline_queue_service.dart';
 
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -17,6 +21,9 @@ class NotificationService {
 
   final FirebaseMessaging _messaging = FirebaseMessaging.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
+  // Navigator key for FCM tap routing — set from main.dart after the widget tree is built
+  GlobalKey<NavigatorState>? navigatorKey;
 
   // FIX 2: Guard flag to prevent duplicate listener registration
   bool _listenersActive = false;
@@ -72,6 +79,11 @@ class NotificationService {
       }
     });
 
+    // FCM tap routing: background → foreground
+    FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
+      _handleNotificationTap(message);
+    });
+
     // If already logged in at init time, start listening immediately
     // FIX 2: Only register if not already active
     final user = FirebaseAuth.instance.currentUser;
@@ -80,6 +92,60 @@ class NotificationService {
       _listenForBroadcasts(user.uid, oneVizcayaState.selectedMunicipality.value);
       _listenersActive = true;
     }
+
+    // Process any offline queued reports now that we're initialised (online check
+    // happens lazily — if Firebase is reachable the submissions will succeed)
+    _processOfflineQueue();
+  }
+
+  /// Called after the widget tree is built (via WidgetsBinding.addPostFrameCallback).
+  /// Handles the case where the app was terminated and opened via a notification tap.
+  Future<void> handleInitialMessage() async {
+    final message = await FirebaseMessaging.instance.getInitialMessage();
+    if (message != null) {
+      _handleNotificationTap(message);
+    }
+  }
+
+  void _handleNotificationTap(RemoteMessage message) {
+    final reportId = message.data['reportId'] as String?;
+    if (reportId != null && reportId.isNotEmpty) {
+      navigatorKey?.currentState?.pushNamed(
+        '/status',
+        arguments: {'reportId': reportId},
+      );
+    }
+  }
+
+  Future<void> _processOfflineQueue() async {
+    final queue = await OfflineQueueService().getQueue();
+    if (queue.isEmpty) return;
+    try {
+      for (final data in queue) {
+        final userId = data['userId'] as String? ?? '';
+        if (userId.isEmpty) continue;
+        final report = _reportFromMap(data);
+        await _firestore
+            .collection('users')
+            .doc(userId)
+            .collection('reports')
+            .add(report);
+      }
+      await OfflineQueueService().clearQueue();
+      debugPrint('NotificationService: offline queue flushed (${queue.length} reports)');
+    } catch (e) {
+      debugPrint('NotificationService._processOfflineQueue error: $e');
+    }
+  }
+
+  Map<String, dynamic> _reportFromMap(Map<String, dynamic> data) {
+    // Re-build the Firestore payload from stored map.
+    // We pass through as-is but convert the ISO-8601 reportedAt string back to
+    // a server timestamp placeholder for consistency.
+    final out = Map<String, dynamic>.from(data);
+    out.remove('userId'); // userId is part of the document path, not the payload
+    out['reportedAt'] = FieldValue.serverTimestamp();
+    return out;
   }
 
   // Listens to users/{uid}/notifications for documents where read == false
@@ -101,6 +167,12 @@ class NotificationService {
         ToastUtils.showSuccess('$title: $body');
         // Mark as read
         await doc.reference.update({'read': true});
+
+        // Feature 5: prompt in-app review when a report is solved
+        final status = data['status'] as String? ?? '';
+        if (status == 'solved') {
+          _maybeShowRatingPrompt();
+        }
       }
     }, onError: (e) {
       // FIX 1: Log errors instead of swallowing them silently
@@ -141,6 +213,21 @@ class NotificationService {
       // FIX 1: Log errors instead of swallowing them silently
       debugPrint('NotificationService._listenForBroadcasts error: $e');
     });
+  }
+
+  Future<void> _maybeShowRatingPrompt() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final alreadyShown = prefs.getBool('rating_prompt_shown') ?? false;
+      if (alreadyShown) return;
+      final inAppReview = InAppReview.instance;
+      if (await inAppReview.isAvailable()) {
+        await inAppReview.requestReview();
+        await prefs.setBool('rating_prompt_shown', true);
+      }
+    } catch (e) {
+      debugPrint('NotificationService._maybeShowRatingPrompt error: $e');
+    }
   }
 
   Future<void> _saveTokenForCurrentUser() async {

@@ -174,29 +174,36 @@ class _ReportStatusScreenState extends State<ReportStatusScreen> {
                 // Trigger scroll to highlighted item after build
                 _scrollToHighlighted(reports);
 
-                return ListView.builder(
-                  controller: _scrollController,
-                  padding: const EdgeInsets.all(8.0),
-                  itemCount: reports.length,
-                  itemBuilder: (context, index) {
-                    final report = reports[index];
-                    final isHighlighted = _highlightedReportId != null &&
-                        report.id == _highlightedReportId;
-                    if (isHighlighted) {
-                      return Container(
-                        decoration: BoxDecoration(
-                          border: Border.all(
-                            color: Colors.amber.shade600,
-                            width: 2.5,
-                          ),
-                          borderRadius: BorderRadius.circular(16.0),
-                        ),
-                        margin: const EdgeInsets.symmetric(vertical: 2),
-                        child: ReportStatusCard(report: report, lguColor: activeLguColor),
-                      );
-                    }
-                    return ReportStatusCard(report: report, lguColor: activeLguColor);
+                // FEATURE 5: Pull-to-refresh wraps the ListView
+                return RefreshIndicator(
+                  color: activeLguColor,
+                  onRefresh: () async {
+                    setState(() {});
                   },
+                  child: ListView.builder(
+                    controller: _scrollController,
+                    padding: const EdgeInsets.all(8.0),
+                    itemCount: reports.length,
+                    itemBuilder: (context, index) {
+                      final report = reports[index];
+                      final isHighlighted = _highlightedReportId != null &&
+                          report.id == _highlightedReportId;
+                      if (isHighlighted) {
+                        return Container(
+                          decoration: BoxDecoration(
+                            border: Border.all(
+                              color: Colors.amber.shade600,
+                              width: 2.5,
+                            ),
+                            borderRadius: BorderRadius.circular(16.0),
+                          ),
+                          margin: const EdgeInsets.symmetric(vertical: 2),
+                          child: ReportStatusCard(report: report, lguColor: activeLguColor),
+                        );
+                      }
+                      return ReportStatusCard(report: report, lguColor: activeLguColor);
+                    },
+                  ),
                 );
               },
             ),
