@@ -18,7 +18,8 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
   bool _offlineModeEnabled = false;
   bool _highContrastMode = false;
   String _selectedLanguage = 'English';
-  String _reportSortOrder = 'Newest First';
+  // Internal sort order key stored in prefs (language-independent)
+  String _reportSortKey = 'newestFirst';
 
   @override
   void initState() {
@@ -34,7 +35,7 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
       _offlineModeEnabled = prefs.getBool('offline_mode') ?? false;
       _highContrastMode = prefs.getBool('high_contrast') ?? false;
       _selectedLanguage = prefs.getString('language') ?? 'English';
-      _reportSortOrder = prefs.getString('report_sort') ?? 'Newest First';
+      _reportSortKey = prefs.getString('report_sort') ?? 'newestFirst';
     });
   }
 
@@ -151,15 +152,16 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
                   iconColor: const Color(0xFF00897B),
                   title: AppStrings.get('defaultSortOrder'),
                   subtitle: AppStrings.get('sortSubtitle'),
-                  value: _reportSortOrder,
-                  options: [
-                    AppStrings.get('newestFirst'),
-                    AppStrings.get('oldestFirst'),
-                    AppStrings.get('highestPriority'),
-                  ],
+                  value: _reportSortKey,
+                  options: const ['newestFirst', 'oldestFirst', 'highestPriority'],
+                  displayLabels: {
+                    'newestFirst': AppStrings.get('newestFirst'),
+                    'oldestFirst': AppStrings.get('oldestFirst'),
+                    'highestPriority': AppStrings.get('highestPriority'),
+                  },
                   onChanged: (val) {
                     if (val != null) {
-                      setState(() => _reportSortOrder = val);
+                      setState(() => _reportSortKey = val);
                       _saveSetting('report_sort', val);
                     }
                   },
@@ -565,6 +567,8 @@ class _DropdownTile extends StatelessWidget {
   final String subtitle;
   final String value;
   final List<String> options;
+  // Optional map of option value → display label (for translated options)
+  final Map<String, String>? displayLabels;
   final ValueChanged<String?> onChanged;
   final Color lguColor;
 
@@ -575,6 +579,7 @@ class _DropdownTile extends StatelessWidget {
     required this.subtitle,
     required this.value,
     required this.options,
+    this.displayLabels,
     required this.onChanged,
     required this.lguColor,
   });
@@ -608,7 +613,10 @@ class _DropdownTile extends StatelessWidget {
           fontWeight: FontWeight.w600,
         ),
         items: options
-            .map((o) => DropdownMenuItem(value: o, child: Text(o)))
+            .map((o) => DropdownMenuItem(
+                  value: o,
+                  child: Text(displayLabels?[o] ?? o),
+                ))
             .toList(),
         onChanged: onChanged,
       ),

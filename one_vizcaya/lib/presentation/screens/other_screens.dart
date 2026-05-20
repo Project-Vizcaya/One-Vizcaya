@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../core/l10n/app_strings.dart';
 import '../state/municipality_state.dart';
 import '../../core/constants/app_constants.dart';
 import '../../core/utils/toast_utils.dart';
@@ -178,9 +179,9 @@ class _SupportScreenState extends State<SupportScreen> {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  const Text(
-                    'How can we help?',
-                    style: TextStyle(
+                  Text(
+                    AppStrings.get('howCanWeHelp'),
+                    style: const TextStyle(
                       color: Colors.white,
                       fontSize: 22,
                       fontWeight: FontWeight.bold,
@@ -188,7 +189,7 @@ class _SupportScreenState extends State<SupportScreen> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Find answers to common questions below.',
+                    AppStrings.get('findAnswers'),
                     style: TextStyle(
                       color: Colors.white.withValues(alpha: 0.8),
                       fontSize: 13,
@@ -202,7 +203,7 @@ class _SupportScreenState extends State<SupportScreen> {
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 20, 16, 8),
               child: Text(
-                'CONTACT US',
+                AppStrings.get('contactUs'),
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
@@ -288,7 +289,7 @@ class _SupportScreenState extends State<SupportScreen> {
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
               child: Text(
-                'FREQUENTLY ASKED QUESTIONS',
+                AppStrings.get('faqHeader'),
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
