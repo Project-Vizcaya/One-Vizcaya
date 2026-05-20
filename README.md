@@ -227,7 +227,7 @@ The dashboard features a toggleable **Google Maps heatmap layer** overlaying rep
 
 <p align="center">
   <b>Developed By</b><br>
-  Aaron Anthony A. Gano II<br>
+  Mysterious_Alarm<br>
   <i>Computer Science Department, Nueva Vizcaya State University (NVSU)</i><br><br>
   <i>In compliance with Republic Act No. 10173 — Data Privacy Act of 2012</i>
 </p>
