@@ -37,12 +37,14 @@ service cloud.firestore {
       match /reports/{reportId} {
         allow read, write: if isOwner(userId);
         allow read, update: if isAdmin();
+        allow delete: if isProvincialAdmin();
       }
     }
 
     // Allows collectionGroup('reports') queries for admin dashboard
     match /{path=**}/reports/{reportId} {
       allow read, update: if isAdmin();
+      allow delete: if isProvincialAdmin();
     }
 
     // Announcements — any authenticated citizen can read
