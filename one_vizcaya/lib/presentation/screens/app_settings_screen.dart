@@ -153,6 +153,7 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
                   title: AppStrings.get('defaultSortOrder'),
                   subtitle: AppStrings.get('sortSubtitle'),
                   value: _reportSortKey,
+                  // FIX 8: Must match sort logic in home_screen.dart / report_status_screen.dart
                   options: const ['newestFirst', 'oldestFirst', 'highestPriority'],
                   displayLabels: {
                     'newestFirst': AppStrings.get('newestFirst'),

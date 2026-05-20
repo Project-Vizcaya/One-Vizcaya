@@ -108,7 +108,8 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
       final snapshot = await uploadTask;
       return await snapshot.ref.getDownloadURL();
     } catch (e) {
-      debugPrint('Image upload failed: $e');
+      // FIX 6: Only log in debug builds to avoid leaking file paths in release
+      assert(() { debugPrint('Image upload failed: $e'); return true; }());
       return null;
     }
   }
@@ -177,7 +178,19 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
   Future<void> _sendOnlineReport(String municipality) async {
     try {
       final user = FirebaseAuth.instance.currentUser;
-      final String userId = user?.uid ?? 'anonymous';
+      // FIX 5: Use a persistent anonymous device ID instead of the bare string 'anonymous'
+      String userId;
+      if (user != null) {
+        userId = user.uid;
+      } else {
+        final prefs = await SharedPreferences.getInstance();
+        String? anonId = prefs.getString('anon_device_id');
+        if (anonId == null) {
+          anonId = 'anon_${DateTime.now().millisecondsSinceEpoch}_${(1000 + (DateTime.now().microsecond % 9000))}';
+          await prefs.setString('anon_device_id', anonId);
+        }
+        userId = anonId;
+      }
 
       // Upload image if one was selected
       String? imageUrl;

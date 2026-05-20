@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import '../enums/report_category.dart';
 import '../enums/report_status.dart';
 import '../enums/report_priority.dart';
@@ -73,12 +74,26 @@ class ProblemReport {
       extractedUserId = pathSegments[1];
     }
 
+    // FIX 9: Log warnings when critical fields are missing in Firestore docs
+    final categoryStr = data['category'] as String? ?? '';
+    if (categoryStr.isEmpty) {
+      debugPrint('ProblemReport.fromFirestore: missing category for doc ${doc.id}');
+    }
+    final descriptionStr = data['description'] as String? ?? '';
+    if (descriptionStr.isEmpty) {
+      debugPrint('ProblemReport.fromFirestore: missing description for doc ${doc.id}');
+    }
+    final municipalityStr = data['municipality'] as String? ?? '';
+    if (municipalityStr.isEmpty) {
+      debugPrint('ProblemReport.fromFirestore: missing municipality for doc ${doc.id}');
+    }
+
     return ProblemReport(
       id: doc.id,
-      category: ReportCategory.fromString(data['category'] ?? 'Unknown'),
-      description: data['description'] ?? '',
+      category: ReportCategory.fromString(categoryStr.isEmpty ? 'Unknown' : categoryStr),
+      description: descriptionStr,
       location: data['location'] ?? '',
-      municipality: data['municipality'] ?? 'Unknown',
+      municipality: municipalityStr.isEmpty ? 'Unknown' : municipalityStr,
       status: ReportStatusExtension.fromString(data['status']),
       priority: ReportPriority.fromString(data['priority']),
       priorityScore: data['priorityScore'] ?? 0,
