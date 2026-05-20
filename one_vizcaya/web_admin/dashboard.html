@@ -389,6 +389,16 @@
         </div>
       </div>
       <div style="margin-top:20px;display:grid;grid-template-columns:repeat(4,1fr);gap:12px" id="analytics-kpis"></div>
+      <!-- Feature 10: Trend chart -->
+      <div style="margin-top:24px">
+        <div style="font-size:12px;font-weight:700;color:#718096;margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px">Report Trends (Last 8 Weeks)</div>
+        <canvas id="chart-trends" height="120"></canvas>
+      </div>
+      <!-- Feature 9: Citizen satisfaction -->
+      <div id="satisfaction-section" style="margin-top:24px;display:none">
+        <div style="font-size:12px;font-weight:700;color:#718096;margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px">Citizen Satisfaction</div>
+        <div id="satisfaction-content"></div>
+      </div>
       <div id="analytics-muni-breakdown" style="display:none;margin-top:20px">
         <div style="font-size:12px;font-weight:700;color:#718096;text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px">Municipality Breakdown</div>
         <div style="overflow-x:auto">
@@ -1178,6 +1188,12 @@ function renderAnalytics() {
       <div style="font-size:11px;color:#718096;margin-top:4px;font-weight:600">${k.label}</div>
     </div>`).join('');
 
+  // Feature 10: Report Trends — 8 weeks, top 3 categories
+  renderTrendChart(catEntries);
+
+  // Feature 9: Citizen Satisfaction
+  renderSatisfactionSection();
+
   // Municipality breakdown (provincial/super admin only)
   const isProvincialView = ['provincial_admin','super_admin','admin'].includes(userRole);
   const breakdownEl = document.getElementById('analytics-muni-breakdown');
@@ -1500,16 +1516,30 @@ async function openReportDetail(reportId, userId) {
         </div>
         ${r.isAnonymous ? '<div style="background:#FFF5F5;border-radius:10px;padding:12px;font-size:12px;color:#C53030;font-weight:600">🔒 Anonymous Report — citizen cannot be notified</div>' : ''}
         <div style="background:#F7FAFC;border-radius:10px;padding:14px">
-          <div style="font-size:11px;font-weight:700;color:#A0AEC0;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Admin Notes</div>
+          <div style="font-size:11px;font-weight:700;color:#A0AEC0;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Admin Notes History</div>
+          <div id="notes-history-feed" style="margin-bottom:10px">
+            ${buildNotesHistoryHtml(r)}
+          </div>
+          <div style="font-size:11px;font-weight:700;color:#718096;margin-bottom:6px">Add a new note:</div>
+          <select class="canned-select" id="canned-select" onchange="insertCannedResponse(this)">
+            <option value="">Insert canned response…</option>
+            ${CANNED_RESPONSES.map((t,i) => `<option value="${i}">${t.slice(0,60)}…</option>`).join('')}
+          </select>
           <textarea id="report-notes" rows="3" placeholder="Add a progress update or internal note…" maxlength="500"
             style="width:100%;border:1.5px solid #E2E8F0;border-radius:8px;padding:10px;font-size:13px;font-family:inherit;resize:vertical;outline:none;box-sizing:border-box"
-          >${escHtml(r.adminNotes||'')}</textarea>
+          ></textarea>
           <input id="report-responder" placeholder="Assigned responder name (optional)" maxlength="80" value="${escHtml(r.assignedResponder||'')}"
             style="width:100%;border:1.5px solid #E2E8F0;border-radius:8px;padding:10px;font-size:13px;font-family:inherit;margin-top:8px;outline:none;box-sizing:border-box"/>
-          <button onclick="saveReportNotes('${r.userId||''}','${r.id}')"
-            style="margin-top:10px;padding:9px 18px;background:#1565C0;color:#fff;border:none;border-radius:8px;font-weight:700;font-size:13px;cursor:pointer">
-            💾 Save Notes
-          </button>
+          <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+            <button onclick="saveReportNotes('${r.userId||''}','${r.id}')"
+              style="padding:9px 18px;background:#1565C0;color:#fff;border:none;border-radius:8px;font-weight:700;font-size:13px;cursor:pointer">
+              💾 Save Notes
+            </button>
+            <button onclick="exportReportPDF('${r.id}')"
+              style="padding:9px 18px;background:#E65100;color:#fff;border:none;border-radius:8px;font-weight:700;font-size:13px;cursor:pointer">
+              📄 Export PDF
+            </button>
+          </div>
         </div>
       </div>
     </div>`;
@@ -1521,13 +1551,26 @@ async function saveReportNotes(userId, reportId) {
   if (!userId || !reportId) return;
   const notes = document.getElementById('report-notes')?.value.trim() || '';
   const responder = document.getElementById('report-responder')?.value.trim() || '';
-  try {
-    await db.collection('users').doc(userId).collection('reports').doc(reportId).update({
-      adminNotes: notes,
-      assignedResponder: responder,
-      lastUpdatedBy: currentUser?.phoneNumber || 'Admin',
-      lastUpdatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+  const adminName = currentUser?.displayName || currentUser?.phoneNumber || 'Admin';
+  const updateData = {
+    lastUpdatedBy: adminName,
+    lastUpdatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+  };
+  // Feature 12: append to notesHistory array
+  if (notes) {
+    updateData.notesHistory = firebase.firestore.FieldValue.arrayUnion({
+      text: notes,
+      author: adminName,
+      timestamp: new Date().toISOString(),
     });
+  }
+  // Feature 1: record assigned responder and timestamp
+  if (responder !== undefined) {
+    updateData.assignedResponder = responder;
+    if (responder) updateData.assignedAt = firebase.firestore.FieldValue.serverTimestamp();
+  }
+  try {
+    await db.collection('users').doc(userId).collection('reports').doc(reportId).update(updateData);
     writeAuditLog('report_notes_updated', { reportId, userId, responder });
     document.getElementById('report-modal')?.remove();
   } catch (e) {
@@ -2051,7 +2094,9 @@ function editResponder(id) {
 }
 
 async function deleteResponder(id, name) {
-  if (!confirm(`Delete responder "${name}"? This cannot be undone.`)) return;
+  // Feature 13: require user to type DELETE
+  const confirmation = prompt(`Type DELETE to confirm deletion of responder "${name}":`);
+  if (confirmation !== 'DELETE') return;
   try {
     await db.collection('responders').doc(id).delete();
     if (typeof writeAuditLog === 'function') writeAuditLog('responder_deleted', { name, id });
@@ -2272,18 +2317,44 @@ function initAnnouncements() {
       if (userRole === 'municipal_admin') {
         anns = anns.filter(a => a.municipality === userMunicipality || a.municipality === 'All');
       }
-      renderAnnouncements(anns);
+      const now = new Date();
+      // Feature 4: separate scheduled (future) from live posts
+      const scheduled = anns.filter(a => a.scheduledFor?.toDate && a.scheduledFor.toDate() > now);
+      const live = anns.filter(a => !(a.scheduledFor?.toDate && a.scheduledFor.toDate() > now));
+      renderAnnouncements(live, scheduled);
     }, err => console.error('Announcements error:', err));
 }
 
-function renderAnnouncements(anns) {
+function renderAnnouncements(anns, scheduled) {
   const el = document.getElementById('ann-list');
+  const canDelete = ['provincial_admin', 'super_admin', 'admin'].includes(firestoreRole);
+
+  // Feature 4: render scheduled section
+  let scheduledHtml = '';
+  if (scheduled && scheduled.length > 0) {
+    scheduledHtml = `<div style="margin-bottom:16px;padding:12px;background:#EBF8FF;border-radius:10px;border:1px solid #BEE3F8">
+      <div style="font-size:12px;font-weight:700;color:#2B6CB0;margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">📅 Scheduled Posts</div>
+      ${scheduled.map(a => {
+        const schedTime = a.scheduledFor.toDate().toLocaleString('en-PH');
+        const del = canDelete
+          ? `<button onclick="deleteAnnouncement('${a.id}')" style="padding:3px 8px;background:#FFF5F5;color:#C53030;border:1px solid #FED7D7;border-radius:6px;font-size:11px;cursor:pointer">Cancel</button>`
+          : '';
+        return `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #BEE3F8;gap:8px">
+          <div>
+            <span style="font-weight:700;font-size:13px">${escHtml(a.title||'Untitled')}</span>
+            <span style="font-size:11px;color:#4A5568;margin-left:8px">Scheduled: ${schedTime}</span>
+          </div>
+          ${del}
+        </div>`;
+      }).join('')}
+    </div>`;
+  }
+
   if (anns.length === 0) {
-    el.innerHTML = '<div class="empty-state"><div>📢</div>No announcements yet. Create one above.</div>';
+    el.innerHTML = scheduledHtml + '<div class="empty-state"><div>📢</div>No announcements yet. Create one above.</div>';
     return;
   }
-  const canDelete = ['provincial_admin', 'super_admin', 'admin'].includes(firestoreRole);
-  el.innerHTML = anns.map(a => {
+  el.innerHTML = scheduledHtml + anns.map(a => {
     const when = a.timestamp?.toDate
       ? a.timestamp.toDate().toLocaleDateString('en-PH', { year:'numeric', month:'short', day:'numeric' })
       : '—';
@@ -2311,27 +2382,40 @@ async function postAnnouncement() {
   const postedBy   = document.getElementById('ann-posted-by').value.trim() || 'LGU';
   const municipality = document.getElementById('ann-municipality').value;
   const isUrgent   = document.getElementById('ann-urgent')?.checked ?? false;
+  const scheduleVal = document.getElementById('ann-schedule')?.value;
   if (!title) { alert('Please enter a title.'); return; }
   if (!body)  { alert('Please enter a message.'); return; }
   try {
-    await db.collection('announcements').add({
+    const docData = {
       title, body, municipality, isUrgent, postedBy,
       timestamp: firebase.firestore.FieldValue.serverTimestamp(),
       createdBy: currentUser.uid
-    });
-    writeAuditLog('announcement_created', { municipality, title });
+    };
+    // Feature 4: scheduled announcement
+    if (scheduleVal) {
+      const schedDate = new Date(scheduleVal);
+      if (!isNaN(schedDate.getTime())) {
+        docData.scheduledFor = firebase.firestore.Timestamp.fromDate(schedDate);
+      }
+    }
+    await db.collection('announcements').add(docData);
+    writeAuditLog('announcement_created', { municipality, title, scheduled: scheduleVal || false });
     document.getElementById('ann-title').value     = '';
     document.getElementById('ann-body').value      = '';
     document.getElementById('ann-posted-by').value = '';
     document.getElementById('ann-urgent').checked  = false;
+    document.getElementById('ann-schedule').value  = '';
     document.getElementById('new-announcement-form').style.display = 'none';
+    if (scheduleVal) showToast('📅 Announcement scheduled for ' + new Date(scheduleVal).toLocaleString('en-PH'));
   } catch (e) {
     alert('Failed to post announcement: ' + e.message);
   }
 }
 
 async function deleteAnnouncement(id) {
-  if (!confirm('Delete this announcement? This cannot be undone.')) return;
+  // Feature 13: require user to type DELETE
+  const confirmation = prompt('Type DELETE to confirm deletion of this announcement:');
+  if (confirmation !== 'DELETE') return;
   try {
     await db.collection('announcements').doc(id).delete();
     writeAuditLog('announcement_deleted', { announcementId: id });
