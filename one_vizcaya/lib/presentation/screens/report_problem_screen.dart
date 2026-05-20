@@ -466,13 +466,11 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
                 decoration: InputDecoration(
                   labelText: 'Brief Description',
                   prefixIcon: Icon(Icons.description, color: primaryLguColor),
-                  hintText: 'Describe the problem in detail (min. 20 characters).',
+                  hintText: 'Describe the problem in detail (min. 50 characters).',
                   focusedBorder: OutlineInputBorder(
                     borderSide: BorderSide(color: primaryLguColor, width: 2),
                   ),
                   labelStyle: TextStyle(color: primaryLguColor),
-                  counterText:
-                      '${_descriptionController.text.length} / 20 min',
                 ),
                 maxLines: 4,
                 maxLength: 500,
@@ -481,10 +479,10 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
                         required isFocused,
                         maxLength}) =>
                     Text(
-                  '$currentLength / 20 min',
+                  '$currentLength / 50 min',
                   style: TextStyle(
                     fontSize: 12,
-                    color: currentLength < 20
+                    color: currentLength < 50
                         ? Colors.red.shade400
                         : Colors.grey.shade600,
                   ),
@@ -494,8 +492,8 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
                   if (value == null || value.trim().isEmpty) {
                     return 'Please enter a description';
                   }
-                  if (value.trim().length < 20) {
-                    return 'Description must be at least 20 characters';
+                  if (value.trim().length < 50) {
+                    return 'Description must be at least 50 characters';
                   }
                   return null;
                 },
