@@ -212,40 +212,49 @@ class _AnnouncementsListState extends State<_AnnouncementsList> {
                 SliverFillRemaining(
                   hasScrollBody: false,
                   child: Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          _showBookmarked
-                              ? Icons.bookmark_border
-                              : Icons.campaign_outlined,
-                          size: 64,
-                          color: widget.lguColor.withValues(alpha: 0.3),
-                          semanticLabel: _showBookmarked
-                              ? 'No bookmarks'
-                              : 'No announcements',
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          _showBookmarked
-                              ? 'No bookmarked announcements'
-                              : AppStrings.get('noAnnouncements'),
-                          style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.grey.shade600),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          _showBookmarked
-                              ? 'Tap the bookmark icon on any announcement to save it here'
-                              : 'Check back later for updates from ${widget.municipality} LGU',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                              fontSize: 13,
-                              color: Colors.grey.shade400),
-                        ),
-                      ],
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 32),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            _showBookmarked
+                                ? Icons.bookmark_border
+                                : Icons.campaign_outlined,
+                            size: _showBookmarked ? 56 : 64,
+                            color: _showBookmarked
+                                ? Colors.grey.shade300
+                                : widget.lguColor.withValues(alpha: 0.3),
+                            semanticLabel: _showBookmarked
+                                ? 'No bookmarks'
+                                : 'No announcements',
+                          ),
+                          SizedBox(height: _showBookmarked ? 12 : 16),
+                          Text(
+                            _showBookmarked
+                                ? 'No saved announcements'
+                                : AppStrings.get('noAnnouncements'),
+                            style: TextStyle(
+                                fontSize: _showBookmarked ? 16 : 18,
+                                fontWeight: FontWeight.w600,
+                                color: _showBookmarked
+                                    ? Colors.grey.shade500
+                                    : Colors.grey.shade600),
+                          ),
+                          SizedBox(height: _showBookmarked ? 6 : 8),
+                          Text(
+                            _showBookmarked
+                                ? 'Tap the bookmark icon on any announcement to save it for later'
+                                : 'Check back later for updates from ${widget.municipality} LGU',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                                fontSize: 13,
+                                color: _showBookmarked
+                                    ? Colors.grey.shade400
+                                    : Colors.grey.shade400),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 )
