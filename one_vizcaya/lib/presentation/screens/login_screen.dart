@@ -395,9 +395,9 @@ class _LoginScreenState extends State<LoginScreen>
               ),
 
               // ── Bottom Login Button ──
-              if (!_isLoading)
+              if (!_isLoading) ...[
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+                  padding: const EdgeInsets.fromLTRB(24, 0, 24, 8),
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 300),
                     curve: Curves.easeOut,
@@ -441,6 +441,26 @@ class _LoginScreenState extends State<LoginScreen>
                     ),
                   ),
                 ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+                  child: OutlinedButton.icon(
+                    onPressed: _loginWithBiometric,
+                    icon: const Icon(Icons.fingerprint, size: 22),
+                    label: const Text(
+                      'Log in with Biometrics',
+                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xFF388E3C),
+                      side: const BorderSide(color: Color(0xFF388E3C)),
+                      minimumSize: const Size(double.infinity, 52),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ],
           ),
         ),
