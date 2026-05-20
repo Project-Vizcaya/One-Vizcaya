@@ -1270,8 +1270,10 @@ function applyFilter() {
 }
 
 function filterReports(status, btn) {
-  currentFilter = status;
-  criticalOnly  = false;
+  currentFilter  = status;
+  criticalOnly   = false;
+  overdueOnly    = false;
+  assignedMeOnly = false;
   document.querySelectorAll('.reports-filter .chip').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   applyFilter();
