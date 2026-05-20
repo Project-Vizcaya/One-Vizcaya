@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../../core/l10n/app_strings.dart';
 import '../../domain/models/problem_report.dart';
 import '../../domain/enums/report_priority.dart';
 import '../../domain/repositories/report_repository.dart';
@@ -58,8 +59,8 @@ class _ReportStatusScreenState extends State<ReportStatusScreen> {
     final user = FirebaseAuth.instance.currentUser;
 
     if (user == null) {
-      return const Scaffold(
-        body: Center(child: Text('Please log in to view reports.')),
+      return Scaffold(
+        body: Center(child: Text(AppStrings.get('loginToView'))),
       );
     }
 
@@ -68,7 +69,7 @@ class _ReportStatusScreenState extends State<ReportStatusScreen> {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: activeLguColor,
-        title: Text('My Reports to $activeMunicipalityName'),
+        title: Text('${AppStrings.get('myReportsTitle')} to $activeMunicipalityName'),
       ),
       body: SafeArea(
         top: false,
@@ -85,7 +86,7 @@ class _ReportStatusScreenState extends State<ReportStatusScreen> {
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   child: Row(
                     children: [
-                      const Text('Filter: ', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                      Text(AppStrings.get('filterLabel'), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
                       const SizedBox(width: 4),
                       FilterChip(
                         label: const Text('All'),
@@ -151,7 +152,7 @@ class _ReportStatusScreenState extends State<ReportStatusScreen> {
                       children: [
                         Icon(Icons.history, size: 64, color: activeLguColor.withAlpha((255 * 0.3).round()), semanticLabel: 'No reports'),
                         const SizedBox(height: 16),
-                        Text('No reports submitted to $activeMunicipalityName yet.'),
+                        Text('${AppStrings.get('noReportsYet')} ($activeMunicipalityName)'),
                       ],
                     ),
                   );

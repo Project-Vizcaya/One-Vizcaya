@@ -688,8 +688,8 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
                 children: [
                   _imagePickerOption(
                     icon: Icons.camera_alt_rounded,
-                    label: 'Camera',
-                    sublabel: 'Timestamped',
+                    label: AppStrings.get('photoCamera'),
+                    sublabel: AppStrings.get('timestamped'),
                     onTap: () {
                       Navigator.pop(context);
                       _pickImage(ImageSource.camera);
@@ -697,8 +697,8 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
                   ),
                   _imagePickerOption(
                     icon: Icons.photo_library_rounded,
-                    label: 'Gallery',
-                    sublabel: 'No timestamp',
+                    label: AppStrings.get('photoGallery'),
+                    sublabel: AppStrings.get('noTimestamp'),
                     onTap: () {
                       Navigator.pop(context);
                       _pickImage(ImageSource.gallery);
