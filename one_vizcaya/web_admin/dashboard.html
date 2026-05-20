@@ -213,6 +213,8 @@
   <style>
     /* ── Overdue badge ── */
     .badge-overdue{padding:3px 8px;border-radius:20px;font-size:10px;font-weight:700;background:#FFF5F5;color:#C53030;white-space:nowrap;margin-left:4px}
+    /* ── Warning badge ── */
+    .badge-warning{background:#FFF3E0;color:#E65100;border:1px solid #FFB74D;border-radius:10px;padding:2px 8px;font-size:11px;font-weight:600;white-space:nowrap;margin-left:4px}
     /* ── Bulk action bar ── */
     #bulk-action-bar{position:sticky;top:68px;z-index:500;background:#1565C0;color:#fff;padding:10px 18px;display:none;align-items:center;gap:12px;flex-wrap:wrap;border-radius:0 0 12px 12px;box-shadow:0 4px 12px rgba(21,101,192,.4)}
     #bulk-action-bar select{padding:6px 10px;border-radius:8px;border:none;font-size:13px;font-weight:600;cursor:pointer}
@@ -832,6 +834,33 @@
 <script>
 function escHtml(str) {
   return String(str ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function timeAgo(date) {
+  const d = date?.toDate ? date.toDate() : new Date(date || Date.now());
+  const diff = Math.floor((Date.now() - d.getTime()) / 1000);
+  if (diff < 60) return 'just now';
+  if (diff < 3600) return Math.floor(diff/60) + 'm ago';
+  if (diff < 86400) return Math.floor(diff/3600) + 'h ago';
+  return Math.floor(diff/86400) + 'd ago';
+}
+
+function authorColor(name) {
+  let hash = 0;
+  for (let c of (name||'A')) hash = c.charCodeAt(0) + ((hash<<5)-hash);
+  return `hsl(${Math.abs(hash)%360},50%,45%)`;
+}
+
+function getSLABadge(r) {
+  if (r.status === 'solved') return '';
+  const sla = SLA_HOURS[r.category];
+  if (!sla || !r.reportedAt) return '';
+  const reported = r.reportedAt.toDate ? r.reportedAt.toDate() : new Date(r.reportedAt);
+  const hoursElapsed = (Date.now() - reported.getTime()) / 3600000;
+  const pct = hoursElapsed / sla;
+  if (pct >= 1) return '<span class="badge-overdue" title="SLA: '+sla+'h | Elapsed: '+Math.round(hoursElapsed)+'h overdue">⏰ Overdue</span>';
+  if (pct >= 0.75) return '<span class="badge-warning" title="SLA: '+sla+'h | Due in '+Math.round((sla-hoursElapsed))+'h">⚠ Due in '+Math.round(sla-hoursElapsed)+'h</span>';
+  return '';
 }
 
 // Municipality seal images — served locally from img/seals/
@@ -1623,8 +1652,8 @@ function renderTable(reports) {
     const sl  = STATUS_LABELS[r.status]     || r.status   || '—';
     const anon = r.isAnonymous ? '<span class="anon-badge">Anon</span>' : '';
     const hasGps = r.latitude && r.longitude;
-    // Feature 2: overdue badge
-    const overdueBadge = isOverdue(r) ? '<span class="badge-overdue">⏰ Overdue</span>' : '';
+    // Feature 2: SLA badge (overdue or approaching)
+    const overdueBadge = getSLABadge(r);
     // Feature 1: assigned to
     const assignedTo = escHtml(r.assignedResponder || '—');
     // Feature 3: checkbox (stop propagation so clicking checkbox doesn't open detail)
@@ -1703,22 +1732,18 @@ async function openReportDetail(reportId, userId) {
               </button>`).join('')}
           </div>
           ${(() => {
-            // POLISH 2: SLA progress bar in modal
-            const slaH = SLA_HOURS[r.category];
-            if (!slaH || r.status === 'solved') return '';
-            const ageH = (Date.now() - (r.reportedAt?.getTime ? r.reportedAt.getTime() : Date.now())) / 3600000;
-            const pct = Math.min(Math.round(ageH / slaH * 100), 100);
-            const fill = pct >= 100 ? '#C53030' : pct >= 75 ? '#E65100' : '#2E7D32';
-            const slaTooltip = `SLA: ${slaH}h | Age: ${Math.round(ageH)}h | ${pct >= 100 ? Math.round(ageH-slaH)+'h overdue' : Math.round(slaH-ageH)+'h remaining'}`;
-            return `<div style="margin-top:10px">
-              <div style="display:flex;justify-content:space-between;font-size:11px;color:#718096;margin-bottom:4px">
-                <span>SLA Progress</span>
-                <span title="${slaTooltip}" style="cursor:help">${pct}% — ${slaTooltip}</span>
-              </div>
-              <div class="sla-progress-bar" title="${slaTooltip}">
-                <div class="sla-progress-fill" style="width:${pct}%;background:${fill}"></div>
-              </div>
-            </div>`;
+            // POLISH 1: SLA progress bar in modal
+            const slaHours = SLA_HOURS[r.category] || 0;
+            if (!slaHours || r.status === 'solved') return '';
+            const reportedDate = r.reportedAt?.toDate ? r.reportedAt.toDate() : new Date(r.reportedAt || Date.now());
+            const elapsedHours = (Date.now() - reportedDate.getTime()) / 3600000;
+            const slaPct = slaHours > 0 ? Math.min((elapsedHours / slaHours) * 100, 100) : 0;
+            const slaColor = slaPct >= 100 ? '#f44336' : slaPct >= 75 ? '#ff9800' : '#4caf50';
+            return `
+              <div style="margin:12px 0 4px;font-size:12px;color:#666">SLA Progress (${Math.round(elapsedHours)}h / ${slaHours}h)</div>
+              <div style="background:#eee;border-radius:4px;height:8px;overflow:hidden">
+                <div style="width:${slaPct}%;background:${slaColor};height:100%;transition:width 0.5s"></div>
+              </div>`;
           })()}
           ${r.assignedAt ? `<div style="margin-top:8px;font-size:11px;color:#718096">Assigned ${timeAgo(new Date(r.assignedAt?.toDate ? r.assignedAt.toDate() : r.assignedAt))}</div>` : ''}
         </div>
@@ -2838,30 +2863,49 @@ function exportReportPDF(reportId) {
   const { jsPDF } = window.jspdf || window;
   const doc = new jsPDF({ unit: 'pt', format: 'a4' });
 
-  const margin = 48;
-  let y = margin;
+  // Styled header block
+  doc.setFillColor(46, 125, 50);
+  doc.rect(0, 0, 210, 28, 'F');
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(16); doc.setFont('helvetica', 'bold');
+  doc.text('ONE VIZCAYA', 14, 12);
+  doc.setFontSize(9); doc.setFont('helvetica', 'normal');
+  doc.text('Provincial Government of Nueva Vizcaya — Incident Report', 14, 19);
+  doc.text(`Generated: ${new Date().toLocaleString('en-PH')}`, 14, 24);
+  doc.setTextColor(0, 0, 0);
 
-  // Header
-  doc.setFontSize(18); doc.setFont(undefined, 'bold');
-  doc.text('ONE VIZCAYA — Incident Report', margin, y); y += 24;
-  doc.setFontSize(10); doc.setFont(undefined, 'normal');
-  doc.setDrawColor(46, 125, 50);
-  doc.line(margin, y, 595 - margin, y); y += 16;
+  const margin = 14;
+  const valueX = 70;
+  let y = 36;
 
   // Fields helper
-  const field = (label, value) => {
-    doc.setFont(undefined, 'bold'); doc.setFontSize(9);
+  const field = (label, value, skipStatusColor) => {
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(9);
+    doc.setTextColor(100, 100, 100);
     doc.text(label.toUpperCase(), margin, y);
-    doc.setFont(undefined, 'normal'); doc.setFontSize(11);
-    const lines = doc.splitTextToSize(String(value || '—'), 595 - margin * 2);
-    doc.text(lines, margin, y + 12);
-    y += 12 + lines.length * 14 + 6;
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(10);
+    doc.setTextColor(0, 0, 0);
+    const lines = doc.splitTextToSize(String(value || '—'), 186 - valueX + margin);
+    doc.text(lines, valueX, y);
+    y += lines.length * 13 + 4;
   };
 
   field('Report ID', r.id);
   field('Category', r.category);
   field('Priority', r.priority);
-  field('Status', r.status);
+
+  // Status with color
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(9);
+  doc.setTextColor(100, 100, 100);
+  doc.text('STATUS', margin, y);
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(10);
+  const statusColors = { reported: [21,101,192], ongoing: [230,81,0], solved: [46,125,50] };
+  const sc = statusColors[r.status] || [0,0,0];
+  doc.setTextColor(...sc);
+  doc.text(`● ${(r.status||'').toUpperCase()}`, valueX, y);
+  doc.setTextColor(0, 0, 0);
+  y += 17;
+
   field('Municipality', r.municipality);
   field('Barangay', r.barangay || '—');
   field('Description', r.description);
@@ -2870,30 +2914,38 @@ function exportReportPDF(reportId) {
   field('Reported At', reportedAtStr);
   field('Assigned Responder', r.assignedResponder || '—');
 
-  // Notes history
+  // Notes history as bordered blocks
   if (r.notesHistory && r.notesHistory.length > 0) {
-    y += 4;
-    doc.setFont(undefined, 'bold'); doc.setFontSize(9);
-    doc.text('ADMIN NOTES HISTORY', margin, y); y += 14;
+    y += 8;
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(11);
+    doc.setTextColor(0, 0, 0);
+    doc.text('Admin Notes History', 14, y); y += 6;
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(9);
     r.notesHistory.slice().reverse().forEach(n => {
-      doc.setFont(undefined, 'normal'); doc.setFontSize(10);
-      const noteLines = doc.splitTextToSize(`[${n.timestamp ? new Date(n.timestamp).toLocaleString('en-PH') : '?'}] ${n.author||'Admin'}: ${n.text}`, 595 - margin * 2);
-      doc.text(noteLines, margin, y);
-      y += noteLines.length * 13 + 4;
+      doc.setDrawColor(200,200,200);
+      doc.roundedRect(12, y, 186, 14, 2, 2, 'S');
+      doc.setFont('helvetica', 'bold');
+      doc.text(n.author || 'Admin', 16, y+5);
+      doc.setFont('helvetica', 'normal');
+      const ts = n.timestamp?.toDate ? n.timestamp.toDate().toLocaleString('en-PH') : (n.timestamp ? new Date(n.timestamp).toLocaleString('en-PH') : '');
+      doc.setTextColor(120,120,120); doc.text(ts, 16, y+10); doc.setTextColor(0,0,0);
+      doc.text(doc.splitTextToSize(n.text||'', 150)[0], 60, y+5);
+      y += 16;
     });
   } else if (r.adminNotes) {
     field('Admin Notes', r.adminNotes);
   }
 
   // Footer
-  y = 800;
+  const footerY = 280;
   doc.setDrawColor(200, 200, 200);
-  doc.line(margin, y - 4, 595 - margin, y - 4);
-  doc.setFontSize(9); doc.setFont(undefined, 'italic');
+  doc.line(margin, footerY - 4, 210 - margin, footerY - 4);
+  doc.setFontSize(8); doc.setFont('helvetica', 'italic');
+  doc.setTextColor(120,120,120);
   const adminName = currentUser?.displayName || currentUser?.phoneNumber || 'Admin';
-  doc.text(`Generated on ${new Date().toLocaleString('en-PH')} by ${adminName}`, margin, y + 8);
+  doc.text(`Generated on ${new Date().toLocaleString('en-PH')} by ${adminName}`, margin, footerY + 4);
 
-  doc.save(`OneVizcaya_Report_${r.id}.pdf`);
+  doc.save(`OneVizcaya_${(r.category||'Report').replace(/[^a-z0-9]/gi,'_')}_${(r.id||'').slice(0,8)}_${new Date().toISOString().slice(0,10)}.pdf`);
 }
 
 // ── Feature 8: Canned responses ───────────────────────────────────────────────
@@ -3031,9 +3083,15 @@ function buildNotesHistoryHtml(r) {
   if (r.notesHistory && r.notesHistory.length > 0) {
     r.notesHistory.slice().reverse().forEach(n => {
       const when = n.timestamp ? new Date(n.timestamp).toLocaleString('en-PH') : '?';
-      entries.push(`<div class="note-entry">
-        <div class="note-entry-meta">${escHtml(n.author||'Admin')} &bull; ${when}</div>
-        <div>${escHtml(n.text||'')}</div>
+      const ago = n.timestamp ? timeAgo(new Date(n.timestamp)) : '';
+      const initial = (n.author||'A')[0].toUpperCase();
+      const avatarHtml = `<div style="width:28px;height:28px;border-radius:50%;background:${authorColor(n.author)};color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0">${initial}</div>`;
+      entries.push(`<div class="note-entry" style="display:flex;gap:10px;align-items:flex-start">
+        ${avatarHtml}
+        <div style="flex:1;min-width:0">
+          <div class="note-entry-meta">${escHtml(n.author||'Admin')} &bull; <span title="${when}">${ago}</span></div>
+          <div>${escHtml(n.text||'')}</div>
+        </div>
       </div>`);
     });
   } else if (r.adminNotes) {
