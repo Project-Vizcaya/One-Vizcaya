@@ -2358,16 +2358,57 @@ function editResponder(id) {
 }
 
 async function deleteResponder(id, name) {
-  // Feature 13: require user to type DELETE
-  const confirmation = prompt(`Type DELETE to confirm deletion of responder "${name}":`);
-  if (confirmation !== 'DELETE') return;
-  try {
-    await db.collection('responders').doc(id).delete();
-    if (typeof writeAuditLog === 'function') writeAuditLog('responder_deleted', { name, id });
-    await loadFirestoreResponders();
-  } catch (e) {
-    alert('Delete failed: ' + e.message);
+  confirmDelete('Responder', () => {
+    db.collection('responders').doc(id).delete()
+      .then(() => {
+        if (typeof writeAuditLog === 'function') writeAuditLog('responder_deleted', { name, id });
+        loadFirestoreResponders();
+      })
+      .catch(e => alert('Delete failed: ' + e.message));
+  });
+}
+
+function confirmDelete(itemName, onConfirm) {
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center';
+  overlay.innerHTML = `
+    <div style="background:#fff;border-radius:12px;padding:28px;max-width:380px;width:90%;box-shadow:0 8px 32px rgba(0,0,0,0.2)">
+      <div style="text-align:center;margin-bottom:16px">
+        <span style="font-size:40px">🗑️</span>
+        <h3 style="color:#c62828;margin:8px 0 4px">Delete ${itemName}?</h3>
+        <p style="color:#666;font-size:13px;margin:0">This action cannot be undone.</p>
+      </div>
+      <p style="font-size:13px;color:#333;margin-bottom:8px">Type <strong>DELETE</strong> to confirm:</p>
+      <input id="confirm-delete-input" placeholder="Type DELETE here" style="width:100%;padding:10px;border:2px solid #eee;border-radius:8px;font-size:14px;box-sizing:border-box;outline:none">
+      <div style="display:flex;gap:10px;margin-top:16px">
+        <button id="confirm-cancel-btn" style="flex:1;padding:10px;border:1px solid #ddd;border-radius:8px;background:#fff;cursor:pointer;font-size:14px">Cancel</button>
+        <button id="confirm-delete-btn" disabled style="flex:1;padding:10px;border:none;border-radius:8px;background:#eee;color:#999;cursor:not-allowed;font-size:14px;font-weight:600">Delete</button>
+      </div>
+      <p id="confirm-cooldown" style="text-align:center;font-size:11px;color:#999;margin-top:8px">Please wait 3 seconds...</p>
+    </div>`;
+  document.body.appendChild(overlay);
+  const input = overlay.querySelector('#confirm-delete-input');
+  const btn = overlay.querySelector('#confirm-delete-btn');
+  const cooldown = overlay.querySelector('#confirm-cooldown');
+  let ready = false;
+  setTimeout(() => {
+    ready = true; cooldown.style.display='none';
+    if (input.value==='DELETE') enableBtn();
+  }, 3000);
+  function enableBtn() {
+    btn.disabled=false;
+    btn.style.cssText='flex:1;padding:10px;border:none;border-radius:8px;background:#c62828;color:#fff;cursor:pointer;font-size:14px;font-weight:600';
   }
+  input.addEventListener('input', () => {
+    input.style.borderColor = input.value==='DELETE' ? '#4caf50' : input.value.length>0 ? '#f44336' : '#eee';
+    if (input.value==='DELETE' && ready) enableBtn();
+    else if (input.value!=='DELETE') {
+      btn.disabled=true;
+      btn.style.cssText='flex:1;padding:10px;border:none;border-radius:8px;background:#eee;color:#999;cursor:not-allowed;font-size:14px;font-weight:600';
+    }
+  });
+  overlay.querySelector('#confirm-cancel-btn').onclick = () => document.body.removeChild(overlay);
+  btn.onclick = () => { document.body.removeChild(overlay); onConfirm(); };
 }
 
 function filterRespDir(type, btn) {
@@ -2677,15 +2718,11 @@ async function postAnnouncement() {
 }
 
 async function deleteAnnouncement(id) {
-  // Feature 13: require user to type DELETE
-  const confirmation = prompt('Type DELETE to confirm deletion of this announcement:');
-  if (confirmation !== 'DELETE') return;
-  try {
-    await db.collection('announcements').doc(id).delete();
-    writeAuditLog('announcement_deleted', { announcementId: id });
-  } catch (e) {
-    alert('Failed to delete: ' + e.message);
-  }
+  confirmDelete('Announcement', () => {
+    db.collection('announcements').doc(id).delete()
+      .then(() => writeAuditLog('announcement_deleted', { announcementId: id }))
+      .catch(e => alert('Failed to delete: ' + e.message));
+  });
 }
 
 function toggleNewAnnouncement() {
@@ -2861,7 +2898,7 @@ function exportReportPDF(reportId) {
     alert('jsPDF library not loaded. Check internet connection.'); return;
   }
   const { jsPDF } = window.jspdf || window;
-  const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+  const doc = new jsPDF({ unit: 'mm', format: 'a4' });
 
   // Styled header block
   doc.setFillColor(46, 125, 50);
@@ -2990,25 +3027,68 @@ function renderSatisfactionSection() {
     </div>`;
   }).join('');
 
+  // Star display
+  const fullStars = Math.floor(avg);
+  const halfStar = avg % 1 >= 0.5;
+  const stars = '★'.repeat(fullStars) + (halfStar ? '½' : '') + '☆'.repeat(5 - fullStars - (halfStar?1:0));
+
+  // Low rating alert
+  const lowRatingHtml = (avg < 3.0 && ratedReports.length > 5)
+    ? `<div style="background:#FFF3E0;border-left:4px solid #FF9800;padding:8px 12px;border-radius:4px;margin-bottom:12px;font-size:13px">
+        ⚠️ Satisfaction below threshold — review recent resolved reports.
+      </div>` : '';
+
+  // Municipality breakdown
+  const muniRatings = {};
+  ratedReports.forEach(r => {
+    if (!muniRatings[r.municipality]) muniRatings[r.municipality] = [];
+    muniRatings[r.municipality].push(r.feedbackRating);
+  });
+  const muniRows = Object.entries(muniRatings)
+    .map(([m, ratings]) => ({ m, avg: ratings.reduce((a,b)=>a+b,0)/ratings.length, count: ratings.length }))
+    .sort((a,b) => b.avg - a.avg)
+    .map(({m, avg: mAvg, count}, i) => `<tr style="background:${i%2?'#f9f9f9':'#fff'}">
+      <td style="padding:6px 10px">${escHtml(m)}</td>
+      <td style="padding:6px 10px;color:#FF8F00">${'★'.repeat(Math.round(mAvg))}</td>
+      <td style="padding:6px 10px">${mAvg.toFixed(1)}</td>
+      <td style="padding:6px 10px;color:#666">${count}</td>
+    </tr>`).join('');
+
+  const muniTableHtml = muniRows ? `
+    <div style="margin-top:16px;overflow-x:auto">
+      <table style="width:100%;border-collapse:collapse;font-size:12px">
+        <thead><tr style="background:#F7FAFC">
+          <th style="text-align:left;padding:6px 10px;font-weight:700;color:#718096;border-bottom:2px solid #EDF2F7">Municipality</th>
+          <th style="text-align:left;padding:6px 10px;font-weight:700;color:#718096;border-bottom:2px solid #EDF2F7">Stars</th>
+          <th style="text-align:left;padding:6px 10px;font-weight:700;color:#718096;border-bottom:2px solid #EDF2F7">Avg</th>
+          <th style="text-align:left;padding:6px 10px;font-weight:700;color:#718096;border-bottom:2px solid #EDF2F7">Count</th>
+        </tr></thead>
+        <tbody>${muniRows}</tbody>
+      </table>
+    </div>` : '';
+
   contentEl.innerHTML = `
+    ${lowRatingHtml}
     <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap">
       <div style="text-align:center">
         <div style="font-size:32px;font-weight:800;color:#E65100">${avg.toFixed(1)}</div>
-        <div style="font-size:13px;color:#718096">/ 5.0 ⭐</div>
+        <div style="font-size:20px;color:#F6AD55;letter-spacing:2px">${stars}</div>
+        <div style="font-size:13px;color:#718096">/ 5.0</div>
         <div style="font-size:11px;color:#A0AEC0;margin-top:4px">${ratedReports.length} rated report${ratedReports.length!==1?'s':''}</div>
       </div>
       <div style="flex:1;min-width:180px">${barsHtml}</div>
-    </div>`;
+    </div>
+    ${muniTableHtml}`;
 }
 
 // ── Feature 10: Trend chart ───────────────────────────────────────────────────
 let chartTrends;
-function renderTrendChart(catEntries) {
+function renderTrendChart(catEntries, weeksOverride) {
   const canvas = document.getElementById('chart-trends');
   if (!canvas) return;
 
   const now = new Date();
-  const weeks = Array.from({length: 8}, (_, i) => {
+  const weeks = weeksOverride || Array.from({length: 8}, (_, i) => {
     const d = new Date(now - (7 - i) * 7 * 24 * 3600 * 1000);
     return { label: `${d.getMonth()+1}/${d.getDate()}`, start: new Date(now - (7 - i) * 7 * 24 * 3600 * 1000) };
   });
@@ -3107,26 +3187,200 @@ function buildNotesHistoryHtml(r) {
 
 // ── Feature 14: Session timeout warning ──────────────────────────────────────
 let _sessionTimeoutTimer = null;
+let _countdownInterval = null;
+
+function showSessionWarning(secondsLeft) {
+  if (_countdownInterval) clearInterval(_countdownInterval);
+  let secs = secondsLeft;
+  const banner = document.getElementById('session-warning');
+  if (!banner) return;
+  banner.style.display = 'flex';
+  // Slide-in animation
+  setTimeout(() => banner.classList.add('show'), 100);
+  _countdownInterval = setInterval(() => {
+    secs--;
+    const timeEl = banner.querySelector('#session-countdown');
+    if (timeEl) {
+      const m = Math.floor(secs/60), s = secs%60;
+      timeEl.textContent = `${m}:${s.toString().padStart(2,'0')}`;
+    }
+    if (secs <= 0) clearInterval(_countdownInterval);
+  }, 1000);
+}
+
+function hideSessBanner() {
+  const banner = document.getElementById('session-warning');
+  if (banner) { banner.classList.remove('show'); setTimeout(() => { banner.style.display = 'none'; }, 350); }
+  if (_countdownInterval) { clearInterval(_countdownInterval); _countdownInterval = null; }
+}
+
+function toggleAutoRefreshSession(checked) {
+  if (!checked) return;
+  // Immediately refresh and then every 50 minutes
+  firebase.auth().currentUser?.getIdToken(true).then(() => hideSessBanner()).catch(() => {});
+}
 
 auth.onIdTokenChanged(user => {
   if (!user) return;
   if (_sessionTimeoutTimer) clearTimeout(_sessionTimeoutTimer);
   // Firebase tokens expire 1 hour after issue; warn 5 minutes before expiry = 55 minutes
   const WARN_MS = 55 * 60 * 1000;
+  const WARN_SECS = 5 * 60; // 5 minutes countdown
   _sessionTimeoutTimer = setTimeout(() => {
-    const banner = document.getElementById('session-warning');
-    if (banner) banner.style.display = 'flex';
+    showSessionWarning(WARN_SECS);
   }, WARN_MS);
 });
 
 function refreshSession() {
   firebase.auth().currentUser?.getIdToken(true)
     .then(() => {
-      const banner = document.getElementById('session-warning');
-      if (banner) banner.style.display = 'none';
+      hideSessBanner();
       showToast('✅ Session refreshed successfully');
     })
     .catch(e => alert('Session refresh failed: ' + e.message));
+}
+
+// ── Notes char count ──────────────────────────────────────────────────────────
+function updateNoteCharCount(ta) {
+  const countEl = document.getElementById('note-char-count');
+  if (!countEl) return;
+  const len = ta.value.length;
+  countEl.textContent = len + ' / 500';
+  if (len > 500) { countEl.classList.add('over'); ta.style.borderColor = '#f44336'; }
+  else { countEl.classList.remove('over'); ta.style.borderColor = ''; }
+}
+
+// ── Canned response helpers ───────────────────────────────────────────────────
+let _cannedMode = 'append';
+function setCannedMode(mode, btn) {
+  _cannedMode = mode;
+  document.querySelectorAll('.canned-mode-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  btn.style.background='#2E7D32'; btn.style.borderColor='#2E7D32'; btn.style.color='#fff';
+  const other = document.getElementById(mode === 'append' ? 'canned-mode-replace' : 'canned-mode-append');
+  if (other) { other.style.background=''; other.style.borderColor=''; other.style.color=''; }
+}
+
+function insertCannedResponse(sel) {
+  const val = sel.value;
+  if (!val) return;
+  const ta = document.getElementById('report-notes');
+  if (!ta) return;
+  let text = '';
+  if (val === 'add_custom') {
+    const custom = prompt('Enter your custom canned response:');
+    if (!custom) { sel.value=''; return; }
+    const list = JSON.parse(localStorage.getItem('custom_canned_responses')||'[]');
+    list.push(custom); localStorage.setItem('custom_canned_responses', JSON.stringify(list));
+    text = custom;
+  } else if (val.startsWith('custom_')) {
+    const idx = parseInt(val.replace('custom_',''));
+    const list = JSON.parse(localStorage.getItem('custom_canned_responses')||'[]');
+    text = list[idx] || '';
+  } else {
+    text = CANNED_RESPONSES[parseInt(val)] || '';
+  }
+  if (_cannedMode === 'replace') {
+    ta.value = text;
+  } else {
+    ta.value = ta.value.trim() ? ta.value.trim() + '\n' + text : text;
+  }
+  sel.value = '';
+  updateNoteCharCount(ta);
+}
+
+function showCannedPreview(sel) {
+  const val = sel.value;
+  const box = document.getElementById('canned-preview-box');
+  if (!box || !val || isNaN(parseInt(val))) return;
+  const text = CANNED_RESPONSES[parseInt(val)];
+  if (text) { box.textContent = text; box.style.display = 'block'; }
+}
+function hideCannedPreview() {
+  const box = document.getElementById('canned-preview-box');
+  if (box) box.style.display = 'none';
+}
+
+// ── Sound toggle ──────────────────────────────────────────────────────────────
+let _soundEnabled = true;
+function toggleAlertSound() {
+  _soundEnabled = !_soundEnabled;
+  document.getElementById('sound-toggle').textContent = _soundEnabled ? '🔔' : '🔕';
+}
+
+// ── Schedule validation ───────────────────────────────────────────────────────
+function validateScheduleTime(input) {
+  const errEl = document.getElementById('ann-schedule-error');
+  if (!input.value) { if (errEl) errEl.style.display='none'; return; }
+  const minTime = new Date(Date.now() + 15 * 60 * 1000);
+  if (new Date(input.value) < minTime) {
+    if (errEl) errEl.style.display='block';
+  } else {
+    if (errEl) errEl.style.display='none';
+  }
+}
+
+// ── Trend range selector ──────────────────────────────────────────────────────
+function setTrendRange(weeks, btn) {
+  document.querySelectorAll('#trend-range-btns .chip').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  const now = new Date();
+  const wks = Array.from({length: weeks}, (_, i) => {
+    const d = new Date(now - (weeks - 1 - i) * 7 * 24 * 3600 * 1000);
+    return { label: `${d.getMonth()+1}/${d.getDate()}`, start: new Date(now - (weeks - 1 - i) * 7 * 24 * 3600 * 1000) };
+  });
+  const catMap = {};
+  allReports.forEach(r => { if (r.category) catMap[r.category] = (catMap[r.category]||0) + 1; });
+  const topCats = Object.entries(catMap).sort((a,b)=>b[1]-a[1]).slice(0,3);
+  renderTrendChart(topCats, wks);
+}
+
+// ── Delete confirm modal (DCM) helpers ────────────────────────────────────────
+let _dcmCallback = null;
+let _dcmReady = false;
+function openDcm(message, onConfirm) {
+  _dcmCallback = onConfirm;
+  _dcmReady = false;
+  document.getElementById('dcm-message').textContent = message;
+  document.getElementById('dcm-input').value = '';
+  document.getElementById('dcm-input').className = 'dcm-input';
+  document.getElementById('dcm-confirm-btn').disabled = true;
+  const cd = document.getElementById('dcm-countdown');
+  if (cd) { cd.textContent = 'Please wait 3 seconds…'; cd.style.display='block'; }
+  document.getElementById('delete-confirm-modal').style.display = 'flex';
+  setTimeout(() => {
+    _dcmReady = true;
+    if (cd) cd.style.display='none';
+    const inp = document.getElementById('dcm-input');
+    if (inp && inp.value === 'DELETE') document.getElementById('dcm-confirm-btn').disabled = false;
+  }, 3000);
+}
+function closeDcm() {
+  document.getElementById('delete-confirm-modal').style.display = 'none';
+  _dcmCallback = null;
+}
+function onDcmInput(inp) {
+  const valid = inp.value === 'DELETE';
+  inp.className = 'dcm-input' + (inp.value.length > 0 ? (valid ? ' valid' : ' invalid') : '');
+  document.getElementById('dcm-confirm-btn').disabled = !(valid && _dcmReady);
+}
+function executeDcm() {
+  if (_dcmCallback) _dcmCallback();
+  closeDcm();
+}
+
+// ── Bulk bar helpers ──────────────────────────────────────────────────────────
+function requestBulkApply() {
+  const status = document.getElementById('bulk-status-select').value;
+  if (!status) { showToast('Please select a status first'); return; }
+  const count = selectedReportIds.size;
+  document.getElementById('bulk-confirm-label').textContent = `Mark ${count} report(s) as "${status}"?`;
+  document.getElementById('bulk-main-row').style.display = 'none';
+  document.getElementById('bulk-confirm-row').style.display = 'flex';
+}
+function cancelBulkConfirm() {
+  document.getElementById('bulk-main-row').style.display = 'flex';
+  document.getElementById('bulk-confirm-row').style.display = 'none';
 }
 
 // ── Hide loading overlay ──────────────────────────────────────────────────────
