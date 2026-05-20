@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 class AppConstants {
@@ -33,8 +34,14 @@ class AppConstants {
   };
   static const String defaultHotline = '+639123456789';
 
-  static String hotlineFor(String municipality) =>
-      municipalityHotlines[municipality] ?? defaultHotline;
+  // FIX 10: Log when the default fallback hotline is used so missing entries are visible
+  static String hotlineFor(String municipality) {
+    final hotline = municipalityHotlines[municipality];
+    if (hotline == null) {
+      debugPrint('AppConstants.hotlineFor: no hotline for "$municipality", using default');
+    }
+    return hotline ?? defaultHotline;
+  }
 
   static const Map<String, dynamic> municipalityThemes = {
     'Bambang': {

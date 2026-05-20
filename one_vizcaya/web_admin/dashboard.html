@@ -624,6 +624,16 @@ let filteredReports = [];
 let currentFilter = 'all';
 let criticalOnly  = false;
 
+let unsubscribeReports = null;
+let unsubscribeAnnouncements = null;
+
+// ── Shared label / class lookup constants ─────────────────────────────────────
+const STATUS_LABELS   = { reported: 'Reported', ongoing: 'Ongoing', solved: 'Solved' };
+const STATUS_LABELS_V = { reported: 'Reported', ongoing: 'Ongoing', solved: 'Solved ✓' };
+const PRIORITY_LABELS = { critical: 'Critical', high: 'High', medium: 'Medium', low: 'Low' };
+const STATUS_CLASS    = { reported: 's-reported', ongoing: 's-ongoing', solved: 's-solved' };
+const PRIORITY_CLASS  = { critical: 'p-critical', high: 'p-high', medium: 'p-medium', low: 'p-low' };
+
 let map, heatmapLayer;
 let responderMarkers = [];
 let reportPins       = [];
@@ -641,7 +651,12 @@ let firestoreResponders = null; // null = not loaded yet, [] = loaded but empty
 
 // ── Auth guard ───────────────────────────────────────────────────────────────
 auth.onAuthStateChanged(async user => {
-  if (!user) { window.location.href = 'index.html'; return; }
+  if (!user) {
+    if (unsubscribeReports) { unsubscribeReports(); unsubscribeReports = null; }
+    if (unsubscribeAnnouncements) { unsubscribeAnnouncements(); unsubscribeAnnouncements = null; }
+    window.location.href = 'index.html';
+    return;
+  }
   currentUser = user;
   document.getElementById('nav-phone').textContent = user.phoneNumber || '';
 
@@ -705,6 +720,12 @@ auth.onAuthStateChanged(async user => {
 
 // ── Google Maps init ─────────────────────────────────────────────────────────
 function initMap() {
+  if (typeof google === 'undefined' || typeof google.maps === 'undefined') {
+    console.error('Google Maps failed to load. Check API key and network.');
+    const mapEl = document.getElementById('map');
+    if (mapEl) mapEl.innerHTML = '<div style="padding:2rem;text-align:center;color:#666">Map unavailable — check internet connection.</div>';
+    return;
+  }
   map = new google.maps.Map(document.getElementById('map'), {
     center: NV_CENTER,
     zoom: NV_ZOOM,
@@ -879,13 +900,16 @@ function listenToReports() {
   if (userRole === 'municipal_admin') {
     query = db.collectionGroup('reports')
       .where('municipality', '==', userMunicipality)
-      .orderBy('reportedAt', 'desc');
+      .orderBy('reportedAt', 'desc')
+      .limit(200);
   } else {
     query = db.collectionGroup('reports')
-      .orderBy('reportedAt', 'desc');
+      .orderBy('reportedAt', 'desc')
+      .limit(200);
   }
 
-  query.onSnapshot(snapshot => {
+  if (unsubscribeReports) unsubscribeReports(); // cancel previous
+  unsubscribeReports = query.onSnapshot(snapshot => {
     allReports = snapshot.docs.map(doc => {
       const d = doc.data();
       const segs = doc.ref.path.split('/');
@@ -1087,6 +1111,22 @@ function applyFilter() {
   const shown = Math.min(total, 100);
   document.getElementById('report-count-label').textContent =
     total > 100 ? `Showing ${shown} of ${total} report(s)` : `${total} report(s)`;
+
+  // Show a notice if the dataset is at the pagination cap
+  const capNoticeId = 'reports-cap-notice';
+  let capNotice = document.getElementById(capNoticeId);
+  if (allReports.length >= 200) {
+    if (!capNotice) {
+      capNotice = document.createElement('div');
+      capNotice.id = capNoticeId;
+      capNotice.style.cssText = 'font-size:12px;color:#718096;padding:6px 0 0;';
+      capNotice.textContent = 'Showing latest 200 reports. Use date filter to narrow results.';
+      const filterEl = document.getElementById('date-range-filter');
+      if (filterEl) filterEl.after(capNotice);
+    }
+  } else if (capNotice) {
+    capNotice.remove();
+  }
 }
 
 function filterReports(status, btn) {
@@ -1124,6 +1164,12 @@ function filterReportsByCritical(btn) {
 }
 
 function applyDateFilter() {
+  const from = document.getElementById('filter-date-from')?.value;
+  const to = document.getElementById('filter-date-to')?.value;
+  if (from && to && new Date(from) > new Date(to)) {
+    alert('⚠️ "From" date must be before "To" date.');
+    return;
+  }
   const fromVal = document.getElementById('filter-date-from').value;
   const toVal   = document.getElementById('filter-date-to').value;
   const from = fromVal ? new Date(fromVal + 'T00:00:00') : null;
@@ -1197,18 +1243,13 @@ function renderTable(reports) {
     return;
   }
 
-  const priorityClass = { critical:'p-critical', high:'p-high', medium:'p-medium', low:'p-low' };
-  const statusClass   = { reported:'s-reported', ongoing:'s-ongoing', solved:'s-solved' };
-  const priorityLabel = { critical:'Critical', high:'High', medium:'Medium', low:'Low' };
-  const statusLabel   = { reported:'Reported', ongoing:'Ongoing', solved:'Solved' };
-
   tbody.innerHTML = reports.slice(0, 100).map(r => {
     const d   = r.reportedAt;
     const dt  = d ? `${d.getMonth()+1}/${d.getDate()}/${d.getFullYear()}` : '—';
-    const pc  = priorityClass[r.priority] || 'p-low';
-    const sc  = statusClass[r.status]     || 's-reported';
-    const pl  = priorityLabel[r.priority] || r.priority || '—';
-    const sl  = statusLabel[r.status]     || r.status   || '—';
+    const pc  = PRIORITY_CLASS[r.priority] || 'p-low';
+    const sc  = STATUS_CLASS[r.status]     || 's-reported';
+    const pl  = PRIORITY_LABELS[r.priority] || r.priority || '—';
+    const sl  = STATUS_LABELS[r.status]     || r.status   || '—';
     const anon = r.isAnonymous ? '<span class="anon-badge">Anon</span>' : '';
     const hasGps = r.latitude && r.longitude;
     return `<tr class="clickable" onclick="openReportDetail('${r.id}','${r.userId||''}')">
@@ -1233,9 +1274,10 @@ function focusReport(lat, lng) {
 async function openReportDetail(reportId, userId) {
   if (!reportId || !userId) return;
   const r = allReports.find(x => x.id === reportId);
-  if (!r) return;
-
-  const statusLabels = { reported: 'Reported', ongoing: 'Ongoing', solved: 'Solved' };
+  if (!r) {
+    console.warn('openReportDetail: report not found', reportId);
+    return;
+  }
 
   const modal = document.createElement('div');
   modal.id = 'report-modal';
@@ -1278,7 +1320,7 @@ async function openReportDetail(reportId, userId) {
                 style="flex:1;min-width:90px;padding:10px;border-radius:10px;border:2px solid ${r.status===s?'#2E7D32':'#E2E8F0'};
                        background:${r.status===s?'#2E7D32':'#fff'};color:${r.status===s?'#fff':'#4A5568'};
                        font-weight:700;font-size:13px;cursor:pointer;text-transform:capitalize;transition:all .2s">
-                ${statusLabels[s]}
+                ${STATUS_LABELS[s]}
               </button>`).join('')}
           </div>
         </div>
@@ -1337,11 +1379,10 @@ async function updateReportStatus(userId, reportId, newStatus, btn) {
 
     // Write in-app notification for the citizen (skip if anonymous)
     if (!r.isAnonymous && userId) {
-      const statusLabels = { reported: 'Reported', ongoing: 'Ongoing', solved: 'Solved ✓' };
       await db.collection('users').doc(userId).collection('notifications').add({
         type: 'report_status',
         title: 'Report Status Updated',
-        body: `Your report about "${r.category}" has been marked as ${statusLabels[newStatus]}.`,
+        body: `Your report about "${r.category}" has been marked as ${STATUS_LABELS_V[newStatus] || newStatus}.`,
         reportId: reportId,
         status: newStatus,
         timestamp: firebase.firestore.FieldValue.serverTimestamp(),
@@ -1733,10 +1774,10 @@ function renderResponderDirectory(filter) {
     const info = RESPONDER_ICONS[r.type] || RESPONDER_ICONS.mdrrmo;
     const adminBtns = isAdmin && r.id ? `
       <div style="display:flex;gap:6px;margin-top:8px">
-        <button onclick="event.stopPropagation();editResponder('${r.id}')" style="flex:1;padding:5px;background:#EBF8FF;color:#2B6CB0;border:1px solid #BEE3F8;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer">✏️ Edit</button>
-        <button onclick="event.stopPropagation();deleteResponder('${r.id}','${escHtml(r.name)}')" style="flex:1;padding:5px;background:#FFF5F5;color:#C53030;border:1px solid #FED7D7;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer">🗑️ Delete</button>
+        <button class="responder-action-btn" onclick="event.stopPropagation();editResponder('${r.id}')" style="flex:1;padding:5px;background:#EBF8FF;color:#2B6CB0;border:1px solid #BEE3F8;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer">✏️ Edit</button>
+        <button class="responder-action-btn" onclick="event.stopPropagation();deleteResponder('${r.id}','${escHtml(r.name)}')" style="flex:1;padding:5px;background:#FFF5F5;color:#C53030;border:1px solid #FED7D7;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer">🗑️ Delete</button>
       </div>` : '';
-    return `<div class="responder-card" onclick="focusResponder(${r.lat||0},${r.lng||0},${JSON.stringify(r.name)})">
+    return `<div class="responder-card" data-lat="${r.lat||0}" data-lng="${r.lng||0}" data-name="${(r.name||'').replace(/"/g,'&quot;')}">
       <div class="resp-icon" style="background:${info.color}22">${info.emoji}</div>
       <div class="resp-info">
         <div class="resp-name">${escHtml(r.name)}</div>
@@ -1750,6 +1791,17 @@ function renderResponderDirectory(filter) {
       </div>
     </div>`;
   }).join('');
+
+  // Attach click handlers via event delegation (avoids XSS from inline onclick with user data)
+  document.querySelectorAll('.responder-card').forEach(card => {
+    card.addEventListener('click', function(e) {
+      if (e.target.closest('.responder-action-btn')) return; // let edit/delete handle themselves
+      const lat = parseFloat(this.dataset.lat);
+      const lng = parseFloat(this.dataset.lng);
+      const name = this.dataset.name;
+      focusResponder(lat, lng, name);
+    });
+  });
 }
 
 function openResponderModal(responder) {
@@ -2039,7 +2091,8 @@ function initAnnouncements() {
 
   // Fetch all announcements ordered by timestamp; filter client-side for municipal_admin
   // to avoid requiring a Firestore composite index on (municipality, timestamp).
-  db.collection('announcements').orderBy('timestamp', 'desc').limit(100)
+  if (unsubscribeAnnouncements) unsubscribeAnnouncements(); // cancel previous
+  unsubscribeAnnouncements = db.collection('announcements').orderBy('timestamp', 'desc').limit(100)
     .onSnapshot(snap => {
       let anns = snap.docs.map(d => ({ id: d.id, ...d.data() }));
       if (userRole === 'municipal_admin') {
@@ -2187,6 +2240,7 @@ function onMapsReady() {
 }
 </script>
 
+<!-- Maps API key is restricted to one-vizcaya-app.web.app/* in Google Cloud Console -->
 <script async defer
   src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCcKuCdQDdl6pxlLTFy88wTpEfjj2rwikI&libraries=visualization&callback=onMapsReady">
 </script>

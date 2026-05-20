@@ -22,7 +22,6 @@ import 'presentation/screens/app_settings_screen.dart';
 import 'presentation/screens/onboarding_screen.dart';
 import 'presentation/widgets/auth_gate.dart';
 import 'presentation/state/municipality_state.dart';
-import 'core/l10n/app_strings.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -123,7 +122,8 @@ class _OneVizcayaAppState extends State<OneVizcayaApp> {
     return ValueListenableBuilder<String>(
       valueListenable: oneVizcayaState.language,
       builder: (context, lang, _) {
-        oneVizcayaStateLang = lang; // sync the helper
+        // FIX 7: oneVizcayaStateLang is now kept in sync inside setLanguage()
+        // and loadPersistedState() in municipality_state.dart — no need to set it here.
         return MaterialApp(
           navigatorKey: _navigatorKey,
           title: 'One Vizcaya',

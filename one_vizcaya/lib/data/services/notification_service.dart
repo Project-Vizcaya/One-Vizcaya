@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import '../../core/utils/toast_utils.dart';
 import '../../presentation/state/municipality_state.dart';
 
@@ -15,6 +17,13 @@ class NotificationService {
 
   final FirebaseMessaging _messaging = FirebaseMessaging.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
+  // FIX 2: Guard flag to prevent duplicate listener registration
+  bool _listenersActive = false;
+
+  // FIX 3: Store subscriptions so they can be cancelled on logout
+  StreamSubscription? _statusSub;
+  StreamSubscription? _broadcastSub;
 
   Future<void> initialize() async {
     FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
@@ -37,8 +46,19 @@ class NotificationService {
     FirebaseAuth.instance.authStateChanges().listen((user) {
       if (user != null) {
         _saveTokenForCurrentUser();
-        _listenForStatusNotifications(user.uid);
-        _listenForBroadcasts(user.uid, oneVizcayaState.selectedMunicipality.value);
+        // FIX 2: Only register listeners if not already active
+        if (!_listenersActive) {
+          _listenForStatusNotifications(user.uid);
+          _listenForBroadcasts(user.uid, oneVizcayaState.selectedMunicipality.value);
+          _listenersActive = true;
+        }
+      } else {
+        // FIX 3: Cancel subscriptions and reset flag on logout
+        _statusSub?.cancel();
+        _statusSub = null;
+        _broadcastSub?.cancel();
+        _broadcastSub = null;
+        _listenersActive = false;
       }
     });
 
@@ -53,17 +73,20 @@ class NotificationService {
     });
 
     // If already logged in at init time, start listening immediately
+    // FIX 2: Only register if not already active
     final user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
+    if (user != null && !_listenersActive) {
       _listenForStatusNotifications(user.uid);
       _listenForBroadcasts(user.uid, oneVizcayaState.selectedMunicipality.value);
+      _listenersActive = true;
     }
   }
 
   // Listens to users/{uid}/notifications for documents where read == false
   // and shows an in-app toast. Marks them as read after showing.
   void _listenForStatusNotifications(String uid) {
-    _firestore
+    // FIX 3: Store subscription for later cancellation
+    _statusSub = _firestore
         .collection('users')
         .doc(uid)
         .collection('notifications')
@@ -79,12 +102,16 @@ class NotificationService {
         // Mark as read
         await doc.reference.update({'read': true});
       }
+    }, onError: (e) {
+      // FIX 1: Log errors instead of swallowing them silently
+      debugPrint('NotificationService._listenForStatusNotifications error: $e');
     });
   }
 
   void _listenForBroadcasts(String uid, String municipality) {
     final startTime = Timestamp.now();
-    _firestore
+    // FIX 3: Store subscription for later cancellation
+    _broadcastSub = _firestore
         .collection('broadcasts')
         .where('timestamp', isGreaterThan: startTime)
         .snapshots()
@@ -105,8 +132,14 @@ class NotificationService {
             'timestamp': FieldValue.serverTimestamp(),
             'read': false,
           });
-        } catch (_) {}
+        } catch (e) {
+          // FIX 1: Log errors instead of swallowing them silently
+          debugPrint('NotificationService._listenForBroadcasts: failed to save notification: $e');
+        }
       }
+    }, onError: (e) {
+      // FIX 1: Log errors instead of swallowing them silently
+      debugPrint('NotificationService._listenForBroadcasts error: $e');
     });
   }
 
@@ -125,6 +158,9 @@ class NotificationService {
         {'fcmToken': token},
         SetOptions(merge: true),
       );
-    } catch (_) {}
+    } catch (e) {
+      // FIX 1: Log errors instead of swallowing them silently
+      debugPrint('NotificationService._saveToken: failed to save FCM token: $e');
+    }
   }
 }
