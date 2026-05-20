@@ -1,9 +1,11 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart'; // Added for kIsWeb and kReleaseMode
 import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:app_links/app_links.dart';
 import 'firebase_options.dart';
 
 import 'data/services/notification_service.dart';
@@ -57,8 +59,61 @@ void main() async {
   runApp(const OneVizcayaApp());
 }
 
-class OneVizcayaApp extends StatelessWidget {
+final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
+
+class OneVizcayaApp extends StatefulWidget {
   const OneVizcayaApp({super.key});
+
+  @override
+  State<OneVizcayaApp> createState() => _OneVizcayaAppState();
+}
+
+class _OneVizcayaAppState extends State<OneVizcayaApp> {
+  late final AppLinks _appLinks;
+  StreamSubscription<Uri>? _linkSubscription;
+
+  @override
+  void initState() {
+    super.initState();
+    _appLinks = AppLinks();
+    _initDeepLinks();
+  }
+
+  Future<void> _initDeepLinks() async {
+    // Handle cold-start deep link
+    try {
+      final initialUri = await _appLinks.getInitialLink();
+      if (initialUri != null) {
+        _handleDeepLink(initialUri);
+      }
+    } catch (e) {
+      debugPrint('Deep link initial error: $e');
+    }
+
+    // Handle foreground deep links
+    _linkSubscription = _appLinks.uriLinkStream.listen(
+      _handleDeepLink,
+      onError: (e) => debugPrint('Deep link stream error: $e'),
+    );
+  }
+
+  void _handleDeepLink(Uri uri) {
+    if (uri.scheme == 'onevizcaya' &&
+        uri.host == 'status' &&
+        uri.queryParameters.containsKey('reportId')) {
+      final reportId = uri.queryParameters['reportId'];
+      _navigatorKey.currentState?.pushNamed(
+        '/status',
+        arguments: {'reportId': reportId},
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    _linkSubscription?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -67,6 +122,7 @@ class OneVizcayaApp extends StatelessWidget {
       builder: (context, lang, _) {
         oneVizcayaStateLang = lang; // sync the helper
         return MaterialApp(
+          navigatorKey: _navigatorKey,
           title: 'One Vizcaya',
           debugShowCheckedModeBanner: false,
           locale: lang == 'Tagalog'

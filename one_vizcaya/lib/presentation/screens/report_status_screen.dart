@@ -16,6 +16,40 @@ class ReportStatusScreen extends StatefulWidget {
 
 class _ReportStatusScreenState extends State<ReportStatusScreen> {
   ReportPriority? _filterPriority;
+  String? _highlightedReportId;
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final args = ModalRoute.of(context)?.settings.arguments;
+    if (args is Map && args.containsKey('reportId')) {
+      _highlightedReportId = args['reportId'] as String?;
+    }
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _scrollToHighlighted(List<ProblemReport> reports) {
+    if (_highlightedReportId == null) return;
+    final index = reports.indexWhere((r) => r.id == _highlightedReportId);
+    if (index == -1) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients) {
+        // Approximate item height to scroll to the right position
+        const itemHeight = 120.0;
+        _scrollController.animateTo(
+          index * itemHeight,
+          duration: const Duration(milliseconds: 400),
+          curve: Curves.easeInOut,
+        );
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -136,11 +170,30 @@ class _ReportStatusScreenState extends State<ReportStatusScreen> {
                   );
                 }
 
+                // Trigger scroll to highlighted item after build
+                _scrollToHighlighted(reports);
+
                 return ListView.builder(
+                  controller: _scrollController,
                   padding: const EdgeInsets.all(8.0),
                   itemCount: reports.length,
                   itemBuilder: (context, index) {
                     final report = reports[index];
+                    final isHighlighted = _highlightedReportId != null &&
+                        report.id == _highlightedReportId;
+                    if (isHighlighted) {
+                      return Container(
+                        decoration: BoxDecoration(
+                          border: Border.all(
+                            color: Colors.amber.shade600,
+                            width: 2.5,
+                          ),
+                          borderRadius: BorderRadius.circular(16.0),
+                        ),
+                        margin: const EdgeInsets.symmetric(vertical: 2),
+                        child: ReportStatusCard(report: report, lguColor: activeLguColor),
+                      );
+                    }
                     return ReportStatusCard(report: report, lguColor: activeLguColor);
                   },
                 );

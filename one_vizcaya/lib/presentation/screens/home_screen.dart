@@ -58,7 +58,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
                     child: Row(
                       children: [
-                        const Icon(Icons.wifi_off, color: Colors.white, size: 16),
+                        const Icon(Icons.wifi_off, color: Colors.white, size: 16, semanticLabel: 'No internet connection'),
                         const SizedBox(width: 8),
                         const Expanded(
                           child: Text(
@@ -67,7 +67,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                         ),
                         IconButton(
-                          icon: const Icon(Icons.refresh, color: Colors.white, size: 16),
+                          icon: const Icon(Icons.refresh, color: Colors.white, size: 16, semanticLabel: 'Retry connection'),
                           onPressed: _checkConnectivity,
                           padding: EdgeInsets.zero,
                           constraints: const BoxConstraints(),
@@ -135,54 +135,61 @@ class _HomeScreenState extends State<HomeScreen> {
                           Icons.keyboard_arrow_down,
                           color: Colors.grey.shade600,
                           size: 22,
+                          semanticLabel: 'Change municipality',
                         ),
                       ],
                     ),
                   ),
                 ),
-                Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.06),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: IconButton(
-                    icon: const Icon(
-                      Icons.notifications_outlined,
-                      color: Color(0xFF333333),
-                      size: 22,
-                    ),
-                    onPressed: () =>
-                        Navigator.of(context).pushNamed('/notifications'),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                GestureDetector(
-                  onTap: () => Navigator.of(context).pushNamed('/profile'),
+                Tooltip(
+                  message: 'Notifications',
                   child: Container(
-                    width: 38,
-                    height: 38,
                     decoration: BoxDecoration(
-                      color: appBarColor,
+                      color: Colors.white,
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
-                          color: appBarColor.withValues(alpha: 0.3),
+                          color: Colors.black.withValues(alpha: 0.06),
                           blurRadius: 8,
                           offset: const Offset(0, 2),
                         ),
                       ],
                     ),
-                    child: const Icon(
-                      Icons.person,
-                      color: Colors.white,
-                      size: 20,
+                    child: IconButton(
+                      icon: const Icon(
+                        Icons.notifications_outlined,
+                        color: Color(0xFF333333),
+                        size: 22,
+                      ),
+                      onPressed: () =>
+                          Navigator.of(context).pushNamed('/notifications'),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Tooltip(
+                  message: 'Profile',
+                  child: GestureDetector(
+                    onTap: () => Navigator.of(context).pushNamed('/profile'),
+                    child: Container(
+                      width: 38,
+                      height: 38,
+                      decoration: BoxDecoration(
+                        color: appBarColor,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: appBarColor.withValues(alpha: 0.3),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: const Icon(
+                        Icons.person,
+                        color: Colors.white,
+                        size: 20,
+                      ),
                     ),
                   ),
                 ),
@@ -271,15 +278,18 @@ class _HomeScreenState extends State<HomeScreen> {
                     color: appBarColor,
                   ),
                 ),
-                GestureDetector(
-                  onTap: () =>
-                      Navigator.of(context).pushNamed('/announcements'),
-                  child: Text(
-                    'See all',
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: appBarColor.withValues(alpha: 0.7),
-                      fontWeight: FontWeight.w500,
+                Semantics(
+                  label: 'See all announcements',
+                  child: GestureDetector(
+                    onTap: () =>
+                        Navigator.of(context).pushNamed('/announcements'),
+                    child: Text(
+                      'See all',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: appBarColor.withValues(alpha: 0.7),
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   ),
                 ),
@@ -404,12 +414,14 @@ class _HomeScreenState extends State<HomeScreen> {
                     color: appBarColor,
                   ),
                 ),
-                Text(
-                  'Live',
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: Colors.green.shade600,
-                    fontWeight: FontWeight.w600,
+                ExcludeSemantics(
+                  child: Text(
+                    'Live',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Colors.green.shade600,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
               ],

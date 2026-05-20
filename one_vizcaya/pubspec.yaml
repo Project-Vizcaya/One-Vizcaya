@@ -27,6 +27,7 @@ dependencies:
   timeago: ^3.6.1
   shared_preferences: ^2.3.2
   qr_flutter: ^4.1.0
+  app_links: ^6.4.0
   firebase_messaging: ^15.1.0
   flutter_image_compress: ^2.3.0
   flutter_localizations:
