@@ -7,75 +7,75 @@ enum ReportCategory {
   // ── CRITICAL ──────────────────────────────────────────────────────────────
   disasterAndRiskManagement(
     'Disaster & Risk Management',
-    'Includes: Flooding, Landslides, Fallen Trees, Natural Disaster Damage.',
+    'e.g. Typhoon aftermath, fallen trees blocking roads, river overflow threatening homes, disaster damage to public structures.',
     ReportPriority.critical,
   ),
   healthAndPublicSafety(
     'Health & Public Safety',
-    'Includes: Stray Animals, Unsanitary Food Establishments, Dengue Concerns, Stagnant Water, Fire Hazards.',
+    'e.g. Dengue breeding sites, rabid stray animals, illegal food vendors, fire outbreak, unsanitary public spaces.',
     ReportPriority.critical,
   ),
 
   // ── PROVINCIAL INFRASTRUCTURE (Critical / High) ───────────────────────────
   landslideOrSoilErosion(
     'Landslide / Soil Erosion',
-    'Includes: Active landslide zones, soil erosion threatening roads or communities, debris flows.',
+    'e.g. Active slope collapse near communities, eroded road shoulders on mountain routes, debris flows threatening barangays.',
     ReportPriority.critical,
   ),
   floodingOrSevereDrainageIssue(
     'Flooding / Severe Drainage Issue',
-    'Includes: Severe flash flooding, clogged drainage causing road or community flooding, river overflows.',
+    'e.g. Flash flood blocking highway, drainage overflow into residential areas, clogged canals causing street flooding.',
     ReportPriority.critical,
   ),
   bridgeDamageOrBlockage(
     'Bridge Damage / Blockage',
-    'Includes: Cracked or structurally compromised bridges, debris blockage on bridge spans, unsafe railings.',
+    'e.g. Cracked bridge deck, missing guardrails, debris blocking bridge span, structurally unsafe crossing.',
     ReportPriority.high,
   ),
   provincialRoadDamage(
     'Provincial Road Damage',
-    'Includes: Large potholes on provincial highways, road cave-ins, damaged concrete pavement on major routes.',
+    'e.g. Cave-in on national highway, large potholes on provincial road, damaged concrete pavement on major routes.',
     ReportPriority.high,
   ),
 
   // ── HIGH ──────────────────────────────────────────────────────────────────
   peaceAndOrderDisturbance(
     'Peace & Order Disturbance',
-    'Includes: Noise Complaints, Suspicious Activities, Traffic Violations, Public Nuisance.',
+    'e.g. Illegal gambling operations, road rage incidents, suspicious activity, noise disturbance, public intoxication.',
     ReportPriority.high,
   ),
   waterAndSewageSystems(
     'Water & Sewage Systems',
-    'Includes: Water Leakage, Water Supply Issues, Pipe Bursts, Sewage Overflow.',
+    'e.g. Burst water main, no water supply for 24+ hours, sewage overflowing into street, contaminated water source.',
     ReportPriority.high,
   ),
 
   // ── MEDIUM ────────────────────────────────────────────────────────────────
   infrastructureAndRoads(
     'Infrastructure & Roads',
-    'Includes: Potholes, Damaged Roads/Bridges, Road Maintenance Needed, Broken Sidewalks.',
+    'e.g. Pothole on barangay road, broken sidewalk, damaged drainage cover, road maintenance needed.',
     ReportPriority.medium,
   ),
   publicLightingAndUtilities(
     'Public Lighting & Utilities',
-    'Includes: Broken Streetlights, Electrical Repairs, Power Outages, Fallen Poles.',
+    'e.g. Streetlight out for multiple nights, leaning electrical pole, power outage in residential area, fallen wires.',
     ReportPriority.medium,
   ),
   environmentalAndSanitation(
     'Environmental & Sanitation',
-    'Includes: Improper Waste Management, Solid Waste Issues, Dirty/Clogged Canals, Illegal Dumping.',
+    'e.g. Illegal dumping site, clogged estero or canal, open burning of waste, unsanitary public market area.',
     ReportPriority.medium,
   ),
 
   // ── LOW ───────────────────────────────────────────────────────────────────
   socialAndCommunityServices(
     'Social & Community Services',
-    'Includes: PWD/Senior Citizen Concerns, Child Welfare, Social Welfare Assistance.',
+    'e.g. PWD ramp needed, senior citizen assistance request, child welfare concern, community livelihood issue.',
     ReportPriority.low,
   ),
   generalInquiriesAndOthers(
     'General Inquiries & Others',
-    'Includes: Miscellaneous Reports, General Concerns, Feedback.',
+    'e.g. Community feedback, general LGU inquiry, request for information, miscellaneous concern not listed above.',
     ReportPriority.low,
   );
 

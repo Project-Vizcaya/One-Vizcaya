@@ -15,6 +15,7 @@ import '../../core/constants/app_constants.dart';
 import '../../core/l10n/app_strings.dart';
 import '../../core/utils/toast_utils.dart';
 import '../../domain/enums/report_category.dart';
+import '../../domain/enums/report_priority.dart';
 import '../../domain/enums/report_status.dart';
 import '../../domain/models/problem_report.dart';
 import '../../domain/repositories/report_repository.dart';
@@ -34,6 +35,8 @@ class ReportProblemScreen extends StatefulWidget {
 class _ReportProblemScreenState extends State<ReportProblemScreen> {
   final _formKey = GlobalKey<FormState>();
   ReportCategory? _selectedCategory;
+  ReportPriority? _selectedPriority;
+  bool _categoryError = false;
   final _descriptionController = TextEditingController();
   final _locationController = TextEditingController();
   late final TextEditingController _barangayController;
@@ -118,6 +121,11 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
   }
 
   Future<void> _submitReport() async {
+    if (_selectedCategory == null) {
+      setState(() => _categoryError = true);
+      ToastUtils.showError('Please select a problem category.');
+      return;
+    }
     if (!_formKey.currentState!.validate()) return;
     if (_isSubmitting) return;
 
@@ -280,6 +288,8 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
       if (!mounted) return;
       setState(() {
         _selectedCategory = null;
+        _selectedPriority = null;
+        _categoryError = false;
         _currentPosition = null;
         _selectedImage = null;
         _photoTimestamp = null;
@@ -390,75 +400,26 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
                 activeThumbColor: primaryLguColor,
               ),
               const SizedBox(height: 24),
-              DropdownButtonFormField<ReportCategory>(
-                value: _selectedCategory,
-                hint: Text(AppStrings.get('selectCategory')),
-                isExpanded: true,
-                dropdownColor: Colors.white,
-                style: const TextStyle(color: Colors.black87, fontSize: 16),
-                items: ReportCategory.values.map((category) {
-                  return DropdownMenuItem<ReportCategory>(
-                    value: category,
-                    child: Row(
-                      children: [
-                        Icon(
-                          category.basePriority.icon,
-                          size: 16,
-                          color: category.basePriority.color,
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(child: Text(category.displayName)),
-                      ],
-                    ),
-                  );
-                }).toList(),
-                onChanged: (newValue) =>
-                    setState(() => _selectedCategory = newValue),
-                validator: (value) =>
-                    value == null ? 'Please select a category' : null,
-                decoration: InputDecoration(
-                  labelText: 'Category',
-                  prefixIcon: Icon(Icons.category, color: primaryLguColor, semanticLabel: 'Category'),
-                  focusedBorder: OutlineInputBorder(
-                    borderSide: BorderSide(color: primaryLguColor, width: 2),
-                  ),
-                  labelStyle: TextStyle(color: primaryLguColor),
-                ),
+              _CategoryTreeSelector(
+                primaryColor: primaryLguColor,
+                selectedPriority: _selectedPriority,
+                selectedCategory: _selectedCategory,
+                hasError: _categoryError,
+                onPrioritySelected: (p) => setState(() {
+                  _selectedPriority = p;
+                  _selectedCategory = null;
+                  _categoryError = false;
+                }),
+                onCategorySelected: (c) => setState(() {
+                  _selectedCategory = c;
+                  _categoryError = false;
+                }),
+                onReset: () => setState(() {
+                  _selectedPriority = null;
+                  _selectedCategory = null;
+                  _categoryError = false;
+                }),
               ),
-              if (_selectedCategory != null) ...[
-                Padding(
-                  padding: const EdgeInsets.only(top: 8, left: 12, right: 12),
-                  child: Text(
-                    _selectedCategory!.description,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey[700],
-                      fontStyle: FontStyle.italic,
-                    ),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.only(top: 4, left: 12),
-                  child: Row(
-                    children: [
-                      Icon(
-                        _selectedCategory!.basePriority.icon,
-                        size: 14,
-                        color: _selectedCategory!.basePriority.color,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        'Base Priority: ${_selectedCategory!.basePriority.displayName}',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: _selectedCategory!.basePriority.color,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
               const SizedBox(height: 16),
               TextFormField(
                 controller: _locationController,
@@ -799,6 +760,8 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
     );
   }
 
+  // ─── Two-step category tree selector ──────────────────────────────────────
+
   Future<void> _pickImage(ImageSource source) async {
     try {
       final captureTime = DateTime.now();
@@ -840,5 +803,401 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
     } catch (e) {
       ToastUtils.showError('Failed to pick image: $e');
     }
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// TWO-STEP INLINE CATEGORY TREE SELECTOR
+// Step 1: pick a priority tier (Critical / High / Medium / Low)
+// Step 2: pick a specific category within that tier
+// ═══════════════════════════════════════════════════════════════════════════
+
+class _CategoryTreeSelector extends StatelessWidget {
+  final Color primaryColor;
+  final ReportPriority? selectedPriority;
+  final ReportCategory? selectedCategory;
+  final bool hasError;
+  final ValueChanged<ReportPriority> onPrioritySelected;
+  final ValueChanged<ReportCategory> onCategorySelected;
+  final VoidCallback onReset;
+
+  const _CategoryTreeSelector({
+    required this.primaryColor,
+    required this.selectedPriority,
+    required this.selectedCategory,
+    required this.hasError,
+    required this.onPrioritySelected,
+    required this.onCategorySelected,
+    required this.onReset,
+  });
+
+  static const _priorityOrder = [
+    ReportPriority.critical,
+    ReportPriority.high,
+    ReportPriority.medium,
+    ReportPriority.low,
+  ];
+
+  static const _prioritySubtitles = {
+    ReportPriority.critical: 'Life, safety & major disasters',
+    ReportPriority.high:     'Urgent infrastructure & order',
+    ReportPriority.medium:   'Roads, utilities & environment',
+    ReportPriority.low:      'Community & general concerns',
+  };
+
+  List<ReportCategory> _categoriesFor(ReportPriority p) =>
+      ReportCategory.values.where((c) => c.basePriority == p).toList();
+
+  @override
+  Widget build(BuildContext context) {
+    // ── State C: both selected → show breadcrumb summary ──────────────────
+    if (selectedCategory != null) {
+      return _buildSummary();
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Section label
+        Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: Row(
+            children: [
+              Icon(Icons.category, size: 16, color: primaryColor),
+              const SizedBox(width: 6),
+              Text(
+                'Select Problem Category',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: primaryColor,
+                ),
+              ),
+              if (hasError) ...[
+                const SizedBox(width: 8),
+                const Text(
+                  '* Required',
+                  style: TextStyle(fontSize: 11, color: Colors.red),
+                ),
+              ],
+            ],
+          ),
+        ),
+
+        // ── State A: no priority chosen yet → show 2×2 priority tiles ─────
+        if (selectedPriority == null) _buildPriorityGrid(),
+
+        // ── State B: priority chosen → show category list for that tier ───
+        if (selectedPriority != null) ...[
+          _buildSelectedPriorityHeader(),
+          const SizedBox(height: 8),
+          _buildCategoryList(),
+        ],
+
+        if (hasError)
+          Padding(
+            padding: const EdgeInsets.only(top: 6, left: 4),
+            child: Text(
+              'Please complete both steps to continue.',
+              style: TextStyle(fontSize: 11, color: Colors.red.shade700),
+            ),
+          ),
+      ],
+    );
+  }
+
+  // ── 2×2 priority tile grid ────────────────────────────────────────────────
+  Widget _buildPriorityGrid() {
+    return GridView.count(
+      crossAxisCount: 2,
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      crossAxisSpacing: 10,
+      mainAxisSpacing: 10,
+      childAspectRatio: 2.4,
+      children: _priorityOrder.map((p) {
+        final count = _categoriesFor(p).length;
+        return _PriorityTile(
+          priority: p,
+          subtitle: _prioritySubtitles[p]!,
+          categoryCount: count,
+          onTap: () => onPrioritySelected(p),
+        );
+      }).toList(),
+    );
+  }
+
+  // ── Selected priority header with back button ─────────────────────────────
+  Widget _buildSelectedPriorityHeader() {
+    final p = selectedPriority!;
+    return GestureDetector(
+      onTap: onReset,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: p.color.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: p.color.withValues(alpha: 0.3)),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.arrow_back_ios, size: 13, color: p.color),
+            const SizedBox(width: 6),
+            Icon(p.icon, size: 16, color: p.color),
+            const SizedBox(width: 6),
+            Text(
+              '${p.displayName} Priority',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: p.color,
+              ),
+            ),
+            const Spacer(),
+            Text(
+              'Change',
+              style: TextStyle(fontSize: 11, color: p.color.withValues(alpha: 0.7)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ── Category cards for the selected priority tier ─────────────────────────
+  Widget _buildCategoryList() {
+    final categories = _categoriesFor(selectedPriority!);
+    return AnimatedSize(
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeOut,
+      child: Column(
+        children: categories.map((c) => _CategoryCard(
+          category: c,
+          onTap: () => onCategorySelected(c),
+        )).toList(),
+      ),
+    );
+  }
+
+  // ── Summary breadcrumb after full selection ───────────────────────────────
+  Widget _buildSummary() {
+    final p = selectedCategory!.basePriority;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Breadcrumb row
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+            color: p.color.withValues(alpha: 0.07),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: p.color.withValues(alpha: 0.35)),
+          ),
+          child: Row(
+            children: [
+              Icon(p.icon, size: 16, color: p.color),
+              const SizedBox(width: 6),
+              Text(
+                p.displayName,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: p.color,
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                child: Icon(Icons.chevron_right, size: 16, color: p.color.withValues(alpha: 0.6)),
+              ),
+              Expanded(
+                child: Text(
+                  selectedCategory!.displayName,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF1A1A1A),
+                  ),
+                ),
+              ),
+              GestureDetector(
+                onTap: onReset,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade200,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    'Change',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.grey.shade700,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        // Description hint
+        Padding(
+          padding: const EdgeInsets.only(top: 8, left: 4, right: 4),
+          child: Text(
+            selectedCategory!.description,
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.grey.shade600,
+              fontStyle: FontStyle.italic,
+              height: 1.5,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ── Priority tile card ────────────────────────────────────────────────────────
+class _PriorityTile extends StatelessWidget {
+  final ReportPriority priority;
+  final String subtitle;
+  final int categoryCount;
+  final VoidCallback onTap;
+
+  const _PriorityTile({
+    required this.priority,
+    required this.subtitle,
+    required this.categoryCount,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: priority.color.withValues(alpha: 0.07),
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: priority.color.withValues(alpha: 0.3)),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: priority.color.withValues(alpha: 0.15),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(priority.icon, size: 16, color: priority.color),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      priority.displayName,
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: priority.color,
+                      ),
+                    ),
+                    Text(
+                      '$categoryCount types',
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: priority.color.withValues(alpha: 0.7),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(Icons.chevron_right, size: 16, color: priority.color.withValues(alpha: 0.5)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ── Category card inside priority tier ───────────────────────────────────────
+class _CategoryCard extends StatelessWidget {
+  final ReportCategory category;
+  final VoidCallback onTap;
+
+  const _CategoryCard({required this.category, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final p = category.basePriority;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Material(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(12),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey.shade200),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.03),
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                Icon(p.icon, size: 18, color: p.color),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        category.displayName,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF1A1A1A),
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        category.description,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Colors.grey.shade500,
+                          height: 1.4,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Icon(Icons.arrow_forward_ios, size: 13, color: Colors.grey.shade400),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }
