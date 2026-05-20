@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../../core/l10n/app_strings.dart';
 import '../../core/utils/toast_utils.dart';
 import '../state/municipality_state.dart';
 
@@ -297,14 +298,14 @@ class EmergencyContactsScreen extends StatelessWidget {
             // ── Local contacts ──
             if (localContacts.isNotEmpty) ...[
               _buildSectionHeader(
-                  '$activeMunicipalityName Local Contacts', activeLguColor),
+                  '$activeMunicipalityName ${AppStrings.get('localContacts')}', activeLguColor),
               ...localContacts.map(
                   (c) => _buildContactTile(c, activeLguColor, context)),
             ],
 
             // ── National / Provincial hotlines ──
             _buildSectionHeader(
-                'National & Provincial Hotlines', activeLguColor),
+                AppStrings.get('nationalHotlines'), activeLguColor),
             ..._nationalHotlines.map(
                 (c) => _buildContactTile(c, activeLguColor, context)),
           ],

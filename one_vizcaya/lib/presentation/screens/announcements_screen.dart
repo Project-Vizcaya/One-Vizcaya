@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:timeago/timeago.dart' as timeago;
+import '../../core/l10n/app_strings.dart';
 import '../state/municipality_state.dart';
 import '../../core/utils/toast_utils.dart';
 
@@ -64,7 +65,7 @@ class _AnnouncementsList extends StatelessWidget {
                 Icon(Icons.error_outline,
                     size: 48, color: Colors.red.shade300, semanticLabel: 'Error loading announcements'),
                 const SizedBox(height: 16),
-                Text('Failed to load announcements',
+                Text(AppStrings.get('failedLoad'),
                     style: TextStyle(color: Colors.grey.shade600)),
                 const SizedBox(height: 8),
                 Text(
@@ -94,13 +95,13 @@ class _AnnouncementsList extends StatelessWidget {
                     color: lguColor.withValues(alpha: 0.3),
                     semanticLabel: 'No announcements'),
                 const SizedBox(height: 16),
-                Text('No announcements yet',
+                Text(AppStrings.get('noAnnouncements'),
                     style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
                         color: Colors.grey.shade600)),
                 const SizedBox(height: 8),
-                Text('Check back later for updates\nfrom your local government.',
+                Text(AppStrings.get('noAnnouncementsSubtitle'),
                     textAlign: TextAlign.center,
                     style: TextStyle(
                         fontSize: 13, color: Colors.grey.shade400)),
@@ -216,7 +217,7 @@ class _AnnouncementCard extends StatelessWidget {
                             ),
                             const SizedBox(width: 4),
                             Text(
-                              'URGENT',
+                              AppStrings.get('urgentBadge'),
                               style: TextStyle(
                                 fontSize: 10,
                                 fontWeight: FontWeight.bold,
@@ -316,7 +317,7 @@ class _AnnouncementCard extends StatelessWidget {
                           child: Text(
                             sourceLabel.isNotEmpty
                                 ? sourceLabel
-                                : 'View original post',
+                                : AppStrings.get('viewOriginalPost'),
                             style: TextStyle(
                               fontSize: 12,
                               color: lguColor,

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../core/l10n/app_strings.dart';
 import '../state/municipality_state.dart';
 import '../../core/constants/app_constants.dart';
 import '../../core/utils/toast_utils.dart';
@@ -70,8 +71,8 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
                 _ToggleTile(
                   icon: Icons.notifications_outlined,
                   iconColor: const Color(0xFF7B1FA2),
-                  title: 'Push Notifications',
-                  subtitle: 'Get notified when your report status changes',
+                  title: AppStrings.get('pushNotifications'),
+                  subtitle: AppStrings.get('pushNotifSubtitle'),
                   value: _notificationsEnabled,
                   onChanged: (val) {
                     setState(() => _notificationsEnabled = val);
@@ -88,8 +89,8 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
                 _ToggleTile(
                   icon: Icons.location_on_outlined,
                   iconColor: const Color(0xFF1565C0),
-                  title: 'Location Services',
-                  subtitle: 'Used for accurate weather and report geotagging',
+                  title: AppStrings.get('locationServices'),
+                  subtitle: AppStrings.get('locationSubtitle'),
                   value: _locationEnabled,
                   onChanged: (val) {
                     setState(() => _locationEnabled = val);
@@ -100,16 +101,16 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
                 _NavigationTile(
                   icon: Icons.privacy_tip_outlined,
                   iconColor: const Color(0xFF2E7D32),
-                  title: 'Privacy Policy',
-                  subtitle: 'RA 10173 — Data Privacy Act of 2012',
+                  title: AppStrings.get('privacyPolicy'),
+                  subtitle: AppStrings.get('privacyPolicySubtitle'),
                   onTap: () => Navigator.of(context).pushNamed('/privacy'),
                 ),
                 _DividerLine(),
                 _NavigationTile(
                   icon: Icons.delete_outline,
                   iconColor: const Color(0xFFE53935),
-                  title: 'Delete My Account',
-                  subtitle: 'Request permanent data deletion',
+                  title: AppStrings.get('deleteAccount'),
+                  subtitle: AppStrings.get('deleteAccountSubtitle'),
                   onTap: () => _showDeleteAccountDialog(context),
                 ),
               ],
@@ -122,8 +123,8 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
                 _ToggleTile(
                   icon: Icons.offline_bolt_outlined,
                   iconColor: const Color(0xFFE65100),
-                  title: 'Offline Mode',
-                  subtitle: 'Cache data for areas with weak connectivity',
+                  title: AppStrings.get('offlineModeLabel'),
+                  subtitle: AppStrings.get('offlineModeSubtitle'),
                   value: _offlineModeEnabled,
                   onChanged: (val) {
                     setState(() => _offlineModeEnabled = val);
@@ -134,8 +135,8 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
                 _NavigationTile(
                   icon: Icons.cleaning_services_outlined,
                   iconColor: const Color(0xFF546E7A),
-                  title: 'Clear Cache',
-                  subtitle: 'Free up storage used by the app',
+                  title: AppStrings.get('clearCache'),
+                  subtitle: AppStrings.get('clearCacheSubtitle'),
                   onTap: () => _showClearCacheDialog(context),
                 ),
               ],
@@ -148,13 +149,13 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
                 _DropdownTile(
                   icon: Icons.sort,
                   iconColor: const Color(0xFF00897B),
-                  title: 'Default Sort Order',
-                  subtitle: 'How your reports are listed by default',
+                  title: AppStrings.get('defaultSortOrder'),
+                  subtitle: AppStrings.get('sortSubtitle'),
                   value: _reportSortOrder,
-                  options: const [
-                    'Newest First',
-                    'Oldest First',
-                    'Highest Priority',
+                  options: [
+                    AppStrings.get('newestFirst'),
+                    AppStrings.get('oldestFirst'),
+                    AppStrings.get('highestPriority'),
                   ],
                   onChanged: (val) {
                     if (val != null) {
@@ -174,8 +175,8 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
                 _ToggleTile(
                   icon: Icons.contrast,
                   iconColor: const Color(0xFF333333),
-                  title: 'High Contrast Mode',
-                  subtitle: 'Improve visibility for low-vision users',
+                  title: AppStrings.get('highContrast'),
+                  subtitle: AppStrings.get('highContrastSubtitle'),
                   value: _highContrastMode,
                   onChanged: (val) {
                     setState(() => _highContrastMode = val);
@@ -189,8 +190,8 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
                 _DropdownTile(
                   icon: Icons.language,
                   iconColor: const Color(0xFF1565C0),
-                  title: 'Language',
-                  subtitle: 'Select your preferred language',
+                  title: AppStrings.get('language'),
+                  subtitle: AppStrings.get('languageSubtitle'),
                   value: _selectedLanguage,
                   options: const ['English', 'Tagalog'],
                   onChanged: (newValue) {
