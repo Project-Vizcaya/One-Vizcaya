@@ -664,13 +664,17 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
-      builder: (context) => SafeArea(
-        child: Container(
+      isScrollControlled: true,
+      useSafeArea: true,
+      builder: (context) => Container(
           decoration: const BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
           ),
-          padding: const EdgeInsets.fromLTRB(20, 10, 20, 20),
+          padding: EdgeInsets.fromLTRB(
+            20, 10, 20,
+            MediaQuery.of(context).padding.bottom + 20,
+          ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -726,7 +730,6 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
               const SizedBox(height: 16),
             ],
           ),
-        ),
       ),
     );
   }

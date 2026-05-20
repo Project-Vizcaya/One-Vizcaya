@@ -118,12 +118,14 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
             borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
           ),
           padding: EdgeInsets.only(
-            bottom: MediaQuery.of(sheetCtx).viewInsets.bottom + 24,
+            bottom: MediaQuery.of(sheetCtx).viewInsets.bottom +
+                MediaQuery.of(sheetCtx).padding.bottom + 24,
             left: 24,
             right: 24,
             top: 16,
           ),
-          child: Column(
+          child: SingleChildScrollView(
+           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -318,6 +320,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                 ),
               ),
             ],
+           ),
           ),
         ),
       ),
@@ -2482,7 +2485,8 @@ class _AddAnnouncementSheetState
           24,
           16,
           24,
-          MediaQuery.of(context).viewInsets.bottom + 24),
+          MediaQuery.of(context).viewInsets.bottom +
+              MediaQuery.of(context).padding.bottom + 24),
       child: SingleChildScrollView(
         child: Form(
           key: _formKey,
