@@ -39,6 +39,9 @@ void main() async {
         androidProvider: kReleaseMode
             ? AndroidProvider.playIntegrity
             : AndroidProvider.debug,
+        appleProvider: kReleaseMode
+            ? AppleProvider.deviceCheck
+            : AppleProvider.debug,
       );
     }
 
