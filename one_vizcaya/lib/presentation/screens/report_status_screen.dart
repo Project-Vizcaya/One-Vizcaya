@@ -167,7 +167,7 @@ class _ReportStatusScreenState extends State<ReportStatusScreen> {
 
                 if (reports.isEmpty) {
                   return Center(
-                    child: Text('No ${_filterPriority?.displayName ?? ""} priority reports found.'),
+                    child: Text(AppStrings.get('noReportsFilter')),
                   );
                 }
 
