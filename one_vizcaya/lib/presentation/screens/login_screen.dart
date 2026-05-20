@@ -504,62 +504,57 @@ class _LoginScreenState extends State<LoginScreen>
                     padding: const EdgeInsets.symmetric(horizontal: 24),
                     child: Row(
                       children: [
-                        const Expanded(child: Divider()),
+                        Expanded(child: Divider(color: Colors.grey.shade300)),
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 12),
                           child: Text(
                             'or',
                             style: TextStyle(
                               fontSize: 13,
-                              color: Colors.grey.shade500,
-                              fontWeight: FontWeight.w500,
+                              color: Colors.grey.shade400,
                             ),
                           ),
                         ),
-                        const Expanded(child: Divider()),
+                        Expanded(child: Divider(color: Colors.grey.shade300)),
                       ],
                     ),
                   ),
                   const SizedBox(height: 8),
                   Padding(
                     padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
-                    child: GestureDetector(
+                    child: InkWell(
                       onTap: _isBiometricLoading ? null : _loginWithBiometric,
+                      borderRadius: BorderRadius.circular(12),
                       child: Container(
-                        height: 56,
+                        padding: const EdgeInsets.symmetric(
+                            vertical: 14, horizontal: 20),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFF1F8E9),
-                          borderRadius: BorderRadius.circular(16),
                           border: Border.all(
-                            color: const Color(0xFF81C784),
-                            width: 1.5,
-                          ),
+                              color: const Color(0xFF4CAF50).withOpacity(0.4)),
+                          borderRadius: BorderRadius.circular(12),
+                          color: const Color(0xFF4CAF50).withOpacity(0.05),
                         ),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            if (_isBiometricLoading)
-                              const SizedBox(
-                                width: 22,
-                                height: 22,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: Color(0xFF388E3C),
-                                ),
-                              )
-                            else
-                              const Icon(
-                                Icons.fingerprint,
-                                size: 26,
-                                color: Color(0xFF388E3C),
-                              ),
+                            _isBiometricLoading
+                                ? const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Color(0xFF4CAF50),
+                                    ),
+                                  )
+                                : const Icon(Icons.fingerprint,
+                                    color: Color(0xFF4CAF50), size: 24),
                             const SizedBox(width: 10),
-                            Text(
+                            const Text(
                               'Sign in with Biometrics',
                               style: TextStyle(
-                                fontSize: 15,
+                                color: Color(0xFF4CAF50),
                                 fontWeight: FontWeight.w600,
-                                color: Colors.grey.shade800,
+                                fontSize: 15,
                               ),
                             ),
                           ],

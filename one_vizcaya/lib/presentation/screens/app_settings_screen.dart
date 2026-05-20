@@ -226,6 +226,15 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
                   contentPadding:
                       const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                 ),
+                Padding(
+                  padding:
+                      const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                  child: Text(
+                    'Some screens may require restarting the app to fully apply.',
+                    style: TextStyle(
+                        fontSize: 11, color: Colors.grey.shade500),
+                  ),
+                ),
                 _DividerLine(),
                 _ToggleTile(
                   icon: Icons.contrast,
@@ -359,39 +368,34 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(6),
-              decoration: BoxDecoration(
-                color: Colors.red.shade50,
-                shape: BoxShape.circle,
-              ),
-              child: Icon(Icons.warning_rounded, color: Colors.red.shade600, size: 24),
-            ),
-            const SizedBox(width: 12),
-            const Expanded(
-              child: Text(
-                'Delete Account',
-                style: TextStyle(fontSize: 18),
-              ),
-            ),
-          ],
-        ),
+        icon: const Icon(Icons.warning_amber_rounded,
+            color: Colors.red, size: 48),
+        title: Text('Delete Account',
+            style: TextStyle(color: Colors.red.shade700)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'This action is permanent and cannot be undone. The following will be deleted:',
-              style: TextStyle(fontSize: 13, color: Colors.grey.shade700),
-            ),
+            const Text('This will permanently delete:',
+                style: TextStyle(fontWeight: FontWeight.w600)),
+            const SizedBox(height: 8),
+            ...[
+              'All your submitted reports',
+              'Your profile and contact information',
+              'Your notification history',
+            ].map((item) => Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 2),
+                  child: Row(children: [
+                    const Icon(Icons.close, color: Colors.red, size: 16),
+                    const SizedBox(width: 6),
+                    Text(item),
+                  ]),
+                )),
             const SizedBox(height: 12),
-            _DeleteConsequenceItem(text: 'All your submitted reports'),
-            const SizedBox(height: 6),
-            _DeleteConsequenceItem(text: 'Your profile and contact information'),
-            const SizedBox(height: 6),
-            _DeleteConsequenceItem(text: 'Your notification history'),
+            Text('This cannot be undone.',
+                style: TextStyle(
+                    color: Colors.red.shade700,
+                    fontWeight: FontWeight.w600)),
           ],
         ),
         actions: [
@@ -399,15 +403,13 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
             onPressed: () => Navigator.pop(ctx),
             child: const Text('Cancel'),
           ),
-          ElevatedButton(
+          TextButton(
             onPressed: () {
               Navigator.pop(ctx);
               _showDeleteConfirmationDialog(context);
             },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFE53935),
-            ),
-            child: const Text('Continue', style: TextStyle(color: Colors.white)),
+            child: const Text('Continue',
+                style: TextStyle(color: Colors.red)),
           ),
         ],
       ),

@@ -68,14 +68,18 @@ class _AnnouncementsListState extends State<_AnnouncementsList> {
 
   Future<void> _toggleBookmark(String id) async {
     final prefs = await SharedPreferences.getInstance();
+    final isCurrentlyBookmarked = _bookmarkedIds.contains(id);
     setState(() {
-      if (_bookmarkedIds.contains(id)) {
+      if (isCurrentlyBookmarked) {
         _bookmarkedIds.remove(id);
       } else {
         _bookmarkedIds.add(id);
       }
     });
     await prefs.setString(_prefsKey, jsonEncode(_bookmarkedIds.toList()));
+    ToastUtils.showSuccess(isCurrentlyBookmarked
+        ? 'Removed from bookmarks'
+        : 'Saved to bookmarks');
   }
 
   Stream<QuerySnapshot> _buildStream() {
@@ -182,7 +186,8 @@ class _AnnouncementsListState extends State<_AnnouncementsList> {
                               ? Colors.green
                               : Colors.grey.shade600,
                         ),
-                        label: const Text('Bookmarked'),
+                        label: Text(
+                            'Bookmarked${_bookmarkedIds.isNotEmpty ? " (${_bookmarkedIds.length})" : ""}'),
                         selected: _showBookmarked,
                         onSelected: (_) =>
                             setState(() => _showBookmarked = !_showBookmarked),
