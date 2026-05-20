@@ -2,72 +2,132 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // ─── Auth helpers ───────────────────────────────────────────────────────
+
     function isAuth() {
       return request.auth != null;
     }
 
-    function getUserRole() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('role', 'citizen');
+    // Check custom token claim first (fast), fall back to Firestore doc (safe)
+    function role() {
+      return isAuth()
+        ? request.auth.token.get('role',
+            get(/databases/$(database)/documents/users/$(request.auth.uid))
+              .data.get('role', 'citizen'))
+        : 'citizen';
     }
 
-    function isAdmin() {
-      return isAuth() && (
-        request.auth.token.role in ['admin', 'municipal_admin', 'provincial_admin', 'super_admin'] ||
-        getUserRole() in ['admin', 'municipal_admin', 'provincial_admin', 'super_admin']
-      );
+    // ─── Role hierarchy ─────────────────────────────────────────────────────
+    //   super_admin        → unrestricted access to everything
+    //   provincial_admin   → read/write/delete across all municipalities
+    //   admin              → legacy role, same power as provincial_admin
+    //   municipal_admin    → read/update reports; manage announcements & responders
+    //   citizen            → own data only
+
+    function isSuperAdmin() {
+      return isAuth() && role() == 'super_admin';
     }
 
     function isProvincialAdmin() {
-      return isAuth() && (
-        request.auth.token.role in ['admin', 'provincial_admin', 'super_admin'] ||
-        getUserRole() in ['admin', 'provincial_admin', 'super_admin']
-      );
+      return isAuth() && role() in ['provincial_admin', 'admin', 'super_admin'];
+    }
+
+    function isMunicipalAdmin() {
+      return isAuth() && role() in ['municipal_admin', 'provincial_admin', 'admin', 'super_admin'];
+    }
+
+    // Any admin level (used for broad read access)
+    function isAdmin() {
+      return isAuth() && role() in ['municipal_admin', 'provincial_admin', 'admin', 'super_admin'];
     }
 
     function isOwner(uid) {
       return isAuth() && request.auth.uid == uid;
     }
 
-    // User profiles
-    match /users/{userId} {
-      allow read: if isOwner(userId) || isAdmin();
-      allow write: if isOwner(userId) || isProvincialAdmin();
+    // ─── Super admin bypass ─────────────────────────────────────────────────
+    // super_admin has unrestricted read/write access to every document
+    match /{document=**} {
+      allow read, write: if isSuperAdmin();
+    }
 
-      // Per-user report sub-collection
+    // ─── User profiles ──────────────────────────────────────────────────────
+    match /users/{userId} {
+      allow read:   if isOwner(userId) || isAdmin();
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId) || isProvincialAdmin();
+      allow delete: if isProvincialAdmin();
+
+      // Per-user reports sub-collection
       match /reports/{reportId} {
-        allow read, write: if isOwner(userId);
+        allow read, write:  if isOwner(userId);
         allow read, update: if isAdmin();
-        allow delete: if isProvincialAdmin();
+        allow delete:       if isProvincialAdmin();
+      }
+
+      // Per-user notifications
+      match /notifications/{notifId} {
+        allow read, write: if isOwner(userId);
+        allow read:        if isAdmin();
+        allow write:       if isAdmin(); // Cloud Functions write here
+      }
+
+      // Per-user feedback on resolved reports
+      match /feedback/{feedbackId} {
+        allow read, write: if isOwner(userId);
+        allow read:        if isAdmin();
       }
     }
 
-    // Allows collectionGroup('reports') queries for admin dashboard
+    // ─── CollectionGroup query (admin dashboard report stream) ───────────────
     match /{path=**}/reports/{reportId} {
       allow read, update: if isAdmin();
+      allow delete:       if isProvincialAdmin();
+    }
+
+    // ─── Announcements ───────────────────────────────────────────────────────
+    match /announcements/{announcementId} {
+      allow read:          if isAuth();
+      allow create, update: if isMunicipalAdmin();
+      allow delete:        if isProvincialAdmin();
+    }
+
+    // ─── Emergency responders ────────────────────────────────────────────────
+    match /responders/{responderId} {
+      allow read:          if isAuth();
+      allow create, update: if isMunicipalAdmin();
+      allow delete:        if isProvincialAdmin();
+    }
+
+    // ─── FCM broadcast records ───────────────────────────────────────────────
+    match /broadcasts/{broadcastId} {
+      allow read:   if isAdmin();
+      allow create: if isAdmin();
       allow delete: if isProvincialAdmin();
     }
 
-    // Announcements — any authenticated citizen can read
-    match /announcements/{announcementId} {
-      allow read: if isAuth();
-      allow write: if isAdmin();
+    // ─── Audit logs (append-only for admins; only super_admin can delete) ────
+    match /audit_logs/{logId} {
+      allow read:   if isAdmin();
+      allow create: if isAdmin();
+      allow update, delete: if isSuperAdmin();
     }
 
-    // Config (admin UID lists, app config)
+    // ─── App config ──────────────────────────────────────────────────────────
     match /config/{docId} {
-      allow read: if isAdmin();
-      allow write: if isAdmin();
+      allow read:  if isAdmin();
+      allow write: if isProvincialAdmin();
     }
 
-    // Rate limit counters
+    // ─── Rate limit counters ─────────────────────────────────────────────────
     match /rate_limits/{userId} {
       allow read, write: if isOwner(userId) || isAdmin();
     }
 
-    // Demo / seed data helpers
+    // ─── Demo / seed meta ────────────────────────────────────────────────────
     match /demo_meta/{docId} {
-      allow read: if isAdmin();
-      allow write: if isAdmin();
+      allow read:  if isAdmin();
+      allow write: if isProvincialAdmin();
     }
   }
 }
