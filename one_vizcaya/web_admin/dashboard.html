@@ -236,7 +236,109 @@
     /* ── Assigned-to column ── */
     .col-assigned{width:13%}
     @media(max-width:768px){.col-assigned{display:none}}
+
+    /* ── POLISH 1: Assignment badge ── */
+    .avatar-badge{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;font-size:11px;font-weight:800;color:#fff;flex-shrink:0;margin-right:5px}
+
+    /* ── POLISH 2: SLA badges ── */
+    .badge-sla-ontrack{padding:3px 8px;border-radius:20px;font-size:10px;font-weight:700;background:#F0FFF4;color:#276749;white-space:nowrap;margin-left:4px}
+    .badge-sla-warning{padding:3px 8px;border-radius:20px;font-size:10px;font-weight:700;background:#FFFFF0;color:#975A16;white-space:nowrap;margin-left:4px}
+    .sla-progress-bar{height:6px;border-radius:4px;margin-top:8px;background:#EDF2F7;overflow:hidden}
+    .sla-progress-fill{height:100%;border-radius:4px;transition:width .4s}
+
+    /* ── POLISH 3: Bulk bar animation ── */
+    #bulk-action-bar{transform:translateY(-100%);transition:transform .3s ease;display:flex!important}
+    #bulk-action-bar.visible{transform:translateY(0)}
+    #bulk-confirm-row{display:none;align-items:center;gap:8px;flex-wrap:wrap}
+    .bulk-row-selected td{background:#E3F2FD!important}
+
+    /* ── POLISH 4: Scheduled announcements ── */
+    .sched-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;background:#EBF8FF;color:#2B6CB0;border-radius:20px;font-size:11px;font-weight:700}
+    #ann-schedule-error{font-size:12px;color:#C53030;margin-top:4px;display:none}
+
+    /* ── POLISH 5: Heatmap legend overlay ── */
+    #heatmap-legend{position:absolute;bottom:40px;left:12px;z-index:50;background:rgba(255,255,255,.94);border-radius:10px;padding:10px 14px;box-shadow:0 2px 12px rgba(0,0,0,.2);display:none;min-width:160px}
+    #heatmap-legend .hl-title{font-size:11px;font-weight:800;color:#1A202C;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px}
+    #heatmap-legend .hl-row{display:flex;align-items:center;gap:6px;font-size:11px;color:#4A5568;margin-bottom:3px}
+    #heatmap-legend .hl-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+    .map-card-wrap{position:relative}
+
+    /* ── POLISH 6: Toast design ── */
+    .toast-new-report{background:#fff;border-left:4px solid #48BB78;padding:12px 16px;border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,.2);max-width:300px;min-width:240px}
+    .toast-new-report .tnr-title{font-size:13px;font-weight:800;color:#276749;margin-bottom:2px}
+    .toast-new-report .tnr-sub{font-size:12px;color:#4A5568;margin-bottom:6px}
+    .toast-new-report .tnr-view{padding:4px 12px;background:#276749;color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer}
+    #sound-toggle{background:none;border:none;cursor:pointer;font-size:18px;padding:2px 6px;border-radius:6px;transition:background .2s}
+    #sound-toggle:hover{background:#EDF2F7}
+
+    /* ── POLISH 7: PDF styling helpers ── */
+
+    /* ── POLISH 8: Canned response enhancements ── */
+    .canned-mode-toggle{display:flex;align-items:center;gap:6px;font-size:12px;color:#718096;margin-bottom:6px}
+    .canned-mode-btn{padding:3px 10px;border-radius:20px;border:1.5px solid #E2E8F0;background:#fff;font-size:11px;font-weight:600;cursor:pointer;color:#4A5568;transition:all .2s}
+    .canned-mode-btn.active{background:#2E7D32;border-color:#2E7D32;color:#fff}
+    .canned-preview{position:absolute;left:100%;top:0;margin-left:6px;background:#fff;border:1.5px solid #E2E8F0;border-radius:8px;padding:10px 12px;font-size:12px;color:#4A5568;max-width:240px;box-shadow:0 4px 16px rgba(0,0,0,.12);z-index:100;display:none;line-height:1.5}
+
+    /* ── POLISH 9: Satisfaction stars ── */
+    .satisfaction-stars{font-size:20px;color:#F6AD55;letter-spacing:2px}
+
+    /* ── POLISH 11: Keyboard shortcut polish ── */
+    #kbd-modal .kbd-box{background:#1A202C;border-radius:16px;padding:24px 28px;min-width:300px}
+    #kbd-modal .kbd-section-title{font-size:10px;font-weight:700;color:#718096;text-transform:uppercase;letter-spacing:.7px;margin:12px 0 6px}
+    #kbd-modal .kbd-row{display:flex;justify-content:space-between;padding:6px 0;font-size:13px;border-bottom:1px solid #2D3748;color:#E2E8F0}
+    #kbd-modal .kbd-row:last-child{border-bottom:none}
+    .kbd-key{background:#2D3748;border-radius:6px;padding:3px 10px;font-weight:700;font-size:12px;font-family:monospace;color:#F6E05E;border:1px solid #4A5568}
+
+    /* ── POLISH 12: Notes enhancements ── */
+    .note-avatar{width:28px;height:28px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#fff;flex-shrink:0;margin-right:8px}
+    .note-char-count{font-size:11px;color:#A0AEC0;text-align:right;margin-top:4px}
+    .note-char-count.over{color:#C53030;font-weight:700}
+
+    /* ── POLISH 13: Delete confirmation modal ── */
+    #delete-confirm-modal{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9500;display:none;align-items:center;justify-content:center;padding:16px}
+    #delete-confirm-modal .dcm-box{background:#fff;border-radius:16px;overflow:hidden;width:100%;max-width:400px;box-shadow:0 24px 80px rgba(0,0,0,.35)}
+    #delete-confirm-modal .dcm-header{background:#C53030;padding:16px 20px;display:flex;align-items:center;gap:10px}
+    #delete-confirm-modal .dcm-header span{font-size:16px;font-weight:800;color:#fff}
+    #delete-confirm-modal .dcm-body{padding:20px}
+    #delete-confirm-modal .dcm-input{width:100%;border:2px solid #E2E8F0;border-radius:8px;padding:10px 12px;font-size:14px;font-family:inherit;outline:none;box-sizing:border-box;transition:border .2s}
+    #delete-confirm-modal .dcm-input.valid{border-color:#48BB78}
+    #delete-confirm-modal .dcm-input.invalid{border-color:#C53030}
+    #delete-confirm-modal .dcm-btn-row{display:flex;gap:10px;justify-content:flex-end;margin-top:16px}
+    #delete-confirm-modal .dcm-confirm{padding:9px 22px;background:#C53030;color:#fff;border:none;border-radius:8px;font-weight:700;font-size:13px;cursor:pointer;transition:opacity .2s}
+    #delete-confirm-modal .dcm-confirm:disabled{opacity:.4;cursor:not-allowed}
+    #delete-confirm-modal .dcm-cancel{padding:9px 18px;background:#EDF2F7;color:#4A5568;border:none;border-radius:8px;font-weight:600;font-size:13px;cursor:pointer}
+
+    /* ── POLISH 14: Session banner animation + overlay ── */
+    #session-warning{transform:translateY(-100%);transition:transform .35s ease}
+    #session-warning.show{transform:translateY(0)}
+    #session-expired-overlay{position:fixed;inset:0;background:rgba(26,32,44,.92);z-index:99999;display:none;flex-direction:column;align-items:center;justify-content:center;gap:16px;color:#fff}
+    #session-expired-overlay h2{font-size:24px;font-weight:800}
+    #session-expired-overlay p{font-size:14px;opacity:.8}
   </style>
+
+  <!-- Delete confirm modal (POLISH 13) -->
+  <div id="delete-confirm-modal">
+    <div class="dcm-box">
+      <div class="dcm-header"><span style="font-size:22px">⚠️</span><span>Confirm Deletion</span></div>
+      <div class="dcm-body">
+        <p id="dcm-message" style="font-size:14px;color:#4A5568;margin-bottom:12px"></p>
+        <input class="dcm-input" id="dcm-input" placeholder="Type DELETE to confirm" autocomplete="off" oninput="onDcmInput(this)"/>
+        <div id="dcm-countdown" style="font-size:12px;color:#A0AEC0;margin-top:6px;display:none"></div>
+        <div class="dcm-btn-row">
+          <button class="dcm-cancel" onclick="closeDcm()">Cancel</button>
+          <button class="dcm-confirm" id="dcm-confirm-btn" disabled onclick="executeDcm()">Confirm Delete</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Session expired overlay (POLISH 14) -->
+  <div id="session-expired-overlay">
+    <div style="font-size:48px">🔒</div>
+    <h2>Session Expired</h2>
+    <p>Your session has expired. Please log in again to continue.</p>
+    <button onclick="auth.signOut().then(()=>window.location.href='index.html')" style="padding:12px 32px;background:#2E7D32;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer">Log In Again</button>
+  </div>
 </head>
 <body>
 
@@ -249,25 +351,33 @@
   <p>Loading dashboard…</p>
 </div>
 
-<!-- Session timeout warning banner -->
-<div id="session-warning" style="display:none;position:sticky;top:68px;z-index:600;background:#FFF3CD;color:#856404;padding:10px 20px;font-size:13px;font-weight:600;align-items:center;gap:12px;justify-content:center;border-bottom:2px solid #FFECB5">
-  ⚠️ Your session will expire in 5 minutes. Save your work.
-  <button onclick="refreshSession()" style="padding:5px 14px;background:#856404;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">Refresh Session</button>
-  <button onclick="document.getElementById('session-warning').style.display='none'" style="padding:5px 10px;background:transparent;border:1px solid #856404;color:#856404;border-radius:8px;font-size:12px;cursor:pointer">Dismiss</button>
+<!-- Session timeout warning banner (POLISH 14) -->
+<div id="session-warning" style="position:sticky;top:68px;z-index:600;background:#FFF3CD;color:#856404;padding:10px 20px;font-size:13px;font-weight:600;display:flex;align-items:center;gap:12px;justify-content:center;border-bottom:2px solid #FFECB5">
+  ⚠️ Session expires in <span id="session-countdown" style="font-weight:800;font-variant-numeric:tabular-nums">5:00</span> — Save your work.
+  <label style="display:flex;align-items:center;gap:5px;font-size:12px;font-weight:600;cursor:pointer">
+    <input type="checkbox" id="auto-refresh-session" onchange="toggleAutoRefreshSession(this.checked)" style="width:14px;height:14px"> Auto-refresh
+  </label>
+  <button onclick="refreshSession()" style="padding:5px 14px;background:#856404;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">Refresh Now</button>
+  <button onclick="hideSessBanner()" style="padding:5px 10px;background:transparent;border:1px solid #856404;color:#856404;border-radius:8px;font-size:12px;cursor:pointer">Dismiss</button>
 </div>
 
 <!-- Toast container -->
 <div id="toast-container"></div>
 
-<!-- Keyboard shortcuts modal -->
+<!-- Keyboard shortcuts modal (POLISH 11) -->
 <div id="kbd-modal">
   <div class="kbd-box">
-    <div style="font-size:15px;font-weight:800;color:#2D3748;margin-bottom:14px">⌨ Keyboard Shortcuts</div>
-    <div class="kbd-row"><span>Refresh reports</span><span class="kbd-key">R</span></div>
-    <div class="kbd-row"><span>Focus search</span><span class="kbd-key">F</span></div>
-    <div class="kbd-row"><span>Export CSV</span><span class="kbd-key">E</span></div>
-    <div class="kbd-row" style="border-bottom:none"><span>Close modal</span><span class="kbd-key">Esc</span></div>
-    <div style="margin-top:14px;text-align:right"><button onclick="document.getElementById('kbd-modal').style.display='none'" style="padding:7px 18px;background:#2E7D32;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">Close</button></div>
+    <div style="font-size:15px;font-weight:800;color:#F6E05E;margin-bottom:4px">⌨ Keyboard Shortcuts</div>
+    <div style="font-size:12px;color:#718096;margin-bottom:12px">Press a key any time (outside inputs)</div>
+    <div class="kbd-section-title">Reports</div>
+    <div class="kbd-row"><span>Refresh reports</span><kbd class="kbd-key">R</kbd></div>
+    <div class="kbd-row"><span>Export CSV</span><kbd class="kbd-key">E</kbd></div>
+    <div class="kbd-section-title">Navigation</div>
+    <div class="kbd-row"><span>Focus search bar</span><kbd class="kbd-key">F</kbd></div>
+    <div class="kbd-row"><span>Close any modal</span><kbd class="kbd-key">Esc</kbd></div>
+    <div class="kbd-section-title">Help</div>
+    <div class="kbd-row" style="border-bottom:none"><span>Show this dialog</span><kbd class="kbd-key">?</kbd></div>
+    <div style="margin-top:16px;text-align:right"><button onclick="document.getElementById('kbd-modal').style.display='none'" style="padding:7px 18px;background:#2E7D32;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">Close</button></div>
   </div>
 </div>
 
@@ -367,6 +477,33 @@
 
   </div>
 
+  <!-- POLISH 1: Unassigned reports KPI card (5th card, separate row) -->
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:18px;margin-bottom:24px">
+    <div class="stat-card" style="border:1px solid #E2E8F0" onclick="statCardFilter('unassigned')" tabindex="0" role="button" onkeydown="if(event.key==='Enter'||event.key===' ')statCardFilter('unassigned')" title="Show unassigned reports">
+      <div class="stat-strip" style="background:linear-gradient(90deg,#718096,#A0AEC0)"></div>
+      <div class="stat-inner">
+        <div class="stat-row">
+          <div class="stat-value" id="stat-unassigned" style="color:#718096">—</div>
+          <div class="stat-icon" style="background:#F7FAFC">👤</div>
+        </div>
+        <div class="stat-label" style="color:#718096">Unassigned</div>
+        <div class="stat-sub">No responder assigned yet</div>
+      </div>
+    </div>
+    <!-- POLISH 2: Overdue count KPI -->
+    <div class="stat-card" style="border:1px solid #FED7D7" onclick="statCardFilter('overdue')" tabindex="0" role="button" onkeydown="if(event.key==='Enter'||event.key===' ')statCardFilter('overdue')" title="Show overdue reports">
+      <div class="stat-strip" style="background:linear-gradient(90deg,#C53030,#FC8181)"></div>
+      <div class="stat-inner">
+        <div class="stat-row">
+          <div class="stat-value" id="stat-overdue-count" style="color:#C53030">—</div>
+          <div class="stat-icon" style="background:#FFF5F5">⏰</div>
+        </div>
+        <div class="stat-label" style="color:#C53030">Overdue</div>
+        <div class="stat-sub">Past SLA deadline</div>
+      </div>
+    </div>
+  </div>
+
   <!-- ── Analytics ── -->
   <div class="card" id="analytics-card" style="display:none">
     <div class="card-header">
@@ -421,13 +558,13 @@
   </div>
 
   <!-- Map -->
-  <div class="card">
+  <div class="card map-card-wrap">
     <div class="card-header">
       <span class="card-title">📍 Report Heatmap &amp; Responder Locations</span>
       <span class="card-meta" id="map-scope-label">Nueva Vizcaya Province</span>
     </div>
     <div class="map-controls">
-      <button class="toggle-btn active" id="btn-heatmap" onclick="toggleHeatmap()" aria-pressed="true">🔥 Heatmap</button>
+      <button class="toggle-btn active" id="btn-heatmap" onclick="toggleHeatmap()" aria-pressed="true" style="background:#E65100;border-color:#E65100;color:#fff">🔥 Heatmap</button>
       <button class="toggle-btn active" id="btn-responders" onclick="toggleResponders()" aria-pressed="true">🚨 Responders</button>
       <button class="toggle-btn" id="btn-reports-pins" onclick="toggleReportPins()" aria-pressed="false">📌 Report Pins</button>
       <button class="toggle-btn" id="btn-barangays" onclick="toggleBarangays()" aria-pressed="false" title="Show barangay boundaries (select a municipality first)">🗺️ Barangays</button>
@@ -447,7 +584,20 @@
         <option value="dpwh">DPWH</option>
       </select>
     </div>
-    <div id="map"></div>
+    <div id="map" style="position:relative"></div>
+    <!-- POLISH 5: Heatmap legend overlay -->
+    <div id="heatmap-legend">
+      <div class="hl-title">Report Density</div>
+      <div class="hl-row"><div class="hl-dot" style="background:#00C853"></div>Low</div>
+      <div class="hl-row"><div class="hl-dot" style="background:#FFD600"></div>Medium</div>
+      <div class="hl-row"><div class="hl-dot" style="background:#FF6D00"></div>High</div>
+      <div class="hl-row"><div class="hl-dot" style="background:#D50000"></div>Critical</div>
+      <div style="margin-top:8px;font-size:11px;color:#718096;font-weight:600">Radius</div>
+      <input type="range" id="heatmap-radius-slider" min="10" max="50" value="40"
+        oninput="onHeatmapRadiusChange(this.value)"
+        style="width:100%;margin-top:4px;cursor:pointer;accent-color:#E65100"/>
+      <div style="text-align:right;font-size:10px;color:#A0AEC0"><span id="heatmap-radius-val">40</span>px</div>
+    </div>
     <div class="map-legend">
       <strong style="font-size:11px;color:#718096;margin-right:2px">Heatmap:</strong>
       <div class="legend-item"><div class="legend-dot" style="background:#00C853"></div>Low</div>
@@ -473,14 +623,18 @@
 
     <!-- Reports list -->
     <div class="card">
-      <div class="card-header">
+      <div class="card-header" title="Press R to refresh • F to filter • E to export" id="reports-card-header">
         <div class="card-title">
           Live Reports
           <div class="live-dot"></div>
+          <!-- POLISH 2: overdue badge in header -->
+          <span id="overdue-header-badge" style="display:none;background:#C53030;color:#fff;border-radius:20px;font-size:10px;font-weight:800;padding:2px 8px;margin-left:4px"></span>
         </div>
         <div style="display:flex;align-items:center;gap:10px">
           <span class="card-meta" id="report-count-label">Loading…</span>
-          <button onclick="exportCSV()" style="padding:5px 12px;background:#EBF8FF;color:#2B6CB0;border:1px solid #BEE3F8;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer">⬇ Export CSV</button>
+          <!-- POLISH 6: sound toggle -->
+          <button id="sound-toggle" title="Toggle alert sound" onclick="toggleAlertSound()" aria-label="Toggle sound">🔔</button>
+          <button id="export-csv-btn" onclick="exportCSV()" style="padding:5px 12px;background:#EBF8FF;color:#2B6CB0;border:1px solid #BEE3F8;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer">⬇ Export CSV</button>
         </div>
       </div>
       <div class="card-body">
