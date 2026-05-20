@@ -11,6 +11,7 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import '../../core/constants/app_constants.dart';
+import '../../core/l10n/app_strings.dart';
 import '../../core/utils/toast_utils.dart';
 import '../../domain/enums/report_category.dart';
 import '../../domain/enums/report_status.dart';
@@ -304,15 +305,15 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
               SwitchListTile(
                 title: Text(
                   _isOffline
-                      ? 'Report via SMS (Offline)'
-                      : 'Report via App (Online)',
+                      ? AppStrings.get('reportViaSms')
+                      : AppStrings.get('online'),
                   style: Theme.of(
                     context,
                   ).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold),
                 ),
                 subtitle: Text(
                   _isOffline
-                      ? 'Uses your phone\'s SMS plan. Standard rates may apply.'
+                      ? AppStrings.get('reportViaSmsSubtitle')
                       : 'Uses mobile data or Wi-Fi.',
                 ),
                 value: _isOffline,
@@ -320,12 +321,12 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
                 activeThumbColor: primaryLguColor,
               ),
               SwitchListTile(
-                title: const Text(
-                  'Submit Anonymously',
-                  style: TextStyle(fontWeight: FontWeight.bold),
+                title: Text(
+                  AppStrings.get('submitAnonymously'),
+                  style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
-                subtitle: const Text(
-                  'Your name and phone number will not be attached to this report.',
+                subtitle: Text(
+                  AppStrings.get('anonymousSubtitle'),
                 ),
                 secondary: const Icon(Icons.visibility_off_outlined, semanticLabel: 'Anonymous submission'),
                 value: _isAnonymous,
@@ -335,7 +336,7 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
               const SizedBox(height: 24),
               DropdownButtonFormField<ReportCategory>(
                 value: _selectedCategory,
-                hint: const Text('Select Problem Category'),
+                hint: Text(AppStrings.get('selectCategory')),
                 isExpanded: true,
                 dropdownColor: Colors.white,
                 style: const TextStyle(color: Colors.black87, fontSize: 16),
@@ -431,7 +432,7 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
                 label: Text(
                   _currentPosition != null
                       ? 'Location Attached ✓'
-                      : 'Attach Precise Location (GPS)',
+                      : AppStrings.get('attachPreciseLocation'),
                 ),
                 onPressed: _isOffline || _isGettingLocation
                     ? null
@@ -451,7 +452,7 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
               TextFormField(
                 controller: _barangayController,
                 decoration: InputDecoration(
-                  labelText: 'Barangay (optional)',
+                  labelText: '${AppStrings.get('barangay')} (optional)',
                   hintText: 'Enter your barangay name',
                   prefixIcon: Icon(Icons.location_city_outlined, color: primaryLguColor, semanticLabel: 'Barangay'),
                   focusedBorder: OutlineInputBorder(
@@ -464,9 +465,9 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
               TextFormField(
                 controller: _descriptionController,
                 decoration: InputDecoration(
-                  labelText: 'Brief Description',
+                  labelText: AppStrings.get('briefDescription'),
                   prefixIcon: Icon(Icons.description, color: primaryLguColor, semanticLabel: 'Brief description'),
-                  hintText: 'Describe the problem in detail (min. 50 characters).',
+                  hintText: AppStrings.get('descriptionHint'),
                   focusedBorder: OutlineInputBorder(
                     borderSide: BorderSide(color: primaryLguColor, width: 2),
                   ),
@@ -503,8 +504,8 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
                 icon: const Icon(Icons.camera_alt, semanticLabel: 'Attach photo evidence'),
                 label: Text(
                   _selectedImage != null
-                      ? 'Photo Attached ✓'
-                      : 'Attach Photo Evidence (Optional)',
+                      ? AppStrings.get('photoAttached')
+                      : AppStrings.get('attachPhoto'),
                 ),
                 onPressed: _isOffline ? null : () => _showImagePickerOptions(),
                 style: OutlinedButton.styleFrom(

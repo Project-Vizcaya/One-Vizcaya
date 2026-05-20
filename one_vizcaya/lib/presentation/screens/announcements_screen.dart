@@ -212,6 +212,7 @@ class _AnnouncementCard extends StatelessWidget {
                               Icons.warning_amber_rounded,
                               size: 12,
                               color: Colors.red.shade600,
+                              semanticLabel: 'Urgent',
                             ),
                             const SizedBox(width: 4),
                             Text(
@@ -309,7 +310,7 @@ class _AnnouncementCard extends StatelessWidget {
                     onTap: () => _openSource(sourceUrl),
                     child: Row(
                       children: [
-                        Icon(Icons.open_in_new, size: 14, color: lguColor),
+                        Icon(Icons.open_in_new, size: 14, color: lguColor, semanticLabel: 'Open link'),
                         const SizedBox(width: 6),
                         Expanded(
                           child: Text(
@@ -324,7 +325,7 @@ class _AnnouncementCard extends StatelessWidget {
                             ),
                           ),
                         ),
-                        Icon(Icons.chevron_right, size: 16, color: lguColor),
+                        ExcludeSemantics(child: Icon(Icons.chevron_right, size: 16, color: lguColor)),
                       ],
                     ),
                   ),

@@ -141,6 +141,23 @@ class EmergencyContactsScreen extends StatelessWidget {
     }
   }
 
+  String _getSemanticLabelForType(String? type) {
+    switch (type) {
+      case 'police':
+        return 'Police';
+      case 'fire':
+        return 'Fire';
+      case 'medical':
+        return 'Medical';
+      case 'disaster':
+        return 'Disaster';
+      case 'infrastructure':
+        return 'Infrastructure';
+      default:
+        return 'Emergency';
+    }
+  }
+
   Color _getColorForType(String? type, Color lguColor) {
     switch (type) {
       case 'police':
@@ -219,7 +236,7 @@ class EmergencyContactsScreen extends StatelessWidget {
             color: iconColor.withValues(alpha: 0.12),
             borderRadius: BorderRadius.circular(10),
           ),
-          child: Icon(_getIconForType(type), color: iconColor, size: 22),
+          child: Icon(_getIconForType(type), color: iconColor, size: 22, semanticLabel: _getSemanticLabelForType(type)),
         ),
         title: Text(
           name,
@@ -239,14 +256,17 @@ class EmergencyContactsScreen extends StatelessWidget {
           overflow: TextOverflow.ellipsis,
           maxLines: 1,
         ),
-        trailing: Container(
-          decoration: BoxDecoration(
-            color: Colors.green.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: IconButton(
-            icon: const Icon(Icons.call, color: Colors.green),
-            onPressed: () => _makeCall(number),
+        trailing: Tooltip(
+          message: 'Call',
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.green.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: IconButton(
+              icon: const Icon(Icons.call, color: Colors.green),
+              onPressed: () => _makeCall(number),
+            ),
           ),
         ),
         onTap: () => _makeCall(number),

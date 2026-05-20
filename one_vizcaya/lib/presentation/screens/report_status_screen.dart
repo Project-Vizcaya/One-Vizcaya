@@ -98,7 +98,7 @@ class _ReportStatusScreenState extends State<ReportStatusScreen> {
                         return Padding(
                           padding: const EdgeInsets.only(right: 6),
                           child: FilterChip(
-                            avatar: Icon(priority.icon, size: 14, color: priority.color),
+                            avatar: Icon(priority.icon, size: 14, color: priority.color, semanticLabel: priority.displayName),
                             label: Text(priority.displayName),
                             selected: _filterPriority == priority,
                             selectedColor: priority.color.withAlpha((255 * 0.2).round()),
@@ -149,7 +149,7 @@ class _ReportStatusScreenState extends State<ReportStatusScreen> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.history, size: 64, color: activeLguColor.withAlpha((255 * 0.3).round())),
+                        Icon(Icons.history, size: 64, color: activeLguColor.withAlpha((255 * 0.3).round()), semanticLabel: 'No reports'),
                         const SizedBox(height: 16),
                         Text('No reports submitted to $activeMunicipalityName yet.'),
                       ],

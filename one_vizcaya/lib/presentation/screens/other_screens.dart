@@ -260,10 +260,12 @@ class _SupportScreenState extends State<SupportScreen> {
                             color: Colors.grey.shade600,
                           ),
                         ),
-                        trailing: Icon(
-                          Icons.arrow_forward_ios,
-                          size: 14,
-                          color: Colors.grey.shade400,
+                        trailing: ExcludeSemantics(
+                          child: Icon(
+                            Icons.arrow_forward_ios,
+                            size: 14,
+                            color: Colors.grey.shade400,
+                          ),
                         ),
                         onTap: () => _launchContact(
                           item['type'] as String,
@@ -342,10 +344,12 @@ class _SupportScreenState extends State<SupportScreen> {
                                       : lguColor.withValues(alpha: 0.1),
                                   shape: BoxShape.circle,
                                 ),
-                                child: Icon(
-                                  isExpanded ? Icons.remove : Icons.add,
-                                  size: 14,
-                                  color: isExpanded ? Colors.white : lguColor,
+                                child: ExcludeSemantics(
+                                  child: Icon(
+                                    isExpanded ? Icons.remove : Icons.add,
+                                    size: 14,
+                                    color: isExpanded ? Colors.white : lguColor,
+                                  ),
                                 ),
                               ),
                               const SizedBox(width: 12),
@@ -597,7 +601,7 @@ class NotificationsScreen extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Icon(Icons.notifications_none,
-                            size: 64, color: Colors.grey.shade300),
+                            size: 64, color: Colors.grey.shade300, semanticLabel: 'No notifications'),
                         const SizedBox(height: 16),
                         const Text('No notifications yet.',
                             style: TextStyle(color: Colors.grey)),
@@ -645,6 +649,11 @@ class NotificationsScreen extends StatelessWidget {
                                     : Icons.flag,
                             color: statusColor,
                             size: 20,
+                            semanticLabel: data['status'] == 'solved'
+                                ? 'Solved'
+                                : data['status'] == 'ongoing'
+                                    ? 'Ongoing'
+                                    : 'Reported',
                           ),
                         ),
                         title: Text(
