@@ -209,6 +209,34 @@
     }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <style>
+    /* ── Overdue badge ── */
+    .badge-overdue{padding:3px 8px;border-radius:20px;font-size:10px;font-weight:700;background:#FFF5F5;color:#C53030;white-space:nowrap;margin-left:4px}
+    /* ── Bulk action bar ── */
+    #bulk-action-bar{position:sticky;top:68px;z-index:500;background:#1565C0;color:#fff;padding:10px 18px;display:none;align-items:center;gap:12px;flex-wrap:wrap;border-radius:0 0 12px 12px;box-shadow:0 4px 12px rgba(21,101,192,.4)}
+    #bulk-action-bar select{padding:6px 10px;border-radius:8px;border:none;font-size:13px;font-weight:600;cursor:pointer}
+    #bulk-action-bar button{padding:7px 16px;border-radius:8px;border:none;font-size:13px;font-weight:700;cursor:pointer}
+    /* ── Session warning banner ── */
+    #session-warning{display:none;position:sticky;top:68px;z-index:600;background:#FFF3CD;color:#856404;padding:10px 20px;font-size:13px;font-weight:600;align-items:center;gap:12px;justify-content:center;border-bottom:2px solid #FFECB5}
+    /* ── Toast ── */
+    #toast-container{position:fixed;bottom:24px;right:24px;z-index:9999;display:flex;flex-direction:column;gap:8px}
+    .toast{background:#1A202C;color:#fff;padding:12px 18px;border-radius:12px;font-size:13px;font-weight:600;box-shadow:0 4px 16px rgba(0,0,0,.35);animation:toastIn .3s ease;max-width:320px}
+    @keyframes toastIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+    /* ── Keyboard shortcut modal ── */
+    #kbd-modal{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9100;display:none;align-items:center;justify-content:center}
+    #kbd-modal .kbd-box{background:#fff;border-radius:16px;padding:24px 28px;min-width:280px;box-shadow:0 16px 60px rgba(0,0,0,.3)}
+    #kbd-modal .kbd-row{display:flex;justify-content:space-between;padding:6px 0;font-size:13px;border-bottom:1px solid #F7FAFC}
+    .kbd-key{background:#EDF2F7;border-radius:6px;padding:2px 8px;font-weight:700;font-size:12px;font-family:monospace}
+    /* ── Notes history feed ── */
+    .note-entry{background:#F7FAFF;border-radius:8px;padding:10px 12px;margin-bottom:8px;font-size:13px}
+    .note-entry-meta{font-size:11px;color:#A0AEC0;margin-bottom:4px}
+    /* ── Canned response select ── */
+    .canned-select{width:100%;border:1.5px solid #E2E8F0;border-radius:8px;padding:8px 10px;font-size:13px;background:#fff;cursor:pointer;margin-bottom:8px}
+    /* ── Assigned-to column ── */
+    .col-assigned{width:13%}
+    @media(max-width:768px){.col-assigned{display:none}}
+  </style>
 </head>
 <body>
 
@@ -219,6 +247,28 @@
   <div class="loader-ring"></div>
   <h2>One Vizcaya Admin</h2>
   <p>Loading dashboard…</p>
+</div>
+
+<!-- Session timeout warning banner -->
+<div id="session-warning" style="display:none;position:sticky;top:68px;z-index:600;background:#FFF3CD;color:#856404;padding:10px 20px;font-size:13px;font-weight:600;align-items:center;gap:12px;justify-content:center;border-bottom:2px solid #FFECB5">
+  ⚠️ Your session will expire in 5 minutes. Save your work.
+  <button onclick="refreshSession()" style="padding:5px 14px;background:#856404;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">Refresh Session</button>
+  <button onclick="document.getElementById('session-warning').style.display='none'" style="padding:5px 10px;background:transparent;border:1px solid #856404;color:#856404;border-radius:8px;font-size:12px;cursor:pointer">Dismiss</button>
+</div>
+
+<!-- Toast container -->
+<div id="toast-container"></div>
+
+<!-- Keyboard shortcuts modal -->
+<div id="kbd-modal">
+  <div class="kbd-box">
+    <div style="font-size:15px;font-weight:800;color:#2D3748;margin-bottom:14px">⌨ Keyboard Shortcuts</div>
+    <div class="kbd-row"><span>Refresh reports</span><span class="kbd-key">R</span></div>
+    <div class="kbd-row"><span>Focus search</span><span class="kbd-key">F</span></div>
+    <div class="kbd-row"><span>Export CSV</span><span class="kbd-key">E</span></div>
+    <div class="kbd-row" style="border-bottom:none"><span>Close modal</span><span class="kbd-key">Esc</span></div>
+    <div style="margin-top:14px;text-align:right"><button onclick="document.getElementById('kbd-modal').style.display='none'" style="padding:7px 18px;background:#2E7D32;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">Close</button></div>
+  </div>
 </div>
 
 <!-- Navbar -->
@@ -248,6 +298,19 @@
 </nav>
 
 <div id="role-banner" class="role-banner" style="display:none"></div>
+
+<!-- Bulk action bar (Feature 3) -->
+<div id="bulk-action-bar" style="display:none;position:sticky;top:68px;z-index:500;background:#1565C0;color:#fff;padding:10px 18px;align-items:center;gap:12px;flex-wrap:wrap;box-shadow:0 4px 12px rgba(21,101,192,.4)">
+  <span id="bulk-count-label" style="font-weight:700;font-size:14px">0 reports selected</span>
+  <select id="bulk-status-select" style="padding:6px 10px;border-radius:8px;border:none;font-size:13px;font-weight:600;cursor:pointer">
+    <option value="">Mark as…</option>
+    <option value="reported">Reported</option>
+    <option value="ongoing">Ongoing</option>
+    <option value="solved">Solved</option>
+  </select>
+  <button onclick="applyBulkStatus()" style="padding:7px 16px;border-radius:8px;border:none;background:#fff;color:#1565C0;font-size:13px;font-weight:700;cursor:pointer">Apply</button>
+  <button onclick="cancelBulkSelection()" style="padding:7px 16px;border-radius:8px;border:1.5px solid rgba(255,255,255,.5);background:transparent;color:#fff;font-size:13px;font-weight:600;cursor:pointer">Cancel</button>
+</div>
 
 <div class="container">
 
@@ -427,21 +490,25 @@
           <button class="chip" onclick="filterReports('ongoing',this)">Ongoing</button>
           <button class="chip" onclick="filterReports('solved',this)">Solved</button>
           <button class="chip" id="chip-critical" style="border-color:#FED7D7;color:#C53030" onclick="filterReportsByCritical(this)">🚨 Critical</button>
+          <button class="chip" id="chip-overdue" style="border-color:#FED7D7;color:#C53030" onclick="filterReportsByOverdue(this)">⏰ Overdue</button>
+          <button class="chip" id="chip-assigned-me" style="border-color:#BEE3F8;color:#2B6CB0" onclick="filterReportsByAssignedMe(this)">👤 Assigned to me</button>
         </div>
         <div class="scroll-table">
           <table>
             <thead>
               <tr>
+                <th style="width:36px;padding:10px 8px"><input type="checkbox" id="select-all-checkbox" onchange="toggleSelectAll(this)" title="Select all"/></th>
                 <th class="col-cat">Category</th>
                 <th class="col-muni">Municipality</th>
                 <th class="col-status">Status</th>
                 <th class="col-pri">Priority</th>
+                <th class="col-assigned">Assigned To</th>
                 <th class="col-loc">Location</th>
                 <th class="col-date">Reported</th>
               </tr>
             </thead>
             <tbody id="reports-tbody">
-              <tr><td colspan="6"><div class="empty-state"><div>⏳</div>Loading reports…</div></td></tr>
+              <tr><td colspan="8"><div class="empty-state"><div>⏳</div>Loading reports…</div></td></tr>
             </tbody>
           </table>
         </div>
@@ -545,6 +612,12 @@
             <input type="checkbox" id="ann-urgent" style="width:16px;height:16px;"> Mark as Urgent
           </label>
         </div>
+        <div style="margin-bottom:16px">
+          <label for="ann-schedule" style="font-size:11px;font-weight:700;color:#718096;display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px">Schedule for (optional)</label>
+          <input type="datetime-local" id="ann-schedule"
+                 style="width:100%;border:1.5px solid #E2E8F0;border-radius:8px;padding:10px 12px;font-size:13px;outline:none;font-family:inherit"/>
+          <div style="font-size:11px;color:#A0AEC0;margin-top:4px">Leave empty to post immediately.</div>
+        </div>
         <div style="display:flex;gap:8px">
           <button onclick="postAnnouncement()" style="padding:8px 22px;background:#2E7D32;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">Post</button>
           <button onclick="toggleNewAnnouncement()" style="padding:8px 16px;background:#EDF2F7;color:#4A5568;border:none;border-radius:8px;font-size:13px;cursor:pointer">Cancel</button>
@@ -557,6 +630,12 @@
     </div>
   </div>
 
+</div>
+
+<!-- Footer -->
+<div style="text-align:center;padding:12px 20px 24px;color:#A0AEC0;font-size:12px">
+  One Vizcaya Admin &mdash; Nueva Vizcaya Province &nbsp;|&nbsp;
+  <a href="#" onclick="document.getElementById('kbd-modal').style.display='flex';return false" style="color:#4A5568;font-weight:600;text-decoration:none">⌨ Shortcuts</a>
 </div>
 
 <!-- Firebase + Maps SDKs -->
@@ -614,6 +693,28 @@ function writeAuditLog(action, details) {
   }).catch(() => {}); // non-blocking, best-effort
 }
 
+// ── SLA thresholds per category (Feature 2) ──────────────────────────────────
+const SLA_HOURS = {
+  'Disaster & Risk Management': 4,
+  'Infrastructure & Public Works': 72,
+  'Health & Sanitation': 24,
+  'Peace & Order': 8,
+  'Education & Youth': 120,
+  'Social Services & Welfare': 48,
+  'Environment & Natural Resources': 72,
+  'General Inquiries & Others': 168
+};
+
+// ── Canned responses (Feature 8) ─────────────────────────────────────────────
+const CANNED_RESPONSES = [
+  'Thank you for your report. We have dispatched a team to assess the situation.',
+  'Your report has been received and is currently under investigation.',
+  'We have resolved the reported issue. Please let us know if the problem persists.',
+  'This matter has been escalated to the appropriate department.',
+  'We apologize for the inconvenience. Our team is working to address this promptly.',
+  'The reported infrastructure issue has been logged for the next maintenance schedule.',
+];
+
 // ── State ────────────────────────────────────────────────────────────────────
 let currentUser      = null;
 let userRole         = null;   // current view role (may be overridden by switchView)
@@ -623,6 +724,11 @@ let allReports    = [];
 let filteredReports = [];
 let currentFilter = 'all';
 let criticalOnly  = false;
+let overdueOnly   = false;   // Feature 2
+let assignedMeOnly = false;  // Feature 1
+let selectedReportIds = new Set(); // Feature 3
+let _initialLoadComplete = false; // Feature 6
+let _prevReportCount = 0;         // Feature 6
 
 let unsubscribeReports = null;
 let unsubscribeAnnouncements = null;
@@ -909,7 +1015,14 @@ function listenToReports() {
   }
 
   if (unsubscribeReports) unsubscribeReports(); // cancel previous
+  _initialLoadComplete = false;
   unsubscribeReports = query.onSnapshot(snapshot => {
+    // Feature 6: detect new reports after initial load
+    const changes = snapshot.docChanges();
+    const newDocs = _initialLoadComplete
+      ? changes.filter(c => c.type === 'added')
+      : [];
+
     allReports = snapshot.docs.map(doc => {
       const d = doc.data();
       const segs = doc.ref.path.split('/');
@@ -920,6 +1033,19 @@ function listenToReports() {
         reportedAt: d.reportedAt?.toDate ? d.reportedAt.toDate() : new Date()
       };
     });
+
+    if (!_initialLoadComplete) {
+      _initialLoadComplete = true;
+      _prevReportCount = allReports.length;
+    } else if (newDocs.length > 0) {
+      newDocs.forEach(change => {
+        const d = change.doc.data();
+        const muni = d.municipality || 'unknown municipality';
+        playNewReportChime();
+        showToast('🔔 New report received from ' + muni);
+      });
+      _prevReportCount = allReports.length;
+    }
 
     updateStats();
     applyFilter();
@@ -1095,10 +1221,24 @@ function renderAnalytics() {
 }
 
 // ── Report table ─────────────────────────────────────────────────────────────
+// Feature 2: check if a report is overdue
+function isOverdue(r) {
+  if (r.status === 'solved') return false;
+  const sla = SLA_HOURS[r.category];
+  if (!sla) return false;
+  const ageHours = (Date.now() - (r.reportedAt?.getTime ? r.reportedAt.getTime() : Date.now())) / 3600000;
+  return ageHours > sla;
+}
+
 function applyFilter() {
   let list = [...allReports];
   if (currentFilter !== 'all') list = list.filter(r => r.status === currentFilter);
   if (criticalOnly)            list = list.filter(r => r.priority === 'critical');
+  if (overdueOnly)             list = list.filter(r => isOverdue(r));
+  if (assignedMeOnly) {
+    const myName = currentUser?.displayName || currentUser?.phoneNumber || '';
+    list = list.filter(r => r.assignedResponder && r.assignedResponder === myName);
+  }
   // Sort: newest first, solved reports pushed to bottom
   list.sort((a, b) => {
     const aSolved = a.status === 'solved', bSolved = b.status === 'solved';
@@ -1157,9 +1297,33 @@ function statCardFilter(type) {
 
 function filterReportsByCritical(btn) {
   criticalOnly  = !criticalOnly;
+  overdueOnly   = false;
+  assignedMeOnly = false;
   currentFilter = 'all';
   document.querySelectorAll('.reports-filter .chip').forEach(b => b.classList.remove('active'));
   if (criticalOnly) btn.classList.add('active');
+  applyFilter();
+}
+
+// Feature 2: overdue filter
+function filterReportsByOverdue(btn) {
+  overdueOnly   = !overdueOnly;
+  criticalOnly  = false;
+  assignedMeOnly = false;
+  currentFilter = 'all';
+  document.querySelectorAll('.reports-filter .chip').forEach(b => b.classList.remove('active'));
+  if (overdueOnly) btn.classList.add('active');
+  applyFilter();
+}
+
+// Feature 1: assigned-to-me filter
+function filterReportsByAssignedMe(btn) {
+  assignedMeOnly = !assignedMeOnly;
+  criticalOnly   = false;
+  overdueOnly    = false;
+  currentFilter  = 'all';
+  document.querySelectorAll('.reports-filter .chip').forEach(b => b.classList.remove('active'));
+  if (assignedMeOnly) btn.classList.add('active');
   applyFilter();
 }
 

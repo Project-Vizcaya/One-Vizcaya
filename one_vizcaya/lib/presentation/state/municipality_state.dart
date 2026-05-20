@@ -10,6 +10,7 @@ class MunicipalityState {
 
   ValueNotifier<String> selectedMunicipality = ValueNotifier<String>('Bambang');
   ValueNotifier<String> language = ValueNotifier<String>('English');
+  ValueNotifier<bool> isDarkMode = ValueNotifier<bool>(false);
 
   Map<String, dynamic> get activeTheme =>
       AppConstants.municipalityThemes[selectedMunicipality.value] ??
@@ -22,6 +23,7 @@ class MunicipalityState {
     language.value = lang;
     // FIX 7: Keep the AppStrings helper in sync with persisted language
     oneVizcayaStateLang = lang;
+    isDarkMode.value = prefs.getBool('dark_mode') ?? false;
   }
 
   Future<void> setMunicipality(String municipality) async {
@@ -36,6 +38,12 @@ class MunicipalityState {
     oneVizcayaStateLang = lang;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('language', lang);
+  }
+
+  Future<void> setDarkMode(bool value) async {
+    isDarkMode.value = value;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('dark_mode', value);
   }
 }
 

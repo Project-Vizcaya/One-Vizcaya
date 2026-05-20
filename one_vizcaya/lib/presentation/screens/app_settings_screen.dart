@@ -17,6 +17,7 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
   bool _locationEnabled = true;
   bool _offlineModeEnabled = false;
   bool _highContrastMode = false;
+  bool _darkModeEnabled = false;
   String _selectedLanguage = 'English';
   // Internal sort order key stored in prefs (language-independent)
   String _reportSortKey = 'newestFirst';
@@ -34,6 +35,7 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
       _locationEnabled = prefs.getBool('location_enabled') ?? true;
       _offlineModeEnabled = prefs.getBool('offline_mode') ?? false;
       _highContrastMode = prefs.getBool('high_contrast') ?? false;
+      _darkModeEnabled = prefs.getBool('dark_mode') ?? false;
       _selectedLanguage = prefs.getString('language') ?? 'English';
       _reportSortKey = prefs.getString('report_sort') ?? 'newestFirst';
     });
@@ -175,6 +177,18 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
             _SectionHeader(label: 'ACCESSIBILITY'),
             _SettingsCard(
               children: [
+                _ToggleTile(
+                  icon: Icons.dark_mode_outlined,
+                  iconColor: const Color(0xFF37474F),
+                  title: 'Dark Mode',
+                  subtitle: 'Switch to a dark color scheme',
+                  value: _darkModeEnabled,
+                  onChanged: (val) {
+                    setState(() => _darkModeEnabled = val);
+                    oneVizcayaState.setDarkMode(val);
+                  },
+                ),
+                _DividerLine(),
                 _ToggleTile(
                   icon: Icons.contrast,
                   iconColor: const Color(0xFF333333),

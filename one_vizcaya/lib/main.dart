@@ -50,6 +50,8 @@ void main() async {
     );
 
     await NotificationService.instance.initialize();
+    // Wire the navigator key so FCM tap routing can work
+    NotificationService.instance.navigatorKey = _navigatorKey;
   } catch (e) {
     // If Firebase fails or hangs, it will print the error instead of crashing silently
     debugPrint("Firebase Initialization Error: $e");
@@ -79,6 +81,10 @@ class _OneVizcayaAppState extends State<OneVizcayaApp> {
     super.initState();
     _appLinks = AppLinks();
     _initDeepLinks();
+    // FCM tap routing: handle terminated-app notification tap
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      NotificationService.instance.handleInitialMessage();
+    });
   }
 
   Future<void> _initDeepLinks() async {
@@ -119,15 +125,24 @@ class _OneVizcayaAppState extends State<OneVizcayaApp> {
 
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder<String>(
-      valueListenable: oneVizcayaState.language,
-      builder: (context, lang, _) {
+    return ValueListenableBuilder<bool>(
+      valueListenable: oneVizcayaState.isDarkMode,
+      builder: (context, isDark, _) {
+        return ValueListenableBuilder<String>(
+          valueListenable: oneVizcayaState.language,
+          builder: (context, lang, _) {
         // FIX 7: oneVizcayaStateLang is now kept in sync inside setLanguage()
         // and loadPersistedState() in municipality_state.dart — no need to set it here.
         return MaterialApp(
           navigatorKey: _navigatorKey,
           title: 'One Vizcaya',
           debugShowCheckedModeBanner: false,
+          themeMode: isDark ? ThemeMode.dark : ThemeMode.light,
+          darkTheme: ThemeData.dark().copyWith(
+            colorScheme: const ColorScheme.dark(
+              primary: Color(0xFF4CAF50),
+            ),
+          ),
           locale: lang == 'Tagalog'
               ? const Locale('tl', 'PH')
               : const Locale('en', 'US'),
@@ -224,6 +239,8 @@ class _OneVizcayaAppState extends State<OneVizcayaApp> {
             '/profile': (context) => const ProfileManagementScreen(),
             '/admin': (context) => const AdminDashboardScreen(),
             '/onboarding': (context) => const OnboardingScreen(),
+          },
+        );
           },
         );
       },
