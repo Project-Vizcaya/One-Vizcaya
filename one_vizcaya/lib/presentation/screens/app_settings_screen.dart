@@ -325,29 +325,120 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text('Delete Account'),
         content: const Text(
-          'To delete your account and all associated data, please contact the LGU administrator. '
-          'Your request will be processed within 30 days per RA 10173.',
+          'Are you sure? This will permanently delete your account and all associated reports. '
+          'This cannot be undone.',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Close'),
+            child: const Text('Cancel'),
           ),
           ElevatedButton(
             onPressed: () {
               Navigator.pop(ctx);
-              ToastUtils.showInfo(
-                'Contact PDRRMO at 09178500670 to request deletion',
-              );
+              _showDeleteConfirmationDialog(context);
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFFE53935),
             ),
-            child: const Text('Got it', style: TextStyle(color: Colors.white)),
+            child: const Text('Continue', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
     );
+  }
+
+  void _showDeleteConfirmationDialog(BuildContext context) {
+    final confirmController = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Confirm Deletion'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Type DELETE to confirm account deletion:'),
+            const SizedBox(height: 12),
+            TextField(
+              controller: confirmController,
+              decoration: InputDecoration(
+                hintText: 'DELETE',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              if (confirmController.text.trim() != 'DELETE') {
+                ToastUtils.showError('You must type DELETE to confirm.');
+                return;
+              }
+              Navigator.pop(ctx);
+              await _deleteAccount(context);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFE53935),
+            ),
+            child: const Text('Delete', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _deleteAccount(BuildContext context) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      ToastUtils.showError('No account is currently signed in.');
+      return;
+    }
+    final uid = user.uid;
+    try {
+      final firestore = FirebaseFirestore.instance;
+
+      // Delete all reports for this user
+      final reportsSnap = await firestore
+          .collection('users')
+          .doc(uid)
+          .collection('reports')
+          .get();
+      final batch = firestore.batch();
+      for (final doc in reportsSnap.docs) {
+        batch.delete(doc.reference);
+      }
+      await batch.commit();
+
+      // Delete the user Firestore profile
+      await firestore.collection('users').doc(uid).delete();
+
+      // Delete Firebase Auth account
+      await user.delete();
+
+      if (context.mounted) {
+        ToastUtils.showSuccess('Account deleted successfully');
+        Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+      }
+    } on FirebaseAuthException catch (e) {
+      if (e.code == 'requires-recent-login') {
+        ToastUtils.showError(
+          'For security, please log out and log back in before deleting your account.',
+        );
+      } else {
+        ToastUtils.showError('Failed to delete account: ${e.message}');
+      }
+    } catch (e) {
+      ToastUtils.showError('An error occurred while deleting your account.');
+    }
   }
 
   void _showResetDialog(BuildContext context) {
