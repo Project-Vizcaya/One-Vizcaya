@@ -17,6 +17,10 @@ class _LoginScreenState extends State<LoginScreen>
     with SingleTickerProviderStateMixin {
   bool _isLoading = false;
   bool _hasValidInput = false;
+  bool _showBiometric = false;
+  bool _isBiometricLoading = false;
+  int _biometricFailCount = 0;
+
   final _phoneController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   late AnimationController _fadeController;
@@ -36,6 +40,19 @@ class _LoginScreenState extends State<LoginScreen>
     );
     _fadeController.forward();
     _phoneController.addListener(_checkInput);
+    _checkBiometricAvailability();
+  }
+
+  Future<void> _checkBiometricAvailability() async {
+    try {
+      final canCheck = await _localAuth.canCheckBiometrics;
+      if (!canCheck) return;
+      final prefs = await SharedPreferences.getInstance();
+      final savedPhone = prefs.getString('saved_phone_number');
+      if (savedPhone != null && savedPhone.isNotEmpty) {
+        if (mounted) setState(() => _showBiometric = true);
+      }
+    } catch (_) {}
   }
 
   void _checkInput() {
@@ -106,24 +123,51 @@ class _LoginScreenState extends State<LoginScreen>
   }
 
   Future<void> _loginWithBiometric() async {
+    // Check if biometrics are set up on the device
     try {
       final canCheck = await _localAuth.canCheckBiometrics;
       if (!canCheck) {
-        ToastUtils.showError('Biometric authentication is not available on this device.');
+        ToastUtils.showError('Biometric authentication not set up on this device');
         return;
       }
+      final availableBiometrics = await _localAuth.getAvailableBiometrics();
+      if (availableBiometrics.isEmpty) {
+        ToastUtils.showError('Biometric authentication not set up on this device');
+        return;
+      }
+    } catch (_) {
+      ToastUtils.showError('Biometric authentication not set up on this device');
+      return;
+    }
+
+    if (_biometricFailCount >= 3) {
+      ToastUtils.showError('Too many failed attempts. Please log in with your phone number.');
+      return;
+    }
+
+    setState(() => _isBiometricLoading = true);
+
+    try {
       final authenticated = await _localAuth.authenticate(
-        localizedReason: 'Verify your identity',
+        localizedReason: 'Verify your identity to sign in',
         options: const AuthenticationOptions(
           biometricOnly: true,
           stickyAuth: true,
         ),
       );
-      if (!authenticated) return;
+
+      if (!mounted) return;
+
+      if (!authenticated) {
+        // User cancelled — do nothing silently
+        setState(() => _isBiometricLoading = false);
+        return;
+      }
 
       final prefs = await SharedPreferences.getInstance();
       final savedPhone = prefs.getString('saved_phone_number');
       if (savedPhone == null || savedPhone.isEmpty) {
+        setState(() => _isBiometricLoading = false);
         ToastUtils.showError('No saved phone number. Please log in manually first.');
         return;
       }
@@ -131,10 +175,22 @@ class _LoginScreenState extends State<LoginScreen>
       // Pre-fill and trigger OTP flow
       _phoneController.text = savedPhone;
       _checkInput();
+      setState(() => _isBiometricLoading = false);
       await _loginWithPhone();
     } catch (e) {
-      if (mounted) {
-        ToastUtils.showError('Biometric authentication failed: $e');
+      if (!mounted) return;
+      setState(() {
+        _isBiometricLoading = false;
+        _biometricFailCount++;
+      });
+      if (_biometricFailCount >= 3) {
+        ToastUtils.showError('Too many failed attempts. Please log in with your phone number.');
+      } else {
+        // Only show error for unexpected failures, not user cancellation
+        final errStr = e.toString().toLowerCase();
+        if (!errStr.contains('cancel') && !errStr.contains('user_cancel')) {
+          ToastUtils.showError('Biometric authentication failed.');
+        }
       }
     }
   }
@@ -142,7 +198,7 @@ class _LoginScreenState extends State<LoginScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F7F7),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
         child: FadeTransition(
           opacity: _fadeAnimation,
@@ -274,9 +330,9 @@ class _LoginScreenState extends State<LoginScreen>
                           TextFormField(
                             controller: _phoneController,
                             keyboardType: TextInputType.phone,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 16,
-                              color: Color(0xFF333333),
+                              color: Theme.of(context).textTheme.bodyLarge?.color,
                             ),
                             decoration: InputDecoration(
                               hintText: '09171234567',
@@ -293,7 +349,7 @@ class _LoginScreenState extends State<LoginScreen>
                                 ),
                               ),
                               filled: true,
-                              fillColor: Colors.white,
+                              fillColor: Theme.of(context).cardColor,
                               contentPadding: const EdgeInsets.symmetric(
                                 horizontal: 20,
                                 vertical: 18,
@@ -441,25 +497,73 @@ class _LoginScreenState extends State<LoginScreen>
                     ),
                   ),
                 ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
-                  child: OutlinedButton.icon(
-                    onPressed: _loginWithBiometric,
-                    icon: const Icon(Icons.fingerprint, size: 22),
-                    label: const Text(
-                      'Log in with Biometrics',
-                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+
+                // ── "— or —" divider + biometric button (only if available) ──
+                if (_showBiometric) ...[
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: Row(
+                      children: [
+                        Expanded(child: Divider(color: Colors.grey.shade300)),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          child: Text(
+                            'or',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Colors.grey.shade400,
+                            ),
+                          ),
+                        ),
+                        Expanded(child: Divider(color: Colors.grey.shade300)),
+                      ],
                     ),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: const Color(0xFF388E3C),
-                      side: const BorderSide(color: Color(0xFF388E3C)),
-                      minimumSize: const Size(double.infinity, 52),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
+                  ),
+                  const SizedBox(height: 8),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+                    child: InkWell(
+                      onTap: _isBiometricLoading ? null : _loginWithBiometric,
+                      borderRadius: BorderRadius.circular(12),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            vertical: 14, horizontal: 20),
+                        decoration: BoxDecoration(
+                          border: Border.all(
+                              color: const Color(0xFF4CAF50).withOpacity(0.4)),
+                          borderRadius: BorderRadius.circular(12),
+                          color: const Color(0xFF4CAF50).withOpacity(0.05),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            _isBiometricLoading
+                                ? const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Color(0xFF4CAF50),
+                                    ),
+                                  )
+                                : const Icon(Icons.fingerprint,
+                                    color: Color(0xFF4CAF50), size: 24),
+                            const SizedBox(width: 10),
+                            const Text(
+                              'Sign in with Biometrics',
+                              style: TextStyle(
+                                color: Color(0xFF4CAF50),
+                                fontWeight: FontWeight.w600,
+                                fontSize: 15,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
-                ),
+                ] else
+                  const SizedBox(height: 24),
               ],
             ],
           ),
@@ -520,17 +624,17 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F7F7),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        title: const Text(
+        title: Text(
           'Verification',
           style: TextStyle(
-            color: Color(0xFF333333),
+            color: Theme.of(context).textTheme.titleLarge?.color,
             fontWeight: FontWeight.w600,
           ),
         ),
-        backgroundColor: const Color(0xFFF7F7F7),
-        foregroundColor: const Color(0xFF333333),
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        foregroundColor: Theme.of(context).textTheme.titleLarge?.color,
         elevation: 0,
       ),
       body: Center(
@@ -554,13 +658,13 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
                 ),
               ),
               const SizedBox(height: 24),
-              const Text(
+              Text(
                 'Enter Verification Code',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.bold,
-                  color: Color(0xFF333333),
+                  color: Theme.of(context).textTheme.headlineSmall?.color,
                 ),
               ),
               const SizedBox(height: 8),
@@ -580,7 +684,7 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
                     letterSpacing: 8,
                   ),
                   filled: true,
-                  fillColor: Colors.white,
+                  fillColor: Theme.of(context).cardColor,
                   contentPadding: const EdgeInsets.symmetric(
                     horizontal: 20,
                     vertical: 18,

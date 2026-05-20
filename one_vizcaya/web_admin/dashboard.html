@@ -213,6 +213,8 @@
   <style>
     /* ── Overdue badge ── */
     .badge-overdue{padding:3px 8px;border-radius:20px;font-size:10px;font-weight:700;background:#FFF5F5;color:#C53030;white-space:nowrap;margin-left:4px}
+    /* ── Warning badge ── */
+    .badge-warning{background:#FFF3E0;color:#E65100;border:1px solid #FFB74D;border-radius:10px;padding:2px 8px;font-size:11px;font-weight:600;white-space:nowrap;margin-left:4px}
     /* ── Bulk action bar ── */
     #bulk-action-bar{position:sticky;top:68px;z-index:500;background:#1565C0;color:#fff;padding:10px 18px;display:none;align-items:center;gap:12px;flex-wrap:wrap;border-radius:0 0 12px 12px;box-shadow:0 4px 12px rgba(21,101,192,.4)}
     #bulk-action-bar select{padding:6px 10px;border-radius:8px;border:none;font-size:13px;font-weight:600;cursor:pointer}
@@ -236,7 +238,109 @@
     /* ── Assigned-to column ── */
     .col-assigned{width:13%}
     @media(max-width:768px){.col-assigned{display:none}}
+
+    /* ── POLISH 1: Assignment badge ── */
+    .avatar-badge{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;font-size:11px;font-weight:800;color:#fff;flex-shrink:0;margin-right:5px}
+
+    /* ── POLISH 2: SLA badges ── */
+    .badge-sla-ontrack{padding:3px 8px;border-radius:20px;font-size:10px;font-weight:700;background:#F0FFF4;color:#276749;white-space:nowrap;margin-left:4px}
+    .badge-sla-warning{padding:3px 8px;border-radius:20px;font-size:10px;font-weight:700;background:#FFFFF0;color:#975A16;white-space:nowrap;margin-left:4px}
+    .sla-progress-bar{height:6px;border-radius:4px;margin-top:8px;background:#EDF2F7;overflow:hidden}
+    .sla-progress-fill{height:100%;border-radius:4px;transition:width .4s}
+
+    /* ── POLISH 3: Bulk bar animation ── */
+    #bulk-action-bar{transform:translateY(-100%);transition:transform .3s ease;display:flex!important}
+    #bulk-action-bar.visible{transform:translateY(0)}
+    #bulk-confirm-row{display:none;align-items:center;gap:8px;flex-wrap:wrap}
+    .bulk-row-selected td{background:#E3F2FD!important}
+
+    /* ── POLISH 4: Scheduled announcements ── */
+    .sched-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;background:#EBF8FF;color:#2B6CB0;border-radius:20px;font-size:11px;font-weight:700}
+    #ann-schedule-error{font-size:12px;color:#C53030;margin-top:4px;display:none}
+
+    /* ── POLISH 5: Heatmap legend overlay ── */
+    #heatmap-legend{position:absolute;bottom:40px;left:12px;z-index:50;background:rgba(255,255,255,.94);border-radius:10px;padding:10px 14px;box-shadow:0 2px 12px rgba(0,0,0,.2);display:none;min-width:160px}
+    #heatmap-legend .hl-title{font-size:11px;font-weight:800;color:#1A202C;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px}
+    #heatmap-legend .hl-row{display:flex;align-items:center;gap:6px;font-size:11px;color:#4A5568;margin-bottom:3px}
+    #heatmap-legend .hl-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+    .map-card-wrap{position:relative}
+
+    /* ── POLISH 6: Toast design ── */
+    .toast-new-report{background:#fff;border-left:4px solid #48BB78;padding:12px 16px;border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,.2);max-width:300px;min-width:240px}
+    .toast-new-report .tnr-title{font-size:13px;font-weight:800;color:#276749;margin-bottom:2px}
+    .toast-new-report .tnr-sub{font-size:12px;color:#4A5568;margin-bottom:6px}
+    .toast-new-report .tnr-view{padding:4px 12px;background:#276749;color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer}
+    #sound-toggle{background:none;border:none;cursor:pointer;font-size:18px;padding:2px 6px;border-radius:6px;transition:background .2s}
+    #sound-toggle:hover{background:#EDF2F7}
+
+    /* ── POLISH 7: PDF styling helpers ── */
+
+    /* ── POLISH 8: Canned response enhancements ── */
+    .canned-mode-toggle{display:flex;align-items:center;gap:6px;font-size:12px;color:#718096;margin-bottom:6px}
+    .canned-mode-btn{padding:3px 10px;border-radius:20px;border:1.5px solid #E2E8F0;background:#fff;font-size:11px;font-weight:600;cursor:pointer;color:#4A5568;transition:all .2s}
+    .canned-mode-btn.active{background:#2E7D32;border-color:#2E7D32;color:#fff}
+    .canned-preview{position:absolute;left:100%;top:0;margin-left:6px;background:#fff;border:1.5px solid #E2E8F0;border-radius:8px;padding:10px 12px;font-size:12px;color:#4A5568;max-width:240px;box-shadow:0 4px 16px rgba(0,0,0,.12);z-index:100;display:none;line-height:1.5}
+
+    /* ── POLISH 9: Satisfaction stars ── */
+    .satisfaction-stars{font-size:20px;color:#F6AD55;letter-spacing:2px}
+
+    /* ── POLISH 11: Keyboard shortcut polish ── */
+    #kbd-modal .kbd-box{background:#1A202C;border-radius:16px;padding:24px 28px;min-width:300px}
+    #kbd-modal .kbd-section-title{font-size:10px;font-weight:700;color:#718096;text-transform:uppercase;letter-spacing:.7px;margin:12px 0 6px}
+    #kbd-modal .kbd-row{display:flex;justify-content:space-between;padding:6px 0;font-size:13px;border-bottom:1px solid #2D3748;color:#E2E8F0}
+    #kbd-modal .kbd-row:last-child{border-bottom:none}
+    .kbd-key{background:#2D3748;border-radius:6px;padding:3px 10px;font-weight:700;font-size:12px;font-family:monospace;color:#F6E05E;border:1px solid #4A5568}
+
+    /* ── POLISH 12: Notes enhancements ── */
+    .note-avatar{width:28px;height:28px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#fff;flex-shrink:0;margin-right:8px}
+    .note-char-count{font-size:11px;color:#A0AEC0;text-align:right;margin-top:4px}
+    .note-char-count.over{color:#C53030;font-weight:700}
+
+    /* ── POLISH 13: Delete confirmation modal ── */
+    #delete-confirm-modal{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9500;display:none;align-items:center;justify-content:center;padding:16px}
+    #delete-confirm-modal .dcm-box{background:#fff;border-radius:16px;overflow:hidden;width:100%;max-width:400px;box-shadow:0 24px 80px rgba(0,0,0,.35)}
+    #delete-confirm-modal .dcm-header{background:#C53030;padding:16px 20px;display:flex;align-items:center;gap:10px}
+    #delete-confirm-modal .dcm-header span{font-size:16px;font-weight:800;color:#fff}
+    #delete-confirm-modal .dcm-body{padding:20px}
+    #delete-confirm-modal .dcm-input{width:100%;border:2px solid #E2E8F0;border-radius:8px;padding:10px 12px;font-size:14px;font-family:inherit;outline:none;box-sizing:border-box;transition:border .2s}
+    #delete-confirm-modal .dcm-input.valid{border-color:#48BB78}
+    #delete-confirm-modal .dcm-input.invalid{border-color:#C53030}
+    #delete-confirm-modal .dcm-btn-row{display:flex;gap:10px;justify-content:flex-end;margin-top:16px}
+    #delete-confirm-modal .dcm-confirm{padding:9px 22px;background:#C53030;color:#fff;border:none;border-radius:8px;font-weight:700;font-size:13px;cursor:pointer;transition:opacity .2s}
+    #delete-confirm-modal .dcm-confirm:disabled{opacity:.4;cursor:not-allowed}
+    #delete-confirm-modal .dcm-cancel{padding:9px 18px;background:#EDF2F7;color:#4A5568;border:none;border-radius:8px;font-weight:600;font-size:13px;cursor:pointer}
+
+    /* ── POLISH 14: Session banner animation + overlay ── */
+    #session-warning{transform:translateY(-100%);transition:transform .35s ease}
+    #session-warning.show{transform:translateY(0)}
+    #session-expired-overlay{position:fixed;inset:0;background:rgba(26,32,44,.92);z-index:99999;display:none;flex-direction:column;align-items:center;justify-content:center;gap:16px;color:#fff}
+    #session-expired-overlay h2{font-size:24px;font-weight:800}
+    #session-expired-overlay p{font-size:14px;opacity:.8}
   </style>
+
+  <!-- Delete confirm modal (POLISH 13) -->
+  <div id="delete-confirm-modal">
+    <div class="dcm-box">
+      <div class="dcm-header"><span style="font-size:22px">⚠️</span><span>Confirm Deletion</span></div>
+      <div class="dcm-body">
+        <p id="dcm-message" style="font-size:14px;color:#4A5568;margin-bottom:12px"></p>
+        <input class="dcm-input" id="dcm-input" placeholder="Type DELETE to confirm" autocomplete="off" oninput="onDcmInput(this)"/>
+        <div id="dcm-countdown" style="font-size:12px;color:#A0AEC0;margin-top:6px;display:none"></div>
+        <div class="dcm-btn-row">
+          <button class="dcm-cancel" onclick="closeDcm()">Cancel</button>
+          <button class="dcm-confirm" id="dcm-confirm-btn" disabled onclick="executeDcm()">Confirm Delete</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Session expired overlay (POLISH 14) -->
+  <div id="session-expired-overlay">
+    <div style="font-size:48px">🔒</div>
+    <h2>Session Expired</h2>
+    <p>Your session has expired. Please log in again to continue.</p>
+    <button onclick="auth.signOut().then(()=>window.location.href='index.html')" style="padding:12px 32px;background:#2E7D32;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer">Log In Again</button>
+  </div>
 </head>
 <body>
 
@@ -249,25 +353,33 @@
   <p>Loading dashboard…</p>
 </div>
 
-<!-- Session timeout warning banner -->
-<div id="session-warning" style="display:none;position:sticky;top:68px;z-index:600;background:#FFF3CD;color:#856404;padding:10px 20px;font-size:13px;font-weight:600;align-items:center;gap:12px;justify-content:center;border-bottom:2px solid #FFECB5">
-  ⚠️ Your session will expire in 5 minutes. Save your work.
-  <button onclick="refreshSession()" style="padding:5px 14px;background:#856404;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">Refresh Session</button>
-  <button onclick="document.getElementById('session-warning').style.display='none'" style="padding:5px 10px;background:transparent;border:1px solid #856404;color:#856404;border-radius:8px;font-size:12px;cursor:pointer">Dismiss</button>
+<!-- Session timeout warning banner (POLISH 14) -->
+<div id="session-warning" style="position:sticky;top:68px;z-index:600;background:#FFF3CD;color:#856404;padding:10px 20px;font-size:13px;font-weight:600;display:flex;align-items:center;gap:12px;justify-content:center;border-bottom:2px solid #FFECB5">
+  ⚠️ Session expires in <span id="session-countdown" style="font-weight:800;font-variant-numeric:tabular-nums">5:00</span> — Save your work.
+  <label style="display:flex;align-items:center;gap:5px;font-size:12px;font-weight:600;cursor:pointer">
+    <input type="checkbox" id="auto-refresh-session" onchange="toggleAutoRefreshSession(this.checked)" style="width:14px;height:14px"> Auto-refresh
+  </label>
+  <button onclick="refreshSession()" style="padding:5px 14px;background:#856404;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">Refresh Now</button>
+  <button onclick="hideSessBanner()" style="padding:5px 10px;background:transparent;border:1px solid #856404;color:#856404;border-radius:8px;font-size:12px;cursor:pointer">Dismiss</button>
 </div>
 
 <!-- Toast container -->
 <div id="toast-container"></div>
 
-<!-- Keyboard shortcuts modal -->
+<!-- Keyboard shortcuts modal (POLISH 11) -->
 <div id="kbd-modal">
   <div class="kbd-box">
-    <div style="font-size:15px;font-weight:800;color:#2D3748;margin-bottom:14px">⌨ Keyboard Shortcuts</div>
-    <div class="kbd-row"><span>Refresh reports</span><span class="kbd-key">R</span></div>
-    <div class="kbd-row"><span>Focus search</span><span class="kbd-key">F</span></div>
-    <div class="kbd-row"><span>Export CSV</span><span class="kbd-key">E</span></div>
-    <div class="kbd-row" style="border-bottom:none"><span>Close modal</span><span class="kbd-key">Esc</span></div>
-    <div style="margin-top:14px;text-align:right"><button onclick="document.getElementById('kbd-modal').style.display='none'" style="padding:7px 18px;background:#2E7D32;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">Close</button></div>
+    <div style="font-size:15px;font-weight:800;color:#F6E05E;margin-bottom:4px">⌨ Keyboard Shortcuts</div>
+    <div style="font-size:12px;color:#718096;margin-bottom:12px">Press a key any time (outside inputs)</div>
+    <div class="kbd-section-title">Reports</div>
+    <div class="kbd-row"><span>Refresh reports</span><kbd class="kbd-key">R</kbd></div>
+    <div class="kbd-row"><span>Export CSV</span><kbd class="kbd-key">E</kbd></div>
+    <div class="kbd-section-title">Navigation</div>
+    <div class="kbd-row"><span>Focus search bar</span><kbd class="kbd-key">F</kbd></div>
+    <div class="kbd-row"><span>Close any modal</span><kbd class="kbd-key">Esc</kbd></div>
+    <div class="kbd-section-title">Help</div>
+    <div class="kbd-row" style="border-bottom:none"><span>Show this dialog</span><kbd class="kbd-key">?</kbd></div>
+    <div style="margin-top:16px;text-align:right"><button onclick="document.getElementById('kbd-modal').style.display='none'" style="padding:7px 18px;background:#2E7D32;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">Close</button></div>
   </div>
 </div>
 
@@ -299,17 +411,28 @@
 
 <div id="role-banner" class="role-banner" style="display:none"></div>
 
-<!-- Bulk action bar (Feature 3) -->
-<div id="bulk-action-bar" style="display:none;position:sticky;top:68px;z-index:500;background:#1565C0;color:#fff;padding:10px 18px;align-items:center;gap:12px;flex-wrap:wrap;box-shadow:0 4px 12px rgba(21,101,192,.4)">
+<!-- Bulk action bar (Feature 3 — POLISH 3) -->
+<div id="bulk-action-bar" style="position:sticky;top:68px;z-index:500;background:#1565C0;color:#fff;padding:10px 18px;align-items:center;gap:12px;flex-wrap:wrap;box-shadow:0 4px 12px rgba(21,101,192,.4)">
   <span id="bulk-count-label" style="font-weight:700;font-size:14px">0 reports selected</span>
-  <select id="bulk-status-select" style="padding:6px 10px;border-radius:8px;border:none;font-size:13px;font-weight:600;cursor:pointer">
-    <option value="">Mark as…</option>
-    <option value="reported">Reported</option>
-    <option value="ongoing">Ongoing</option>
-    <option value="solved">Solved</option>
-  </select>
-  <button onclick="applyBulkStatus()" style="padding:7px 16px;border-radius:8px;border:none;background:#fff;color:#1565C0;font-size:13px;font-weight:700;cursor:pointer">Apply</button>
-  <button onclick="cancelBulkSelection()" style="padding:7px 16px;border-radius:8px;border:1.5px solid rgba(255,255,255,.5);background:transparent;color:#fff;font-size:13px;font-weight:600;cursor:pointer">Cancel</button>
+  <div id="bulk-main-row" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+    <select id="bulk-status-select" style="padding:6px 10px;border-radius:8px;border:none;font-size:13px;font-weight:600;cursor:pointer">
+      <option value="">Mark as…</option>
+      <option value="reported">Reported</option>
+      <option value="ongoing">Ongoing</option>
+      <option value="solved">Solved</option>
+    </select>
+    <button onclick="requestBulkApply()" style="padding:7px 16px;border-radius:8px;border:none;background:#fff;color:#1565C0;font-size:13px;font-weight:700;cursor:pointer">Apply</button>
+    <button onclick="cancelBulkSelection()" style="padding:7px 16px;border-radius:8px;border:1.5px solid rgba(255,255,255,.5);background:transparent;color:#fff;font-size:13px;font-weight:600;cursor:pointer">Cancel</button>
+  </div>
+  <div id="bulk-confirm-row">
+    <span id="bulk-confirm-label" style="font-size:13px;font-weight:700"></span>
+    <button onclick="applyBulkStatus()" style="padding:6px 14px;border-radius:8px;border:none;background:#fff;color:#1565C0;font-size:13px;font-weight:800;cursor:pointer">Yes</button>
+    <button onclick="cancelBulkConfirm()" style="padding:6px 12px;border-radius:8px;border:1.5px solid rgba(255,255,255,.5);background:transparent;color:#fff;font-size:13px;cursor:pointer">Cancel</button>
+  </div>
+  <span id="bulk-progress-label" style="font-size:13px;font-weight:600;display:none">
+    <span class="loader-ring" style="width:14px;height:14px;border-width:2px;display:inline-block;vertical-align:middle;margin-right:6px"></span>
+    <span id="bulk-progress-text">Updating…</span>
+  </span>
 </div>
 
 <div class="container">
@@ -367,6 +490,33 @@
 
   </div>
 
+  <!-- POLISH 1: Unassigned reports KPI card (5th card, separate row) -->
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:18px;margin-bottom:24px">
+    <div class="stat-card" style="border:1px solid #E2E8F0" onclick="statCardFilter('unassigned')" tabindex="0" role="button" onkeydown="if(event.key==='Enter'||event.key===' ')statCardFilter('unassigned')" title="Show unassigned reports">
+      <div class="stat-strip" style="background:linear-gradient(90deg,#718096,#A0AEC0)"></div>
+      <div class="stat-inner">
+        <div class="stat-row">
+          <div class="stat-value" id="stat-unassigned" style="color:#718096">—</div>
+          <div class="stat-icon" style="background:#F7FAFC">👤</div>
+        </div>
+        <div class="stat-label" style="color:#718096">Unassigned</div>
+        <div class="stat-sub">No responder assigned yet</div>
+      </div>
+    </div>
+    <!-- POLISH 2: Overdue count KPI -->
+    <div class="stat-card" style="border:1px solid #FED7D7" onclick="statCardFilter('overdue')" tabindex="0" role="button" onkeydown="if(event.key==='Enter'||event.key===' ')statCardFilter('overdue')" title="Show overdue reports">
+      <div class="stat-strip" style="background:linear-gradient(90deg,#C53030,#FC8181)"></div>
+      <div class="stat-inner">
+        <div class="stat-row">
+          <div class="stat-value" id="stat-overdue-count" style="color:#C53030">—</div>
+          <div class="stat-icon" style="background:#FFF5F5">⏰</div>
+        </div>
+        <div class="stat-label" style="color:#C53030">Overdue</div>
+        <div class="stat-sub">Past SLA deadline</div>
+      </div>
+    </div>
+  </div>
+
   <!-- ── Analytics ── -->
   <div class="card" id="analytics-card" style="display:none">
     <div class="card-header">
@@ -389,9 +539,16 @@
         </div>
       </div>
       <div style="margin-top:20px;display:grid;grid-template-columns:repeat(4,1fr);gap:12px" id="analytics-kpis"></div>
-      <!-- Feature 10: Trend chart -->
+      <!-- Feature 10 + POLISH 10: Trend chart with time range selector -->
       <div style="margin-top:24px">
-        <div style="font-size:12px;font-weight:700;color:#718096;margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px">Report Trends (Last 8 Weeks)</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:10px">
+          <div style="font-size:12px;font-weight:700;color:#718096;text-transform:uppercase;letter-spacing:.5px">Report Trends</div>
+          <div style="display:flex;gap:6px" id="trend-range-btns">
+            <button onclick="setTrendRange(4,this)" class="chip" style="font-size:11px;padding:4px 10px">4 Weeks</button>
+            <button onclick="setTrendRange(8,this)" class="chip active" style="font-size:11px;padding:4px 10px">8 Weeks</button>
+            <button onclick="setTrendRange(12,this)" class="chip" style="font-size:11px;padding:4px 10px">3 Months</button>
+          </div>
+        </div>
         <canvas id="chart-trends" height="120"></canvas>
       </div>
       <!-- Feature 9: Citizen satisfaction -->
@@ -421,13 +578,13 @@
   </div>
 
   <!-- Map -->
-  <div class="card">
+  <div class="card map-card-wrap">
     <div class="card-header">
       <span class="card-title">📍 Report Heatmap &amp; Responder Locations</span>
       <span class="card-meta" id="map-scope-label">Nueva Vizcaya Province</span>
     </div>
     <div class="map-controls">
-      <button class="toggle-btn active" id="btn-heatmap" onclick="toggleHeatmap()" aria-pressed="true">🔥 Heatmap</button>
+      <button class="toggle-btn active" id="btn-heatmap" onclick="toggleHeatmap()" aria-pressed="true" style="background:#E65100;border-color:#E65100;color:#fff">🔥 Heatmap</button>
       <button class="toggle-btn active" id="btn-responders" onclick="toggleResponders()" aria-pressed="true">🚨 Responders</button>
       <button class="toggle-btn" id="btn-reports-pins" onclick="toggleReportPins()" aria-pressed="false">📌 Report Pins</button>
       <button class="toggle-btn" id="btn-barangays" onclick="toggleBarangays()" aria-pressed="false" title="Show barangay boundaries (select a municipality first)">🗺️ Barangays</button>
@@ -447,7 +604,20 @@
         <option value="dpwh">DPWH</option>
       </select>
     </div>
-    <div id="map"></div>
+    <div id="map" style="position:relative"></div>
+    <!-- POLISH 5: Heatmap legend overlay -->
+    <div id="heatmap-legend">
+      <div class="hl-title">Report Density</div>
+      <div class="hl-row"><div class="hl-dot" style="background:#00C853"></div>Low</div>
+      <div class="hl-row"><div class="hl-dot" style="background:#FFD600"></div>Medium</div>
+      <div class="hl-row"><div class="hl-dot" style="background:#FF6D00"></div>High</div>
+      <div class="hl-row"><div class="hl-dot" style="background:#D50000"></div>Critical</div>
+      <div style="margin-top:8px;font-size:11px;color:#718096;font-weight:600">Radius</div>
+      <input type="range" id="heatmap-radius-slider" min="10" max="50" value="40"
+        oninput="onHeatmapRadiusChange(this.value)"
+        style="width:100%;margin-top:4px;cursor:pointer;accent-color:#E65100"/>
+      <div style="text-align:right;font-size:10px;color:#A0AEC0"><span id="heatmap-radius-val">40</span>px</div>
+    </div>
     <div class="map-legend">
       <strong style="font-size:11px;color:#718096;margin-right:2px">Heatmap:</strong>
       <div class="legend-item"><div class="legend-dot" style="background:#00C853"></div>Low</div>
@@ -473,14 +643,18 @@
 
     <!-- Reports list -->
     <div class="card">
-      <div class="card-header">
+      <div class="card-header" title="Press R to refresh • F to filter • E to export" id="reports-card-header">
         <div class="card-title">
           Live Reports
           <div class="live-dot"></div>
+          <!-- POLISH 2: overdue badge in header -->
+          <span id="overdue-header-badge" style="display:none;background:#C53030;color:#fff;border-radius:20px;font-size:10px;font-weight:800;padding:2px 8px;margin-left:4px"></span>
         </div>
         <div style="display:flex;align-items:center;gap:10px">
           <span class="card-meta" id="report-count-label">Loading…</span>
-          <button onclick="exportCSV()" style="padding:5px 12px;background:#EBF8FF;color:#2B6CB0;border:1px solid #BEE3F8;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer">⬇ Export CSV</button>
+          <!-- POLISH 6: sound toggle -->
+          <button id="sound-toggle" title="Toggle alert sound" onclick="toggleAlertSound()" aria-label="Toggle sound">🔔</button>
+          <button id="export-csv-btn" onclick="exportCSV()" style="padding:5px 12px;background:#EBF8FF;color:#2B6CB0;border:1px solid #BEE3F8;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer">⬇ Export CSV</button>
         </div>
       </div>
       <div class="card-body">
@@ -624,9 +798,10 @@
         </div>
         <div style="margin-bottom:16px">
           <label for="ann-schedule" style="font-size:11px;font-weight:700;color:#718096;display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px">Schedule for (optional)</label>
-          <input type="datetime-local" id="ann-schedule"
+          <input type="datetime-local" id="ann-schedule" oninput="validateScheduleTime(this)"
                  style="width:100%;border:1.5px solid #E2E8F0;border-radius:8px;padding:10px 12px;font-size:13px;outline:none;font-family:inherit"/>
-          <div style="font-size:11px;color:#A0AEC0;margin-top:4px">Leave empty to post immediately.</div>
+          <div id="ann-schedule-error" style="font-size:11px;color:#C53030;margin-top:4px;display:none">⚠ Schedule time must be at least 15 minutes from now.</div>
+          <div style="font-size:11px;color:#A0AEC0;margin-top:4px">Leave empty to post immediately. Minimum 15 minutes ahead if scheduling.</div>
         </div>
         <div style="display:flex;gap:8px">
           <button onclick="postAnnouncement()" style="padding:8px 22px;background:#2E7D32;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">Post</button>
@@ -659,6 +834,33 @@
 <script>
 function escHtml(str) {
   return String(str ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function timeAgo(date) {
+  const d = date?.toDate ? date.toDate() : new Date(date || Date.now());
+  const diff = Math.floor((Date.now() - d.getTime()) / 1000);
+  if (diff < 60) return 'just now';
+  if (diff < 3600) return Math.floor(diff/60) + 'm ago';
+  if (diff < 86400) return Math.floor(diff/3600) + 'h ago';
+  return Math.floor(diff/86400) + 'd ago';
+}
+
+function authorColor(name) {
+  let hash = 0;
+  for (let c of (name||'A')) hash = c.charCodeAt(0) + ((hash<<5)-hash);
+  return `hsl(${Math.abs(hash)%360},50%,45%)`;
+}
+
+function getSLABadge(r) {
+  if (r.status === 'solved') return '';
+  const sla = SLA_HOURS[r.category];
+  if (!sla || !r.reportedAt) return '';
+  const reported = r.reportedAt.toDate ? r.reportedAt.toDate() : new Date(r.reportedAt);
+  const hoursElapsed = (Date.now() - reported.getTime()) / 3600000;
+  const pct = hoursElapsed / sla;
+  if (pct >= 1) return '<span class="badge-overdue" title="SLA: '+sla+'h | Elapsed: '+Math.round(hoursElapsed)+'h overdue">⏰ Overdue</span>';
+  if (pct >= 0.75) return '<span class="badge-warning" title="SLA: '+sla+'h | Due in '+Math.round((sla-hoursElapsed))+'h">⚠ Due in '+Math.round(sla-hoursElapsed)+'h</span>';
+  return '';
 }
 
 // Municipality seal images — served locally from img/seals/
@@ -1066,15 +1268,33 @@ function listenToReports() {
 
 // ── Stats ────────────────────────────────────────────────────────────────────
 function updateStats() {
-  const total    = allReports.length;
-  const critical = allReports.filter(r => r.priority === 'critical' && r.status !== 'solved').length;
-  const ongoing  = allReports.filter(r => r.status === 'ongoing').length;
-  const solved   = allReports.filter(r => r.status === 'solved').length;
+  const total      = allReports.length;
+  const critical   = allReports.filter(r => r.priority === 'critical' && r.status !== 'solved').length;
+  const ongoing    = allReports.filter(r => r.status === 'ongoing').length;
+  const solved     = allReports.filter(r => r.status === 'solved').length;
+  // POLISH 1: unassigned count
+  const unassigned = allReports.filter(r => r.status !== 'solved' && !r.assignedResponder).length;
+  // POLISH 2: overdue count + header badge
+  const overdueCount = allReports.filter(r => isOverdue(r)).length;
 
   document.getElementById('stat-total').textContent    = total;
   document.getElementById('stat-critical').textContent = critical;
   document.getElementById('stat-ongoing').textContent  = ongoing;
   document.getElementById('stat-resolved').textContent = solved;
+  const unassignedEl = document.getElementById('stat-unassigned');
+  if (unassignedEl) unassignedEl.textContent = unassigned;
+  const overdueCountEl = document.getElementById('stat-overdue-count');
+  if (overdueCountEl) overdueCountEl.textContent = overdueCount;
+  // POLISH 2: overdue badge in header
+  const overdueBadgeEl = document.getElementById('overdue-header-badge');
+  if (overdueBadgeEl) {
+    if (overdueCount > 0) {
+      overdueBadgeEl.textContent = overdueCount + ' overdue';
+      overdueBadgeEl.style.display = 'inline';
+    } else {
+      overdueBadgeEl.style.display = 'none';
+    }
+  }
 
   const resolvedWithTime = allReports.filter(
     r => r.status === 'solved' && r.resolvedAt?.toDate && r.reportedAt
@@ -1432,8 +1652,8 @@ function renderTable(reports) {
     const sl  = STATUS_LABELS[r.status]     || r.status   || '—';
     const anon = r.isAnonymous ? '<span class="anon-badge">Anon</span>' : '';
     const hasGps = r.latitude && r.longitude;
-    // Feature 2: overdue badge
-    const overdueBadge = isOverdue(r) ? '<span class="badge-overdue">⏰ Overdue</span>' : '';
+    // Feature 2: SLA badge (overdue or approaching)
+    const overdueBadge = getSLABadge(r);
     // Feature 1: assigned to
     const assignedTo = escHtml(r.assignedResponder || '—');
     // Feature 3: checkbox (stop propagation so clicking checkbox doesn't open detail)
@@ -1511,6 +1731,21 @@ async function openReportDetail(reportId, userId) {
                 ${STATUS_LABELS[s]}
               </button>`).join('')}
           </div>
+          ${(() => {
+            // POLISH 1: SLA progress bar in modal
+            const slaHours = SLA_HOURS[r.category] || 0;
+            if (!slaHours || r.status === 'solved') return '';
+            const reportedDate = r.reportedAt?.toDate ? r.reportedAt.toDate() : new Date(r.reportedAt || Date.now());
+            const elapsedHours = (Date.now() - reportedDate.getTime()) / 3600000;
+            const slaPct = slaHours > 0 ? Math.min((elapsedHours / slaHours) * 100, 100) : 0;
+            const slaColor = slaPct >= 100 ? '#f44336' : slaPct >= 75 ? '#ff9800' : '#4caf50';
+            return `
+              <div style="margin:12px 0 4px;font-size:12px;color:#666">SLA Progress (${Math.round(elapsedHours)}h / ${slaHours}h)</div>
+              <div style="background:#eee;border-radius:4px;height:8px;overflow:hidden">
+                <div style="width:${slaPct}%;background:${slaColor};height:100%;transition:width 0.5s"></div>
+              </div>`;
+          })()}
+          ${r.assignedAt ? `<div style="margin-top:8px;font-size:11px;color:#718096">Assigned ${timeAgo(new Date(r.assignedAt?.toDate ? r.assignedAt.toDate() : r.assignedAt))}</div>` : ''}
         </div>
         ${r.isAnonymous ? '<div style="background:#FFF5F5;border-radius:10px;padding:12px;font-size:12px;color:#C53030;font-weight:600">🔒 Anonymous Report — citizen cannot be notified</div>' : ''}
         <div style="background:#F7FAFC;border-radius:10px;padding:14px">
@@ -1519,15 +1754,46 @@ async function openReportDetail(reportId, userId) {
             ${buildNotesHistoryHtml(r)}
           </div>
           <div style="font-size:11px;font-weight:700;color:#718096;margin-bottom:6px">Add a new note:</div>
-          <select class="canned-select" id="canned-select" onchange="insertCannedResponse(this)">
-            <option value="">Insert canned response…</option>
-            ${CANNED_RESPONSES.map((t,i) => `<option value="${i}">${t.slice(0,60)}…</option>`).join('')}
-          </select>
+          <!-- POLISH 8: canned mode toggle + grouped options -->
+          <div class="canned-mode-toggle">
+            <span>Mode:</span>
+            <button class="canned-mode-btn" id="canned-mode-append" onclick="setCannedMode('append',this)" style="background:#2E7D32;border-color:#2E7D32;color:#fff">Append</button>
+            <button class="canned-mode-btn" id="canned-mode-replace" onclick="setCannedMode('replace',this)">Replace</button>
+          </div>
+          <div style="position:relative">
+            <select class="canned-select" id="canned-select" onchange="insertCannedResponse(this)" onmouseover="showCannedPreview(this)" onmouseout="hideCannedPreview()">
+              <option value="">Insert canned response…</option>
+              <optgroup label="Acknowledgement">
+                <option value="0">${CANNED_RESPONSES[0].slice(0,60)}…</option>
+                <option value="1">${CANNED_RESPONSES[1].slice(0,60)}…</option>
+              </optgroup>
+              <optgroup label="Resolution">
+                <option value="2">${CANNED_RESPONSES[2].slice(0,60)}…</option>
+                <option value="5">${CANNED_RESPONSES[5].slice(0,60)}…</option>
+              </optgroup>
+              <optgroup label="Escalation">
+                <option value="3">${CANNED_RESPONSES[3].slice(0,60)}…</option>
+              </optgroup>
+              <optgroup label="Apology">
+                <option value="4">${CANNED_RESPONSES[4].slice(0,60)}…</option>
+              </optgroup>
+              <optgroup label="Custom">
+                ${(JSON.parse(localStorage.getItem('custom_canned_responses')||'[]')).map((t,i)=>`<option value="custom_${i}">${t.slice(0,60)}…</option>`).join('')}
+                <option value="add_custom">+ Add custom…</option>
+              </optgroup>
+            </select>
+            <div class="canned-preview" id="canned-preview-box"></div>
+          </div>
           <textarea id="report-notes" rows="3" placeholder="Add a progress update or internal note…" maxlength="500"
+            oninput="updateNoteCharCount(this)"
             style="width:100%;border:1.5px solid #E2E8F0;border-radius:8px;padding:10px;font-size:13px;font-family:inherit;resize:vertical;outline:none;box-sizing:border-box"
           ></textarea>
-          <input id="report-responder" placeholder="Assigned responder name (optional)" maxlength="80" value="${escHtml(r.assignedResponder||'')}"
-            style="width:100%;border:1.5px solid #E2E8F0;border-radius:8px;padding:10px;font-size:13px;font-family:inherit;margin-top:8px;outline:none;box-sizing:border-box"/>
+          <div class="note-char-count" id="note-char-count">0 / 500</div>
+          <!-- POLISH 1: responder dropdown -->
+          <select id="report-responder" style="width:100%;border:1.5px solid #E2E8F0;border-radius:8px;padding:10px;font-size:13px;font-family:inherit;margin-top:8px;outline:none;box-sizing:border-box;background:#fff">
+            <option value="">— Unassigned —</option>
+            ${(firestoreResponders||[]).map(resp=>`<option value="${escHtml(resp.name)}" ${r.assignedResponder===resp.name?'selected':''}>${escHtml(resp.name)} (${resp.type||''})</option>`).join('')}
+          </select>
           <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
             <button onclick="saveReportNotes('${r.userId||''}','${r.id}')"
               style="padding:9px 18px;background:#1565C0;color:#fff;border:none;border-radius:8px;font-weight:700;font-size:13px;cursor:pointer">
@@ -2092,16 +2358,57 @@ function editResponder(id) {
 }
 
 async function deleteResponder(id, name) {
-  // Feature 13: require user to type DELETE
-  const confirmation = prompt(`Type DELETE to confirm deletion of responder "${name}":`);
-  if (confirmation !== 'DELETE') return;
-  try {
-    await db.collection('responders').doc(id).delete();
-    if (typeof writeAuditLog === 'function') writeAuditLog('responder_deleted', { name, id });
-    await loadFirestoreResponders();
-  } catch (e) {
-    alert('Delete failed: ' + e.message);
+  confirmDelete('Responder', () => {
+    db.collection('responders').doc(id).delete()
+      .then(() => {
+        if (typeof writeAuditLog === 'function') writeAuditLog('responder_deleted', { name, id });
+        loadFirestoreResponders();
+      })
+      .catch(e => alert('Delete failed: ' + e.message));
+  });
+}
+
+function confirmDelete(itemName, onConfirm) {
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center';
+  overlay.innerHTML = `
+    <div style="background:#fff;border-radius:12px;padding:28px;max-width:380px;width:90%;box-shadow:0 8px 32px rgba(0,0,0,0.2)">
+      <div style="text-align:center;margin-bottom:16px">
+        <span style="font-size:40px">🗑️</span>
+        <h3 style="color:#c62828;margin:8px 0 4px">Delete ${itemName}?</h3>
+        <p style="color:#666;font-size:13px;margin:0">This action cannot be undone.</p>
+      </div>
+      <p style="font-size:13px;color:#333;margin-bottom:8px">Type <strong>DELETE</strong> to confirm:</p>
+      <input id="confirm-delete-input" placeholder="Type DELETE here" style="width:100%;padding:10px;border:2px solid #eee;border-radius:8px;font-size:14px;box-sizing:border-box;outline:none">
+      <div style="display:flex;gap:10px;margin-top:16px">
+        <button id="confirm-cancel-btn" style="flex:1;padding:10px;border:1px solid #ddd;border-radius:8px;background:#fff;cursor:pointer;font-size:14px">Cancel</button>
+        <button id="confirm-delete-btn" disabled style="flex:1;padding:10px;border:none;border-radius:8px;background:#eee;color:#999;cursor:not-allowed;font-size:14px;font-weight:600">Delete</button>
+      </div>
+      <p id="confirm-cooldown" style="text-align:center;font-size:11px;color:#999;margin-top:8px">Please wait 3 seconds...</p>
+    </div>`;
+  document.body.appendChild(overlay);
+  const input = overlay.querySelector('#confirm-delete-input');
+  const btn = overlay.querySelector('#confirm-delete-btn');
+  const cooldown = overlay.querySelector('#confirm-cooldown');
+  let ready = false;
+  setTimeout(() => {
+    ready = true; cooldown.style.display='none';
+    if (input.value==='DELETE') enableBtn();
+  }, 3000);
+  function enableBtn() {
+    btn.disabled=false;
+    btn.style.cssText='flex:1;padding:10px;border:none;border-radius:8px;background:#c62828;color:#fff;cursor:pointer;font-size:14px;font-weight:600';
   }
+  input.addEventListener('input', () => {
+    input.style.borderColor = input.value==='DELETE' ? '#4caf50' : input.value.length>0 ? '#f44336' : '#eee';
+    if (input.value==='DELETE' && ready) enableBtn();
+    else if (input.value!=='DELETE') {
+      btn.disabled=true;
+      btn.style.cssText='flex:1;padding:10px;border:none;border-radius:8px;background:#eee;color:#999;cursor:not-allowed;font-size:14px;font-weight:600';
+    }
+  });
+  overlay.querySelector('#confirm-cancel-btn').onclick = () => document.body.removeChild(overlay);
+  btn.onclick = () => { document.body.removeChild(overlay); onConfirm(); };
 }
 
 function filterRespDir(type, btn) {
@@ -2411,15 +2718,11 @@ async function postAnnouncement() {
 }
 
 async function deleteAnnouncement(id) {
-  // Feature 13: require user to type DELETE
-  const confirmation = prompt('Type DELETE to confirm deletion of this announcement:');
-  if (confirmation !== 'DELETE') return;
-  try {
-    await db.collection('announcements').doc(id).delete();
-    writeAuditLog('announcement_deleted', { announcementId: id });
-  } catch (e) {
-    alert('Failed to delete: ' + e.message);
-  }
+  confirmDelete('Announcement', () => {
+    db.collection('announcements').doc(id).delete()
+      .then(() => writeAuditLog('announcement_deleted', { announcementId: id }))
+      .catch(e => alert('Failed to delete: ' + e.message));
+  });
 }
 
 function toggleNewAnnouncement() {
@@ -2595,32 +2898,51 @@ function exportReportPDF(reportId) {
     alert('jsPDF library not loaded. Check internet connection.'); return;
   }
   const { jsPDF } = window.jspdf || window;
-  const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+  const doc = new jsPDF({ unit: 'mm', format: 'a4' });
 
-  const margin = 48;
-  let y = margin;
+  // Styled header block
+  doc.setFillColor(46, 125, 50);
+  doc.rect(0, 0, 210, 28, 'F');
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(16); doc.setFont('helvetica', 'bold');
+  doc.text('ONE VIZCAYA', 14, 12);
+  doc.setFontSize(9); doc.setFont('helvetica', 'normal');
+  doc.text('Provincial Government of Nueva Vizcaya — Incident Report', 14, 19);
+  doc.text(`Generated: ${new Date().toLocaleString('en-PH')}`, 14, 24);
+  doc.setTextColor(0, 0, 0);
 
-  // Header
-  doc.setFontSize(18); doc.setFont(undefined, 'bold');
-  doc.text('ONE VIZCAYA — Incident Report', margin, y); y += 24;
-  doc.setFontSize(10); doc.setFont(undefined, 'normal');
-  doc.setDrawColor(46, 125, 50);
-  doc.line(margin, y, 595 - margin, y); y += 16;
+  const margin = 14;
+  const valueX = 70;
+  let y = 36;
 
   // Fields helper
-  const field = (label, value) => {
-    doc.setFont(undefined, 'bold'); doc.setFontSize(9);
+  const field = (label, value, skipStatusColor) => {
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(9);
+    doc.setTextColor(100, 100, 100);
     doc.text(label.toUpperCase(), margin, y);
-    doc.setFont(undefined, 'normal'); doc.setFontSize(11);
-    const lines = doc.splitTextToSize(String(value || '—'), 595 - margin * 2);
-    doc.text(lines, margin, y + 12);
-    y += 12 + lines.length * 14 + 6;
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(10);
+    doc.setTextColor(0, 0, 0);
+    const lines = doc.splitTextToSize(String(value || '—'), 186 - valueX + margin);
+    doc.text(lines, valueX, y);
+    y += lines.length * 13 + 4;
   };
 
   field('Report ID', r.id);
   field('Category', r.category);
   field('Priority', r.priority);
-  field('Status', r.status);
+
+  // Status with color
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(9);
+  doc.setTextColor(100, 100, 100);
+  doc.text('STATUS', margin, y);
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(10);
+  const statusColors = { reported: [21,101,192], ongoing: [230,81,0], solved: [46,125,50] };
+  const sc = statusColors[r.status] || [0,0,0];
+  doc.setTextColor(...sc);
+  doc.text(`● ${(r.status||'').toUpperCase()}`, valueX, y);
+  doc.setTextColor(0, 0, 0);
+  y += 17;
+
   field('Municipality', r.municipality);
   field('Barangay', r.barangay || '—');
   field('Description', r.description);
@@ -2629,30 +2951,38 @@ function exportReportPDF(reportId) {
   field('Reported At', reportedAtStr);
   field('Assigned Responder', r.assignedResponder || '—');
 
-  // Notes history
+  // Notes history as bordered blocks
   if (r.notesHistory && r.notesHistory.length > 0) {
-    y += 4;
-    doc.setFont(undefined, 'bold'); doc.setFontSize(9);
-    doc.text('ADMIN NOTES HISTORY', margin, y); y += 14;
+    y += 8;
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(11);
+    doc.setTextColor(0, 0, 0);
+    doc.text('Admin Notes History', 14, y); y += 6;
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(9);
     r.notesHistory.slice().reverse().forEach(n => {
-      doc.setFont(undefined, 'normal'); doc.setFontSize(10);
-      const noteLines = doc.splitTextToSize(`[${n.timestamp ? new Date(n.timestamp).toLocaleString('en-PH') : '?'}] ${n.author||'Admin'}: ${n.text}`, 595 - margin * 2);
-      doc.text(noteLines, margin, y);
-      y += noteLines.length * 13 + 4;
+      doc.setDrawColor(200,200,200);
+      doc.roundedRect(12, y, 186, 14, 2, 2, 'S');
+      doc.setFont('helvetica', 'bold');
+      doc.text(n.author || 'Admin', 16, y+5);
+      doc.setFont('helvetica', 'normal');
+      const ts = n.timestamp?.toDate ? n.timestamp.toDate().toLocaleString('en-PH') : (n.timestamp ? new Date(n.timestamp).toLocaleString('en-PH') : '');
+      doc.setTextColor(120,120,120); doc.text(ts, 16, y+10); doc.setTextColor(0,0,0);
+      doc.text(doc.splitTextToSize(n.text||'', 150)[0], 60, y+5);
+      y += 16;
     });
   } else if (r.adminNotes) {
     field('Admin Notes', r.adminNotes);
   }
 
   // Footer
-  y = 800;
+  const footerY = 280;
   doc.setDrawColor(200, 200, 200);
-  doc.line(margin, y - 4, 595 - margin, y - 4);
-  doc.setFontSize(9); doc.setFont(undefined, 'italic');
+  doc.line(margin, footerY - 4, 210 - margin, footerY - 4);
+  doc.setFontSize(8); doc.setFont('helvetica', 'italic');
+  doc.setTextColor(120,120,120);
   const adminName = currentUser?.displayName || currentUser?.phoneNumber || 'Admin';
-  doc.text(`Generated on ${new Date().toLocaleString('en-PH')} by ${adminName}`, margin, y + 8);
+  doc.text(`Generated on ${new Date().toLocaleString('en-PH')} by ${adminName}`, margin, footerY + 4);
 
-  doc.save(`OneVizcaya_Report_${r.id}.pdf`);
+  doc.save(`OneVizcaya_${(r.category||'Report').replace(/[^a-z0-9]/gi,'_')}_${(r.id||'').slice(0,8)}_${new Date().toISOString().slice(0,10)}.pdf`);
 }
 
 // ── Feature 8: Canned responses ───────────────────────────────────────────────
@@ -2697,25 +3027,68 @@ function renderSatisfactionSection() {
     </div>`;
   }).join('');
 
+  // Star display
+  const fullStars = Math.floor(avg);
+  const halfStar = avg % 1 >= 0.5;
+  const stars = '★'.repeat(fullStars) + (halfStar ? '½' : '') + '☆'.repeat(5 - fullStars - (halfStar?1:0));
+
+  // Low rating alert
+  const lowRatingHtml = (avg < 3.0 && ratedReports.length > 5)
+    ? `<div style="background:#FFF3E0;border-left:4px solid #FF9800;padding:8px 12px;border-radius:4px;margin-bottom:12px;font-size:13px">
+        ⚠️ Satisfaction below threshold — review recent resolved reports.
+      </div>` : '';
+
+  // Municipality breakdown
+  const muniRatings = {};
+  ratedReports.forEach(r => {
+    if (!muniRatings[r.municipality]) muniRatings[r.municipality] = [];
+    muniRatings[r.municipality].push(r.feedbackRating);
+  });
+  const muniRows = Object.entries(muniRatings)
+    .map(([m, ratings]) => ({ m, avg: ratings.reduce((a,b)=>a+b,0)/ratings.length, count: ratings.length }))
+    .sort((a,b) => b.avg - a.avg)
+    .map(({m, avg: mAvg, count}, i) => `<tr style="background:${i%2?'#f9f9f9':'#fff'}">
+      <td style="padding:6px 10px">${escHtml(m)}</td>
+      <td style="padding:6px 10px;color:#FF8F00">${'★'.repeat(Math.round(mAvg))}</td>
+      <td style="padding:6px 10px">${mAvg.toFixed(1)}</td>
+      <td style="padding:6px 10px;color:#666">${count}</td>
+    </tr>`).join('');
+
+  const muniTableHtml = muniRows ? `
+    <div style="margin-top:16px;overflow-x:auto">
+      <table style="width:100%;border-collapse:collapse;font-size:12px">
+        <thead><tr style="background:#F7FAFC">
+          <th style="text-align:left;padding:6px 10px;font-weight:700;color:#718096;border-bottom:2px solid #EDF2F7">Municipality</th>
+          <th style="text-align:left;padding:6px 10px;font-weight:700;color:#718096;border-bottom:2px solid #EDF2F7">Stars</th>
+          <th style="text-align:left;padding:6px 10px;font-weight:700;color:#718096;border-bottom:2px solid #EDF2F7">Avg</th>
+          <th style="text-align:left;padding:6px 10px;font-weight:700;color:#718096;border-bottom:2px solid #EDF2F7">Count</th>
+        </tr></thead>
+        <tbody>${muniRows}</tbody>
+      </table>
+    </div>` : '';
+
   contentEl.innerHTML = `
+    ${lowRatingHtml}
     <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap">
       <div style="text-align:center">
         <div style="font-size:32px;font-weight:800;color:#E65100">${avg.toFixed(1)}</div>
-        <div style="font-size:13px;color:#718096">/ 5.0 ⭐</div>
+        <div style="font-size:20px;color:#F6AD55;letter-spacing:2px">${stars}</div>
+        <div style="font-size:13px;color:#718096">/ 5.0</div>
         <div style="font-size:11px;color:#A0AEC0;margin-top:4px">${ratedReports.length} rated report${ratedReports.length!==1?'s':''}</div>
       </div>
       <div style="flex:1;min-width:180px">${barsHtml}</div>
-    </div>`;
+    </div>
+    ${muniTableHtml}`;
 }
 
 // ── Feature 10: Trend chart ───────────────────────────────────────────────────
 let chartTrends;
-function renderTrendChart(catEntries) {
+function renderTrendChart(catEntries, weeksOverride) {
   const canvas = document.getElementById('chart-trends');
   if (!canvas) return;
 
   const now = new Date();
-  const weeks = Array.from({length: 8}, (_, i) => {
+  const weeks = weeksOverride || Array.from({length: 8}, (_, i) => {
     const d = new Date(now - (7 - i) * 7 * 24 * 3600 * 1000);
     return { label: `${d.getMonth()+1}/${d.getDate()}`, start: new Date(now - (7 - i) * 7 * 24 * 3600 * 1000) };
   });
@@ -2790,9 +3163,15 @@ function buildNotesHistoryHtml(r) {
   if (r.notesHistory && r.notesHistory.length > 0) {
     r.notesHistory.slice().reverse().forEach(n => {
       const when = n.timestamp ? new Date(n.timestamp).toLocaleString('en-PH') : '?';
-      entries.push(`<div class="note-entry">
-        <div class="note-entry-meta">${escHtml(n.author||'Admin')} &bull; ${when}</div>
-        <div>${escHtml(n.text||'')}</div>
+      const ago = n.timestamp ? timeAgo(new Date(n.timestamp)) : '';
+      const initial = (n.author||'A')[0].toUpperCase();
+      const avatarHtml = `<div style="width:28px;height:28px;border-radius:50%;background:${authorColor(n.author)};color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0">${initial}</div>`;
+      entries.push(`<div class="note-entry" style="display:flex;gap:10px;align-items:flex-start">
+        ${avatarHtml}
+        <div style="flex:1;min-width:0">
+          <div class="note-entry-meta">${escHtml(n.author||'Admin')} &bull; <span title="${when}">${ago}</span></div>
+          <div>${escHtml(n.text||'')}</div>
+        </div>
       </div>`);
     });
   } else if (r.adminNotes) {
@@ -2808,26 +3187,200 @@ function buildNotesHistoryHtml(r) {
 
 // ── Feature 14: Session timeout warning ──────────────────────────────────────
 let _sessionTimeoutTimer = null;
+let _countdownInterval = null;
+
+function showSessionWarning(secondsLeft) {
+  if (_countdownInterval) clearInterval(_countdownInterval);
+  let secs = secondsLeft;
+  const banner = document.getElementById('session-warning');
+  if (!banner) return;
+  banner.style.display = 'flex';
+  // Slide-in animation
+  setTimeout(() => banner.classList.add('show'), 100);
+  _countdownInterval = setInterval(() => {
+    secs--;
+    const timeEl = banner.querySelector('#session-countdown');
+    if (timeEl) {
+      const m = Math.floor(secs/60), s = secs%60;
+      timeEl.textContent = `${m}:${s.toString().padStart(2,'0')}`;
+    }
+    if (secs <= 0) clearInterval(_countdownInterval);
+  }, 1000);
+}
+
+function hideSessBanner() {
+  const banner = document.getElementById('session-warning');
+  if (banner) { banner.classList.remove('show'); setTimeout(() => { banner.style.display = 'none'; }, 350); }
+  if (_countdownInterval) { clearInterval(_countdownInterval); _countdownInterval = null; }
+}
+
+function toggleAutoRefreshSession(checked) {
+  if (!checked) return;
+  // Immediately refresh and then every 50 minutes
+  firebase.auth().currentUser?.getIdToken(true).then(() => hideSessBanner()).catch(() => {});
+}
 
 auth.onIdTokenChanged(user => {
   if (!user) return;
   if (_sessionTimeoutTimer) clearTimeout(_sessionTimeoutTimer);
   // Firebase tokens expire 1 hour after issue; warn 5 minutes before expiry = 55 minutes
   const WARN_MS = 55 * 60 * 1000;
+  const WARN_SECS = 5 * 60; // 5 minutes countdown
   _sessionTimeoutTimer = setTimeout(() => {
-    const banner = document.getElementById('session-warning');
-    if (banner) banner.style.display = 'flex';
+    showSessionWarning(WARN_SECS);
   }, WARN_MS);
 });
 
 function refreshSession() {
   firebase.auth().currentUser?.getIdToken(true)
     .then(() => {
-      const banner = document.getElementById('session-warning');
-      if (banner) banner.style.display = 'none';
+      hideSessBanner();
       showToast('✅ Session refreshed successfully');
     })
     .catch(e => alert('Session refresh failed: ' + e.message));
+}
+
+// ── Notes char count ──────────────────────────────────────────────────────────
+function updateNoteCharCount(ta) {
+  const countEl = document.getElementById('note-char-count');
+  if (!countEl) return;
+  const len = ta.value.length;
+  countEl.textContent = len + ' / 500';
+  if (len > 500) { countEl.classList.add('over'); ta.style.borderColor = '#f44336'; }
+  else { countEl.classList.remove('over'); ta.style.borderColor = ''; }
+}
+
+// ── Canned response helpers ───────────────────────────────────────────────────
+let _cannedMode = 'append';
+function setCannedMode(mode, btn) {
+  _cannedMode = mode;
+  document.querySelectorAll('.canned-mode-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  btn.style.background='#2E7D32'; btn.style.borderColor='#2E7D32'; btn.style.color='#fff';
+  const other = document.getElementById(mode === 'append' ? 'canned-mode-replace' : 'canned-mode-append');
+  if (other) { other.style.background=''; other.style.borderColor=''; other.style.color=''; }
+}
+
+function insertCannedResponse(sel) {
+  const val = sel.value;
+  if (!val) return;
+  const ta = document.getElementById('report-notes');
+  if (!ta) return;
+  let text = '';
+  if (val === 'add_custom') {
+    const custom = prompt('Enter your custom canned response:');
+    if (!custom) { sel.value=''; return; }
+    const list = JSON.parse(localStorage.getItem('custom_canned_responses')||'[]');
+    list.push(custom); localStorage.setItem('custom_canned_responses', JSON.stringify(list));
+    text = custom;
+  } else if (val.startsWith('custom_')) {
+    const idx = parseInt(val.replace('custom_',''));
+    const list = JSON.parse(localStorage.getItem('custom_canned_responses')||'[]');
+    text = list[idx] || '';
+  } else {
+    text = CANNED_RESPONSES[parseInt(val)] || '';
+  }
+  if (_cannedMode === 'replace') {
+    ta.value = text;
+  } else {
+    ta.value = ta.value.trim() ? ta.value.trim() + '\n' + text : text;
+  }
+  sel.value = '';
+  updateNoteCharCount(ta);
+}
+
+function showCannedPreview(sel) {
+  const val = sel.value;
+  const box = document.getElementById('canned-preview-box');
+  if (!box || !val || isNaN(parseInt(val))) return;
+  const text = CANNED_RESPONSES[parseInt(val)];
+  if (text) { box.textContent = text; box.style.display = 'block'; }
+}
+function hideCannedPreview() {
+  const box = document.getElementById('canned-preview-box');
+  if (box) box.style.display = 'none';
+}
+
+// ── Sound toggle ──────────────────────────────────────────────────────────────
+let _soundEnabled = true;
+function toggleAlertSound() {
+  _soundEnabled = !_soundEnabled;
+  document.getElementById('sound-toggle').textContent = _soundEnabled ? '🔔' : '🔕';
+}
+
+// ── Schedule validation ───────────────────────────────────────────────────────
+function validateScheduleTime(input) {
+  const errEl = document.getElementById('ann-schedule-error');
+  if (!input.value) { if (errEl) errEl.style.display='none'; return; }
+  const minTime = new Date(Date.now() + 15 * 60 * 1000);
+  if (new Date(input.value) < minTime) {
+    if (errEl) errEl.style.display='block';
+  } else {
+    if (errEl) errEl.style.display='none';
+  }
+}
+
+// ── Trend range selector ──────────────────────────────────────────────────────
+function setTrendRange(weeks, btn) {
+  document.querySelectorAll('#trend-range-btns .chip').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  const now = new Date();
+  const wks = Array.from({length: weeks}, (_, i) => {
+    const d = new Date(now - (weeks - 1 - i) * 7 * 24 * 3600 * 1000);
+    return { label: `${d.getMonth()+1}/${d.getDate()}`, start: new Date(now - (weeks - 1 - i) * 7 * 24 * 3600 * 1000) };
+  });
+  const catMap = {};
+  allReports.forEach(r => { if (r.category) catMap[r.category] = (catMap[r.category]||0) + 1; });
+  const topCats = Object.entries(catMap).sort((a,b)=>b[1]-a[1]).slice(0,3);
+  renderTrendChart(topCats, wks);
+}
+
+// ── Delete confirm modal (DCM) helpers ────────────────────────────────────────
+let _dcmCallback = null;
+let _dcmReady = false;
+function openDcm(message, onConfirm) {
+  _dcmCallback = onConfirm;
+  _dcmReady = false;
+  document.getElementById('dcm-message').textContent = message;
+  document.getElementById('dcm-input').value = '';
+  document.getElementById('dcm-input').className = 'dcm-input';
+  document.getElementById('dcm-confirm-btn').disabled = true;
+  const cd = document.getElementById('dcm-countdown');
+  if (cd) { cd.textContent = 'Please wait 3 seconds…'; cd.style.display='block'; }
+  document.getElementById('delete-confirm-modal').style.display = 'flex';
+  setTimeout(() => {
+    _dcmReady = true;
+    if (cd) cd.style.display='none';
+    const inp = document.getElementById('dcm-input');
+    if (inp && inp.value === 'DELETE') document.getElementById('dcm-confirm-btn').disabled = false;
+  }, 3000);
+}
+function closeDcm() {
+  document.getElementById('delete-confirm-modal').style.display = 'none';
+  _dcmCallback = null;
+}
+function onDcmInput(inp) {
+  const valid = inp.value === 'DELETE';
+  inp.className = 'dcm-input' + (inp.value.length > 0 ? (valid ? ' valid' : ' invalid') : '');
+  document.getElementById('dcm-confirm-btn').disabled = !(valid && _dcmReady);
+}
+function executeDcm() {
+  if (_dcmCallback) _dcmCallback();
+  closeDcm();
+}
+
+// ── Bulk bar helpers ──────────────────────────────────────────────────────────
+function requestBulkApply() {
+  const status = document.getElementById('bulk-status-select').value;
+  if (!status) { showToast('Please select a status first'); return; }
+  const count = selectedReportIds.size;
+  document.getElementById('bulk-confirm-label').textContent = `Mark ${count} report(s) as "${status}"?`;
+  document.getElementById('bulk-main-row').style.display = 'none';
+  document.getElementById('bulk-confirm-row').style.display = 'flex';
+}
+function cancelBulkConfirm() {
+  document.getElementById('bulk-main-row').style.display = 'flex';
+  document.getElementById('bulk-confirm-row').style.display = 'none';
 }
 
 // ── Hide loading overlay ──────────────────────────────────────────────────────

@@ -55,7 +55,7 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F7F7),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         backgroundColor: _lguColor,
         foregroundColor: Colors.white,
@@ -179,16 +179,61 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
             _SectionHeader(label: 'ACCESSIBILITY'),
             _SettingsCard(
               children: [
-                _ToggleTile(
-                  icon: Icons.dark_mode_outlined,
-                  iconColor: const Color(0xFF37474F),
-                  title: 'Dark Mode',
-                  subtitle: 'Switch to a dark color scheme',
-                  value: _darkModeEnabled,
-                  onChanged: (val) {
-                    setState(() => _darkModeEnabled = val);
-                    oneVizcayaState.setDarkMode(val);
-                  },
+                // Dark mode toggle with dynamic icon and subtitle
+                ListTile(
+                  leading: Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF37474F).withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(
+                      _darkModeEnabled ? Icons.dark_mode : Icons.light_mode,
+                      color: const Color(0xFF37474F),
+                      size: 18,
+                    ),
+                  ),
+                  title: const Text(
+                    'Dark Mode',
+                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                  ),
+                  subtitle: Text(
+                    'Currently using ${_darkModeEnabled ? 'dark' : 'light'} theme',
+                    style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  trailing: Switch(
+                    value: _darkModeEnabled,
+                    onChanged: (val) {
+                      setState(() => _darkModeEnabled = val);
+                      oneVizcayaState.setDarkMode(val);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            val
+                                ? 'Dark mode enabled. Restart may be needed for full effect.'
+                                : 'Light mode enabled.',
+                          ),
+                          duration: const Duration(seconds: 3),
+                          behavior: SnackBarBehavior.floating,
+                        ),
+                      );
+                    },
+                    activeColor: oneVizcayaState.activeTheme['appBarColor'] as Color,
+                  ),
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                ),
+                Padding(
+                  padding:
+                      const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                  child: Text(
+                    'Some screens may require restarting the app to fully apply.',
+                    style: TextStyle(
+                        fontSize: 11, color: Colors.grey.shade500),
+                  ),
                 ),
                 _DividerLine(),
                 _ToggleTile(
@@ -323,25 +368,48 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Delete Account'),
-        content: const Text(
-          'Are you sure? This will permanently delete your account and all associated reports. '
-          'This cannot be undone.',
+        icon: const Icon(Icons.warning_amber_rounded,
+            color: Colors.red, size: 48),
+        title: Text('Delete Account',
+            style: TextStyle(color: Colors.red.shade700)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('This will permanently delete:',
+                style: TextStyle(fontWeight: FontWeight.w600)),
+            const SizedBox(height: 8),
+            ...[
+              'All your submitted reports',
+              'Your profile and contact information',
+              'Your notification history',
+            ].map((item) => Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 2),
+                  child: Row(children: [
+                    const Icon(Icons.close, color: Colors.red, size: 16),
+                    const SizedBox(width: 6),
+                    Text(item),
+                  ]),
+                )),
+            const SizedBox(height: 12),
+            Text('This cannot be undone.',
+                style: TextStyle(
+                    color: Colors.red.shade700,
+                    fontWeight: FontWeight.w600)),
+          ],
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
             child: const Text('Cancel'),
           ),
-          ElevatedButton(
+          TextButton(
             onPressed: () {
               Navigator.pop(ctx);
               _showDeleteConfirmationDialog(context);
             },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFE53935),
-            ),
-            child: const Text('Continue', style: TextStyle(color: Colors.white)),
+            child: const Text('Continue',
+                style: TextStyle(color: Colors.red)),
           ),
         ],
       ),
@@ -350,48 +418,89 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
 
   void _showDeleteConfirmationDialog(BuildContext context) {
     final confirmController = TextEditingController();
+    bool _isDeleteTyped = false;
+
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Confirm Deletion'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('Type DELETE to confirm account deletion:'),
-            const SizedBox(height: 12),
-            TextField(
-              controller: confirmController,
-              decoration: InputDecoration(
-                hintText: 'DELETE',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
+      barrierDismissible: false,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) {
+          return AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            title: const Text('Confirm Deletion'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Type DELETE to confirm permanent account deletion:',
+                  style: TextStyle(fontSize: 13),
                 ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: confirmController,
+                  onChanged: (val) {
+                    setDialogState(() {
+                      _isDeleteTyped = val.trim() == 'DELETE';
+                    });
+                  },
+                  decoration: InputDecoration(
+                    hintText: 'DELETE',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide(
+                        color: _isDeleteTyped
+                            ? Colors.green.shade600
+                            : Colors.red.shade400,
+                        width: 1.5,
+                      ),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide(
+                        color: _isDeleteTyped
+                            ? Colors.green.shade600
+                            : Colors.red.shade400,
+                        width: 1.5,
+                      ),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide(
+                        color: _isDeleteTyped
+                            ? Colors.green.shade600
+                            : Colors.red.shade400,
+                        width: 2,
+                      ),
+                    ),
+                    suffixIcon: _isDeleteTyped
+                        ? Icon(Icons.check_circle, color: Colors.green.shade600)
+                        : null,
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Cancel'),
               ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              if (confirmController.text.trim() != 'DELETE') {
-                ToastUtils.showError('You must type DELETE to confirm.');
-                return;
-              }
-              Navigator.pop(ctx);
-              await _deleteAccount(context);
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFE53935),
-            ),
-            child: const Text('Delete', style: TextStyle(color: Colors.white)),
-          ),
-        ],
+              ElevatedButton(
+                onPressed: _isDeleteTyped
+                    ? () async {
+                        Navigator.pop(ctx);
+                        await _deleteAccount(context);
+                      }
+                    : null,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFE53935),
+                  disabledBackgroundColor: Colors.grey.shade300,
+                ),
+                child: const Text('Delete', style: TextStyle(color: Colors.white)),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -403,8 +512,19 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
       return;
     }
     final uid = user.uid;
+
+    // Show progress dialog
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => _DeletionProgressDialog(),
+    );
+
     try {
       final firestore = FirebaseFirestore.instance;
+
+      // Step 1 is shown by the dialog
+      await Future.delayed(const Duration(milliseconds: 400));
 
       // Delete all reports for this user
       final reportsSnap = await firestore
@@ -418,17 +538,34 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
       }
       await batch.commit();
 
+      // Step 2
+      await Future.delayed(const Duration(milliseconds: 300));
+
       // Delete the user Firestore profile
       await firestore.collection('users').doc(uid).delete();
+
+      // Step 3
+      await Future.delayed(const Duration(milliseconds: 300));
 
       // Delete Firebase Auth account
       await user.delete();
 
       if (context.mounted) {
-        ToastUtils.showSuccess('Account deleted successfully');
-        Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+        Navigator.of(context).pop(); // close progress dialog
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Your account has been permanently deleted. Goodbye.'),
+            duration: Duration(seconds: 4),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+        await Future.delayed(const Duration(milliseconds: 500));
+        if (context.mounted) {
+          Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+        }
       }
     } on FirebaseAuthException catch (e) {
+      if (context.mounted) Navigator.of(context).pop();
       if (e.code == 'requires-recent-login') {
         ToastUtils.showError(
           'For security, please log out and log back in before deleting your account.',
@@ -437,6 +574,7 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
         ToastUtils.showError('Failed to delete account: ${e.message}');
       }
     } catch (e) {
+      if (context.mounted) Navigator.of(context).pop();
       ToastUtils.showError('An error occurred while deleting your account.');
     }
   }
@@ -470,6 +608,80 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
             },
             style: ElevatedButton.styleFrom(backgroundColor: _lguColor),
             child: const Text('Reset', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Deletion consequence bullet point ──
+class _DeleteConsequenceItem extends StatelessWidget {
+  final String text;
+  const _DeleteConsequenceItem({required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(Icons.close, size: 16, color: Colors.red.shade600),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            text,
+            style: TextStyle(fontSize: 13, color: Colors.grey.shade800),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ── Deletion progress dialog ──
+class _DeletionProgressDialog extends StatefulWidget {
+  @override
+  State<_DeletionProgressDialog> createState() => _DeletionProgressDialogState();
+}
+
+class _DeletionProgressDialogState extends State<_DeletionProgressDialog> {
+  int _step = 1;
+
+  static const _steps = [
+    'Deleting reports...',
+    'Deleting profile...',
+    'Removing account...',
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _animate();
+  }
+
+  Future<void> _animate() async {
+    for (int i = 1; i <= 3; i++) {
+      await Future.delayed(const Duration(milliseconds: 700));
+      if (mounted) setState(() => _step = i);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      title: const Text('Deleting Account'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          LinearProgressIndicator(
+            color: Colors.red.shade600,
+            backgroundColor: Colors.red.shade100,
+          ),
+          const SizedBox(height: 16),
+          Text(
+            '${_steps[_step - 1]} ($_step/3)',
+            style: TextStyle(fontSize: 13, color: Colors.grey.shade700),
           ),
         ],
       ),
@@ -511,7 +723,7 @@ class _SettingsCard extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(

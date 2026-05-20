@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -25,17 +26,33 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
   UserProfile? _profile;
   bool _isLoading = true;
 
-  // FEATURE 6: Citizen report statistics
+  // POLISH 4: Citizen report statistics
   bool _statsLoading = true;
   int _totalReports = 0;
   int _resolvedReports = 0;
   int _pendingReports = 0;
+
+  // Shimmer state
+  bool _shimmer = false;
+  Timer? _shimmerTimer;
 
   @override
   void initState() {
     super.initState();
     _loadProfile();
     _loadStats();
+    // Start shimmer pulsing while loading
+    _shimmerTimer = Timer.periodic(const Duration(milliseconds: 700), (_) {
+      if (mounted && _statsLoading) {
+        setState(() => _shimmer = !_shimmer);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _shimmerTimer?.cancel();
+    super.dispose();
   }
 
   Future<void> _loadProfile() async {
@@ -493,12 +510,12 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
                   ),
                 ),
 
-                // ── FEATURE 6: Citizen Report Statistics ──
+                // ── POLISH 4: Citizen Report Statistics ──
                 SliverToBoxAdapter(
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+                      padding: const EdgeInsets.fromLTRB(12, 14, 12, 16),
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(18),
@@ -510,17 +527,78 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
                           ),
                         ],
                       ),
-                      child: _statsLoading
-                          ? const Center(
-                              child: SizedBox(
-                                height: 48,
-                                child: CircularProgressIndicator(
-                                  color: Color(0xFF4CAF50),
-                                  strokeWidth: 2,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Card header
+                          Row(
+                            children: [
+                              const Icon(Icons.bar_chart,
+                                  color: Color(0xFF4CAF50), size: 18),
+                              const SizedBox(width: 6),
+                              const Text(
+                                'Your Contribution',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFF333333),
                                 ),
                               ),
+                            ],
+                          ),
+                          const Divider(height: 18),
+                          // Stats area
+                          if (_statsLoading)
+                            // Shimmer placeholders
+                            Row(
+                              children: List.generate(3, (i) {
+                                return Expanded(
+                                  child: Padding(
+                                    padding: EdgeInsets.only(
+                                        right: i < 2 ? 8.0 : 0),
+                                    child: AnimatedOpacity(
+                                      opacity: _shimmer ? 0.3 : 0.8,
+                                      duration: const Duration(
+                                          milliseconds: 700),
+                                      child: Container(
+                                        height: 60,
+                                        decoration: BoxDecoration(
+                                          color: Colors.grey.shade300,
+                                          borderRadius:
+                                              BorderRadius.circular(12),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              }),
                             )
-                          : Row(
+                          else if (_totalReports == 0)
+                            // Empty state
+                            Padding(
+                              padding: const EdgeInsets.symmetric(
+                                  vertical: 12),
+                              child: Row(
+                                children: [
+                                  Icon(Icons.info_outline,
+                                      size: 18,
+                                      color: Colors.grey.shade500),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      "You haven't submitted any reports yet. Make your voice heard!",
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.grey.shade600,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            )
+                          else ...[
+                            // Count-up stat boxes
+                            Row(
                               children: [
                                 _StatBox(
                                   label: 'Total',
@@ -544,6 +622,30 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
                                 ),
                               ],
                             ),
+                            const SizedBox(height: 12),
+                            // Resolved percentage progress bar
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(4),
+                              child: LinearProgressIndicator(
+                                value: _totalReports > 0
+                                    ? _resolvedReports / _totalReports
+                                    : 0.0,
+                                backgroundColor: Colors.grey.shade200,
+                                color: const Color(0xFF4CAF50),
+                                minHeight: 6,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              '${_totalReports > 0 ? ((_resolvedReports / _totalReports) * 100).round() : 0}% resolved',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: Colors.grey.shade500,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -715,7 +817,7 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
   }
 }
 
-// ── FEATURE 6: Stat box widget ────────────────────────────────────────────
+// ── POLISH 4: Stat box widget with count-up animation ────────────────────
 class _StatBox extends StatelessWidget {
   final String label;
   final int value;
@@ -741,12 +843,17 @@ class _StatBox extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
-              '$value',
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                color: valueColor,
+            TweenAnimationBuilder<int>(
+              tween: IntTween(begin: 0, end: value),
+              duration: const Duration(milliseconds: 800),
+              curve: Curves.easeOut,
+              builder: (_, animatedValue, __) => Text(
+                '$animatedValue',
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: valueColor,
+                ),
               ),
             ),
             const SizedBox(height: 4),
