@@ -91,6 +91,16 @@ class AppStrings {
       'noAnnouncementsSubtitle': 'Check back later for updates from your local government.',
       'viewOriginalPost': 'View original post',
       'urgentBadge': 'URGENT',
+      // Bookmark filter
+      'filterBookmarked': 'Bookmarked',
+      'noBookmarks': 'No bookmarked announcements',
+      'noBookmarksSubtitle': 'Tap the bookmark icon on any announcement to save it here',
+      // Notifications empty state
+      'allCaughtUp': 'All caught up!',
+      'notifyWhenChanged': "You'll be notified when your report status changes",
+      // Recently resolved empty state
+      'noResolvedYet': 'No resolved reports yet',
+      'resolvedWillAppear': 'Reports marked as solved will appear here',
       // Emergency contacts
       'localContacts': 'Local Contacts',
       'nationalHotlines': 'National & Provincial Hotlines',
@@ -129,6 +139,23 @@ class AppStrings {
       'findAnswers': 'Find answers to common questions below.',
       'contactUs': 'CONTACT US',
       'faqHeader': 'FREQUENTLY ASKED QUESTIONS',
+      // Report timeline steps
+      'stepReported': 'Reported',
+      'stepAcknowledged': 'Acknowledged',
+      'stepOngoing': 'Ongoing',
+      'stepSolved': 'Solved',
+      // Feedback / rating
+      'rateResolution': 'Rate Resolution',
+      'howWasResolved': 'How was this resolved?',
+      'additionalComments': 'Additional comments (optional)',
+      'feedbackSubmitted': 'Feedback submitted',
+      'feedbackSuccess': 'Thank you for your feedback!',
+      'feedbackError': 'Failed to submit feedback. Try again.',
+      'selectRating': 'Please select a rating.',
+      // Citizen stats
+      'statsTotal': 'Total',
+      'statsResolved': 'Resolved',
+      'statsPending': 'Pending',
     },
     'Tagalog': {
       'appTitle': 'One Vizcaya',
@@ -220,6 +247,16 @@ class AppStrings {
       'noAnnouncementsSubtitle': 'Bumalik mamaya para sa mga update mula sa iyong lokal na pamahalaan.',
       'viewOriginalPost': 'Tingnan ang orihinal na post',
       'urgentBadge': 'URGENT',
+      // Bookmark filter
+      'filterBookmarked': 'Naka-bookmark',
+      'noBookmarks': 'Walang mga naka-bookmark na anunsyo',
+      'noBookmarksSubtitle': 'I-tap ang bookmark icon sa anumang anunsyo upang i-save ito dito',
+      // Notifications empty state
+      'allCaughtUp': 'Lahat ay updated!',
+      'notifyWhenChanged': 'Aabisuhan ka kapag nagbago ang katayuan ng iyong ulat',
+      // Recently resolved empty state
+      'noResolvedYet': 'Wala pang nalutas na mga ulat',
+      'resolvedWillAppear': 'Ang mga ulat na namarkahan bilang nalutas ay lalabas dito',
       // Emergency contacts
       'localContacts': 'Mga Lokal na Contact',
       'nationalHotlines': 'Mga Pambansa at Panlalawigang Hotline',
@@ -258,6 +295,23 @@ class AppStrings {
       'findAnswers': 'Hanapin ang mga sagot sa mga karaniwang tanong sa ibaba.',
       'contactUs': 'MAKIPAG-UGNAYAN SA AMIN',
       'faqHeader': 'MGA MADALAS NA ITANONG',
+      // Report timeline steps
+      'stepReported': 'Iniulat',
+      'stepAcknowledged': 'Natanggap',
+      'stepOngoing': 'Isinasagawa',
+      'stepSolved': 'Nalutas',
+      // Feedback / rating
+      'rateResolution': 'I-rate ang Resolusyon',
+      'howWasResolved': 'Paano ito nalutas?',
+      'additionalComments': 'Karagdagang komento (opsyonal)',
+      'feedbackSubmitted': 'Naisumite na ang feedback',
+      'feedbackSuccess': 'Salamat sa iyong feedback!',
+      'feedbackError': 'Hindi naisumite ang feedback. Subukan muli.',
+      'selectRating': 'Mangyaring pumili ng rating.',
+      // Citizen stats
+      'statsTotal': 'Kabuuan',
+      'statsResolved': 'Nalutas',
+      'statsPending': 'Nakabinbin',
     },
   };
 
