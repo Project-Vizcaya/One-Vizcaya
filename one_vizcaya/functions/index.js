@@ -399,23 +399,39 @@ exports.seedDemoData = onCall(async (request) => {
     },
   ];
 
-  const batch = db.batch();
+  // Write all seeded documents using rolling batches (max 490 ops each) to
+  // stay safely under Firestore's 500-write-per-batch limit.
+  let batch = db.batch();
+  let opCount = 0;
 
   // Write user profiles
   for (const { uid, data } of demoUsers) {
     const ref = db.collection("users").doc(uid);
     batch.set(ref, data, { merge: true });
+    opCount++;
+    if (opCount >= 490) {
+      await batch.commit();
+      batch = db.batch();
+      opCount = 0;
+    }
   }
 
-  await batch.commit();
-
-  // Write reports as sub-documents (batch per user to avoid 500-write limit)
+  // Write reports as sub-documents
   for (const { userId, report } of demoReports) {
-    await db
-      .collection("users")
-      .doc(userId)
-      .collection("reports")
-      .add(report);
+    const ref = db.collection("users").doc(userId).collection("reports").doc();
+    batch.set(ref, report);
+    opCount++;
+    if (opCount >= 490) {
+      await batch.commit();
+      batch = db.batch();
+      opCount = 0;
+    }
+  }
+
+  if (opCount > 0) {
+    await batch.commit();
+    batch = db.batch();
+    opCount = 0;
   }
 
   // ── Seed demo announcements ──────────────────────────────────────────────
@@ -478,8 +494,17 @@ exports.seedDemoData = onCall(async (request) => {
   ];
 
   for (const ann of announcements) {
-    await db.collection("announcements").add(ann);
+    const ref = db.collection("announcements").doc();
+    batch.set(ref, ann);
+    opCount++;
+    if (opCount >= 490) {
+      await batch.commit();
+      batch = db.batch();
+      opCount = 0;
+    }
   }
+
+  if (opCount > 0) await batch.commit();
 
   return {
     message: "Demo data seeded successfully.",
@@ -492,8 +517,14 @@ exports.seedDemoData = onCall(async (request) => {
 // ── Setup demo admin claims ──────────────────────────────────────────────────
 // Call this with the UID of your real Firebase Auth users to grant admin roles.
 // Example: { uid: "REAL_UID_FROM_FIREBASE_AUTH", role: "municipal_admin" }
+// TODO: REMOVE THIS FUNCTION BEFORE PRODUCTION LAUNCH
 exports.grantDemoAdminRole = onCall(async (request) => {
-  // In production, restrict this to specific UIDs or remove entirely.
+  // SECURITY: restrict to known admin UIDs only; remove before public launch
+  const ALLOWED_DEMO_UIDS = []; // add your UID here to enable
+  if (!ALLOWED_DEMO_UIDS.includes(request.auth?.uid)) {
+    throw new HttpsError('permission-denied', 'Not authorized');
+  }
+
   const { uid, role } = request.data;
   if (!uid) throw new HttpsError("invalid-argument", "UID is required.");
 
