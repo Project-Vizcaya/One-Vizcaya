@@ -327,7 +327,7 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
                 subtitle: const Text(
                   'Your name and phone number will not be attached to this report.',
                 ),
-                secondary: const Icon(Icons.visibility_off_outlined),
+                secondary: const Icon(Icons.visibility_off_outlined, semanticLabel: 'Anonymous submission'),
                 value: _isAnonymous,
                 onChanged: (value) => setState(() => _isAnonymous = value),
                 activeThumbColor: primaryLguColor,
@@ -361,7 +361,7 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
                     value == null ? 'Please select a category' : null,
                 decoration: InputDecoration(
                   labelText: 'Category',
-                  prefixIcon: Icon(Icons.category, color: primaryLguColor),
+                  prefixIcon: Icon(Icons.category, color: primaryLguColor, semanticLabel: 'Category'),
                   focusedBorder: OutlineInputBorder(
                     borderSide: BorderSide(color: primaryLguColor, width: 2),
                   ),
@@ -407,7 +407,7 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
                 controller: _locationController,
                 decoration: InputDecoration(
                   labelText: 'Location / Landmark',
-                  prefixIcon: Icon(Icons.location_on, color: primaryLguColor),
+                  prefixIcon: Icon(Icons.location_on, color: primaryLguColor, semanticLabel: 'Location'),
                   hintText:
                       'e.g., "In front of $activeMunicipalityName Municipal Hall"',
                   focusedBorder: OutlineInputBorder(
@@ -427,7 +427,7 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
                         height: 16,
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
-                    : const Icon(Icons.gps_fixed),
+                    : const Icon(Icons.gps_fixed, semanticLabel: 'Attach GPS location'),
                 label: Text(
                   _currentPosition != null
                       ? 'Location Attached ✓'
@@ -453,7 +453,7 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
                 decoration: InputDecoration(
                   labelText: 'Barangay (optional)',
                   hintText: 'Enter your barangay name',
-                  prefixIcon: Icon(Icons.location_city_outlined, color: primaryLguColor),
+                  prefixIcon: Icon(Icons.location_city_outlined, color: primaryLguColor, semanticLabel: 'Barangay'),
                   focusedBorder: OutlineInputBorder(
                     borderSide: BorderSide(color: primaryLguColor, width: 2),
                   ),
@@ -465,7 +465,7 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
                 controller: _descriptionController,
                 decoration: InputDecoration(
                   labelText: 'Brief Description',
-                  prefixIcon: Icon(Icons.description, color: primaryLguColor),
+                  prefixIcon: Icon(Icons.description, color: primaryLguColor, semanticLabel: 'Brief description'),
                   hintText: 'Describe the problem in detail (min. 50 characters).',
                   focusedBorder: OutlineInputBorder(
                     borderSide: BorderSide(color: primaryLguColor, width: 2),
@@ -500,7 +500,7 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
               ),
               const SizedBox(height: 16),
               OutlinedButton.icon(
-                icon: const Icon(Icons.camera_alt),
+                icon: const Icon(Icons.camera_alt, semanticLabel: 'Attach photo evidence'),
                 label: Text(
                   _selectedImage != null
                       ? 'Photo Attached ✓'
@@ -551,6 +551,7 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
                             Icons.close,
                             color: Colors.white,
                             size: 18,
+                            semanticLabel: 'Remove photo',
                           ),
                         ),
                       ),

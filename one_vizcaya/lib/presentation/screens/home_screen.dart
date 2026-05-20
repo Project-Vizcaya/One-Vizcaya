@@ -708,7 +708,7 @@ class _ServiceGridItem extends StatelessWidget {
                   ),
                 ],
               ),
-              child: Icon(icon, color: iconColor, size: 24),
+              child: ExcludeSemantics(child: Icon(icon, color: iconColor, size: 24)),
             ),
             const SizedBox(height: 8),
             Text(
