@@ -367,36 +367,12 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              SwitchListTile(
-                title: Text(
-                  _isOffline
-                      ? AppStrings.get('reportViaSms')
-                      : AppStrings.get('online'),
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold),
-                ),
-                subtitle: Text(
-                  _isOffline
-                      ? AppStrings.get('reportViaSmsSubtitle')
-                      : 'Uses mobile data or Wi-Fi.',
-                ),
-                value: _isOffline,
-                onChanged: (value) => setState(() => _isOffline = value),
-                activeThumbColor: primaryLguColor,
-              ),
-              SwitchListTile(
-                title: Text(
-                  AppStrings.get('submitAnonymously'),
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
-                subtitle: Text(
-                  AppStrings.get('anonymousSubtitle'),
-                ),
-                secondary: const Icon(Icons.visibility_off_outlined, semanticLabel: 'Anonymous submission'),
-                value: _isAnonymous,
-                onChanged: (value) => setState(() => _isAnonymous = value),
-                activeThumbColor: primaryLguColor,
+              _SubmissionOptionsCard(
+                isOffline: _isOffline,
+                isAnonymous: _isAnonymous,
+                primaryColor: primaryLguColor,
+                onOfflineChanged: (v) => setState(() => _isOffline = v),
+                onAnonymousChanged: (v) => setState(() => _isAnonymous = v),
               ),
               const SizedBox(height: 24),
               _CategoryTreeSelector(
@@ -800,6 +776,206 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
     } catch (e) {
       ToastUtils.showError('Failed to pick image: $e');
     }
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SUBMISSION OPTIONS CARD
+// Replaces the two confusing SwitchListTiles with clear segmented selectors
+// so users instantly see: (1) online vs SMS and (2) named vs anonymous.
+// ═══════════════════════════════════════════════════════════════════════════
+
+class _SubmissionOptionsCard extends StatelessWidget {
+  final bool isOffline;
+  final bool isAnonymous;
+  final Color primaryColor;
+  final ValueChanged<bool> onOfflineChanged;
+  final ValueChanged<bool> onAnonymousChanged;
+
+  const _SubmissionOptionsCard({
+    required this.isOffline,
+    required this.isAnonymous,
+    required this.primaryColor,
+    required this.onOfflineChanged,
+    required this.onAnonymousChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ── How to send ────────────────────────────────────────────────
+          _sectionLabel('How would you like to send this?'),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: _ModeOption(
+                  icon: Icons.wifi_rounded,
+                  label: 'Online',
+                  subtitle: 'Wi-Fi or mobile data',
+                  selected: !isOffline,
+                  selectedColor: primaryColor,
+                  onTap: () => onOfflineChanged(false),
+                  semanticHint: 'Send report online via internet',
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _ModeOption(
+                  icon: Icons.sms_outlined,
+                  label: 'Send via SMS',
+                  subtitle: 'No internet needed',
+                  selected: isOffline,
+                  selectedColor: const Color(0xFF5C6BC0),
+                  onTap: () => onOfflineChanged(true),
+                  semanticHint: 'Send report via SMS text message',
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+
+          // ── Identity ──────────────────────────────────────────────────
+          _sectionLabel('Your identity'),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: _ModeOption(
+                  icon: Icons.person_outlined,
+                  label: 'With my name',
+                  subtitle: 'LGU can follow up',
+                  selected: !isAnonymous,
+                  selectedColor: primaryColor,
+                  onTap: () => onAnonymousChanged(false),
+                  semanticHint: 'Submit with your name visible to LGU',
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _ModeOption(
+                  icon: Icons.visibility_off_outlined,
+                  label: 'Anonymous',
+                  subtitle: 'Identity is hidden',
+                  selected: isAnonymous,
+                  selectedColor: Colors.grey.shade700,
+                  onTap: () => onAnonymousChanged(true),
+                  semanticHint: 'Submit anonymously, identity hidden from LGU',
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _sectionLabel(String text) => Text(
+        text,
+        style: const TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+          color: Color(0xFF555555),
+          letterSpacing: 0.2,
+        ),
+      );
+}
+
+class _ModeOption extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String subtitle;
+  final bool selected;
+  final Color selectedColor;
+  final VoidCallback onTap;
+  final String semanticHint;
+
+  const _ModeOption({
+    required this.icon,
+    required this.label,
+    required this.subtitle,
+    required this.selected,
+    required this.selectedColor,
+    required this.onTap,
+    required this.semanticHint,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      selected: selected,
+      hint: semanticHint,
+      child: GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          curve: Curves.easeOut,
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+          decoration: BoxDecoration(
+            color: selected
+                ? selectedColor.withValues(alpha: 0.1)
+                : Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: selected ? selectedColor : Colors.grey.shade300,
+              width: selected ? 2 : 1,
+            ),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(
+                icon,
+                size: 20,
+                color: selected ? selectedColor : Colors.grey.shade500,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      label,
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: selected ? selectedColor : const Color(0xFF333333),
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: selected
+                            ? selectedColor.withValues(alpha: 0.75)
+                            : Colors.grey.shade500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (selected)
+                Icon(
+                  Icons.check_circle_rounded,
+                  size: 15,
+                  color: selectedColor,
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
 
