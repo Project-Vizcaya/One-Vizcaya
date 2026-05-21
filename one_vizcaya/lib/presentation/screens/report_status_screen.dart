@@ -19,6 +19,7 @@ class _ReportStatusScreenState extends State<ReportStatusScreen> {
   ReportPriority? _filterPriority;
   String? _highlightedReportId;
   final ScrollController _scrollController = ScrollController();
+  final ReportRepository _reportRepository = FirebaseReportRepository();
 
   @override
   void didChangeDependencies() {
@@ -63,8 +64,6 @@ class _ReportStatusScreenState extends State<ReportStatusScreen> {
         body: Center(child: Text(AppStrings.get('loginToView'))),
       );
     }
-
-    final ReportRepository reportRepository = FirebaseReportRepository();
 
     return Scaffold(
       appBar: AppBar(
@@ -135,7 +134,7 @@ class _ReportStatusScreenState extends State<ReportStatusScreen> {
           // Reports list
           Expanded(
             child: StreamBuilder<List<ProblemReport>>(
-              stream: reportRepository.getUserReports(user.uid, activeMunicipalityName),
+              stream: _reportRepository.getUserReports(user.uid, activeMunicipalityName),
               builder: (context, snapshot) {
                 if (snapshot.hasError) {
                   return Center(child: Text('Error: ${snapshot.error}'));

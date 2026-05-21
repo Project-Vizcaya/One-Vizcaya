@@ -33,15 +33,7 @@ class FirebaseReportRepository implements ReportRepository {
         .where('municipality', isEqualTo: municipality)
         .orderBy('reportedAt', descending: true)
         .snapshots()
-        .map(
-          (snapshot) => snapshot.docs
-              .map((doc) => ProblemReport.fromFirestore(doc))
-              .toList(),
-        )
-        .handleError((e) {
-          debugPrint('getUserReports error: $e');
-          return <ProblemReport>[];
-        });
+        .transform(_safeReportTransformer('getUserReports'));
   }
 
   @override
@@ -51,33 +43,35 @@ class FirebaseReportRepository implements ReportRepository {
         .where('municipality', isEqualTo: municipality)
         .orderBy('priorityScore', descending: true)
         .snapshots()
-        .map(
-          (snapshot) => snapshot.docs
-              .map((doc) => ProblemReport.fromFirestore(doc))
-              .toList(),
-        )
-        .handleError((error) {
-          ToastUtils.showError('Failed to load reports: $error');
-          return <ProblemReport>[];
-        });
+        .transform(_safeReportTransformer('getAllMunicipalityReports'));
   }
 
   @override
   Stream<List<ProblemReport>> getAllProvincialReports() {
-    // Returns all reports across every municipality, newest first by default
     return _firestore
         .collectionGroup('reports')
         .orderBy('reportedAt', descending: true)
         .snapshots()
-        .map(
-          (snapshot) => snapshot.docs
+        .transform(_safeReportTransformer('getAllProvincialReports'));
+  }
+
+  StreamTransformer<QuerySnapshot, List<ProblemReport>> _safeReportTransformer(String tag) {
+    return StreamTransformer.fromHandlers(
+      handleData: (snapshot, sink) {
+        try {
+          sink.add(snapshot.docs
               .map((doc) => ProblemReport.fromFirestore(doc))
-              .toList(),
-        )
-        .handleError((error) {
-          ToastUtils.showError('Failed to load provincial reports: $error');
-          return <ProblemReport>[];
-        });
+              .toList());
+        } catch (e) {
+          debugPrint('$tag parse error: $e');
+          sink.add([]);
+        }
+      },
+      handleError: (error, stackTrace, sink) {
+        debugPrint('$tag stream error: $error');
+        sink.add([]);
+      },
+    );
   }
 
   @override
@@ -91,8 +85,8 @@ class FirebaseReportRepository implements ReportRepository {
       if (newStatus == 'solved') {
         update['resolvedAt'] = FieldValue.serverTimestamp();
       } else {
-        // Clear resolvedAt if report is reopened
-        update['resolvedAt'] = null;
+        // Clear resolvedAt if report is reopened (FieldValue.delete removes the field entirely)
+        update['resolvedAt'] = FieldValue.delete();
       }
       await _firestore
           .collection('users')

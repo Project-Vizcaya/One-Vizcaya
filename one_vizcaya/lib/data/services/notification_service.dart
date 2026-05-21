@@ -189,7 +189,9 @@ class NotificationService {
         .snapshots()
         .listen((snap) async {
       for (final doc in snap.docChanges.where((c) => c.type == DocumentChangeType.added)) {
-        final data = doc.doc.data()!;
+        final rawData = doc.doc.data();
+        if (rawData == null) continue;
+        final data = rawData;
         final scope = data['scope'] as String? ?? 'All Province';
         if (scope != 'All Province' && scope != municipality) continue;
         final title = data['title'] as String? ?? 'Announcement';

@@ -426,7 +426,7 @@ class _ReportStatusCardState extends State<ReportStatusCard>
                                   });
                                   Future.delayed(
                                       const Duration(milliseconds: 1500), () {
-                                    if (ctx.mounted) {
+                                    if (ctx.mounted && Navigator.of(ctx).canPop()) {
                                       Navigator.of(ctx).pop();
                                     }
                                     if (mounted) {
@@ -872,7 +872,7 @@ class _ReportStatusCardState extends State<ReportStatusCard>
                         icon: const Icon(Icons.qr_code, size: 16),
                         label: const Text('Show QR',
                             style: TextStyle(fontSize: 12)),
-                        onPressed: () => _showReportQr(context),
+                        onPressed: widget.report.id.isEmpty ? null : () => _showReportQr(context),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: widget.lguColor,
                           side: BorderSide(color: widget.lguColor),

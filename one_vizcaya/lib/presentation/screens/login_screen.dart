@@ -81,17 +81,17 @@ class _LoginScreenState extends State<LoginScreen>
       phoneNumber = '+63${phoneNumber.substring(1)}';
     }
 
-    // Save phone number for future biometric login
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('saved_phone_number', _phoneController.text.trim());
-
     try {
       await FirebaseAuth.instance.verifyPhoneNumber(
         phoneNumber: phoneNumber,
         verificationCompleted: (PhoneAuthCredential credential) async {
           await FirebaseAuth.instance.signInWithCredential(credential);
+          // Save only after successful auth
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('saved_phone_number', _phoneController.text.trim());
           if (mounted) {
-            Navigator.of(context).pushReplacementNamed('/setup');
+            // Let AuthGate decide routing (setup vs home) based on profile state
+            Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
           }
         },
         verificationFailed: (FirebaseAuthException e) {
@@ -532,9 +532,9 @@ class _LoginScreenState extends State<LoginScreen>
                             vertical: 14, horizontal: 20),
                         decoration: BoxDecoration(
                           border: Border.all(
-                              color: const Color(0xFF4CAF50).withOpacity(0.4)),
+                              color: const Color(0xFF4CAF50).withValues(alpha: 0.4)),
                           borderRadius: BorderRadius.circular(12),
-                          color: const Color(0xFF4CAF50).withOpacity(0.05),
+                          color: const Color(0xFF4CAF50).withValues(alpha: 0.05),
                         ),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
@@ -601,7 +601,10 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
   }
 
   Future<void> _verifyCode() async {
-    if (_codeController.text.isEmpty) return;
+    if (_codeController.text.length < 6) {
+      ToastUtils.showError('Please enter the complete 6-digit code.');
+      return;
+    }
     setState(() => _isLoading = true);
 
     try {
@@ -637,9 +640,8 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
       }
 
       if (mounted) {
-        Navigator.of(
-          context,
-        ).pushNamedAndRemoveUntil('/setup', (route) => false);
+        // Let AuthGate decide routing (setup vs home) based on profile state
+        Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
       }
     } catch (e) {
       if (mounted) {
