@@ -10,11 +10,28 @@ class FirebaseReportRepository implements ReportRepository {
   @override
   Future<void> submitReport(ProblemReport report, String userId) async {
     try {
-      await _firestore
+      final docRef = await _firestore
           .collection('users')
           .doc(userId)
           .collection('reports')
           .add(report.toMap());
+
+      // Write confirmation notification to the citizen's notification feed
+      await _firestore
+          .collection('users')
+          .doc(userId)
+          .collection('notifications')
+          .add({
+        'type': 'report_submitted',
+        'title': 'Report Submitted',
+        'body':
+            'Your report about "${report.category.displayName}" has been received. '
+            'We will review it shortly.',
+        'status': 'info',
+        'reportId': docRef.id,
+        'timestamp': FieldValue.serverTimestamp(),
+        'read': false,
+      });
     } catch (e) {
       ToastUtils.showError('Error submitting report. Please try again.');
       rethrow;
@@ -94,11 +111,57 @@ class FirebaseReportRepository implements ReportRepository {
           .collection('reports')
           .doc(reportId)
           .update(update);
+
+      // Notify the citizen of the status change
+      final notif = _statusNotification(newStatus, reportId);
+      if (notif != null) {
+        try {
+          await _firestore
+              .collection('users')
+              .doc(userId)
+              .collection('notifications')
+              .add(notif);
+        } catch (e) {
+          debugPrint('Failed to write status notification: $e');
+        }
+      }
+
       ToastUtils.showSuccess('Status updated');
     } catch (e) {
       ToastUtils.showError('Failed to update status: $e');
       rethrow;
     }
+  }
+
+  Map<String, dynamic>? _statusNotification(String status, String reportId) {
+    String title;
+    String body;
+    switch (status) {
+      case 'ongoing':
+        title = 'Report In Progress';
+        body = 'Your report is now being acted upon by the LGU.';
+        break;
+      case 'solved':
+        title = 'Report Resolved ✓';
+        body =
+            'Great news! Your report has been resolved. Thank you for helping improve your community.';
+        break;
+      case 'reported':
+        title = 'Report Reopened';
+        body = 'Your report has been reopened for further review.';
+        break;
+      default:
+        return null;
+    }
+    return {
+      'type': 'status_update',
+      'title': title,
+      'body': body,
+      'status': status == 'solved' ? 'success' : 'info',
+      'reportId': reportId,
+      'timestamp': FieldValue.serverTimestamp(),
+      'read': false,
+    };
   }
 
   @override

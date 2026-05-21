@@ -79,10 +79,13 @@ service cloud.firestore {
       }
     }
 
-    // ─── CollectionGroup query (admin dashboard report stream) ───────────────
+    // ─── CollectionGroup query ───────────────────────────────────────────────
+    // Citizens need read access for the community "Recently Resolved" feed.
+    // Admins additionally need update access for status management.
     match /{path=**}/reports/{reportId} {
-      allow read, update: if isAdmin();
-      allow delete:       if isProvincialAdmin();
+      allow read:   if isAuth(); // community feed requires citizen read
+      allow update: if isAdmin();
+      allow delete: if isProvincialAdmin();
     }
 
     // ─── Announcements ───────────────────────────────────────────────────────
