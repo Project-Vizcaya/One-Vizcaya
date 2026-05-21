@@ -39,7 +39,7 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
   bool _categoryError = false;
   final _descriptionController = TextEditingController();
   final _locationController = TextEditingController();
-  late final TextEditingController _barangayController;
+  String? _selectedBarangay;
   bool _isOffline = false;
   bool _isAnonymous = false;
   bool _isGettingLocation = false;
@@ -60,7 +60,6 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
   @override
   void initState() {
     super.initState();
-    _barangayController = TextEditingController();
   }
 
   Future<void> _getLocation() async {
@@ -188,9 +187,7 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
         'userId_field': _isAnonymous ? null : userId,
         'userPhone': _isAnonymous ? null : user?.phoneNumber,
         'isAnonymous': _isAnonymous,
-        'barangay': _barangayController.text.trim().isEmpty
-            ? null
-            : _barangayController.text.trim(),
+        'barangay': _selectedBarangay,
       };
       await OfflineQueueService().enqueue(queuePayload);
       ToastUtils.showInfo('Report saved. Will submit automatically when you\'re back online.');
@@ -277,9 +274,7 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
         photoLatitude: _photoLatitude,
         photoLongitude: _photoLongitude,
         isAnonymous: _isAnonymous,
-        barangay: _barangayController.text.trim().isEmpty
-            ? null
-            : _barangayController.text.trim(),
+        barangay: _selectedBarangay,
       );
 
       await _reportRepository.submitReport(report, userId);
@@ -288,11 +283,11 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
 
       _locationController.clear();
       _descriptionController.clear();
-      _barangayController.clear();
       if (!mounted) return;
       setState(() {
         _selectedCategory = null;
         _selectedPriority = null;
+        _selectedBarangay = null;
         _categoryError = false;
         _currentPosition = null;
         _selectedImage = null;
@@ -470,17 +465,11 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
                 ),
               ),
               const SizedBox(height: 16),
-              TextFormField(
-                controller: _barangayController,
-                decoration: InputDecoration(
-                  labelText: '${AppStrings.get('barangay')} (optional)',
-                  hintText: 'Enter your barangay name',
-                  prefixIcon: Icon(Icons.location_city_outlined, color: primaryLguColor, semanticLabel: 'Barangay'),
-                  focusedBorder: OutlineInputBorder(
-                    borderSide: BorderSide(color: primaryLguColor, width: 2),
-                  ),
-                  labelStyle: TextStyle(color: primaryLguColor),
-                ),
+              _BarangayDropdown(
+                municipality: oneVizcayaState.selectedMunicipality.value,
+                selectedBarangay: _selectedBarangay,
+                primaryColor: primaryLguColor,
+                onChanged: (val) => setState(() => _selectedBarangay = val),
               ),
               const SizedBox(height: 16),
               TextFormField(
@@ -660,7 +649,6 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
   void dispose() {
     _descriptionController.dispose();
     _locationController.dispose();
-    _barangayController.dispose();
     super.dispose();
   }
 
@@ -812,6 +800,86 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
     } catch (e) {
       ToastUtils.showError('Failed to pick image: $e');
     }
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// BARANGAY DROPDOWN
+// Shows barangays for the user's currently selected municipality.
+// Falls back to a text field if no data exists for that municipality.
+// ═══════════════════════════════════════════════════════════════════════════
+
+class _BarangayDropdown extends StatelessWidget {
+  final String municipality;
+  final String? selectedBarangay;
+  final Color primaryColor;
+  final ValueChanged<String?> onChanged;
+
+  const _BarangayDropdown({
+    required this.municipality,
+    required this.selectedBarangay,
+    required this.primaryColor,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final barangays = AppConstants.municipalityBarangays[municipality] ?? [];
+
+    if (barangays.isEmpty) {
+      // Fallback: free-text field for unknown municipalities
+      return TextFormField(
+        initialValue: selectedBarangay,
+        onChanged: (val) => onChanged(val.trim().isEmpty ? null : val.trim()),
+        decoration: InputDecoration(
+          labelText: 'Barangay (optional)',
+          hintText: 'Enter your barangay name',
+          prefixIcon: Icon(Icons.location_city_outlined, color: primaryColor),
+          focusedBorder: OutlineInputBorder(
+            borderSide: BorderSide(color: primaryColor, width: 2),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderSide: BorderSide(color: primaryColor.withValues(alpha: 0.4)),
+          ),
+          labelStyle: TextStyle(color: primaryColor),
+        ),
+      );
+    }
+
+    // Ensure the current selection is still valid for this municipality
+    final validSelection = barangays.contains(selectedBarangay) ? selectedBarangay : null;
+
+    return DropdownButtonFormField<String>(
+      value: validSelection,
+      isExpanded: true,
+      dropdownColor: Colors.white,
+      hint: const Text('Select Barangay (optional)'),
+      decoration: InputDecoration(
+        labelText: 'Barangay (optional)',
+        prefixIcon: Icon(Icons.location_city_outlined,
+            color: primaryColor, semanticLabel: 'Barangay'),
+        focusedBorder: OutlineInputBorder(
+          borderSide: BorderSide(color: primaryColor, width: 2),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderSide: BorderSide(color: primaryColor.withValues(alpha: 0.4)),
+        ),
+        labelStyle: TextStyle(color: primaryColor),
+      ),
+      items: [
+        // "None" option to clear the selection
+        const DropdownMenuItem<String>(
+          value: null,
+          child: Text('— None —',
+              style: TextStyle(color: Colors.grey, fontStyle: FontStyle.italic)),
+        ),
+        ...barangays.map((b) => DropdownMenuItem<String>(
+              value: b,
+              child: Text(b),
+            )),
+      ],
+      onChanged: onChanged,
+    );
   }
 }
 
