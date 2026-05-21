@@ -39,7 +39,7 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
   bool _categoryError = false;
   final _descriptionController = TextEditingController();
   final _locationController = TextEditingController();
-  late final TextEditingController _barangayController;
+  String? _selectedBarangay;
   bool _isOffline = false;
   bool _isAnonymous = false;
   bool _isGettingLocation = false;
@@ -60,7 +60,6 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
   @override
   void initState() {
     super.initState();
-    _barangayController = TextEditingController();
   }
 
   Future<void> _getLocation() async {
@@ -188,9 +187,7 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
         'userId_field': _isAnonymous ? null : userId,
         'userPhone': _isAnonymous ? null : user?.phoneNumber,
         'isAnonymous': _isAnonymous,
-        'barangay': _barangayController.text.trim().isEmpty
-            ? null
-            : _barangayController.text.trim(),
+        'barangay': _selectedBarangay,
       };
       await OfflineQueueService().enqueue(queuePayload);
       ToastUtils.showInfo('Report saved. Will submit automatically when you\'re back online.');
@@ -277,9 +274,7 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
         photoLatitude: _photoLatitude,
         photoLongitude: _photoLongitude,
         isAnonymous: _isAnonymous,
-        barangay: _barangayController.text.trim().isEmpty
-            ? null
-            : _barangayController.text.trim(),
+        barangay: _selectedBarangay,
       );
 
       await _reportRepository.submitReport(report, userId);
@@ -288,11 +283,11 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
 
       _locationController.clear();
       _descriptionController.clear();
-      _barangayController.clear();
       if (!mounted) return;
       setState(() {
         _selectedCategory = null;
         _selectedPriority = null;
+        _selectedBarangay = null;
         _categoryError = false;
         _currentPosition = null;
         _selectedImage = null;
@@ -372,36 +367,12 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              SwitchListTile(
-                title: Text(
-                  _isOffline
-                      ? AppStrings.get('reportViaSms')
-                      : AppStrings.get('online'),
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold),
-                ),
-                subtitle: Text(
-                  _isOffline
-                      ? AppStrings.get('reportViaSmsSubtitle')
-                      : 'Uses mobile data or Wi-Fi.',
-                ),
-                value: _isOffline,
-                onChanged: (value) => setState(() => _isOffline = value),
-                activeThumbColor: primaryLguColor,
-              ),
-              SwitchListTile(
-                title: Text(
-                  AppStrings.get('submitAnonymously'),
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
-                subtitle: Text(
-                  AppStrings.get('anonymousSubtitle'),
-                ),
-                secondary: const Icon(Icons.visibility_off_outlined, semanticLabel: 'Anonymous submission'),
-                value: _isAnonymous,
-                onChanged: (value) => setState(() => _isAnonymous = value),
-                activeThumbColor: primaryLguColor,
+              _SubmissionOptionsCard(
+                isOffline: _isOffline,
+                isAnonymous: _isAnonymous,
+                primaryColor: primaryLguColor,
+                onOfflineChanged: (v) => setState(() => _isOffline = v),
+                onAnonymousChanged: (v) => setState(() => _isAnonymous = v),
               ),
               const SizedBox(height: 24),
               _CategoryTreeSelector(
@@ -470,17 +441,11 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
                 ),
               ),
               const SizedBox(height: 16),
-              TextFormField(
-                controller: _barangayController,
-                decoration: InputDecoration(
-                  labelText: '${AppStrings.get('barangay')} (optional)',
-                  hintText: 'Enter your barangay name',
-                  prefixIcon: Icon(Icons.location_city_outlined, color: primaryLguColor, semanticLabel: 'Barangay'),
-                  focusedBorder: OutlineInputBorder(
-                    borderSide: BorderSide(color: primaryLguColor, width: 2),
-                  ),
-                  labelStyle: TextStyle(color: primaryLguColor),
-                ),
+              _BarangayDropdown(
+                municipality: oneVizcayaState.selectedMunicipality.value,
+                selectedBarangay: _selectedBarangay,
+                primaryColor: primaryLguColor,
+                onChanged: (val) => setState(() => _selectedBarangay = val),
               ),
               const SizedBox(height: 16),
               TextFormField(
@@ -660,7 +625,6 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
   void dispose() {
     _descriptionController.dispose();
     _locationController.dispose();
-    _barangayController.dispose();
     super.dispose();
   }
 
@@ -812,6 +776,286 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
     } catch (e) {
       ToastUtils.showError('Failed to pick image: $e');
     }
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SUBMISSION OPTIONS CARD
+// Replaces the two confusing SwitchListTiles with clear segmented selectors
+// so users instantly see: (1) online vs SMS and (2) named vs anonymous.
+// ═══════════════════════════════════════════════════════════════════════════
+
+class _SubmissionOptionsCard extends StatelessWidget {
+  final bool isOffline;
+  final bool isAnonymous;
+  final Color primaryColor;
+  final ValueChanged<bool> onOfflineChanged;
+  final ValueChanged<bool> onAnonymousChanged;
+
+  const _SubmissionOptionsCard({
+    required this.isOffline,
+    required this.isAnonymous,
+    required this.primaryColor,
+    required this.onOfflineChanged,
+    required this.onAnonymousChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ── How to send ────────────────────────────────────────────────
+          _sectionLabel('How would you like to send this?'),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: _ModeOption(
+                  icon: Icons.wifi_rounded,
+                  label: 'Online',
+                  subtitle: 'Wi-Fi or mobile data',
+                  selected: !isOffline,
+                  selectedColor: primaryColor,
+                  onTap: () => onOfflineChanged(false),
+                  semanticHint: 'Send report online via internet',
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _ModeOption(
+                  icon: Icons.sms_outlined,
+                  label: 'Send via SMS',
+                  subtitle: 'No internet needed',
+                  selected: isOffline,
+                  selectedColor: const Color(0xFF5C6BC0),
+                  onTap: () => onOfflineChanged(true),
+                  semanticHint: 'Send report via SMS text message',
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+
+          // ── Identity ──────────────────────────────────────────────────
+          _sectionLabel('Your identity'),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: _ModeOption(
+                  icon: Icons.person_outlined,
+                  label: 'With my name',
+                  subtitle: 'LGU can follow up',
+                  selected: !isAnonymous,
+                  selectedColor: primaryColor,
+                  onTap: () => onAnonymousChanged(false),
+                  semanticHint: 'Submit with your name visible to LGU',
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _ModeOption(
+                  icon: Icons.visibility_off_outlined,
+                  label: 'Anonymous',
+                  subtitle: 'Identity is hidden',
+                  selected: isAnonymous,
+                  selectedColor: Colors.grey.shade700,
+                  onTap: () => onAnonymousChanged(true),
+                  semanticHint: 'Submit anonymously, identity hidden from LGU',
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _sectionLabel(String text) => Text(
+        text,
+        style: const TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+          color: Color(0xFF555555),
+          letterSpacing: 0.2,
+        ),
+      );
+}
+
+class _ModeOption extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String subtitle;
+  final bool selected;
+  final Color selectedColor;
+  final VoidCallback onTap;
+  final String semanticHint;
+
+  const _ModeOption({
+    required this.icon,
+    required this.label,
+    required this.subtitle,
+    required this.selected,
+    required this.selectedColor,
+    required this.onTap,
+    required this.semanticHint,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      selected: selected,
+      hint: semanticHint,
+      child: GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          curve: Curves.easeOut,
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+          decoration: BoxDecoration(
+            color: selected
+                ? selectedColor.withValues(alpha: 0.1)
+                : Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: selected ? selectedColor : Colors.grey.shade300,
+              width: selected ? 2 : 1,
+            ),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(
+                icon,
+                size: 20,
+                color: selected ? selectedColor : Colors.grey.shade500,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      label,
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: selected ? selectedColor : const Color(0xFF333333),
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: selected
+                            ? selectedColor.withValues(alpha: 0.75)
+                            : Colors.grey.shade500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (selected)
+                Icon(
+                  Icons.check_circle_rounded,
+                  size: 15,
+                  color: selectedColor,
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// BARANGAY DROPDOWN
+// Shows barangays for the user's currently selected municipality.
+// Falls back to a text field if no data exists for that municipality.
+// ═══════════════════════════════════════════════════════════════════════════
+
+class _BarangayDropdown extends StatelessWidget {
+  final String municipality;
+  final String? selectedBarangay;
+  final Color primaryColor;
+  final ValueChanged<String?> onChanged;
+
+  const _BarangayDropdown({
+    required this.municipality,
+    required this.selectedBarangay,
+    required this.primaryColor,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final barangays = AppConstants.municipalityBarangays[municipality] ?? [];
+
+    if (barangays.isEmpty) {
+      // Fallback: free-text field for unknown municipalities
+      return TextFormField(
+        initialValue: selectedBarangay,
+        onChanged: (val) => onChanged(val.trim().isEmpty ? null : val.trim()),
+        decoration: InputDecoration(
+          labelText: 'Barangay (optional)',
+          hintText: 'Enter your barangay name',
+          prefixIcon: Icon(Icons.location_city_outlined, color: primaryColor),
+          focusedBorder: OutlineInputBorder(
+            borderSide: BorderSide(color: primaryColor, width: 2),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderSide: BorderSide(color: primaryColor.withValues(alpha: 0.4)),
+          ),
+          labelStyle: TextStyle(color: primaryColor),
+        ),
+      );
+    }
+
+    // Ensure the current selection is still valid for this municipality
+    final validSelection = barangays.contains(selectedBarangay) ? selectedBarangay : null;
+
+    return DropdownButtonFormField<String>(
+      value: validSelection,
+      isExpanded: true,
+      dropdownColor: Colors.white,
+      hint: const Text('Select Barangay (optional)'),
+      decoration: InputDecoration(
+        labelText: 'Barangay (optional)',
+        prefixIcon: Icon(Icons.location_city_outlined,
+            color: primaryColor, semanticLabel: 'Barangay'),
+        focusedBorder: OutlineInputBorder(
+          borderSide: BorderSide(color: primaryColor, width: 2),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderSide: BorderSide(color: primaryColor.withValues(alpha: 0.4)),
+        ),
+        labelStyle: TextStyle(color: primaryColor),
+      ),
+      items: [
+        // "None" option to clear the selection
+        const DropdownMenuItem<String>(
+          value: null,
+          child: Text('— None —',
+              style: TextStyle(color: Colors.grey, fontStyle: FontStyle.italic)),
+        ),
+        ...barangays.map((b) => DropdownMenuItem<String>(
+              value: b,
+              child: Text(b),
+            )),
+      ],
+      onChanged: onChanged,
+    );
   }
 }
 

@@ -444,6 +444,14 @@ class NotificationsScreen extends StatelessWidget {
                 if (snap.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
                 }
+                if (snap.hasError) {
+                  return Center(
+                    child: Text(
+                      'Could not load notifications.',
+                      style: TextStyle(color: Colors.grey.shade500),
+                    ),
+                  );
+                }
                 final docs = snap.data?.docs ?? [];
                 if (docs.isEmpty) {
                   return Center(
@@ -485,12 +493,14 @@ class NotificationsScreen extends StatelessWidget {
                     final data = docs[i].data() as Map<String, dynamic>;
                     final isRead = data['read'] == true;
                     final statusColors = {
-                      'solved': const Color(0xFF2E7D32),
-                      'ongoing': const Color(0xFFE65100),
+                      'solved':   const Color(0xFF2E7D32),
+                      'success':  const Color(0xFF2E7D32),
+                      'ongoing':  const Color(0xFFE65100),
                       'reported': const Color(0xFF1565C0),
+                      'info':     const Color(0xFF1565C0),
                     };
-                    final statusColor =
-                        statusColors[data['status']] ?? lguColor;
+                    final notifStatus = data['status'] as String? ?? 'info';
+                    final statusColor = statusColors[notifStatus] ?? lguColor;
                     return Container(
                       decoration: BoxDecoration(
                         color: isRead
@@ -509,18 +519,15 @@ class NotificationsScreen extends StatelessWidget {
                         leading: CircleAvatar(
                           backgroundColor: statusColor.withValues(alpha: 0.15),
                           child: Icon(
-                            data['status'] == 'solved'
+                            (notifStatus == 'solved' || notifStatus == 'success')
                                 ? Icons.check_circle
-                                : data['status'] == 'ongoing'
+                                : notifStatus == 'ongoing'
                                     ? Icons.construction
-                                    : Icons.flag,
+                                    : notifStatus == 'info'
+                                        ? Icons.send
+                                        : Icons.flag,
                             color: statusColor,
                             size: 20,
-                            semanticLabel: data['status'] == 'solved'
-                                ? 'Solved'
-                                : data['status'] == 'ongoing'
-                                    ? 'Ongoing'
-                                    : 'Reported',
                           ),
                         ),
                         title: Text(
