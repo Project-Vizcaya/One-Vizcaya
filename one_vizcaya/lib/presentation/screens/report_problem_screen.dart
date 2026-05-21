@@ -66,6 +66,7 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
   Future<void> _getLocation() async {
     setState(() => _isGettingLocation = true);
     final position = await _geolocatorService.getCurrentLocation();
+    if (!mounted) return;
     if (position != null) {
       HapticFeedback.lightImpact();
       setState(() {
@@ -126,7 +127,7 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
       ToastUtils.showError('Please select a problem category.');
       return;
     }
-    if (!_formKey.currentState!.validate()) return;
+    if (!(_formKey.currentState?.validate() ?? false)) return;
     if (_isSubmitting) return;
 
     // GPS is required for online submissions
@@ -137,19 +138,22 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
       return;
     }
 
+    // Set submitting flag before first await to prevent double-tap race
+    setState(() => _isSubmitting = true);
+
     final prefs = await SharedPreferences.getInstance();
     final lastSubmitTime = prefs.getInt('last_report_time') ?? 0;
     final currentTime = DateTime.now().millisecondsSinceEpoch;
 
     if (currentTime - lastSubmitTime < 5 * 60 * 1000) {
+      if (mounted) setState(() => _isSubmitting = false);
       ToastUtils.showError(
         'Please wait 5 minutes between submitting reports to prevent spam.',
       );
       return;
     }
 
-    _formKey.currentState!.save();
-    setState(() => _isSubmitting = true);
+    _formKey.currentState?.save();
 
     final municipalityReportingTo = oneVizcayaState.selectedMunicipality.value;
 
@@ -604,7 +608,7 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
                             '${_photoTimestamp!.day}/${_photoTimestamp!.month}/${_photoTimestamp!.year} '
                             '${_photoTimestamp!.hour.toString().padLeft(2, '0')}:'
                             '${_photoTimestamp!.minute.toString().padLeft(2, '0')}'
-                            '${_photoLatitude != null ? '\nGPS: ${_photoLatitude!.toStringAsFixed(5)}, ${_photoLongitude!.toStringAsFixed(5)}' : ''}',
+                            '${(_photoLatitude != null && _photoLongitude != null) ? '\nGPS: ${_photoLatitude!.toStringAsFixed(5)}, ${_photoLongitude!.toStringAsFixed(5)}' : ''}',
                             style: TextStyle(
                               fontSize: 11,
                               color: Colors.green.shade700,
@@ -783,12 +787,14 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
         if (source == ImageSource.camera) {
           // Try to attach current GPS to the evidence record
           final pos = await _geolocatorService.getCurrentLocation();
+          if (!mounted) return;
           if (pos != null) {
             lat = pos.latitude;
             lng = pos.longitude;
           }
         }
 
+        if (!mounted) return;
         setState(() {
           _selectedImage = File(pickedFile.path);
           if (source == ImageSource.camera) {

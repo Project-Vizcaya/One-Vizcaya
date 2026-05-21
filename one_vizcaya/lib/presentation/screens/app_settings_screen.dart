@@ -32,6 +32,7 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
 
   Future<void> _loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
+    if (!mounted) return;
     setState(() {
       _notificationsEnabled = prefs.getBool('notifications_enabled') ?? true;
       _locationEnabled = prefs.getBool('location_enabled') ?? true;
@@ -209,6 +210,7 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
                     onChanged: (val) {
                       setState(() => _darkModeEnabled = val);
                       oneVizcayaState.setDarkMode(val);
+                      _saveSetting('dark_mode', val);
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text(
@@ -262,6 +264,7 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
                     if (newValue != null) {
                       oneVizcayaState.setLanguage(newValue);
                       setState(() => _selectedLanguage = newValue);
+                      _saveSetting('language', newValue);
                     }
                   },
                   lguColor: _lguColor,

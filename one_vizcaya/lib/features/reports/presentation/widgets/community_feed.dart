@@ -62,7 +62,9 @@ class CommunityFeed extends StatelessWidget {
           itemCount: docs.length,
           separatorBuilder: (_, __) => const Divider(height: 1),
           itemBuilder: (context, index) {
-            final data = docs[index].data() as Map<String, dynamic>;
+            final rawData = docs[index].data();
+            if (rawData == null) return const SizedBox.shrink();
+            final data = rawData as Map<String, dynamic>;
             final reportedAt =
                 (data['reportedAt'] as Timestamp?)?.toDate();
             final category = data['category'] as String? ?? 'Report';

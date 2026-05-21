@@ -66,7 +66,20 @@ class ProblemReport {
   });
 
   factory ProblemReport.fromFirestore(DocumentSnapshot doc) {
-    final data = doc.data() as Map<String, dynamic>;
+    final rawData = doc.data();
+    if (rawData == null) {
+      return ProblemReport(
+        id: doc.id,
+        category: ReportCategory.infrastructureAndRoads,
+        description: '',
+        location: '',
+        municipality: '',
+        status: ReportStatus.reported,
+        priority: ReportPriority.low,
+        reportedAt: DateTime.now(),
+      );
+    }
+    final data = rawData as Map<String, dynamic>;
 
     String? extractedUserId;
     final pathSegments = doc.reference.path.split('/');
@@ -94,7 +107,7 @@ class ProblemReport {
       description: descriptionStr,
       location: data['location'] ?? '',
       municipality: municipalityStr.isEmpty ? 'Unknown' : municipalityStr,
-      status: ReportStatusExtension.fromString(data['status']),
+      status: ReportStatusExtension.fromString(data['status'] as String? ?? 'reported'),
       priority: ReportPriority.fromString(data['priority']),
       priorityScore: data['priorityScore'] ?? 0,
       duplicateCount: data['duplicateCount'] ?? 0,
@@ -103,7 +116,7 @@ class ProblemReport {
       longitude: (data['longitude'] as num?)?.toDouble(),
       userId: data['userId'] as String? ?? extractedUserId,
       userPhone: data['userPhone'] as String?,
-      imageUrl: data['imageUrl'] as String?,
+      imageUrl: (data['imageUrl'] as String?)?.isEmpty == true ? null : data['imageUrl'] as String?,
       photoTimestamp: (data['photoTimestamp'] as Timestamp?)?.toDate(),
       photoLatitude: (data['photoLatitude'] as num?)?.toDouble(),
       photoLongitude: (data['photoLongitude'] as num?)?.toDouble(),
@@ -111,7 +124,7 @@ class ProblemReport {
       escalatedAt: (data['escalatedAt'] as Timestamp?)?.toDate(),
       isAnonymous: data['isAnonymous'] as bool? ?? false,
       resolvedAt: (data['resolvedAt'] as Timestamp?)?.toDate(),
-      barangay: data['barangay'] as String?,
+      barangay: (data['barangay'] as String?)?.isEmpty == true ? null : data['barangay'] as String?,
     );
   }
 
@@ -130,7 +143,7 @@ class ProblemReport {
       'longitude': longitude,
       'userId': userId,
       'userPhone': userPhone,
-      'imageUrl': imageUrl ?? '',
+      'imageUrl': (imageUrl?.isEmpty ?? true) ? null : imageUrl,
       'photoTimestamp': photoTimestamp != null
           ? Timestamp.fromDate(photoTimestamp!)
           : null,
@@ -144,7 +157,7 @@ class ProblemReport {
       'resolvedAt': resolvedAt != null
           ? Timestamp.fromDate(resolvedAt!)
           : null,
-      'barangay': barangay ?? '',
+      'barangay': (barangay?.isEmpty ?? true) ? null : barangay,
     };
   }
 }

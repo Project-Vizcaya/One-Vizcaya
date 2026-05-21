@@ -16,6 +16,7 @@ import 'presentation/screens/report_problem_screen.dart';
 import 'presentation/screens/report_status_screen.dart';
 import 'presentation/screens/emergency_contacts_screen.dart';
 import 'presentation/screens/other_screens.dart';
+import 'presentation/screens/announcements_screen.dart';
 import 'presentation/screens/admin_dashboard_screen.dart';
 import 'presentation/screens/profile_management_screen.dart';
 import 'presentation/screens/app_settings_screen.dart';

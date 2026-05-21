@@ -405,117 +405,6 @@ class _SupportScreenState extends State<SupportScreen> {
     );
   }
 }
-
-class AnnouncementsScreen extends StatelessWidget {
-  const AnnouncementsScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    final lguColor = oneVizcayaState.activeTheme['appBarColor'] as Color;
-    final municipality = oneVizcayaState.selectedMunicipality.value;
-
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: lguColor,
-        foregroundColor: Colors.white,
-        title: Text(AppStrings.get('announcementsTitle')),
-      ),
-      body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance
-            .collection('announcements')
-            .where('municipality', whereIn: [municipality, 'All'])
-            .orderBy('timestamp', descending: true)
-            .snapshots(),
-        builder: (context, snapshot) {
-          if (snapshot.hasError) {
-            return Center(child: Text(AppStrings.get('failedLoadAnnouncements')));
-          }
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          final docs = snapshot.data?.docs ?? [];
-          if (docs.isEmpty) {
-            return Center(
-              child: Text(
-                AppStrings.get('noAnnouncements'),
-                style: const TextStyle(color: Colors.grey),
-              ),
-            );
-          }
-          return ListView.separated(
-            padding: const EdgeInsets.all(16),
-            itemCount: docs.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 12),
-            itemBuilder: (context, index) {
-              final data = docs[index].data() as Map<String, dynamic>;
-              final title = data['title'] as String? ?? '';
-              final body = data['body'] as String? ?? '';
-              final isUrgent = data['isUrgent'] as bool? ?? false;
-              final postedBy = data['postedBy'] as String? ?? '';
-              final ts = data['timestamp'];
-              String dateStr = '';
-              if (ts is Timestamp) {
-                final dt = ts.toDate().toLocal();
-                dateStr =
-                    '${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')}';
-              }
-
-              return Container(
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: isUrgent ? Colors.red.shade50 : Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  border: isUrgent
-                      ? Border.all(color: Colors.red, width: 1.5)
-                      : Border.all(color: Colors.grey.shade200),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        if (isUrgent) ...[
-                          const Icon(Icons.warning_amber_rounded,
-                              color: Colors.red, size: 16),
-                          const SizedBox(width: 6),
-                        ],
-                        Expanded(
-                          child: Text(
-                            title,
-                            style: const TextStyle(
-                                fontWeight: FontWeight.bold, fontSize: 15),
-                          ),
-                        ),
-                        if (dateStr.isNotEmpty)
-                          Text(dateStr,
-                              style: const TextStyle(
-                                  fontSize: 11, color: Colors.grey)),
-                      ],
-                    ),
-                    const SizedBox(height: 6),
-                    Text(body,
-                        style: const TextStyle(fontSize: 14, height: 1.4)),
-                    if (postedBy.isNotEmpty) ...[
-                      const SizedBox(height: 6),
-                      Text(
-                        '— $postedBy',
-                        style: TextStyle(
-                            fontSize: 11,
-                            color: Colors.grey.shade500,
-                            fontStyle: FontStyle.italic),
-                      ),
-                    ],
-                  ],
-                ),
-              );
-            },
-          );
-        },
-      ),
-    );
-  }
-}
-
 class NotificationsScreen extends StatelessWidget {
   const NotificationsScreen({super.key});
 
@@ -606,19 +495,19 @@ class NotificationsScreen extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: isRead
                             ? Colors.white
-                            : lguColor.withOpacity(0.06),
+                            : lguColor.withValues(alpha: 0.06),
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
                           color: isRead
                               ? Colors.grey.shade200
-                              : lguColor.withOpacity(0.25),
+                              : lguColor.withValues(alpha: 0.25),
                         ),
                       ),
                       child: ListTile(
                         contentPadding: const EdgeInsets.symmetric(
                             horizontal: 16, vertical: 8),
                         leading: CircleAvatar(
-                          backgroundColor: statusColor.withOpacity(0.15),
+                          backgroundColor: statusColor.withValues(alpha: 0.15),
                           child: Icon(
                             data['status'] == 'solved'
                                 ? Icons.check_circle

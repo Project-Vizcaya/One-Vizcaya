@@ -47,16 +47,24 @@ class PriorityService {
     final int crowdBoost = duplicateCount.clamp(0, 3);
     final int finalScore = baseScore + crowdBoost;
 
-    // Map score → priority level
-    final ReportPriority effectivePriority;
+    // Map score → priority level.
+    // Weights: low=1, medium=2, high=3, critical=4.
+    // A report can only be upgraded by crowd boost, never downgraded below its
+    // base category (e.g. high base + 0 crowd = score 3 → must stay high).
+    final ReportPriority basePriority = category.basePriority;
+    ReportPriority effectivePriority;
     if (finalScore >= 6) {
       effectivePriority = ReportPriority.critical;
-    } else if (finalScore >= 4) {
+    } else if (finalScore >= 3) {
       effectivePriority = ReportPriority.high;
     } else if (finalScore >= 2) {
       effectivePriority = ReportPriority.medium;
     } else {
       effectivePriority = ReportPriority.low;
+    }
+    // Ensure crowd boost never downgrades the base priority
+    if (effectivePriority.weight < basePriority.weight) {
+      effectivePriority = basePriority;
     }
 
     return (

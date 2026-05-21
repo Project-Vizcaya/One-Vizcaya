@@ -87,8 +87,9 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
     }
     try {
       final snapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
           .collection('reports')
-          .where('userId', isEqualTo: user.uid)
           .get();
       int total = snapshot.docs.length;
       int resolved = 0;
@@ -281,10 +282,18 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
                         email: emailController.text.trim(),
                         location: locationController.text.trim(),
                       );
-                      await profileService.saveProfile(updated);
-                      if (mounted) {
-                        setState(() => _profile = updated);
-                        Navigator.of(context).pop();
+                      try {
+                        await profileService.saveProfile(updated);
+                        if (mounted) {
+                          setState(() => _profile = updated);
+                          Navigator.of(context).pop();
+                        }
+                      } catch (e) {
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Failed to save profile: $e')),
+                          );
+                        }
                       }
                     },
                     style: ElevatedButton.styleFrom(
@@ -744,13 +753,15 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
                           icon: Icons.logout,
                           label: 'Log Out',
                           textColor: Colors.red.shade400,
-                          onTap: () {
+                          onTap: () async {
                             adminService.clearCache();
-                            FirebaseAuth.instance.signOut();
-                            Navigator.of(context).pushNamedAndRemoveUntil(
-                              '/login',
-                              (route) => false,
-                            );
+                            await FirebaseAuth.instance.signOut();
+                            if (context.mounted) {
+                              Navigator.of(context).pushNamedAndRemoveUntil(
+                                '/login',
+                                (route) => false,
+                              );
+                            }
                           },
                         ),
                         const SizedBox(height: 8),

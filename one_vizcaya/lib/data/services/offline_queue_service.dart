@@ -34,7 +34,10 @@ class OfflineQueueService {
     if (raw == null || raw.isEmpty) return [];
     try {
       final decoded = jsonDecode(raw) as List<dynamic>;
-      return decoded.cast<Map<String, dynamic>>();
+      // whereType performs a safe cast, skipping any malformed items
+      return decoded
+          .whereType<Map<String, dynamic>>()
+          .toList();
     } catch (_) {
       return [];
     }
