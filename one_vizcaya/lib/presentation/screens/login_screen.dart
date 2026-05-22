@@ -153,7 +153,6 @@ class _LoginScreenState extends State<LoginScreen>
       final authenticated = await _localAuth.authenticate(
         localizedReason: 'Verify your identity to sign in',
         options: const AuthenticationOptions(
-          biometricOnly: true,
           stickyAuth: true,
         ),
       );
