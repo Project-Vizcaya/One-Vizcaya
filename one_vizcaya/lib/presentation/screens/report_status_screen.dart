@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../../core/constants/app_constants.dart';
 import '../../core/l10n/app_strings.dart';
 import '../../domain/models/problem_report.dart';
 import '../../domain/enums/report_priority.dart';
@@ -72,7 +73,11 @@ class _ReportStatusScreenState extends State<ReportStatusScreen> {
       ),
       body: SafeArea(
         top: false,
-        child: Column(
+        child: Align(
+          alignment: Alignment.topCenter,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: AppConstants.kContentMaxWidth),
+            child: Column(
         children: [
           // Priority filter chips
           Container(
@@ -208,6 +213,8 @@ class _ReportStatusScreenState extends State<ReportStatusScreen> {
             ),
           ),
         ],
+        ),
+          ),
         ),
       ),
     );

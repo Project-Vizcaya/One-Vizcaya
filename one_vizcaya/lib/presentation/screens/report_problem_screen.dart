@@ -360,7 +360,11 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
         foregroundColor: Colors.white,
         title: Text('Report Problem to $activeMunicipalityName'),
       ),
-      body: SingleChildScrollView(
+      body: Align(
+        alignment: Alignment.topCenter,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: AppConstants.kContentMaxWidth),
+          child: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Form(
           key: _formKey,
@@ -618,6 +622,9 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
           ),
         ),
       ),
+          ),
+        ),
+      ),
     );
   }
 
@@ -634,7 +641,11 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
       useSafeArea: true,
-      builder: (context) => Container(
+      builder: (context) => Align(
+        alignment: Alignment.bottomCenter,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: AppConstants.kContentMaxWidth),
+          child: Container(
           decoration: const BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
@@ -699,6 +710,8 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
             ],
           ),
       ),
+          ),
+        ),
     );
   }
 
@@ -1161,23 +1174,26 @@ class _CategoryTreeSelector extends StatelessWidget {
 
   // ── 2×2 priority tile grid ────────────────────────────────────────────────
   Widget _buildPriorityGrid() {
-    return GridView.count(
-      crossAxisCount: 2,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      crossAxisSpacing: 10,
-      mainAxisSpacing: 10,
-      childAspectRatio: 2.4,
-      children: _priorityOrder.map((p) {
-        final count = _categoriesFor(p).length;
-        return _PriorityTile(
-          priority: p,
-          subtitle: _prioritySubtitles[p]!,
-          categoryCount: count,
-          onTap: () => onPrioritySelected(p),
-        );
-      }).toList(),
-    );
+    return LayoutBuilder(builder: (context, constraints) {
+      final cols = constraints.maxWidth > AppConstants.kTabletBreakpoint ? 4 : 2;
+      return GridView.count(
+        crossAxisCount: cols,
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        crossAxisSpacing: 10,
+        mainAxisSpacing: 10,
+        childAspectRatio: cols == 4 ? 2.2 : 2.4,
+        children: _priorityOrder.map((p) {
+          final count = _categoriesFor(p).length;
+          return _PriorityTile(
+            priority: p,
+            subtitle: _prioritySubtitles[p]!,
+            categoryCount: count,
+            onTap: () => onPrioritySelected(p),
+          );
+        }).toList(),
+      );
+    });
   }
 
   // ── Selected priority header with back button ─────────────────────────────
