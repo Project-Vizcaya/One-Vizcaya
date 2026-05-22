@@ -1263,7 +1263,11 @@ function listenToReports() {
     applyFilter();
     updateHeatmap();
     if (showReportPins) renderReportPins();
-  }, err => console.error('Reports error:', err));
+  }, err => {
+    console.error('Reports query error:', err);
+    const tbody = document.getElementById('reports-body');
+    if (tbody) tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div>⚠️</div>Could not load reports: ${escHtml(err.message)}<br><small style="color:#999">Check Firestore indexes and rules, then reload.</small></div></td></tr>`;
+  });
 }
 
 // ── Stats ────────────────────────────────────────────────────────────────────
@@ -3386,6 +3390,12 @@ function cancelBulkConfirm() {
 // ── Hide loading overlay ──────────────────────────────────────────────────────
 function onMapsReady() {
   document.getElementById('loading-overlay').style.display = 'none';
+  // Auth may have resolved before Maps loaded (cached credentials are fast).
+  // In that case initMap() bailed out early — retry it now that the API is ready.
+  if (userRole !== null && !map) {
+    initMap();
+    renderResponderMarkers();
+  }
 }
 </script>
 
