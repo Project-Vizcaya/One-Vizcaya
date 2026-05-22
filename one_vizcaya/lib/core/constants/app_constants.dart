@@ -7,6 +7,10 @@ class AppConstants {
   static const int buildNumber = 2;
   static const String appVersionDisplay = '$appVersion (Build $buildNumber)';
 
+  /// Content is centered and capped at this width on tablets / wide screens.
+  static const double kTabletBreakpoint = 600.0;
+  static const double kContentMaxWidth  = 700.0;
+
   static const List<String> municipalities = [
     'Alfonso Castañeda',
     'Ambaguio',

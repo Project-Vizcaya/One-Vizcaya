@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:timeago/timeago.dart' as timeago;
+import '../../core/constants/app_constants.dart';
 import '../../core/l10n/app_strings.dart';
 import '../state/municipality_state.dart';
 import '../../core/utils/toast_utils.dart';
@@ -27,7 +28,13 @@ class AnnouncementsScreen extends StatelessWidget {
         ),
         elevation: 0,
       ),
-      body: _AnnouncementsList(municipality: municipality, lguColor: lguColor),
+      body: Align(
+        alignment: Alignment.topCenter,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: AppConstants.kContentMaxWidth),
+          child: _AnnouncementsList(municipality: municipality, lguColor: lguColor),
+        ),
+      ),
     );
   }
 }

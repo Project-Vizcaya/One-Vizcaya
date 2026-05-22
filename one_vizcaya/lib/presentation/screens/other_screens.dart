@@ -109,7 +109,11 @@ class _SupportScreenState extends State<SupportScreen> {
         ),
         elevation: 0,
       ),
-      body: SingleChildScrollView(
+      body: Align(
+        alignment: Alignment.topCenter,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: AppConstants.kContentMaxWidth),
+          child: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -402,6 +406,9 @@ class _SupportScreenState extends State<SupportScreen> {
           ],
         ),
       ),
+          ),
+        ),
+      ),
     );
   }
 }
@@ -430,7 +437,11 @@ class NotificationsScreen extends StatelessWidget {
         foregroundColor: Colors.white,
         title: Text(AppStrings.get('notificationsTitle')),
       ),
-      body: user == null
+      body: Align(
+        alignment: Alignment.topCenter,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: AppConstants.kContentMaxWidth),
+          child: user == null
           ? Center(child: Text(AppStrings.get('loginForNotifications')))
           : StreamBuilder<QuerySnapshot>(
               stream: FirebaseFirestore.instance
@@ -573,6 +584,9 @@ class NotificationsScreen extends StatelessWidget {
                 );
               },
             ),
+          ),
+        ),
+      ),
     );
   }
 }

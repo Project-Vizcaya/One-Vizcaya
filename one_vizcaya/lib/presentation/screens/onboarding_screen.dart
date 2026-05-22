@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../core/constants/app_constants.dart';
 import '../../core/l10n/app_strings.dart';
 import 'home_screen.dart';
 
@@ -68,7 +69,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
-        child: Column(
+        child: Align(
+          alignment: Alignment.topCenter,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: AppConstants.kContentMaxWidth),
+            child: Column(
           children: [
             Align(
               alignment: Alignment.topRight,
@@ -142,6 +147,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               ),
             ),
           ],
+        ),
+          ),
         ),
       ),
     );

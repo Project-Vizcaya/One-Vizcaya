@@ -182,10 +182,14 @@ class _HomeScreenState extends State<HomeScreen> {
     Color secondaryColor,
     String welcomeMsg,
   ) {
-    return SingleChildScrollView(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
+    return Align(
+      alignment: Alignment.topCenter,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: AppConstants.kContentMaxWidth),
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
           // ── Top bar ──
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -407,32 +411,16 @@ class _HomeScreenState extends State<HomeScreen> {
           // ── Service Grid Row 1 ──
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                _ServiceGridItem(
-                  icon: Icons.report_problem_rounded,
-                  label: AppStrings.get('reportProblemLabel'),
-                  iconColor: Colors.white,
-                  bgColor: const Color(0xFF4CAF50),
-                  onTap: () => Navigator.of(context).pushNamed('/report'),
-                ),
-                _ServiceGridItem(
-                  icon: Icons.history_rounded,
-                  label: AppStrings.get('myReportsLabel'),
-                  iconColor: Colors.white,
-                  bgColor: const Color(0xFFFF9800),
-                  onTap: () => Navigator.of(context).pushNamed('/status'),
-                ),
-                _ServiceGridItem(
-                  icon: Icons.local_hospital_rounded,
-                  label: AppStrings.get('emergencyContactsLabel'),
-                  iconColor: Colors.white,
-                  bgColor: const Color(0xFFE53935),
-                  onTap: () => Navigator.of(context).pushNamed('/contacts'),
-                ),
-              ],
-            ),
+            child: LayoutBuilder(builder: (context, constraints) {
+              final iconSize = constraints.maxWidth > AppConstants.kTabletBreakpoint ? 62.0 : 52.0;
+              return Row(
+                children: [
+                  Expanded(child: Center(child: _ServiceGridItem(iconContainerSize: iconSize, icon: Icons.report_problem_rounded, label: AppStrings.get('reportProblemLabel'), iconColor: Colors.white, bgColor: const Color(0xFF4CAF50), onTap: () => Navigator.of(context).pushNamed('/report')))),
+                  Expanded(child: Center(child: _ServiceGridItem(iconContainerSize: iconSize, icon: Icons.history_rounded, label: AppStrings.get('myReportsLabel'), iconColor: Colors.white, bgColor: const Color(0xFFFF9800), onTap: () => Navigator.of(context).pushNamed('/status')))),
+                  Expanded(child: Center(child: _ServiceGridItem(iconContainerSize: iconSize, icon: Icons.local_hospital_rounded, label: AppStrings.get('emergencyContactsLabel'), iconColor: Colors.white, bgColor: const Color(0xFFE53935), onTap: () => Navigator.of(context).pushNamed('/contacts')))),
+                ],
+              );
+            }),
           ),
           const SizedBox(height: 24),
 
@@ -453,33 +441,16 @@ class _HomeScreenState extends State<HomeScreen> {
           // ── Service Grid Row 2 ──
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                _ServiceGridItem(
-                  icon: Icons.campaign_rounded,
-                  label: AppStrings.get('announcementsLabel'),
-                  iconColor: Colors.white,
-                  bgColor: const Color(0xFF1565C0),
-                  onTap: () =>
-                      Navigator.of(context).pushNamed('/announcements'),
-                ),
-                _ServiceGridItem(
-                  icon: Icons.help_outline_rounded,
-                  label: AppStrings.get('supportFaqsLabel'),
-                  iconColor: Colors.white,
-                  bgColor: const Color(0xFF00897B),
-                  onTap: () => Navigator.of(context).pushNamed('/support'),
-                ),
-                _ServiceGridItem(
-                  icon: Icons.settings_rounded,
-                  label: AppStrings.get('appSettingsLabel'),
-                  iconColor: Colors.white,
-                  bgColor: const Color(0xFF546E7A),
-                  onTap: () => Navigator.of(context).pushNamed('/settings'),
-                ),
-              ],
-            ),
+            child: LayoutBuilder(builder: (context, constraints) {
+              final iconSize = constraints.maxWidth > AppConstants.kTabletBreakpoint ? 62.0 : 52.0;
+              return Row(
+                children: [
+                  Expanded(child: Center(child: _ServiceGridItem(iconContainerSize: iconSize, icon: Icons.campaign_rounded, label: AppStrings.get('announcementsLabel'), iconColor: Colors.white, bgColor: const Color(0xFF1565C0), onTap: () => Navigator.of(context).pushNamed('/announcements')))),
+                  Expanded(child: Center(child: _ServiceGridItem(iconContainerSize: iconSize, icon: Icons.help_outline_rounded, label: AppStrings.get('supportFaqsLabel'), iconColor: Colors.white, bgColor: const Color(0xFF00897B), onTap: () => Navigator.of(context).pushNamed('/support')))),
+                  Expanded(child: Center(child: _ServiceGridItem(iconContainerSize: iconSize, icon: Icons.settings_rounded, label: AppStrings.get('appSettingsLabel'), iconColor: Colors.white, bgColor: const Color(0xFF546E7A), onTap: () => Navigator.of(context).pushNamed('/settings')))),
+                ],
+              );
+            }),
           ),
 
           const SizedBox(height: 28),
@@ -536,7 +507,7 @@ class _HomeScreenState extends State<HomeScreen> {
           const SizedBox(height: 32),
         ],
       ),
-    );
+    )));
   }
 
   Widget _buildReportsPage(
@@ -611,7 +582,11 @@ class _HomeScreenState extends State<HomeScreen> {
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
       useSafeArea: true,
-      builder: (context) => Container(
+      builder: (context) => Align(
+        alignment: Alignment.bottomCenter,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: AppConstants.kContentMaxWidth),
+          child: Container(
         decoration: BoxDecoration(
           color: Theme.of(context).cardColor,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
@@ -708,6 +683,8 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
       ),
+        ),
+      ),
     );
   }
 
@@ -726,7 +703,11 @@ class _HomeScreenState extends State<HomeScreen> {
       child: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-          child: Container(
+          child: Align(
+            alignment: Alignment.center,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 360),
+              child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
             decoration: BoxDecoration(
               color: const Color(0xFF333333),
@@ -754,6 +735,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   selectedColor: appBarColor,
                 ),
               ],
+            ),
+          ),
             ),
           ),
         ),
@@ -936,6 +919,7 @@ class _ServiceGridItem extends StatelessWidget {
   final Color iconColor;
   final Color bgColor;
   final VoidCallback onTap;
+  final double iconContainerSize;
 
   const _ServiceGridItem({
     required this.icon,
@@ -943,19 +927,21 @@ class _ServiceGridItem extends StatelessWidget {
     required this.iconColor,
     required this.bgColor,
     required this.onTap,
+    this.iconContainerSize = 52.0,
   });
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
-      child: SizedBox(
-        width: 72,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 92),
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              width: 52,
-              height: 52,
+              width: iconContainerSize,
+              height: iconContainerSize,
               decoration: BoxDecoration(
                 color: bgColor,
                 borderRadius: BorderRadius.circular(16),
@@ -967,7 +953,7 @@ class _ServiceGridItem extends StatelessWidget {
                   ),
                 ],
               ),
-              child: ExcludeSemantics(child: Icon(icon, color: iconColor, size: 24)),
+              child: ExcludeSemantics(child: Icon(icon, color: iconColor, size: iconContainerSize * 0.46)),
             ),
             const SizedBox(height: 8),
             Text(
