@@ -1076,6 +1076,7 @@ function initMap() {
 function loadMunicipalityBoundaries() {
   const isProvincial = userRole === 'provincial_admin' || userRole === 'admin' || userRole === 'super_admin';
   const isMunicipal  = userRole === 'municipal_admin';
+  console.log('[NV Map] loadMunicipalityBoundaries — role:', userRole, '| isProvincial:', isProvincial, '| munis:', NV_MUNICIPALITIES?.length, '| map:', !!map);
 
   NV_MUNICIPALITIES.forEach(muni => {
     const isActive = muni.name === userMunicipality;
