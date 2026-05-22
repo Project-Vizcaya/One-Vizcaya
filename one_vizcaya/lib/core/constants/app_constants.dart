@@ -3,13 +3,13 @@ import 'package:flutter/material.dart';
 
 class AppConstants {
   /// Update this whenever you bump the version in pubspec.yaml.
-  static const String appVersion = '1.1.1';
-  static const int buildNumber = 2;
+  static const String appVersion = '1.1.3';
+  static const int buildNumber = 6;
   static const String appVersionDisplay = '$appVersion (Build $buildNumber)';
 
   /// Content is centered and capped at this width on tablets / wide screens.
   static const double kTabletBreakpoint = 600.0;
-  static const double kContentMaxWidth  = 700.0;
+  static const double kContentMaxWidth = 700.0;
 
   static const List<String> municipalities = [
     'Alfonso Castañeda',
@@ -350,7 +350,9 @@ class AppConstants {
   static String hotlineFor(String municipality) {
     final hotline = municipalityHotlines[municipality];
     if (hotline == null) {
-      debugPrint('AppConstants.hotlineFor: no hotline for "$municipality", using default');
+      debugPrint(
+        'AppConstants.hotlineFor: no hotline for "$municipality", using default',
+      );
     }
     return hotline ?? defaultHotline;
   }

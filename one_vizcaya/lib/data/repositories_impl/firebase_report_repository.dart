@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import '../../domain/models/problem_report.dart';
@@ -16,22 +17,21 @@ class FirebaseReportRepository implements ReportRepository {
           .collection('reports')
           .add(report.toMap());
 
-      // Write confirmation notification to the citizen's notification feed
       await _firestore
           .collection('users')
           .doc(userId)
           .collection('notifications')
           .add({
-        'type': 'report_submitted',
-        'title': 'Report Submitted',
-        'body':
-            'Your report about "${report.category.displayName}" has been received. '
-            'We will review it shortly.',
-        'status': 'info',
-        'reportId': docRef.id,
-        'timestamp': FieldValue.serverTimestamp(),
-        'read': false,
-      });
+            'type': 'report_submitted',
+            'title': 'Report Submitted',
+            'body':
+                'Your report about "${report.category.displayName}" has been received. '
+                'We will review it shortly.',
+            'status': 'info',
+            'reportId': docRef.id,
+            'timestamp': FieldValue.serverTimestamp(),
+            'read': false,
+          });
     } catch (e) {
       ToastUtils.showError('Error submitting report. Please try again.');
       rethrow;
@@ -72,13 +72,19 @@ class FirebaseReportRepository implements ReportRepository {
         .transform(_safeReportTransformer('getAllProvincialReports'));
   }
 
-  StreamTransformer<QuerySnapshot<Map<String, dynamic>>, List<ProblemReport>> _safeReportTransformer(String tag) {
-    return StreamTransformer.fromHandlers(
-      handleData: (QuerySnapshot<Map<String, dynamic>> snapshot, EventSink<List<ProblemReport>> sink) {
+  StreamTransformer<QuerySnapshot<Map<String, dynamic>>, List<ProblemReport>>
+  _safeReportTransformer(String tag) {
+    return StreamTransformer<
+      QuerySnapshot<Map<String, dynamic>>,
+      List<ProblemReport>
+    >.fromHandlers(
+      handleData: (snapshot, sink) {
         try {
-          sink.add(snapshot.docs
-              .map((doc) => ProblemReport.fromFirestore(doc))
-              .toList());
+          sink.add(
+            snapshot.docs
+                .map((doc) => ProblemReport.fromFirestore(doc))
+                .toList(),
+          );
         } catch (e) {
           debugPrint('$tag parse error: $e');
           sink.add([]);
@@ -102,7 +108,6 @@ class FirebaseReportRepository implements ReportRepository {
       if (newStatus == 'solved') {
         update['resolvedAt'] = FieldValue.serverTimestamp();
       } else {
-        // Clear resolvedAt if report is reopened (FieldValue.delete removes the field entirely)
         update['resolvedAt'] = FieldValue.delete();
       }
       await _firestore
@@ -112,7 +117,6 @@ class FirebaseReportRepository implements ReportRepository {
           .doc(reportId)
           .update(update);
 
-      // Notify the citizen of the status change
       final notif = _statusNotification(newStatus, reportId);
       if (notif != null) {
         try {
