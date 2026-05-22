@@ -1027,11 +1027,13 @@ auth.onAuthStateChanged(async user => {
 
   document.getElementById('stat-muni').textContent = isProvincialView ? 'Province-wide' : userMunicipality;
 
-  initMap();
+  // Init view switcher first so it always shows regardless of map errors
+  initViewAsSwitcher();
+
+  try { initMap(); } catch(e) { console.error('initMap error:', e); }
   listenToReports();
   populateMuniFilter();
   loadFirestoreResponders();
-  initViewAsSwitcher();
   loadUsers();
   initAnnouncements();
 });
@@ -1056,16 +1058,20 @@ function initMap() {
     mapTypeControlOptions: { position: google.maps.ControlPosition.TOP_RIGHT }
   });
 
-  heatmapLayer = new google.maps.visualization.HeatmapLayer({
-    map: map,
-    radius: 40,
-    gradient: [
-      'rgba(0,0,0,0)','rgba(0,200,83,1)','rgba(100,221,23,1)',
-      'rgba(255,214,0,1)','rgba(255,109,0,1)','rgba(213,0,0,1)'
-    ]
-  });
+  try {
+    heatmapLayer = new google.maps.visualization.HeatmapLayer({
+      map: map,
+      radius: 40,
+      gradient: [
+        'rgba(0,0,0,0)','rgba(0,200,83,1)','rgba(100,221,23,1)',
+        'rgba(255,214,0,1)','rgba(255,109,0,1)','rgba(213,0,0,1)'
+      ]
+    });
+  } catch(e) {
+    console.warn('HeatmapLayer unavailable:', e);
+  }
 
-  loadMunicipalityBoundaries(); // async — polygons appear once GeoJSON is fetched
+  try { loadMunicipalityBoundaries(); } catch(e) { console.error('Polygon draw error:', e); }
   renderResponderMarkers();
 }
 
@@ -1074,7 +1080,6 @@ function initMap() {
 function loadMunicipalityBoundaries() {
   const isProvincial = userRole === 'provincial_admin' || userRole === 'admin' || userRole === 'super_admin';
   const isMunicipal  = userRole === 'municipal_admin';
-
   NV_MUNICIPALITIES.forEach(muni => {
     const isActive = muni.name === userMunicipality;
     const show     = isProvincial || isActive;
@@ -1182,7 +1187,19 @@ function listenToReports() {
 
   if (unsubscribeReports) unsubscribeReports(); // cancel previous
   _initialLoadComplete = false;
+
+  // Show error if Firestore hasn't responded within 15 seconds
+  const _reportsTimeout = setTimeout(() => {
+    if (!_initialLoadComplete) {
+      const tbody = document.getElementById('reports-tbody');
+      if (tbody) tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div>⚠️</div>Reports timed out — check Firestore indexes and internet connection, then reload.</div></td></tr>`;
+      const lbl = document.getElementById('report-count-label');
+      if (lbl) lbl.textContent = 'Connection timeout';
+    }
+  }, 15000);
+
   unsubscribeReports = query.onSnapshot(snapshot => {
+    clearTimeout(_reportsTimeout);
     // Feature 6: detect new reports after initial load
     const changes = snapshot.docChanges();
     const newDocs = _initialLoadComplete
@@ -1218,9 +1235,12 @@ function listenToReports() {
     updateHeatmap();
     if (showReportPins) renderReportPins();
   }, err => {
+    clearTimeout(_reportsTimeout);
     console.error('Reports query error:', err);
-    const tbody = document.getElementById('reports-body');
+    const tbody = document.getElementById('reports-tbody');
     if (tbody) tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div>⚠️</div>Could not load reports: ${escHtml(err.message)}<br><small style="color:#999">Check Firestore indexes and rules, then reload.</small></div></td></tr>`;
+    const lbl = document.getElementById('report-count-label');
+    if (lbl) lbl.textContent = 'Error loading reports';
   });
 }
 
@@ -2585,7 +2605,11 @@ function initAnnouncements() {
       const scheduled = anns.filter(a => a.scheduledFor?.toDate && a.scheduledFor.toDate() > now);
       const live = anns.filter(a => !(a.scheduledFor?.toDate && a.scheduledFor.toDate() > now));
       renderAnnouncements(live, scheduled);
-    }, err => console.error('Announcements error:', err));
+    }, err => {
+      console.error('Announcements error:', err);
+      const el = document.getElementById('ann-list');
+      if (el) el.innerHTML = '<div style="padding:20px;text-align:center;color:#C53030;font-size:13px">⚠️ Could not load announcements. Reload to retry.</div>';
+    });
 }
 
 function renderAnnouncements(anns, scheduled) {
@@ -3347,7 +3371,7 @@ function onMapsReady() {
   // Auth may have resolved before Maps loaded (cached credentials are fast).
   // In that case initMap() bailed out early — retry it now that the API is ready.
   if (userRole !== null && !map) {
-    initMap();
+    try { initMap(); } catch(e) { console.error('initMap retry error:', e); }
     renderResponderMarkers();
   }
 }

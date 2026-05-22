@@ -33,12 +33,11 @@ void main() async {
       options: DefaultFirebaseOptions.currentPlatform,
     );
 
-    // App Check — Dynamic switching for Web, Debug, and Release
+    // App Check — use debug provider until app is published on Google Play Store.
+    // playIntegrity requires Play Store distribution and will crash side-loaded APKs.
     if (!kIsWeb) {
       await FirebaseAppCheck.instance.activate(
-        androidProvider: kReleaseMode
-            ? AndroidProvider.playIntegrity
-            : AndroidProvider.debug,
+        androidProvider: AndroidProvider.debug,
         appleProvider: kReleaseMode
             ? AppleProvider.deviceCheck
             : AppleProvider.debug,
@@ -58,7 +57,11 @@ void main() async {
     debugPrint("Firebase Initialization Error: $e");
   }
 
-  await oneVizcayaState.loadPersistedState();
+  try {
+    await oneVizcayaState.loadPersistedState();
+  } catch (e) {
+    debugPrint('Failed to load persisted state: $e');
+  }
 
   // runApp is now outside the await trap. It is guaranteed to fire and draw the UI.
   runApp(const OneVizcayaApp());
