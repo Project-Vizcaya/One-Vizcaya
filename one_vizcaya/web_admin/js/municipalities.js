@@ -7,6 +7,10 @@
 //
 // Province PSGC: 205000000 (Region II — Cagayan Valley)
 
+// Province center and default zoom for Google Maps
+const NV_CENTER = { lat: 16.33, lng: 121.17 };
+const NV_ZOOM   = 10;
+
 const NV_MUNICIPALITIES = [
   // ── AMBAGUIO ─────────────────────────────────────────────────────────────
   {
