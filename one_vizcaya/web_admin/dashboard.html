@@ -1070,44 +1070,10 @@ function initMap() {
 }
 
 // ── Municipality boundaries ───────────────────────────────────────────────────
-// Fetches the province-level GeoJSON from the same faeldon source used for
-// barangay overlays so the municipality shapes align exactly with barangay shapes.
-let _muniGeoJSON = null;
-async function fetchMuniGeoJSON() {
-  if (_muniGeoJSON) return _muniGeoJSON;
-  const url = 'https://raw.githubusercontent.com/faeldon/philippines-json-maps/master/2023/geojson/municities/lowres/municities-provdist-205000000.0.001.json';
-  try {
-    const res = await fetch(url);
-    if (!res.ok) return null;
-    _muniGeoJSON = await res.json();
-    return _muniGeoJSON;
-  } catch (e) {
-    console.warn('Municipality GeoJSON fetch failed, falling back to built-in polygons:', e);
-    return null;
-  }
-}
-
-function _geoJSONPathsAndCenter(feature) {
-  const geom = feature.geometry;
-  if (!geom) return { paths: null, center: null };
-  const rings = geom.type === 'Polygon' ? [geom.coordinates] : geom.coordinates;
-  const paths = [];
-  let latSum = 0, lngSum = 0, pts = 0;
-  rings.forEach(ring => {
-    ring.forEach(coords => {
-      paths.push(coords.map(([lng, lat]) => ({ lat, lng })));
-      coords.forEach(([lng, lat]) => { latSum += lat; lngSum += lng; pts++; });
-    });
-  });
-  const center = pts > 0 ? { lat: latSum / pts, lng: lngSum / pts } : null;
-  return { paths, center };
-}
-
-async function loadMunicipalityBoundaries() {
+// Uses hardcoded polygons from municipalities.js — no external fetch needed.
+function loadMunicipalityBoundaries() {
   const isProvincial = userRole === 'provincial_admin' || userRole === 'admin' || userRole === 'super_admin';
   const isMunicipal  = userRole === 'municipal_admin';
-
-  const geojson = await fetchMuniGeoJSON();
 
   NV_MUNICIPALITIES.forEach(muni => {
     const isActive = muni.name === userMunicipality;
@@ -1131,25 +1097,13 @@ async function loadMunicipalityBoundaries() {
       fillOpacity   = 0.65;
     }
 
-    // Prefer GeoJSON shape; fall back to hardcoded polygon
-    let paths, center;
-    const feat = geojson?.features?.find(f => {
-      const n = (f.properties?.adm3_en || f.properties?.name || '').toLowerCase().trim();
-      return n === muni.name.toLowerCase().trim();
-    });
-    if (feat) {
-      ({ paths, center } = _geoJSONPathsAndCenter(feat));
-    }
-    if (!paths) {
-      const fallback = muni.polygon.map(([lng, lat]) => ({ lat, lng }));
-      paths  = [fallback];
-      const b = new google.maps.LatLngBounds();
-      fallback.forEach(p => b.extend(p));
-      center = b.getCenter().toJSON();
-    }
+    const pathPoints = muni.polygon.map(([lng, lat]) => ({ lat, lng }));
+    const bounds = new google.maps.LatLngBounds();
+    pathPoints.forEach(p => bounds.extend(p));
+    const center = bounds.getCenter().toJSON();
 
     const polygon = new google.maps.Polygon({
-      paths, map,
+      paths: [pathPoints], map,
       strokeColor, strokeOpacity, strokeWeight,
       fillColor, fillOpacity,
       zIndex: isActive ? 2 : 1
