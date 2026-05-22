@@ -72,9 +72,9 @@ class FirebaseReportRepository implements ReportRepository {
         .transform(_safeReportTransformer('getAllProvincialReports'));
   }
 
-  StreamTransformer<QuerySnapshot, List<ProblemReport>> _safeReportTransformer(String tag) {
+  StreamTransformer<QuerySnapshot<Map<String, dynamic>>, List<ProblemReport>> _safeReportTransformer(String tag) {
     return StreamTransformer.fromHandlers(
-      handleData: (snapshot, sink) {
+      handleData: (QuerySnapshot<Map<String, dynamic>> snapshot, EventSink<List<ProblemReport>> sink) {
         try {
           sink.add(snapshot.docs
               .map((doc) => ProblemReport.fromFirestore(doc))

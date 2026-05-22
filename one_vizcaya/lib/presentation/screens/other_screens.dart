@@ -408,7 +408,6 @@ class _SupportScreenState extends State<SupportScreen> {
       ),
           ),
         ),
-      ),
     );
   }
 }
@@ -586,7 +585,6 @@ class NotificationsScreen extends StatelessWidget {
             ),
           ),
         ),
-      ),
     );
   }
 }
