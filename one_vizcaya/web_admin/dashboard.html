@@ -527,15 +527,15 @@
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px">
         <div>
           <div style="font-size:12px;font-weight:700;color:#718096;margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px">Reports by Week</div>
-          <canvas id="chart-weekly" height="180"></canvas>
+          <div style="position:relative;height:180px"><canvas id="chart-weekly"></canvas></div>
         </div>
         <div>
           <div style="font-size:12px;font-weight:700;color:#718096;margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px">By Category</div>
-          <canvas id="chart-category" height="180"></canvas>
+          <div style="position:relative;height:180px"><canvas id="chart-category"></canvas></div>
         </div>
         <div>
           <div style="font-size:12px;font-weight:700;color:#718096;margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px">Status Breakdown</div>
-          <canvas id="chart-status" height="180"></canvas>
+          <div style="position:relative;height:180px"><canvas id="chart-status"></canvas></div>
         </div>
       </div>
       <div style="margin-top:20px;display:grid;grid-template-columns:repeat(4,1fr);gap:12px" id="analytics-kpis"></div>
@@ -549,7 +549,7 @@
             <button onclick="setTrendRange(12,this)" class="chip" style="font-size:11px;padding:4px 10px">3 Months</button>
           </div>
         </div>
-        <canvas id="chart-trends" height="120"></canvas>
+        <div style="position:relative;height:120px"><canvas id="chart-trends"></canvas></div>
       </div>
       <!-- Feature 9: Citizen satisfaction -->
       <div id="satisfaction-section" style="margin-top:24px;display:none">
