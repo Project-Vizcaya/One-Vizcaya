@@ -162,10 +162,6 @@ class _LoginScreenState extends State<LoginScreen>
     try {
       final authenticated = await _localAuth.authenticate(
         localizedReason: 'Verify your identity to sign in',
-        options: const AuthenticationOptions(
-          biometricOnly: true,
-          stickyAuth: true,
-        ),
       );
 
       if (!mounted) return;
