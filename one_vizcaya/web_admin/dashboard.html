@@ -1027,11 +1027,13 @@ auth.onAuthStateChanged(async user => {
 
   document.getElementById('stat-muni').textContent = isProvincialView ? 'Province-wide' : userMunicipality;
 
-  initMap();
+  // Init view switcher first so it always shows regardless of map errors
+  initViewAsSwitcher();
+
+  try { initMap(); } catch(e) { console.error('initMap error:', e); }
   listenToReports();
   populateMuniFilter();
   loadFirestoreResponders();
-  initViewAsSwitcher();
   loadUsers();
   initAnnouncements();
 });
@@ -3347,7 +3349,7 @@ function onMapsReady() {
   // Auth may have resolved before Maps loaded (cached credentials are fast).
   // In that case initMap() bailed out early — retry it now that the API is ready.
   if (userRole !== null && !map) {
-    initMap();
+    try { initMap(); } catch(e) { console.error('initMap retry error:', e); }
     renderResponderMarkers();
   }
 }
