@@ -19,12 +19,21 @@ class _HomeScreenState extends State<HomeScreen> {
   int _selectedNavIndex = 0;
   bool _isOffline = false;
   int _queuedReportCount = 0;
+  final _refreshKey = GlobalKey<RefreshIndicatorState>();
 
   @override
   void initState() {
     super.initState();
     _checkConnectivity();
     _refreshQueueCount();
+  }
+
+  Future<void> _onRefresh() async {
+    await Future.wait([
+      _checkConnectivity(),
+      _refreshQueueCount(),
+    ]);
+    if (mounted) setState(() {});
   }
 
   @override
@@ -186,10 +195,15 @@ class _HomeScreenState extends State<HomeScreen> {
       alignment: Alignment.topCenter,
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: AppConstants.kContentMaxWidth),
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
+        child: RefreshIndicator(
+          key: _refreshKey,
+          onRefresh: _onRefresh,
+          color: const Color(0xFF2E7D32),
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
           // ── Top bar ──
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -507,7 +521,7 @@ class _HomeScreenState extends State<HomeScreen> {
           const SizedBox(height: 32),
         ],
       ),
-    )));
+    ))));
   }
 
   Widget _buildReportsPage(
