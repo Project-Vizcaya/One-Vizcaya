@@ -2009,12 +2009,16 @@ async function fetchBarangayGeoJSON(muniName) {
   if (!psgc) return null;
   const url = `https://raw.githubusercontent.com/faeldon/philippines-json-maps/master/2023/geojson/municities/lowres/bgysubmuns-municity-${psgc}.0.001.json`;
   try {
-    const res = await fetch(url);
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000); // 10 s timeout
+    const res = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeout);
     if (!res.ok) return null;
     const data = await res.json();
-    barangayCache[muniName] = data;
+    barangayCache[muniName] = data; // only cache success
     return data;
   } catch (e) {
+    // Do NOT cache null — allow retry on next toggle
     console.warn('Barangay fetch failed:', e);
     return null;
   }
@@ -2054,7 +2058,15 @@ async function renderBarangays() {
 
   // Guard: user may have toggled off while fetch was in flight
   if (!showBarangays) return;
-  if (!geojson || !geojson.features) return;
+  if (!geojson || !geojson.features) {
+    showToast('⚠️ Could not load barangay boundaries for ' + muniFilter + '. Check internet connection and retry.');
+    showBarangays = false;
+    btn.classList.remove('active');
+    btn.setAttribute('aria-pressed', 'false');
+    // Restore municipality polygon visibility
+    if (muniPolygonMap[muniFilter]) muniPolygonMap[muniFilter].setVisible(true);
+    return;
+  }
 
   geojson.features.forEach(feature => {
     const name = feature.properties?.adm4_en || feature.properties?.name || '';

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import '../../domain/models/problem_report.dart';
@@ -73,7 +75,7 @@ class FirebaseReportRepository implements ReportRepository {
   }
 
   StreamTransformer<QuerySnapshot<Map<String, dynamic>>, List<ProblemReport>> _safeReportTransformer(String tag) {
-    return StreamTransformer.fromHandlers(
+    return StreamTransformer<QuerySnapshot<Map<String, dynamic>>, List<ProblemReport>>.fromHandlers(
       handleData: (QuerySnapshot<Map<String, dynamic>> snapshot, EventSink<List<ProblemReport>> sink) {
         try {
           sink.add(snapshot.docs
