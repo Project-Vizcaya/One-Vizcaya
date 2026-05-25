@@ -27,44 +27,44 @@ import 'presentation/state/municipality_state.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Wrap the Firebase configuration in a try-catch block.
-  try {
-    await Firebase.initializeApp(
-      options: DefaultFirebaseOptions.currentPlatform,
-    );
-
-    // App Check — use debug provider until app is published on Google Play Store.
-    // playIntegrity requires Play Store distribution and will crash side-loaded APKs.
-    if (!kIsWeb) {
-      await FirebaseAppCheck.instance.activate(
-        androidProvider: AndroidProvider.debug,
-        appleProvider: kReleaseMode
-            ? AppleProvider.deviceCheck
-            : AppleProvider.debug,
-      );
-    }
-
-    // Enable Firestore offline persistence
-    FirebaseFirestore.instance.settings = const Settings(
-      persistenceEnabled: true,
-    );
-
-    await NotificationService.instance.initialize();
-    // Wire the navigator key so FCM tap routing can work
-    NotificationService.instance.navigatorKey = _navigatorKey;
-  } catch (e) {
-    // If Firebase fails or hangs, it will print the error instead of crashing silently
-    debugPrint("Firebase Initialization Error: $e");
-  }
-
+  // Load cached settings instantly — no network needed
   try {
     await oneVizcayaState.loadPersistedState();
   } catch (e) {
     debugPrint('Failed to load persisted state: $e');
   }
 
-  // runApp is now outside the await trap. It is guaranteed to fire and draw the UI.
+  // Initialize Firebase core — required before AuthGate can function
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+    FirebaseFirestore.instance.settings = const Settings(
+      persistenceEnabled: true,
+    );
+  } catch (e) {
+    debugPrint('Firebase core init error: $e');
+  }
+
+  // Show the app immediately — users see the screen in ~1-2 seconds
   runApp(const OneVizcayaApp());
+
+  // App Check and notifications are non-critical for the first frame.
+  // Fire-and-forget so they never delay the visible UI.
+  if (!kIsWeb) {
+    FirebaseAppCheck.instance
+        .activate(
+          androidProvider: AndroidProvider.debug,
+          appleProvider: kReleaseMode
+              ? AppleProvider.deviceCheck
+              : AppleProvider.debug,
+        )
+        .catchError((e) => debugPrint('App Check error: $e'));
+  }
+  NotificationService.instance
+      .initialize()
+      .then((_) => NotificationService.instance.navigatorKey = _navigatorKey)
+      .catchError((e) => debugPrint('Notification init error: $e'));
 }
 
 final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
