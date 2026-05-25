@@ -81,17 +81,21 @@ class _LoginScreenState extends State<LoginScreen>
       phoneNumber = '+63${phoneNumber.substring(1)}';
     }
 
+    // Capture navigator before the async gap
+    final navigator = Navigator.of(context);
+
     try {
       await FirebaseAuth.instance.verifyPhoneNumber(
         phoneNumber: phoneNumber,
         verificationCompleted: (PhoneAuthCredential credential) async {
           await FirebaseAuth.instance.signInWithCredential(credential);
-          // Save only after successful auth
           final prefs = await SharedPreferences.getInstance();
-          await prefs.setString('saved_phone_number', _phoneController.text.trim());
+          await prefs.setString(
+            'saved_phone_number',
+            _phoneController.text.trim(),
+          );
           if (mounted) {
-            // Let AuthGate decide routing (setup vs home) based on profile state
-            Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
+            navigator.pushNamedAndRemoveUntil('/', (route) => false);
           }
         },
         verificationFailed: (FirebaseAuthException e) {
@@ -103,13 +107,12 @@ class _LoginScreenState extends State<LoginScreen>
         codeSent: (String verificationId, int? resendToken) {
           if (mounted) {
             setState(() => _isLoading = false);
-            Navigator.of(context).push(
+            navigator.push(
               MaterialPageRoute(
-                builder: (context) =>
-                    PhoneVerificationScreen(
-                      verificationId: verificationId,
-                      phoneNumber: phoneNumber,
-                    ),
+                builder: (context) => PhoneVerificationScreen(
+                  verificationId: verificationId,
+                  phoneNumber: phoneNumber,
+                ),
               ),
             );
           }
@@ -125,25 +128,32 @@ class _LoginScreenState extends State<LoginScreen>
   }
 
   Future<void> _loginWithBiometric() async {
-    // Check if biometrics are set up on the device
     try {
       final canCheck = await _localAuth.canCheckBiometrics;
       if (!canCheck) {
-        ToastUtils.showError('Biometric authentication not set up on this device');
+        ToastUtils.showError(
+          'Biometric authentication not set up on this device',
+        );
         return;
       }
       final availableBiometrics = await _localAuth.getAvailableBiometrics();
       if (availableBiometrics.isEmpty) {
-        ToastUtils.showError('Biometric authentication not set up on this device');
+        ToastUtils.showError(
+          'Biometric authentication not set up on this device',
+        );
         return;
       }
     } catch (_) {
-      ToastUtils.showError('Biometric authentication not set up on this device');
+      ToastUtils.showError(
+        'Biometric authentication not set up on this device',
+      );
       return;
     }
 
     if (_biometricFailCount >= 3) {
-      ToastUtils.showError('Too many failed attempts. Please log in with your phone number.');
+      ToastUtils.showError(
+        'Too many failed attempts. Please log in with your phone number.',
+      );
       return;
     }
 
@@ -157,7 +167,6 @@ class _LoginScreenState extends State<LoginScreen>
       if (!mounted) return;
 
       if (!authenticated) {
-        // User cancelled — do nothing silently
         setState(() => _isBiometricLoading = false);
         return;
       }
@@ -166,11 +175,12 @@ class _LoginScreenState extends State<LoginScreen>
       final savedPhone = prefs.getString('saved_phone_number');
       if (savedPhone == null || savedPhone.isEmpty) {
         setState(() => _isBiometricLoading = false);
-        ToastUtils.showError('No saved phone number. Please log in manually first.');
+        ToastUtils.showError(
+          'No saved phone number. Please log in manually first.',
+        );
         return;
       }
 
-      // Pre-fill and trigger OTP flow
       _phoneController.text = savedPhone;
       _checkInput();
       setState(() => _isBiometricLoading = false);
@@ -182,9 +192,10 @@ class _LoginScreenState extends State<LoginScreen>
         _biometricFailCount++;
       });
       if (_biometricFailCount >= 3) {
-        ToastUtils.showError('Too many failed attempts. Please log in with your phone number.');
+        ToastUtils.showError(
+          'Too many failed attempts. Please log in with your phone number.',
+        );
       } else {
-        // Only show error for unexpected failures, not user cancellation
         final errStr = e.toString().toLowerCase();
         if (!errStr.contains('cancel') && !errStr.contains('user_cancel')) {
           ToastUtils.showError('Biometric authentication failed.');
@@ -202,7 +213,6 @@ class _LoginScreenState extends State<LoginScreen>
           opacity: _fadeAnimation,
           child: Column(
             children: [
-              // ── Top bar with Help ──
               Padding(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 16,
@@ -243,8 +253,6 @@ class _LoginScreenState extends State<LoginScreen>
                   ],
                 ),
               ),
-
-              // ── Main content ──
               Expanded(
                 child: SingleChildScrollView(
                   padding: const EdgeInsets.symmetric(horizontal: 32),
@@ -255,8 +263,6 @@ class _LoginScreenState extends State<LoginScreen>
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         const SizedBox(height: 48),
-
-                        // ── App Logo ──
                         Center(
                           child: Image.asset(
                             'assets/images/Seal_of_Nueva_Vizcaya.svg.png',
@@ -264,8 +270,6 @@ class _LoginScreenState extends State<LoginScreen>
                           ),
                         ),
                         const SizedBox(height: 16),
-
-                        // ── App Name ──
                         const Center(
                           child: Text(
                             'One Vizcaya',
@@ -299,10 +303,7 @@ class _LoginScreenState extends State<LoginScreen>
                             ),
                           ),
                         ),
-
                         const SizedBox(height: 56),
-
-                        // ── Phone Number Field ──
                         if (_isLoading)
                           const Padding(
                             padding: EdgeInsets.symmetric(vertical: 60),
@@ -330,7 +331,9 @@ class _LoginScreenState extends State<LoginScreen>
                             keyboardType: TextInputType.phone,
                             style: TextStyle(
                               fontSize: 16,
-                              color: Theme.of(context).textTheme.bodyLarge?.color,
+                              color: Theme.of(
+                                context,
+                              ).textTheme.bodyLarge?.color,
                             ),
                             decoration: InputDecoration(
                               hintText: '09171234567',
@@ -379,8 +382,9 @@ class _LoginScreenState extends State<LoginScreen>
                               ),
                             ),
                             validator: (value) {
-                              if (value == null || value.isEmpty)
+                              if (value == null || value.isEmpty) {
                                 return 'Please enter your phone number';
+                              }
                               if (!value.startsWith('09') ||
                                   value.length != 11) {
                                 return 'Please enter a valid 11-digit number starting with 09';
@@ -388,10 +392,7 @@ class _LoginScreenState extends State<LoginScreen>
                               return null;
                             },
                           ),
-
                           const SizedBox(height: 16),
-
-                          // ── Privacy Policy link ──
                           Center(
                             child: TextButton(
                               onPressed: () => Navigator.push(
@@ -410,8 +411,6 @@ class _LoginScreenState extends State<LoginScreen>
                               ),
                             ),
                           ),
-
-                          // ── Need help link ──
                           Center(
                             child: TextButton(
                               onPressed: () => ToastUtils.showInfo(
@@ -427,10 +426,7 @@ class _LoginScreenState extends State<LoginScreen>
                               ),
                             ),
                           ),
-
                           const SizedBox(height: 24),
-
-                          // ── Info text ──
                           Center(
                             child: Text(
                               'We will send a verification code to this number.',
@@ -447,8 +443,6 @@ class _LoginScreenState extends State<LoginScreen>
                   ),
                 ),
               ),
-
-              // ── Bottom Login Button ──
               if (!_isLoading) ...[
                 Padding(
                   padding: const EdgeInsets.fromLTRB(24, 0, 24, 8),
@@ -495,8 +489,6 @@ class _LoginScreenState extends State<LoginScreen>
                     ),
                   ),
                 ),
-
-                // ── "— or —" divider + biometric button (only if available) ──
                 if (_showBiometric) ...[
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -525,12 +517,19 @@ class _LoginScreenState extends State<LoginScreen>
                       borderRadius: BorderRadius.circular(12),
                       child: Container(
                         padding: const EdgeInsets.symmetric(
-                            vertical: 14, horizontal: 20),
+                          vertical: 14,
+                          horizontal: 20,
+                        ),
                         decoration: BoxDecoration(
                           border: Border.all(
-                              color: const Color(0xFF4CAF50).withValues(alpha: 0.4)),
+                            color: const Color(
+                              0xFF4CAF50,
+                            ).withValues(alpha: 0.4),
+                          ),
                           borderRadius: BorderRadius.circular(12),
-                          color: const Color(0xFF4CAF50).withValues(alpha: 0.05),
+                          color: const Color(
+                            0xFF4CAF50,
+                          ).withValues(alpha: 0.05),
                         ),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
@@ -544,8 +543,11 @@ class _LoginScreenState extends State<LoginScreen>
                                       color: Color(0xFF4CAF50),
                                     ),
                                   )
-                                : const Icon(Icons.fingerprint,
-                                    color: Color(0xFF4CAF50), size: 24),
+                                : const Icon(
+                                    Icons.fingerprint,
+                                    color: Color(0xFF4CAF50),
+                                    size: 24,
+                                  ),
                             const SizedBox(width: 10),
                             const Text(
                               'Sign in with Biometrics',
@@ -608,14 +610,15 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
         verificationId: _currentVerificationId,
         smsCode: _codeController.text,
       );
-      final result = await FirebaseAuth.instance.signInWithCredential(credential);
+      final result = await FirebaseAuth.instance.signInWithCredential(
+        credential,
+      );
       final user = result.user;
 
-      // Auto-create Firestore user document on first login so that:
-      // 1) Admin role-assignment search can find this user by phoneNumber
-      // 2) Profile screen always has a document to read/update
       if (user != null) {
-        final ref = FirebaseFirestore.instance.collection('users').doc(user.uid);
+        final ref = FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid);
         final existing = await ref.get();
         if (!existing.exists) {
           await ref.set({
@@ -629,14 +632,12 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
             'createdAt': FieldValue.serverTimestamp(),
           });
         } else if (existing.data()?['phoneNumber'] == null ||
-                   (existing.data()?['phoneNumber'] as String).isEmpty) {
-          // Patch missing phoneNumber on older documents
+            (existing.data()?['phoneNumber'] as String).isEmpty) {
           await ref.update({'phoneNumber': user.phoneNumber ?? ''});
         }
       }
 
       if (mounted) {
-        // Let AuthGate decide routing (setup vs home) based on profile state
         Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
       }
     } catch (e) {
@@ -741,8 +742,6 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
                 ),
               ),
               const SizedBox(height: 16),
-
-              // ── SMS Cooldown Button ──
               SmsCooldownButton(
                 onSend: () async {
                   try {
@@ -763,7 +762,6 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
                   }
                 },
               ),
-
               const SizedBox(height: 16),
               if (_isLoading)
                 const Center(
