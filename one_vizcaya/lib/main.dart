@@ -21,6 +21,7 @@ import 'presentation/screens/admin_dashboard_screen.dart';
 import 'presentation/screens/profile_management_screen.dart';
 import 'presentation/screens/app_settings_screen.dart';
 import 'presentation/screens/onboarding_screen.dart';
+import 'presentation/screens/weather_detail_screen.dart';
 import 'presentation/widgets/auth_gate.dart';
 import 'presentation/state/municipality_state.dart';
 
@@ -243,6 +244,10 @@ class _OneVizcayaAppState extends State<OneVizcayaApp> {
             '/profile': (context) => const ProfileManagementScreen(),
             '/admin': (context) => const AdminDashboardScreen(),
             '/onboarding': (context) => const OnboardingScreen(),
+            '/weather': (context) => WeatherDetailScreen(
+                  municipality:
+                      oneVizcayaState.selectedMunicipality.value,
+                ),
           },
         );
           },

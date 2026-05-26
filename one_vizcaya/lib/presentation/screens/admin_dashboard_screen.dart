@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:pdf/pdf.dart';
@@ -2547,7 +2548,7 @@ class _AddAnnouncementSheetState
                       v == null || v.trim().isEmpty
                           ? 'Title is required'
                           : null,
-                  maxLength: 100),
+                  maxLength: 150),
               const SizedBox(height: 12),
               _field(_bodyController, 'Message / Details *',
                   'Write the full announcement details here…',
@@ -2556,16 +2557,18 @@ class _AddAnnouncementSheetState
                       v == null || v.trim().isEmpty
                           ? 'Message is required'
                           : null,
-                  maxLines: 4,
-                  maxLength: 500),
+                  maxLines: 6,
+                  maxLength: 1000),
               const SizedBox(height: 12),
-              _field(_postedByController, 'Posted By *',
-                  'e.g., Gov. Darren Gambito',
-                  Icons.person, widget.lguColor,
-                  validator: (v) =>
-                      v == null || v.trim().isEmpty
-                          ? 'Posted by is required'
-                          : null),
+              _catalogField(
+                  controller: _postedByController,
+                  label: 'Posted By *',
+                  hint: 'e.g., Provincial Government of Nueva Vizcaya',
+                  prefixIcon: Icons.person,
+                  color: widget.lguColor,
+                  validator: (v) => v == null || v.trim().isEmpty
+                      ? 'Posted by is required'
+                      : null),
               const SizedBox(height: 12),
 
               // ── Audience scope ──
@@ -2645,10 +2648,12 @@ class _AddAnnouncementSheetState
                   helperText:
                       'Citizens can tap to view original post'),
               const SizedBox(height: 12),
-              _field(_sourceLabelController,
-                  'Source Label (Optional)',
-                  'e.g., Posted by Gov. Gambito • Facebook',
-                  Icons.label_outline, widget.lguColor),
+              _catalogField(
+                  controller: _sourceLabelController,
+                  label: 'Source Label (Optional)',
+                  hint: 'e.g., Governor\'s Office • Facebook',
+                  prefixIcon: Icons.label_outline,
+                  color: widget.lguColor),
               const SizedBox(height: 12),
 
               Container(
@@ -2770,7 +2775,247 @@ class _AddAnnouncementSheetState
       validator: validator,
       maxLines: maxLines ?? 1,
       maxLength: maxLength,
+      maxLengthEnforcement: MaxLengthEnforcement.enforced,
+      inputFormatters: [
+        if (maxLength != null) LengthLimitingTextInputFormatter(maxLength),
+      ],
       keyboardType: keyboardType,
+    );
+  }
+
+  // ── Catalog field: text input + Browse button ──────────────────────────────
+  static const List<Map<String, dynamic>> _sourceCatalog = [
+    {
+      'category': 'Provincial Government & Key Agencies',
+      'items': [
+        'Provincial Government of Nueva Vizcaya',
+        'Office of Governor Atty. Jose V. Gambito',
+        'Atty. Jose "Papa Jing" Gambito',
+        'PIA Nueva Vizcaya',
+        'Nueva Vizcaya PDRRMO',
+        'NVPPO - Nueva Vizcaya Police Provincial Office',
+        'DepEd Tayo Nueva Vizcaya',
+      ],
+    },
+    {
+      'category': 'Municipal LGUs & Mayors',
+      'items': [
+        'LGU Alfonso Castañeda',
+        'LGU Ambaguio',
+        'Mayor Ronelio B. Danao (Ambaguio)',
+        'LGU Aritao',
+        'Mayor Remelina Peros-Galam (Aritao)',
+        'LGU Bagabag',
+        'LGU Bambang',
+        'Benjamin "JAMIE" Cuaresma III (Bambang)',
+        'LGU Bayombong',
+        'Mayor Tony Bagasao (Bayombong)',
+        'LGU Diadi',
+        'LGU Dupax del Norte',
+        'LGU Dupax del Sur',
+        'LGU Kasibu',
+        'LGU Kayapa',
+        'LGU Quezon',
+        'LGU Santa Fe',
+        'LGU Solano',
+        'LGU Villaverde',
+      ],
+    },
+  ];
+
+  Widget _catalogField({
+    required TextEditingController controller,
+    required String label,
+    required String hint,
+    required IconData prefixIcon,
+    required Color color,
+    String? Function(String?)? validator,
+  }) {
+    return TextFormField(
+      controller: controller,
+      decoration: InputDecoration(
+        labelText: label,
+        hintText: hint,
+        prefixIcon: Icon(prefixIcon, color: color),
+        suffixIcon: IconButton(
+          icon: Icon(Icons.list_alt_rounded, color: color),
+          tooltip: 'Browse catalog',
+          onPressed: () => _showCatalogPicker(controller, color),
+        ),
+        focusedBorder: OutlineInputBorder(
+            borderSide: BorderSide(color: color, width: 2),
+            borderRadius: BorderRadius.circular(12)),
+        border:
+            OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+      validator: validator,
+      maxLines: 1,
+    );
+  }
+
+  void _showCatalogPicker(
+      TextEditingController controller, Color accentColor) {
+    String query = '';
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => StatefulBuilder(
+        builder: (ctx, setLocal) {
+          // Flatten + filter all catalog items
+          List<Map<String, String>> filtered = [];
+          for (final group
+              in _sourceCatalog) {
+            final cat = group['category'] as String;
+            final items = group['items'] as List;
+            for (final item in items) {
+              if (query.isEmpty ||
+                  item
+                      .toString()
+                      .toLowerCase()
+                      .contains(query.toLowerCase())) {
+                filtered.add({'category': cat, 'item': item as String});
+              }
+            }
+          }
+
+          return DraggableScrollableSheet(
+            expand: false,
+            initialChildSize: 0.6,
+            maxChildSize: 0.92,
+            minChildSize: 0.4,
+            builder: (_, scrollCtrl) => Column(
+              children: [
+                // Handle bar
+                const SizedBox(height: 8),
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                        color: Colors.grey.shade300,
+                        borderRadius: BorderRadius.circular(2)),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                // Title
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Row(
+                    children: [
+                      Icon(Icons.list_alt_rounded,
+                          color: accentColor, size: 20),
+                      const SizedBox(width: 8),
+                      Text('Select Source',
+                          style: TextStyle(
+                              fontSize: 17,
+                              fontWeight: FontWeight.bold,
+                              color: accentColor)),
+                      const Spacer(),
+                      IconButton(
+                        icon: const Icon(Icons.close),
+                        onPressed: () => Navigator.pop(ctx),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 8),
+                // Search bar
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: TextField(
+                    autofocus: false,
+                    decoration: InputDecoration(
+                      hintText: 'Search…',
+                      prefixIcon: const Icon(Icons.search, size: 20),
+                      contentPadding:
+                          const EdgeInsets.symmetric(vertical: 8),
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide:
+                              BorderSide(color: Colors.grey.shade300)),
+                      enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide:
+                              BorderSide(color: Colors.grey.shade300)),
+                    ),
+                    onChanged: (v) => setLocal(() => query = v),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                const Divider(height: 1),
+                // Results list
+                Expanded(
+                  child: filtered.isEmpty
+                      ? const Center(
+                          child: Text('No results',
+                              style: TextStyle(color: Colors.grey)))
+                      : ListView.builder(
+                          controller: scrollCtrl,
+                          itemCount: filtered.length,
+                          itemBuilder: (_, i) {
+                            final entry = filtered[i];
+                            final showHeader = i == 0 ||
+                                filtered[i - 1]['category'] !=
+                                    entry['category'];
+                            return Column(
+                              crossAxisAlignment:
+                                  CrossAxisAlignment.start,
+                              children: [
+                                if (showHeader) ...[
+                                  Padding(
+                                    padding: const EdgeInsets.fromLTRB(
+                                        16, 12, 16, 4),
+                                    child: Text(
+                                      entry['category']!,
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w700,
+                                        color: accentColor,
+                                        letterSpacing: 0.5,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                                ListTile(
+                                  dense: true,
+                                  leading: Icon(Icons.account_balance,
+                                      size: 18,
+                                      color: Colors.grey.shade500),
+                                  title: Text(entry['item']!,
+                                      style: const TextStyle(
+                                          fontSize: 14)),
+                                  onTap: () {
+                                    controller.text = entry['item']!;
+                                    Navigator.pop(ctx);
+                                  },
+                                ),
+                              ],
+                            );
+                          },
+                        ),
+                ),
+                // Custom entry option
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                  child: TextButton.icon(
+                    onPressed: () => Navigator.pop(ctx),
+                    icon: const Icon(Icons.edit_outlined, size: 16),
+                    label: const Text('Type a custom value instead'),
+                    style: TextButton.styleFrom(
+                        foregroundColor: Colors.grey.shade600),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
     );
   }
 }

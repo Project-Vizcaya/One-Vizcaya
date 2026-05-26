@@ -286,7 +286,7 @@ class EmergencyContactsScreen extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: activeLguColor,
         foregroundColor: Colors.white,
-        title: Text('$activeMunicipalityName Emergency'),
+        title: Text('$activeMunicipalityName ${AppStrings.get('emergencyContacts')}'),
       ),
       body: SafeArea(
         top: false,
