@@ -58,38 +58,31 @@ class _WeatherDetailScreenState extends State<WeatherDetailScreen> {
     }
   }
 
-  List<LinearGradient> _backgroundGradient(WeatherData d) {
+  LinearGradient _backgroundGradient(WeatherData d) {
     final now = DateTime.now();
-    final isNight =
-        now.isBefore(d.sunrise) || now.isAfter(d.sunset);
+    final isNight = now.isBefore(d.sunrise) || now.isAfter(d.sunset);
     final isRainy = d.conditionMain == 'Rain' ||
         d.conditionMain == 'Drizzle' ||
         d.conditionMain == 'Thunderstorm';
 
     if (isNight) {
-      return [
-        const LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [Color(0xFF0D1B3E), Color(0xFF1A237E), Color(0xFF283593)],
-        ),
-      ];
+      return const LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [Color(0xFF0D1B3E), Color(0xFF1A237E), Color(0xFF283593)],
+      );
     } else if (isRainy) {
-      return [
-        const LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [Color(0xFF455A64), Color(0xFF546E7A), Color(0xFF607D8B)],
-        ),
-      ];
+      return const LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [Color(0xFF455A64), Color(0xFF546E7A), Color(0xFF607D8B)],
+      );
     } else {
-      return [
-        const LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [Color(0xFF1565C0), Color(0xFF1976D2), Color(0xFFE3A818)],
-        ),
-      ];
+      return const LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [Color(0xFF1565C0), Color(0xFF1976D2), Color(0xFFE3A818)],
+      );
     }
   }
 
@@ -694,38 +687,41 @@ class _WeatherDetailScreenState extends State<WeatherDetailScreen> {
           ),
           const SizedBox(height: 10),
           // AQI color bar
-          ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: SizedBox(
-              height: 8,
-              child: Stack(
-                children: [
-                  Container(
-                    decoration: const BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          Colors.green,
-                          Colors.lightGreen,
-                          Colors.orange,
-                          Colors.red,
-                          Colors.purple,
-                        ],
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final barWidth = constraints.maxWidth;
+              final indicatorLeft =
+                  ((d.aqi - 1) / 4.0) * barWidth - 2;
+              return ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: SizedBox(
+                  height: 8,
+                  child: Stack(
+                    children: [
+                      Container(
+                        decoration: const BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              Colors.green,
+                              Colors.lightGreen,
+                              Colors.orange,
+                              Colors.red,
+                              Colors.purple,
+                            ],
+                          ),
+                        ),
                       ),
-                    ),
+                      Positioned(
+                        left: indicatorLeft.clamp(0.0, barWidth - 4),
+                        top: 0,
+                        bottom: 0,
+                        child: Container(width: 4, color: Colors.white),
+                      ),
+                    ],
                   ),
-                  Positioned(
-                    left: ((d.aqi - 1) / 4.0 * 0.9) *
-                        (MediaQuery.of(context).size.width - 80),
-                    top: 0,
-                    bottom: 0,
-                    child: Container(
-                      width: 4,
-                      color: Colors.white,
-                    ),
-                  ),
-                ],
-              ),
-            ),
+                ),
+              );
+            },
           ),
           const SizedBox(height: 16),
           Row(
@@ -787,10 +783,14 @@ class _WeatherDetailScreenState extends State<WeatherDetailScreen> {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      const Text(
-                        'Higher than yesterday',
+                      Text(
+                        d.humidity >= 70
+                            ? 'High humidity'
+                            : d.humidity >= 40
+                                ? 'Comfortable'
+                                : 'Low humidity',
                         style:
-                            TextStyle(color: Colors.white60, fontSize: 12),
+                            const TextStyle(color: Colors.white60, fontSize: 12),
                       ),
                     ],
                   ),
@@ -1008,9 +1008,9 @@ class _WeatherDetailScreenState extends State<WeatherDetailScreen> {
               fontWeight: FontWeight.bold,
             ),
           ),
-          const Text(
-            'Steady',
-            style: TextStyle(color: Colors.white60, fontSize: 12),
+          Text(
+            d.pressure > 1013 ? 'Above normal' : d.pressure < 1000 ? 'Below normal' : 'Normal',
+            style: const TextStyle(color: Colors.white60, fontSize: 12),
           ),
         ],
       ),
@@ -1227,7 +1227,7 @@ class _WeatherDetailScreenState extends State<WeatherDetailScreen> {
     }
 
     final d = _data!;
-    final gradient = _backgroundGradient(d)[0];
+    final gradient = _backgroundGradient(d);
 
     final collapsedTitle =
         '${d.locationName} • ${d.temp.round()}°';

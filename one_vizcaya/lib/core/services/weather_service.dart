@@ -361,16 +361,10 @@ class WeatherService {
   }
 
   static String runningCondition(WeatherData d) {
-    if (d.hourly.isNotEmpty && d.hourly[0].pop > 0.6 ||
-        d.temp > 38 ||
-        d.uvIndex > 10) {
-      return 'Poor';
-    }
-    if (d.hourly.isNotEmpty && d.hourly[0].pop > 0.3 ||
-        d.temp > 34 ||
-        d.uvIndex > 7) {
-      return 'Fair';
-    }
+    final highPop = d.hourly.isNotEmpty && d.hourly[0].pop > 0.6;
+    final moderatePop = d.hourly.isNotEmpty && d.hourly[0].pop > 0.3;
+    if (highPop || d.temp > 38 || d.uvIndex > 10) return 'Poor';
+    if (moderatePop || d.temp > 34 || d.uvIndex > 7) return 'Fair';
     return 'Good';
   }
 
