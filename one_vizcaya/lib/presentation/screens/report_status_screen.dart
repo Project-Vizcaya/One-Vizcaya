@@ -69,7 +69,7 @@ class _ReportStatusScreenState extends State<ReportStatusScreen> {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: activeLguColor,
-        title: Text('${AppStrings.get('myReportsTitle')} to $activeMunicipalityName'),
+        title: Text('${AppStrings.get('myReportsTitle')} ${AppStrings.get('prepositionTo')} $activeMunicipalityName'),
       ),
       body: SafeArea(
         top: false,
@@ -93,7 +93,7 @@ class _ReportStatusScreenState extends State<ReportStatusScreen> {
                       Text(AppStrings.get('filterLabel'), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
                       const SizedBox(width: 4),
                       FilterChip(
-                        label: const Text('All'),
+                        label: Text(AppStrings.get('filterAll')),
                         selected: _filterPriority == null,
                         selectedColor: activeLguColor.withAlpha((255 * 0.2).round()),
                         onSelected: (_) => setState(() => _filterPriority = null),

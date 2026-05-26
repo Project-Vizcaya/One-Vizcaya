@@ -337,7 +337,7 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
         content: Text(content),
         actions: [
           TextButton(
-            child: const Text('OK'),
+            child: Text(AppStrings.get('ok')),
             onPressed: () {
               Navigator.of(context).pop();
               Navigator.of(context).pop();
@@ -358,7 +358,7 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
       appBar: AppBar(
         backgroundColor: primaryLguColor,
         foregroundColor: Colors.white,
-        title: Text('Report Problem to $activeMunicipalityName'),
+        title: Text('${AppStrings.get('reportProblem')} ${AppStrings.get('prepositionTo')} $activeMunicipalityName'),
       ),
       body: Align(
         alignment: Alignment.topCenter,
@@ -611,10 +611,10 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
                               ),
                             ),
                             SizedBox(width: 12),
-                            Text('Submitting…'),
+                            Text(AppStrings.get('submitting')),
                           ],
                         )
-                      : const Text('Submit Report'),
+                      : Text(AppStrings.get('submit')),
                 ),
               ),
               const SizedBox(height: 48),
@@ -1041,9 +1041,9 @@ class _BarangayDropdown extends StatelessWidget {
       value: validSelection,
       isExpanded: true,
       dropdownColor: Colors.white,
-      hint: const Text('Select Barangay (optional)'),
+      hint: Text('${AppStrings.get('barangay')} (${AppStrings.get('optional')})'),
       decoration: InputDecoration(
-        labelText: 'Barangay (optional)',
+        labelText: '${AppStrings.get('barangay')} (${AppStrings.get('optional')})',
         prefixIcon: Icon(Icons.location_city_outlined,
             color: primaryColor, semanticLabel: 'Barangay'),
         focusedBorder: OutlineInputBorder(
@@ -1056,10 +1056,10 @@ class _BarangayDropdown extends StatelessWidget {
       ),
       items: [
         // "None" option to clear the selection
-        const DropdownMenuItem<String>(
+        DropdownMenuItem<String>(
           value: null,
-          child: Text('— None —',
-              style: TextStyle(color: Colors.grey, fontStyle: FontStyle.italic)),
+          child: Text(AppStrings.get('noneOption'),
+              style: const TextStyle(color: Colors.grey, fontStyle: FontStyle.italic)),
         ),
         ...barangays.map((b) => DropdownMenuItem<String>(
               value: b,

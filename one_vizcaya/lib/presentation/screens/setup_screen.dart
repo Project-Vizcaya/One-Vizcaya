@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../core/constants/app_constants.dart';
+import '../../core/l10n/app_strings.dart';
 import '../state/municipality_state.dart';
 import '../../features/auth/presentation/screens/privacy_policy_screen.dart';
 
@@ -30,7 +31,7 @@ class _MunicipalitySetupScreenState extends State<MunicipalitySetupScreen> {
     if (!_formKey.currentState!.validate()) return;
     if (_selectedTown == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select your municipality.')),
+        SnackBar(content: Text(AppStrings.get('selectMunicipality'))),
       );
       return;
     }
@@ -163,7 +164,7 @@ class _MunicipalitySetupScreenState extends State<MunicipalitySetupScreen> {
                   // ── Municipality ──
                   DropdownButtonFormField<String>(
                     value: _selectedTown,
-                    hint: const Text('Select Municipality'),
+                    hint: Text(AppStrings.get('selectMunicipality')),
                     isExpanded: true,
                     dropdownColor: Colors.white,
                     style: const TextStyle(color: Colors.black87, fontSize: 16),

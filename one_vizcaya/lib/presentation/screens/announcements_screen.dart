@@ -167,7 +167,7 @@ class _AnnouncementsListState extends State<_AnnouncementsList> {
                     spacing: 8,
                     children: [
                       FilterChip(
-                        label: const Text('All'),
+                        label: Text(AppStrings.get('filterAll')),
                         selected: !_showBookmarked,
                         onSelected: (_) =>
                             setState(() => _showBookmarked = false),
