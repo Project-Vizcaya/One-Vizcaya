@@ -1,12 +1,15 @@
-enum ReportStatus { 
-  reported, 
-  ongoing, 
-  solved 
+enum ReportStatus {
+  reported,
+  underReview,
+  ongoing,
+  solved,
 }
 
 extension ReportStatusExtension on ReportStatus {
   static ReportStatus fromString(String? status) {
     switch (status) {
+      case 'under_review':
+        return ReportStatus.underReview;
       case 'ongoing':
         return ReportStatus.ongoing;
       case 'solved':
@@ -17,6 +20,11 @@ extension ReportStatusExtension on ReportStatus {
   }
 
   String toShortString() {
-    return toString().split('.').last;
+    switch (this) {
+      case ReportStatus.underReview:
+        return 'under_review';
+      default:
+        return toString().split('.').last;
+    }
   }
 }

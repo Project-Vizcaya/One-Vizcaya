@@ -39,6 +39,9 @@ class ProblemReport {
   // Barangay
   final String? barangay;
 
+  // Moderation
+  final bool isFlagged;
+
   ProblemReport({
     required this.id,
     required this.category,
@@ -63,6 +66,7 @@ class ProblemReport {
     this.isAnonymous = false,
     this.resolvedAt,
     this.barangay,
+    this.isFlagged = false,
   });
 
   factory ProblemReport.fromFirestore(DocumentSnapshot doc) {
@@ -125,6 +129,7 @@ class ProblemReport {
       isAnonymous: data['isAnonymous'] as bool? ?? false,
       resolvedAt: (data['resolvedAt'] as Timestamp?)?.toDate(),
       barangay: (data['barangay'] as String?)?.isEmpty == true ? null : data['barangay'] as String?,
+      isFlagged: data['isFlagged'] as bool? ?? false,
     );
   }
 
@@ -158,6 +163,7 @@ class ProblemReport {
           ? Timestamp.fromDate(resolvedAt!)
           : null,
       'barangay': (barangay?.isEmpty ?? true) ? null : barangay,
+      'isFlagged': isFlagged,
     };
   }
 }

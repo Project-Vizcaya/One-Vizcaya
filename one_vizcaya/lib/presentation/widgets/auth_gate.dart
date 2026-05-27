@@ -6,6 +6,7 @@ import '../screens/home_screen.dart';
 import '../screens/login_screen.dart';
 import '../screens/onboarding_screen.dart';
 import '../screens/setup_screen.dart';
+import '../screens/splash_screen.dart';
 
 class AuthGate extends StatefulWidget {
   const AuthGate({super.key});
@@ -53,9 +54,7 @@ class _AuthGateState extends State<AuthGate> {
       stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
-          );
+          return const SplashScreen();
         }
 
         final user = snapshot.data;

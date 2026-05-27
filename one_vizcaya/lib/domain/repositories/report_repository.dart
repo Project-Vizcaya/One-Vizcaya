@@ -21,4 +21,7 @@ abstract class ReportRepository {
 
   /// Provincial Admin: Permanently delete a report
   Future<void> deleteReport(String userId, String reportId);
+
+  /// Admin: Flag or unflag a report as suspicious
+  Future<void> flagReport(String userId, String reportId, bool isFlagged);
 }

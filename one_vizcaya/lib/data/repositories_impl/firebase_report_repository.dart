@@ -151,6 +151,10 @@ class FirebaseReportRepository implements ReportRepository {
         body =
             'Great news! Your report has been resolved. Thank you for helping improve your community.';
         break;
+      case 'under_review':
+        title = 'Report Under Review';
+        body = 'Your report is now being reviewed by the LGU.';
+        break;
       case 'reported':
         title = 'Report Reopened';
         body = 'Your report has been reopened for further review.';
@@ -167,6 +171,23 @@ class FirebaseReportRepository implements ReportRepository {
       'timestamp': FieldValue.serverTimestamp(),
       'read': false,
     };
+  }
+
+  @override
+  Future<void> flagReport(String userId, String reportId, bool isFlagged) async {
+    try {
+      await _firestore
+          .collection('users')
+          .doc(userId)
+          .collection('reports')
+          .doc(reportId)
+          .update({'isFlagged': isFlagged});
+      ToastUtils.showSuccess(
+          isFlagged ? 'Report flagged as suspicious' : 'Flag removed');
+    } catch (e) {
+      ToastUtils.showError('Failed to update flag: $e');
+      rethrow;
+    }
   }
 
   @override

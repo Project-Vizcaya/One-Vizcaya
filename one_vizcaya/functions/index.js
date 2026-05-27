@@ -29,6 +29,7 @@ exports.notifyOnStatusChange = onDocumentUpdated(
 
     const statusLabels = {
       reported: "Reported",
+      under_review: "Under Review",
       ongoing: "In Progress",
       solved: "Resolved",
     };
@@ -513,6 +514,48 @@ exports.seedDemoData = onCall(async (request) => {
     announcementsCreated: announcements.length,
   };
 });
+
+// ── Auto-archive reports older than 12 months ───────────────────────────────
+// Runs daily at 2 AM Manila time. Marks reports with reportedAt > 12 months
+// as 'archived' so they no longer appear in active admin views.
+exports.archiveOldReports = onSchedule(
+  { schedule: "0 2 * * *", timeZone: "Asia/Manila" },
+  async () => {
+    const db = admin.firestore();
+    const cutoff = new Date();
+    cutoff.setFullYear(cutoff.getFullYear() - 1);
+    const cutoffTs = admin.firestore.Timestamp.fromDate(cutoff);
+
+    const snapshot = await db
+      .collectionGroup("reports")
+      .where("reportedAt", "<", cutoffTs)
+      .where("status", "!=", "archived")
+      .get();
+
+    if (snapshot.empty) {
+      console.log("archiveOldReports: nothing to archive");
+      return;
+    }
+
+    // Use rolling batches to stay under Firestore's 500-write limit
+    let batch = db.batch();
+    let count = 0;
+    for (const doc of snapshot.docs) {
+      batch.update(doc.ref, {
+        status: "archived",
+        archivedAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+      count++;
+      if (count >= 490) {
+        await batch.commit();
+        batch = db.batch();
+        count = 0;
+      }
+    }
+    if (count > 0) await batch.commit();
+    console.log(`archiveOldReports: archived ${snapshot.size} reports`);
+  }
+);
 
 // ── Setup demo admin claims ──────────────────────────────────────────────────
 // Call this with the UID of your real Firebase Auth users to grant admin roles.

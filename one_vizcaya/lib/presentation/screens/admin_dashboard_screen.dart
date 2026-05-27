@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
+import 'package:fl_chart/fl_chart.dart';
 import '../../domain/models/problem_report.dart';
 import '../../domain/enums/report_priority.dart';
 import '../../domain/enums/report_status.dart';
@@ -66,7 +67,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
 
     _tabController?.dispose();
     _tabController = TabController(
-      length: (role == UserRole.provincialAdmin || role == UserRole.superAdmin) ? 3 : 2,
+      length: (role == UserRole.provincialAdmin || role == UserRole.superAdmin) ? 4 : 3,
       vsync: this,
     );
 
@@ -364,6 +365,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
             _reportRepository.escalateToProvince(userId, reportId),
         onDelete: (reportId, userId) =>
             _reportRepository.deleteReport(userId, reportId),
+        onFlagUpdate: (reportId, userId, isFlagged) =>
+            _reportRepository.flagReport(userId, reportId, isFlagged),
       ),
     );
   }
@@ -460,6 +463,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
           tabs: [
             const Tab(icon: Icon(Icons.report_problem), text: 'Reports'),
             const Tab(icon: Icon(Icons.campaign), text: 'Announcements'),
+            const Tab(icon: Icon(Icons.bar_chart), text: 'Analytics'),
             if (_currentUserRole == UserRole.provincialAdmin ||
                 _currentUserRole == UserRole.superAdmin)
               const Tab(icon: Icon(Icons.manage_accounts), text: 'Users'),
@@ -479,7 +483,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
               label: const Text('Post Announcement'),
             );
           }
-          if (tabController.index == 2) {
+          // Users tab is index 3 for provincial/super admins
+          if (tabController.index == 3 &&
+              (_currentUserRole == UserRole.provincialAdmin ||
+                  _currentUserRole == UserRole.superAdmin)) {
             return FloatingActionButton(
               onPressed: _showAddUserByPhoneSheet,
               backgroundColor: lguColor,
@@ -618,7 +625,19 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
             isProvincialAdmin: _isProvincialView,
           ),
 
-          // ── Tab 3: Users (provincial + super admin only) ──
+          // ── Tab 3: Analytics ──
+          StreamBuilder<List<ProblemReport>>(
+            stream: _reportsStream,
+            builder: (context, snapshot) {
+              final reports = snapshot.data ?? [];
+              return _AnalyticsTab(
+                reports: reports,
+                lguColor: lguColor,
+              );
+            },
+          ),
+
+          // ── Tab 4: Users (provincial + super admin only) ──
           if (_currentUserRole == UserRole.provincialAdmin ||
               _currentUserRole == UserRole.superAdmin)
             _RoleManagementTab(lguColor: lguColor),
@@ -778,19 +797,24 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
             const SizedBox(width: 4),
             ...[
               ReportStatus.reported,
+              ReportStatus.underReview,
               ReportStatus.ongoing,
               ReportStatus.solved,
             ].map((s) {
               final label = s == ReportStatus.reported
                   ? 'Pending'
-                  : s == ReportStatus.ongoing
-                      ? 'Ongoing'
-                      : 'Solved';
+                  : s == ReportStatus.underReview
+                      ? 'Under Review'
+                      : s == ReportStatus.ongoing
+                          ? 'Ongoing'
+                          : 'Solved';
               final color = s == ReportStatus.reported
                   ? Colors.blue
-                  : s == ReportStatus.ongoing
-                      ? Colors.orange
-                      : Colors.green;
+                  : s == ReportStatus.underReview
+                      ? Colors.purple
+                      : s == ReportStatus.ongoing
+                          ? Colors.orange
+                          : Colors.green;
               return Padding(
                 padding: const EdgeInsets.only(right: 4),
                 child: FilterChip(
@@ -1082,6 +1106,8 @@ class _ReportDetailSheet extends StatelessWidget {
       onStatusUpdate;
   final Future<void> Function(String reportId, String userId) onEscalate;
   final Future<void> Function(String reportId, String userId) onDelete;
+  final Future<void> Function(String reportId, String userId, bool isFlagged)
+      onFlagUpdate;
 
   const _ReportDetailSheet({
     required this.report,
@@ -1091,6 +1117,7 @@ class _ReportDetailSheet extends StatelessWidget {
     required this.onStatusUpdate,
     required this.onEscalate,
     required this.onDelete,
+    required this.onFlagUpdate,
   });
 
   String _formatFullTimestamp(DateTime dt) {
@@ -1509,6 +1536,19 @@ class _ReportDetailSheet extends StatelessWidget {
                     spacing: 8,
                     runSpacing: 8,
                     children: [
+                      if (report.status != ReportStatus.underReview)
+                        _ActionButton(
+                          label: 'Under Review',
+                          color: Colors.purple,
+                          icon: Icons.rate_review,
+                          onTap: () {
+                            if (report.userId != null) {
+                              onStatusUpdate(
+                                  report.id, report.userId!, 'under_review');
+                              Navigator.pop(context);
+                            }
+                          },
+                        ),
                       if (report.status != ReportStatus.ongoing)
                         _ActionButton(
                           label: 'Mark Ongoing',
@@ -1546,6 +1586,21 @@ class _ReportDetailSheet extends StatelessWidget {
                                   report.id, report.userId!, 'reported');
                               Navigator.pop(context);
                             }
+                          },
+                        ),
+                      if (report.userId != null)
+                        _ActionButton(
+                          label: report.isFlagged
+                              ? 'Remove Flag'
+                              : 'Flag Suspicious',
+                          color: Colors.red,
+                          icon: report.isFlagged
+                              ? Icons.flag_outlined
+                              : Icons.flag,
+                          onTap: () {
+                            onFlagUpdate(
+                                report.id, report.userId!, !report.isFlagged);
+                            Navigator.pop(context);
                           },
                         ),
                     ],
@@ -1595,6 +1650,8 @@ class _ReportDetailSheet extends StatelessWidget {
     switch (s) {
       case ReportStatus.reported:
         return Colors.blue.shade700;
+      case ReportStatus.underReview:
+        return Colors.purple.shade700;
       case ReportStatus.ongoing:
         return Colors.orange.shade700;
       case ReportStatus.solved:
@@ -1606,6 +1663,8 @@ class _ReportDetailSheet extends StatelessWidget {
     switch (s) {
       case ReportStatus.reported:
         return 'Pending';
+      case ReportStatus.underReview:
+        return 'Under Review';
       case ReportStatus.ongoing:
         return 'Ongoing';
       case ReportStatus.solved:
@@ -1749,6 +1808,8 @@ class _AdminReportCard extends StatelessWidget {
     switch (s) {
       case ReportStatus.reported:
         return Colors.blue.shade700;
+      case ReportStatus.underReview:
+        return Colors.purple.shade700;
       case ReportStatus.ongoing:
         return Colors.orange.shade700;
       case ReportStatus.solved:
@@ -1760,6 +1821,8 @@ class _AdminReportCard extends StatelessWidget {
     switch (s) {
       case ReportStatus.reported:
         return 'Pending';
+      case ReportStatus.underReview:
+        return 'Under Review';
       case ReportStatus.ongoing:
         return 'Ongoing';
       case ReportStatus.solved:
@@ -1771,6 +1834,8 @@ class _AdminReportCard extends StatelessWidget {
     switch (s) {
       case ReportStatus.reported:
         return Icons.flag;
+      case ReportStatus.underReview:
+        return Icons.rate_review;
       case ReportStatus.ongoing:
         return Icons.construction;
       case ReportStatus.solved:
@@ -1819,6 +1884,18 @@ class _AdminReportCard extends StatelessWidget {
                       fontSize: 11),
                 ),
                 const Spacer(),
+                if (report.isFlagged) ...[
+                  const Icon(Icons.flag, size: 11, color: Colors.red),
+                  const SizedBox(width: 3),
+                  const Text(
+                    'FLAGGED',
+                    style: TextStyle(
+                        color: Colors.red,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(width: 8),
+                ],
                 if (isEscalated) ...[
                   const Icon(Icons.arrow_upward,
                       size: 11, color: Color(0xFF4A148C)),
@@ -1971,6 +2048,21 @@ class _AdminReportCard extends StatelessWidget {
                             fontSize: 10, color: Colors.grey.shade400),
                       ),
                     ),
+                    if (report.status != ReportStatus.underReview)
+                      _SmallStatusButton(
+                        label: 'Review',
+                        color: Colors.purple,
+                        onTap: () {
+                          if (report.userId != null) {
+                            onStatusUpdate(
+                                report.id, report.userId!, 'under_review');
+                          } else {
+                            ToastUtils.showError(
+                                'Cannot update: missing user info');
+                          }
+                        },
+                      ),
+                    const SizedBox(width: 4),
                     if (report.status != ReportStatus.ongoing)
                       _SmallStatusButton(
                         label: 'Ongoing',
@@ -1985,7 +2077,7 @@ class _AdminReportCard extends StatelessWidget {
                           }
                         },
                       ),
-                    const SizedBox(width: 6),
+                    const SizedBox(width: 4),
                     if (report.status != ReportStatus.solved)
                       _SmallStatusButton(
                         label: 'Solved',
@@ -3015,6 +3107,490 @@ class _AddAnnouncementSheetState
             ),
           );
         },
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ANALYTICS TAB
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _AnalyticsTab extends StatelessWidget {
+  final List<ProblemReport> reports;
+  final Color lguColor;
+
+  const _AnalyticsTab({
+    required this.reports,
+    required this.lguColor,
+  });
+
+  // Palette for pie chart slices
+  static const List<Color> _slicePalette = [
+    Color(0xFF1565C0),
+    Color(0xFF2E7D32),
+    Color(0xFFC62828),
+    Color(0xFFE65100),
+    Color(0xFF6A1B9A),
+    Color(0xFF00838F),
+    Color(0xFF558B2F),
+    Color(0xFF4E342E),
+    Color(0xFF37474F),
+    Color(0xFFF9A825),
+    Color(0xFFAD1457),
+    Color(0xFF0277BD),
+    Color(0xFF283593),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    if (reports.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.bar_chart, size: 72, color: lguColor.withValues(alpha: 0.25)),
+            const SizedBox(height: 16),
+            Text(
+              'No data yet',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.grey.shade500,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Analytics will appear once reports are submitted.',
+              style: TextStyle(fontSize: 13, color: Colors.grey.shade400),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      );
+    }
+
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+      children: [
+        _buildKpiGrid(),
+        const SizedBox(height: 20),
+        _buildBarangayChart(),
+        const SizedBox(height: 20),
+        _buildCategoryPieChart(),
+      ],
+    );
+  }
+
+  // ── KPI Tiles ──────────────────────────────────────────────────────────────
+
+  Widget _buildKpiGrid() {
+    final total = reports.length;
+    final resolved = reports.where((r) => r.status == ReportStatus.solved).length;
+    final open = reports.where((r) => r.status != ReportStatus.solved).length;
+
+    final solvedWithTime = reports
+        .where((r) =>
+            r.status == ReportStatus.solved && r.resolvedAt != null)
+        .toList();
+    final String avgResolution;
+    if (solvedWithTime.isEmpty) {
+      avgResolution = '—';
+    } else {
+      final totalDays = solvedWithTime.fold<int>(
+        0,
+        (sum, r) => sum + r.resolvedAt!.difference(r.reportedAt).inDays,
+      );
+      final avg = totalDays / solvedWithTime.length;
+      avgResolution = '${avg.toStringAsFixed(1)} d';
+    }
+
+    return Card(
+      elevation: 2,
+      shadowColor: Colors.black12,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.dashboard_outlined, size: 16, color: lguColor),
+                const SizedBox(width: 6),
+                Text(
+                  'Key Performance Indicators',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                    color: lguColor,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            Row(
+              children: [
+                Expanded(
+                  child: _KpiTile(
+                    label: 'Total Reports',
+                    value: '$total',
+                    icon: Icons.assignment_outlined,
+                    color: lguColor,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: _KpiTile(
+                    label: 'Resolved',
+                    value: '$resolved',
+                    icon: Icons.check_circle_outline,
+                    color: Colors.green.shade700,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                Expanded(
+                  child: _KpiTile(
+                    label: 'Avg Resolution',
+                    value: avgResolution,
+                    icon: Icons.timer_outlined,
+                    color: Colors.orange.shade700,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: _KpiTile(
+                    label: 'Open / Pending',
+                    value: '$open',
+                    icon: Icons.pending_outlined,
+                    color: Colors.blue.shade700,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ── Bar Chart: Reports per Barangay ────────────────────────────────────────
+
+  Widget _buildBarangayChart() {
+    // Aggregate by barangay
+    final Map<String, int> counts = {};
+    for (final r in reports) {
+      final key = (r.barangay == null || r.barangay!.trim().isEmpty)
+          ? 'Unspecified'
+          : r.barangay!.trim();
+      counts[key] = (counts[key] ?? 0) + 1;
+    }
+
+    // Top 10 by count, descending
+    final sorted = counts.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+    final top = sorted.take(10).toList();
+
+    if (top.isEmpty) return const SizedBox.shrink();
+
+    final maxVal = top.first.value.toDouble();
+
+    return Card(
+      elevation: 2,
+      shadowColor: Colors.black12,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 16, 24, 16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.location_on_outlined, size: 16, color: lguColor),
+                const SizedBox(width: 6),
+                Text(
+                  'Reports per Barangay (Top ${top.length})',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                    color: lguColor,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              height: top.length * 42.0,
+              child: BarChart(
+                BarChartData(
+                  alignment: BarChartAlignment.start,
+                  maxY: maxVal * 1.2,
+                  barTouchData: BarTouchData(
+                    touchTooltipData: BarTouchTooltipData(
+                      getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                        final name = top[group.x].key;
+                        final count = rod.toY.toInt();
+                        return BarTooltipItem(
+                          '$name\n$count reports',
+                          const TextStyle(
+                            color: Colors.white,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  titlesData: FlTitlesData(
+                    show: true,
+                    leftTitles: AxisTitles(
+                      sideTitles: SideTitles(
+                        showTitles: true,
+                        reservedSize: 120,
+                        getTitlesWidget: (value, meta) {
+                          final index = value.toInt();
+                          if (index < 0 || index >= top.length) {
+                            return const SizedBox.shrink();
+                          }
+                          final label = top[index].key;
+                          final display = label.length > 16
+                              ? '${label.substring(0, 14)}…'
+                              : label;
+                          return Padding(
+                            padding: const EdgeInsets.only(right: 6),
+                            child: Text(
+                              display,
+                              textAlign: TextAlign.right,
+                              style: const TextStyle(fontSize: 10),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                    bottomTitles: AxisTitles(
+                      sideTitles: SideTitles(
+                        showTitles: true,
+                        reservedSize: 20,
+                        getTitlesWidget: (value, meta) {
+                          if (value == meta.max || value == meta.min) {
+                            return const SizedBox.shrink();
+                          }
+                          return Text(
+                            value.toInt().toString(),
+                            style: const TextStyle(fontSize: 10),
+                          );
+                        },
+                      ),
+                    ),
+                    topTitles: const AxisTitles(
+                        sideTitles: SideTitles(showTitles: false)),
+                    rightTitles: const AxisTitles(
+                        sideTitles: SideTitles(showTitles: false)),
+                  ),
+                  gridData: FlGridData(
+                    show: true,
+                    drawHorizontalLine: false,
+                    drawVerticalLine: true,
+                    getDrawingVerticalLine: (value) => FlLine(
+                      color: Colors.grey.shade200,
+                      strokeWidth: 1,
+                    ),
+                  ),
+                  borderData: FlBorderData(show: false),
+                  barGroups: top.asMap().entries.map((e) {
+                    final i = e.key;
+                    final count = e.value.value.toDouble();
+                    return BarChartGroupData(
+                      x: i,
+                      barRods: [
+                        BarChartRodData(
+                          toY: count,
+                          color: lguColor,
+                          width: 18,
+                          borderRadius: const BorderRadius.only(
+                            topRight: Radius.circular(4),
+                            bottomRight: Radius.circular(4),
+                          ),
+                          backDrawRodData: BackgroundBarChartRodData(
+                            show: true,
+                            toY: maxVal * 1.2,
+                            color: lguColor.withValues(alpha: 0.07),
+                          ),
+                        ),
+                      ],
+                    );
+                  }).toList(),
+                ),
+                swapAnimationDuration: const Duration(milliseconds: 400),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ── Pie Chart: Reports by Category ─────────────────────────────────────────
+
+  Widget _buildCategoryPieChart() {
+    final Map<String, int> counts = {};
+    for (final r in reports) {
+      final key = r.category.displayName;
+      counts[key] = (counts[key] ?? 0) + 1;
+    }
+
+    final sorted = counts.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+
+    if (sorted.isEmpty) return const SizedBox.shrink();
+
+    final total = reports.length;
+
+    final sections = sorted.asMap().entries.map((e) {
+      final i = e.key;
+      final entry = e.value;
+      final pct = entry.value / total * 100;
+      return PieChartSectionData(
+        value: entry.value.toDouble(),
+        color: _slicePalette[i % _slicePalette.length],
+        radius: 64,
+        title: pct >= 7 ? '${pct.toStringAsFixed(0)}%' : '',
+        titleStyle: const TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.bold,
+          color: Colors.white,
+        ),
+        badgeWidget: null,
+      );
+    }).toList();
+
+    return Card(
+      elevation: 2,
+      shadowColor: Colors.black12,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.pie_chart_outline, size: 16, color: lguColor),
+                const SizedBox(width: 6),
+                Text(
+                  'Reports by Category',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                    color: lguColor,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              height: 180,
+              child: PieChart(
+                PieChartData(
+                  sections: sections,
+                  sectionsSpace: 2,
+                  centerSpaceRadius: 40,
+                  pieTouchData: PieTouchData(
+                    touchCallback: (_, __) {},
+                  ),
+                ),
+                swapAnimationDuration: const Duration(milliseconds: 400),
+              ),
+            ),
+            const SizedBox(height: 16),
+            // Legend
+            Wrap(
+              spacing: 10,
+              runSpacing: 8,
+              children: sorted.asMap().entries.map((e) {
+                final i = e.key;
+                final entry = e.value;
+                final color = _slicePalette[i % _slicePalette.length];
+                return Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 10,
+                      height: 10,
+                      decoration: BoxDecoration(
+                        color: color,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      '${entry.key} (${entry.value})',
+                      style: const TextStyle(fontSize: 11),
+                    ),
+                  ],
+                );
+              }).toList(),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// KPI TILE (used by _AnalyticsTab)
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _KpiTile extends StatelessWidget {
+  final String label;
+  final String value;
+  final IconData icon;
+  final Color color;
+
+  const _KpiTile({
+    required this.label,
+    required this.value,
+    required this.icon,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.07),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withValues(alpha: 0.18)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 20, color: color),
+          const SizedBox(height: 8),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 11,
+              color: color.withValues(alpha: 0.75),
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
       ),
     );
   }
