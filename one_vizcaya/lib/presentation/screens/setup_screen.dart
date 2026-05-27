@@ -49,6 +49,8 @@ class _MunicipalitySetupScreenState extends State<MunicipalitySetupScreen> {
           'municipality': _selectedTown,
           'role': 'citizen',
           'createdAt': FieldValue.serverTimestamp(),
+          'consentGiven': true,
+          'consentTimestamp': FieldValue.serverTimestamp(),
         }, SetOptions(merge: true));
       }
 
