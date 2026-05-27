@@ -4,7 +4,7 @@
 
 > `One Vizcaya` is a cross-platform mobile application and intelligent administrative ecosystem built with Flutter and Firebase. It is engineered to bridge the communication gap between the ~530,106 citizens of Nueva Vizcaya and their Local Government Units (LGU) — routing critical field data from the local Barangay level all the way to the Provincial Capitol in real time.
 
-> **Project status:** Feature-complete working prototype, developed as an academic project at Nueva Vizcaya State University. Ready for a supervised pilot deployment in a single municipality prior to wider rollout. See the [Deployment & Pilot Plan](#-master-development-roadmap-status) and [Cost & Sustainability Plan](./COSTS.md).
+> **Project status:** Feature-complete working prototype, developed by a Nueva Vizcaya State University team. Offered to the Provincial Government as a **managed service**, ready for a supervised pilot in a single municipality prior to wider rollout. See the [Deployment & Pilot Plan](#-master-development-roadmap-status), [Cost & Sustainability Plan](#-cost--sustainability-plan), and [Service Model](#-service-model-ownership--continuity).
 
 ---
 
@@ -19,8 +19,8 @@
 8. [Multi-Tiered Triage & Escalation Workflow](#%EF%B8%8F-multi-tiered-triage--escalation-workflow)
 9. [Geospatial Architecture & Emergency Responders](#-geospatial-architecture--emergency-responders)
 10. [Master Development Roadmap Status](#-master-development-roadmap-status)
-11. [Cost & Sustainability](#-cost--sustainability)
-12. [Governance, Ownership & Handover](#-governance-ownership--handover)
+11. [Cost & Sustainability Plan](#-cost--sustainability-plan)
+12. [Service Model, Ownership & Continuity](#-service-model-ownership--continuity)
 
 ---
 
@@ -250,34 +250,158 @@ The dashboard features a toggleable **Google Maps heatmap layer** overlaying rep
 - [ ] **Custom App Icon:** Commissioned official provincial artwork.
 - [ ] **Real LGU Content:** Official FAQ and contact data from the Provincial Government.
 - [ ] **DPWH / PDRRMO Integration:** Direct pipeline to provincial emergency systems.
-- [ ] **Staff Training & Handover:** Train LGU IT personnel to own and maintain the system.
+- [ ] **Staff Training & Support Onboarding:** Train LGU dispatch and admin staff to operate the dashboards, with an ongoing support channel under the service agreement.
 
 ---
 
-## 💰 Cost & Sustainability
+## 💰 Cost & Sustainability Plan
 
-One Vizcaya is engineered to be **extremely low-cost to operate**, with no vendor lock-in to a custom platform. A full breakdown — including Firebase pricing math for a single-municipality pilot, a three-municipality cluster, and a province-wide rollout — is documented separately:
+One Vizcaya is engineered to be **extremely low-cost to operate**, with no vendor lock-in to a custom platform. The figures below use **Firebase Blaze (pay-as-you-go) standard pricing as of 2026** and are intentionally **conservative** — real costs are likely lower thanks to caching, offline persistence, and the free tier applied to every Firebase project.
 
-➡️ **See [COSTS.md](./COSTS.md) for the full Cost & Sustainability Plan.**
+> **Bottom line:** A single-municipality pilot runs at effectively **₱0/month**. Even a province-wide rollout is estimated at well under **₱5,000/month** — less than a single staff salary line, serving all 15 municipalities at once.
 
-| Scale | Estimated monthly cost |
+### Reference Pricing (Firebase Blaze, 2026)
+
+| Resource | Free tier (per project) | Cost beyond free tier |
+| :--- | :--- | :--- |
+| Firestore document reads | 50,000 / day | $0.06 per 100,000 |
+| Firestore document writes | 20,000 / day | $0.18 per 100,000 |
+| Firestore storage | 1 GiB | $0.18 per GB / month |
+| Cloud Storage (photos) | 5 GB stored | $0.026 per GB stored |
+| Cloud Storage download | 1 GB / day | $0.12 per GB downloaded |
+| Cloud Functions | 2,000,000 / month | $0.40 per million |
+| Cloud Messaging (push) | Unlimited | **Free** |
+| Analytics / Crashlytics | Unlimited | **Free** |
+
+*Exchange rate used: US $1 ≈ ₱58 (rounded to ₱60 for safe budgeting).*
+
+### How Cost Is Actually Driven
+Firebase cost is driven by **activity, not population.** We pay for reads, writes, and stored photos — not for registered residents. Cost-control measures already in the design: offline persistence and local drafting (fewer redundant reads), client-side image compression (smaller storage/download bills), user-scoped sub-collections (efficient queries), dashboard pagination (20 reports at a time), and a 12-month auto-archive of resolved reports (flat storage over time).
+
+### Usage Assumptions
+Estimates model a **realistic active reporting population**, not total residents — government experience shows only a small fraction of citizens file a report in any month.
+
+| Assumption | Value |
 | :--- | :--- |
-| Single municipality (pilot) | ≈ ₱0 (within Firebase free tier) |
-| Three municipalities | ≈ ₱50–₱150 |
-| Province-wide (with safety buffer) | under ₱5,000 |
+| Reports per active user / month | ~2 |
+| Photos per report | ~2 (compressed to ~300 KB each) |
+| Reads per report (views + triage + status checks) | ~50 |
+| Writes per report (submit + status updates) | ~5 |
+| % of population filing a report in a month | ~1% (conservative) |
 
-*Estimates are for planning and are re-validated against live Firebase pricing before any procurement decision.*
+### Scenario A — One Municipality (Pilot: Bambang)
+**Population basis:** ≈ 90,000 residents → ~900 active reporters/mo → ~1,800 reports/mo.
+
+| Resource | Monthly volume | Free tier covers? | Charge |
+| :--- | :--- | :--- | :--- |
+| Reads | ~90,000/mo (~3,000/day) | ✅ Yes | ₱0 |
+| Writes | ~9,000/mo (~300/day) | ✅ Yes | ₱0 |
+| Photo storage | ~1.1 GB | ✅ Within 5 GB | ~₱0–₱5 |
+| Photo downloads | ~1.5 GB/mo | ✅ Mostly free | ~₱0–₱10 |
+| Cloud Functions | <10,000/mo | ✅ Yes | ₱0 |
+
+**🟢 Pilot total: ≈ ₱0 / month** — fits comfortably inside Firebase's free quotas. A 3-month pilot in one municipality costs the LGU essentially nothing.
+
+### Scenario B — Three Municipalities (Cluster Rollout)
+**Example:** Bambang + Solano + Bayombong ≈ 230,000 residents → ~2,300 active reporters/mo → ~4,600 reports/mo.
+
+| Resource | Monthly volume | Charge |
+| :--- | :--- | :--- |
+| Reads | ~230,000/mo (~7,700/day) | ₱0 (within free) |
+| Writes | ~23,000/mo (~770/day) | ₱0 (within free) |
+| Photo storage | ~15–25 GB accumulated | ~₱30 |
+| Photo downloads | ~4 GB/mo | ~₱20 |
+| Cloud Functions | ~25,000/mo | ₱0 (within free) |
+
+**🟡 Three-municipality total: ≈ ₱50–₱150 / month** — growth is almost entirely accumulated photo storage, kept in check by the 12-month archive policy.
+
+### Scenario C — Province-Wide (All of Nueva Vizcaya)
+**Population basis:** ≈ 530,106 residents → ~5,300 active reporters/mo (1%) → ~10,600 reports/mo. A **3% stress-test** models ~15,900 reporters → ~31,800 reports/mo.
+
+| Resource | Volume @ 1% | Volume @ 3% (stress) | Charge (stress) |
+| :--- | :--- | :--- | :--- |
+| Reads | ~530,000/mo | ~1.6M/mo (~53k/day) | ~₱30 |
+| Writes | ~53,000/mo | ~159,000/mo | ₱0 |
+| Photo storage | grows ~6 GB/mo | ~100+ GB/yr | ~₱155/mo |
+| Photo downloads | ~10 GB/mo | ~30 GB/mo | ~₱200/mo |
+| Cloud Functions | ~55,000/mo | ~160,000/mo | ₱0 |
+| Safety buffer (spikes) | — | — | +₱1,000–₱2,000 |
+
+**🔴 Province-wide total: ≈ ₱500/month (normal) to ₱3,000–₱4,500/month (heavy usage + buffer).** Even at triple the expected adoption with a disaster-spike buffer, the full provincial system stays under ₱5,000/month.
+
+### Summary
+
+| Scale | Active reporters/mo | Reports/mo | Estimated monthly cost |
+| :--- | :--- | :--- | :--- |
+| **1 Municipality (Pilot)** | ~900 | ~1,800 | **≈ ₱0** |
+| **3 Municipalities** | ~2,300 | ~4,600 | **≈ ₱50–₱150** |
+| **Province-wide (normal)** | ~5,300 | ~10,600 | **≈ ₱500** |
+| **Province-wide (stress + buffer)** | ~15,900 | ~31,800 | **≈ ₱3,000–₱4,500** |
+
+### Honest Cost Risks
+1. **Disaster spikes** — reads and uploads surge for a few days during a major typhoon; the buffer covers this, and it is temporary.
+2. **SMS authentication** — phone-OTP login costs ~$0.01–$0.06 per SMS. Recommendation: use email/Google sign-in for citizens, reserving SMS only for the future accessibility fallback.
+3. **Unoptimized future code** — careless real-time listeners cause read amplification; the BLoC architecture and pagination guard against this.
+4. **Dropping the archive policy** — storage grows without bound if the 12-month auto-archive is removed. It must be kept.
+
+*Estimates are for planning and are re-validated against live Firebase pricing before any procurement decision. Verify current municipal populations (PSA) and the peso–dollar rate before presenting.*
 
 ---
 
-## 🤝 Governance, Ownership & Handover
+### Total Cost of Ownership: Two Separate Line Items
 
-This system is **not dependent on a single developer.**
+It is important to distinguish two different costs. Government budget officers will want this separation made explicit:
 
-* **Source-code ownership** is turned over to the adopting LGU, along with full setup and deployment documentation.
-* **Billing** runs under the LGU's own Google Cloud account, so the province directly controls and monitors all spending, with budget alerts configured.
-* **Maintenance** is supported by training LGU IT staff during the pilot, ensuring the system outlives any individual's involvement.
-* **Technology choices** (Flutter, Firebase, standard web) are mainstream and maintainable by any competent developer the LGU engages in the future.
+| Cost component | What it is | Who pays / how billed |
+| :--- | :--- | :--- |
+| **A. Cloud infrastructure** | The Firebase/Google Cloud usage detailed above (reads, writes, storage). | Passed through transparently — the LGU sees the actual bill, with no markup. |
+| **B. Professional service** | Development team's work: hosting management, maintenance, security updates, feature development, training, and support. | A defined service fee under the engagement agreement. |
+
+The infrastructure cost (A) is genuinely low — effectively ₱0 at pilot scale and under ₱5,000/month even province-wide. **The primary value the Provincial Government pays for is the service (B): a professional team that keeps the platform secure, updated, supported, and continuously improved**, rather than letting it decay as unmaintained code.
+
+### Why a Managed Service Costs Less Than the Alternatives
+
+A useful comparison for decision-makers:
+
+| Option | Typical reality | One Vizcaya managed service |
+| :--- | :--- | :--- |
+| **Build in-house** | Hire and retain full-time developers; high salary cost; knowledge lost if staff leave. | No hiring burden; an experienced team already familiar with the system. |
+| **Large software vendor** | Six- or seven-figure contracts; generic product not tailored to NV; slow change requests. | Purpose-built *for* Nueva Vizcaya, by people from the province; fast, direct iteration. |
+| **One-time custom build** | Paid once, then abandoned; no one maintains it; security rots; eventually unusable. | Continuously maintained and improved for the life of the agreement. |
+| **Do nothing** | Reports stay scattered; no data; slow disaster response. | Structured, mapped, trackable civic reporting. |
+
+### Pilot vs. Operational Phases
+
+* **Pilot phase (3 months, one municipality):** Infrastructure cost ≈ ₱0. The team can run the pilot at minimal or waived service cost to demonstrate value — a low-risk trial for the LGU.
+* **Operational phase (post-pilot):** A service agreement is established, scoped to the municipalities adopting the platform, with infrastructure billed transparently and a defined professional service fee. Terms scale with the deployment — a single municipality is modest; a province-wide engagement is larger but still far below traditional government IT contracts.
+
+> *Specific service fees are proposed separately and negotiated in line with government procurement regulations. The figures in this section cover infrastructure cost; the service component is quoted based on the agreed scope.*
+
+---
+
+## 🤝 Service Model, Ownership & Continuity
+
+One Vizcaya is offered to the Provincial Government as a **managed service**, not a one-time code dump. The development team builds, hosts, maintains, and continuously improves the platform under a service agreement, while the LGU retains full control over its own data and operations. This keeps the platform professionally maintained, secure, and evolving — rather than becoming abandoned code that no one is responsible for.
+
+### Who owns what
+* **Software & intellectual property:** Retained by the development team. The LGU receives a **non-exclusive license to use** the platform for the province under the service agreement — the same model used by virtually all government software vendors.
+* **Government data:** Owned entirely by the LGU. All citizen reports, media, and records belong to the Provincial Government and are exportable at any time. The team never claims ownership of public data.
+
+### Why this protects the LGU (continuity, not dependency)
+A common and fair concern is *"what if the developers disappear?"* This model addresses that directly:
+* **Source-code escrow / continuity clause:** A copy of the full source and deployment documentation is held in escrow (or with the LGU legal office), released to the LGU if the team ever ceases to operate — so the province is never stranded.
+* **Two-developer team, not a solo dependency:** The platform is maintained by a team, reducing single-person risk.
+* **Standard, non-proprietary stack:** Flutter and Firebase are mainstream and widely supported. If the LGU ever changes providers, another competent developer can take over — there is no exotic lock-in.
+* **Full documentation & data export:** Complete technical documentation and one-click data export are provided, so transition is always possible.
+
+### What the service agreement covers
+* Hosting setup and configuration on a dedicated project.
+* Ongoing maintenance, security updates, and bug fixes.
+* Feature development and improvements over time.
+* Staff training and a support channel for LGU dispatchers and administrators.
+* Cloud infrastructure costs (billed transparently — see the Cost & Sustainability Plan).
+
+> *Engagement terms (service period, scope, and fees) are defined jointly with the Provincial Government in accordance with applicable government procurement rules.*
 
 ---
 
