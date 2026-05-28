@@ -77,6 +77,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
       // Super admin can toggle; provincial admin cannot
       _isProvincialView = role == UserRole.provincialAdmin || role == UserRole.superAdmin;
       _isLoadingRole = false;
+      _rebuildReportsStream();
     });
   }
 
@@ -86,9 +87,13 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
   Color get _activeLguColor =>
       oneVizcayaState.activeTheme['appBarColor'] as Color;
 
-  Stream<List<ProblemReport>> get _reportsStream => _isProvincialView
-      ? _reportRepository.getAllProvincialReports()
-      : _reportRepository.getAllMunicipalityReports(_activeMunicipalityName);
+  Stream<List<ProblemReport>>? _reportsStream;
+
+  void _rebuildReportsStream() {
+    _reportsStream = _isProvincialView
+        ? _reportRepository.getAllProvincialReports()
+        : _reportRepository.getAllMunicipalityReports(_activeMunicipalityName);
+  }
 
   void _showAddAnnouncementSheet() {
     showModalBottomSheet(
@@ -372,7 +377,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
   }
 
   List<ProblemReport> _applyFiltersAndSort(List<ProblemReport> reports) {
-    var filtered = reports;
+    // Always hide archived reports from active admin views
+    var filtered =
+        reports.where((r) => r.status != ReportStatus.archived).toList();
 
     if (_filterPriority != null) {
       filtered =
@@ -446,6 +453,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                   _isProvincialView = !_isProvincialView;
                   _filterPriority = null;
                   _filterStatus = null;
+                  _rebuildReportsStream();
                 }),
               ),
             ),
@@ -511,7 +519,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
               _buildSortRow(lguColor),
               Expanded(
                 child: StreamBuilder<List<ProblemReport>>(
-                  stream: _reportsStream,
+                  stream: _reportsStream ?? const Stream.empty(),
                   builder: (context, snapshot) {
                     if (snapshot.hasError) {
                       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -627,7 +635,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
 
           // ── Tab 3: Analytics ──
           StreamBuilder<List<ProblemReport>>(
-            stream: _reportsStream,
+            stream: _reportsStream ?? const Stream.empty(),
             builder: (context, snapshot) {
               final reports = snapshot.data ?? [];
               return _AnalyticsTab(
@@ -648,9 +656,11 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
 
   Widget _buildSummaryBar(Color lguColor) {
     return StreamBuilder<List<ProblemReport>>(
-      stream: _reportsStream,
+      stream: _reportsStream ?? const Stream.empty(),
       builder: (context, snapshot) {
-        final reports = snapshot.data ?? [];
+        final reports = (snapshot.data ?? [])
+            .where((r) => r.status != ReportStatus.archived)
+            .toList();
         final total = reports.length;
         final critical = reports
             .where((r) =>
@@ -659,6 +669,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
             .length;
         final pending =
             reports.where((r) => r.status == ReportStatus.reported).length;
+        final underReview =
+            reports.where((r) => r.status == ReportStatus.underReview).length;
         final ongoing =
             reports.where((r) => r.status == ReportStatus.ongoing).length;
         final solved =
@@ -711,6 +723,19 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                       _filterStatus == ReportStatus.reported
                           ? null
                           : ReportStatus.reported;
+                  _filterPriority = null;
+                }),
+              ),
+              _ClickableStatBadge(
+                label: 'Review',
+                count: underReview,
+                color: Colors.purple.shade200,
+                isSelected: _filterStatus == ReportStatus.underReview,
+                onTap: () => setState(() {
+                  _filterStatus =
+                      _filterStatus == ReportStatus.underReview
+                          ? null
+                          : ReportStatus.underReview;
                   _filterPriority = null;
                 }),
               ),
@@ -878,7 +903,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                   style: TextStyle(fontSize: 11)),
             ),
           StreamBuilder<List<ProblemReport>>(
-            stream: _reportsStream,
+            stream: _reportsStream ?? const Stream.empty(),
             builder: (context, snapshot) {
               final reports = snapshot.data ?? [];
               if (reports.isEmpty) return const SizedBox.shrink();
@@ -1595,8 +1620,8 @@ class _ReportDetailSheet extends StatelessWidget {
                               : 'Flag Suspicious',
                           color: Colors.red,
                           icon: report.isFlagged
-                              ? Icons.flag_outlined
-                              : Icons.flag,
+                              ? Icons.flag
+                              : Icons.flag_outlined,
                           onTap: () {
                             onFlagUpdate(
                                 report.id, report.userId!, !report.isFlagged);
@@ -1656,6 +1681,8 @@ class _ReportDetailSheet extends StatelessWidget {
         return Colors.orange.shade700;
       case ReportStatus.solved:
         return Colors.green.shade700;
+      case ReportStatus.archived:
+        return Colors.grey.shade600;
     }
   }
 
@@ -1669,6 +1696,8 @@ class _ReportDetailSheet extends StatelessWidget {
         return 'Ongoing';
       case ReportStatus.solved:
         return 'Solved';
+      case ReportStatus.archived:
+        return 'Archived';
     }
   }
 }
@@ -1814,6 +1843,8 @@ class _AdminReportCard extends StatelessWidget {
         return Colors.orange.shade700;
       case ReportStatus.solved:
         return Colors.green.shade700;
+      case ReportStatus.archived:
+        return Colors.grey.shade600;
     }
   }
 
@@ -1827,6 +1858,8 @@ class _AdminReportCard extends StatelessWidget {
         return 'Ongoing';
       case ReportStatus.solved:
         return 'Solved';
+      case ReportStatus.archived:
+        return 'Archived';
     }
   }
 
@@ -1840,6 +1873,8 @@ class _AdminReportCard extends StatelessWidget {
         return Icons.construction;
       case ReportStatus.solved:
         return Icons.check_circle;
+      case ReportStatus.archived:
+        return Icons.archive;
     }
   }
 

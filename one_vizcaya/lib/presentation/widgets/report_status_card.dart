@@ -90,6 +90,8 @@ class _ReportStatusCardState extends State<ReportStatusCard>
         return Icons.construction;
       case ReportStatus.solved:
         return Icons.check_circle;
+      case ReportStatus.archived:
+        return Icons.archive;
     }
   }
 
@@ -103,6 +105,8 @@ class _ReportStatusCardState extends State<ReportStatusCard>
         return Colors.orange.shade700;
       case ReportStatus.solved:
         return Colors.green.shade700;
+      case ReportStatus.archived:
+        return Colors.grey.shade600;
     }
   }
 
@@ -116,6 +120,8 @@ class _ReportStatusCardState extends State<ReportStatusCard>
         return 'Ongoing Process';
       case ReportStatus.solved:
         return 'Problem Solved';
+      case ReportStatus.archived:
+        return 'Archived';
     }
   }
 
@@ -129,6 +135,7 @@ class _ReportStatusCardState extends State<ReportStatusCard>
       case ReportStatus.ongoing:
         return 2;
       case ReportStatus.solved:
+      case ReportStatus.archived:
         return 3;
     }
   }

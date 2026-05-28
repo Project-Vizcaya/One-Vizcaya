@@ -42,13 +42,16 @@ class _MunicipalitySetupScreenState extends State<MunicipalitySetupScreen> {
       final user = FirebaseAuth.instance.currentUser;
       if (user != null) {
         final ref = FirebaseFirestore.instance.collection('users').doc(user.uid);
+        // Check existence so createdAt is never overwritten on re-setup
+        final existing = await ref.get();
+        final isNew = !existing.exists || existing.data()?['createdAt'] == null;
         await ref.set({
           'uid': user.uid,
           'name': _nameController.text.trim(),
           'phoneNumber': user.phoneNumber ?? '',
           'municipality': _selectedTown,
           'role': 'citizen',
-          'createdAt': FieldValue.serverTimestamp(),
+          if (isNew) 'createdAt': FieldValue.serverTimestamp(),
           'consentGiven': true,
           'consentTimestamp': FieldValue.serverTimestamp(),
         }, SetOptions(merge: true));
