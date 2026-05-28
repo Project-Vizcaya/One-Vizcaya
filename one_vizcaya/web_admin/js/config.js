@@ -15,7 +15,7 @@ const FIREBASE_CONFIG = {
 const MAPS_API_KEY = "AIzaSyCcKuCdQDdl6pxlLTFy88wTpEfjj2rwikI";
 
 // ─── App Version ──────────────────────────────────────────────────────────
-const APP_VERSION = "1.0.6";
+const APP_VERSION = "1.1.4";
 
 // ─── Map Center (Nueva Vizcaya) ────────────────────────────────────────────
 const NV_CENTER = { lat: 16.4500, lng: 121.1700 };
