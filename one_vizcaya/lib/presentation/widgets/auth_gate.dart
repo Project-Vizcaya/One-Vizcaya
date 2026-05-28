@@ -69,8 +69,7 @@ class _AuthGateState extends State<AuthGate> {
           future: _onboardingFuture,
           builder: (context, onbSnap) {
             if (onbSnap.connectionState == ConnectionState.waiting) {
-              return const Scaffold(
-                  body: Center(child: CircularProgressIndicator()));
+              return const SplashScreen();
             }
             if (onbSnap.data == true) return const OnboardingScreen();
 
@@ -78,8 +77,7 @@ class _AuthGateState extends State<AuthGate> {
               future: _setupFuture,
               builder: (context, setupSnap) {
                 if (setupSnap.connectionState == ConnectionState.waiting) {
-                  return const Scaffold(
-                      body: Center(child: CircularProgressIndicator()));
+                  return const SplashScreen();
                 }
                 if (setupSnap.data == true) {
                   return const MunicipalitySetupScreen();

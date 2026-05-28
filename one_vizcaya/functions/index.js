@@ -102,9 +102,19 @@ exports.resetRateLimits = onSchedule(
     const snapshot = await db.collection("rate_limits").get();
     if (snapshot.empty) return;
 
-    const batch = db.batch();
-    snapshot.docs.forEach((doc) => batch.delete(doc.ref));
-    await batch.commit();
+    // Use rolling batches to stay under Firestore's 500-write limit
+    let batch = db.batch();
+    let count = 0;
+    for (const doc of snapshot.docs) {
+      batch.delete(doc.ref);
+      count++;
+      if (count >= 490) {
+        await batch.commit();
+        batch = db.batch();
+        count = 0;
+      }
+    }
+    if (count > 0) await batch.commit();
     console.log(`Reset ${snapshot.size} rate limit records`);
   }
 );
