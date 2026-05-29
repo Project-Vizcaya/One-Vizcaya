@@ -1,5 +1,6 @@
 enum ReportStatus {
   reported,
+  acknowledged,
   underReview,
   ongoing,
   solved,
@@ -9,6 +10,8 @@ enum ReportStatus {
 extension ReportStatusExtension on ReportStatus {
   static ReportStatus fromString(String? status) {
     switch (status) {
+      case 'acknowledged':
+        return ReportStatus.acknowledged;
       case 'under_review':
         return ReportStatus.underReview;
       case 'ongoing':

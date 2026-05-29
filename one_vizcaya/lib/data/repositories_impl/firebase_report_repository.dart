@@ -151,6 +151,10 @@ class FirebaseReportRepository implements ReportRepository {
         body =
             'Great news! Your report has been resolved. Thank you for helping improve your community.';
         break;
+      case 'acknowledged':
+        title = 'Report Acknowledged';
+        body = 'The LGU has received and acknowledged your report.';
+        break;
       case 'under_review':
         title = 'Report Under Review';
         body = 'Your report is now being reviewed by the LGU.';

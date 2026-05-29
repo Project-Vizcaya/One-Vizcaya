@@ -84,6 +84,8 @@ class _ReportStatusCardState extends State<ReportStatusCard>
     switch (status) {
       case ReportStatus.reported:
         return Icons.flag;
+      case ReportStatus.acknowledged:
+        return Icons.thumb_up_alt_outlined;
       case ReportStatus.underReview:
         return Icons.rate_review;
       case ReportStatus.ongoing:
@@ -99,6 +101,8 @@ class _ReportStatusCardState extends State<ReportStatusCard>
     switch (status) {
       case ReportStatus.reported:
         return Colors.blue.shade700;
+      case ReportStatus.acknowledged:
+        return Colors.teal.shade700;
       case ReportStatus.underReview:
         return Colors.purple.shade700;
       case ReportStatus.ongoing:
@@ -114,6 +118,8 @@ class _ReportStatusCardState extends State<ReportStatusCard>
     switch (status) {
       case ReportStatus.reported:
         return 'Reported';
+      case ReportStatus.acknowledged:
+        return 'Acknowledged';
       case ReportStatus.underReview:
         return 'Under Review';
       case ReportStatus.ongoing:
@@ -130,20 +136,21 @@ class _ReportStatusCardState extends State<ReportStatusCard>
     switch (status) {
       case ReportStatus.reported:
         return 0;
-      case ReportStatus.underReview:
+      case ReportStatus.acknowledged:
         return 1;
-      case ReportStatus.ongoing:
+      case ReportStatus.underReview:
         return 2;
+      case ReportStatus.ongoing:
+        return 3;
       case ReportStatus.solved:
       case ReportStatus.archived:
-        return 3;
+        return 4;
     }
   }
 
   Widget _buildStepTracker() {
     final step = _currentStep(widget.report.status);
-    // Labels shortened to fit under small circles
-    const stepLabels = ['Reported', 'Under Review', 'In Progress', 'Resolved'];
+    const stepLabels = ['Reported', 'Acknowledged', 'Under Review', 'In Progress', 'Resolved'];
     final activeColor = Colors.green.shade600;
     const greyColor = Color(0xFFBDBDBD);
     const size = 20.0;
