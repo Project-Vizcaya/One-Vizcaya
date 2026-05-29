@@ -669,6 +669,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
             .length;
         final pending =
             reports.where((r) => r.status == ReportStatus.reported).length;
+        final acknowledged =
+            reports.where((r) => r.status == ReportStatus.acknowledged).length;
         final underReview =
             reports.where((r) => r.status == ReportStatus.underReview).length;
         final ongoing =
@@ -723,6 +725,19 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                       _filterStatus == ReportStatus.reported
                           ? null
                           : ReportStatus.reported;
+                  _filterPriority = null;
+                }),
+              ),
+              _ClickableStatBadge(
+                label: 'Ack\'d',
+                count: acknowledged,
+                color: Colors.teal.shade200,
+                isSelected: _filterStatus == ReportStatus.acknowledged,
+                onTap: () => setState(() {
+                  _filterStatus =
+                      _filterStatus == ReportStatus.acknowledged
+                          ? null
+                          : ReportStatus.acknowledged;
                   _filterPriority = null;
                 }),
               ),
@@ -822,24 +837,29 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
             const SizedBox(width: 4),
             ...[
               ReportStatus.reported,
+              ReportStatus.acknowledged,
               ReportStatus.underReview,
               ReportStatus.ongoing,
               ReportStatus.solved,
             ].map((s) {
               final label = s == ReportStatus.reported
                   ? 'Pending'
-                  : s == ReportStatus.underReview
-                      ? 'Under Review'
-                      : s == ReportStatus.ongoing
-                          ? 'Ongoing'
-                          : 'Solved';
+                  : s == ReportStatus.acknowledged
+                      ? 'Acknowledged'
+                      : s == ReportStatus.underReview
+                          ? 'Under Review'
+                          : s == ReportStatus.ongoing
+                              ? 'Ongoing'
+                              : 'Solved';
               final color = s == ReportStatus.reported
                   ? Colors.blue
-                  : s == ReportStatus.underReview
-                      ? Colors.purple
-                      : s == ReportStatus.ongoing
-                          ? Colors.orange
-                          : Colors.green;
+                  : s == ReportStatus.acknowledged
+                      ? Colors.teal
+                      : s == ReportStatus.underReview
+                          ? Colors.purple
+                          : s == ReportStatus.ongoing
+                              ? Colors.orange
+                              : Colors.green;
               return Padding(
                 padding: const EdgeInsets.only(right: 4),
                 child: FilterChip(
@@ -1561,6 +1581,19 @@ class _ReportDetailSheet extends StatelessWidget {
                     spacing: 8,
                     runSpacing: 8,
                     children: [
+                      if (report.status != ReportStatus.acknowledged)
+                        _ActionButton(
+                          label: 'Acknowledge',
+                          color: Colors.teal,
+                          icon: Icons.thumb_up_alt_outlined,
+                          onTap: () {
+                            if (report.userId != null) {
+                              onStatusUpdate(
+                                  report.id, report.userId!, 'acknowledged');
+                              Navigator.pop(context);
+                            }
+                          },
+                        ),
                       if (report.status != ReportStatus.underReview)
                         _ActionButton(
                           label: 'Under Review',
@@ -1675,6 +1708,8 @@ class _ReportDetailSheet extends StatelessWidget {
     switch (s) {
       case ReportStatus.reported:
         return Colors.blue.shade700;
+      case ReportStatus.acknowledged:
+        return Colors.teal.shade700;
       case ReportStatus.underReview:
         return Colors.purple.shade700;
       case ReportStatus.ongoing:
@@ -1690,6 +1725,8 @@ class _ReportDetailSheet extends StatelessWidget {
     switch (s) {
       case ReportStatus.reported:
         return 'Pending';
+      case ReportStatus.acknowledged:
+        return 'Acknowledged';
       case ReportStatus.underReview:
         return 'Under Review';
       case ReportStatus.ongoing:
@@ -1837,6 +1874,8 @@ class _AdminReportCard extends StatelessWidget {
     switch (s) {
       case ReportStatus.reported:
         return Colors.blue.shade700;
+      case ReportStatus.acknowledged:
+        return Colors.teal.shade700;
       case ReportStatus.underReview:
         return Colors.purple.shade700;
       case ReportStatus.ongoing:
@@ -1852,6 +1891,8 @@ class _AdminReportCard extends StatelessWidget {
     switch (s) {
       case ReportStatus.reported:
         return 'Pending';
+      case ReportStatus.acknowledged:
+        return 'Acknowledged';
       case ReportStatus.underReview:
         return 'Under Review';
       case ReportStatus.ongoing:
@@ -1867,6 +1908,8 @@ class _AdminReportCard extends StatelessWidget {
     switch (s) {
       case ReportStatus.reported:
         return Icons.flag;
+      case ReportStatus.acknowledged:
+        return Icons.thumb_up_alt_outlined;
       case ReportStatus.underReview:
         return Icons.rate_review;
       case ReportStatus.ongoing:
@@ -2083,6 +2126,21 @@ class _AdminReportCard extends StatelessWidget {
                             fontSize: 10, color: Colors.grey.shade400),
                       ),
                     ),
+                    if (report.status != ReportStatus.acknowledged)
+                      _SmallStatusButton(
+                        label: 'Ack',
+                        color: Colors.teal,
+                        onTap: () {
+                          if (report.userId != null) {
+                            onStatusUpdate(
+                                report.id, report.userId!, 'acknowledged');
+                          } else {
+                            ToastUtils.showError(
+                                'Cannot update: missing user info');
+                          }
+                        },
+                      ),
+                    const SizedBox(width: 4),
                     if (report.status != ReportStatus.underReview)
                       _SmallStatusButton(
                         label: 'Review',

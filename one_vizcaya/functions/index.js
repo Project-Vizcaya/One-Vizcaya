@@ -29,6 +29,7 @@ exports.notifyOnStatusChange = onDocumentUpdated(
 
     const statusLabels = {
       reported: "Reported",
+      acknowledged: "Acknowledged",
       under_review: "Under Review",
       ongoing: "In Progress",
       solved: "Resolved",

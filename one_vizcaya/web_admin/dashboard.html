@@ -97,6 +97,8 @@
     .badge-status{padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700;white-space:nowrap}
     .badge-priority{padding:4px 10px;border-radius:20px;font-size:10px;font-weight:700;white-space:nowrap}
     .s-reported{background:#E8F5E9;color:#276749}
+    .s-acknowledged{background:#E0F2F1;color:#00695C}
+    .s-under_review{background:#F3E8FF;color:#6B21A8}
     .s-ongoing{background:#FFFAF0;color:#C05621}
     .s-solved{background:#F0FFF4;color:#276749}
     .p-critical{background:#FFF5F5;color:#C53030}
@@ -418,6 +420,8 @@
     <select id="bulk-status-select" style="padding:6px 10px;border-radius:8px;border:none;font-size:13px;font-weight:600;cursor:pointer">
       <option value="">Mark as…</option>
       <option value="reported">Reported</option>
+      <option value="acknowledged">Acknowledged</option>
+      <option value="under_review">Under Review</option>
       <option value="ongoing">Ongoing</option>
       <option value="solved">Solved</option>
     </select>
@@ -671,6 +675,8 @@
         <div class="reports-filter">
           <button class="chip active" onclick="filterReports('all',this)">All</button>
           <button class="chip" onclick="filterReports('reported',this)">Reported</button>
+          <button class="chip" onclick="filterReports('acknowledged',this)">Acknowledged</button>
+          <button class="chip" onclick="filterReports('under_review',this)">Under Review</button>
           <button class="chip" onclick="filterReports('ongoing',this)">Ongoing</button>
           <button class="chip" onclick="filterReports('solved',this)">Solved</button>
           <button class="chip" id="chip-critical" style="border-color:#FED7D7;color:#C53030" onclick="filterReportsByCritical(this)">🚨 Critical</button>
@@ -946,10 +952,10 @@ let unsubscribeReports = null;
 let unsubscribeAnnouncements = null;
 
 // ── Shared label / class lookup constants ─────────────────────────────────────
-const STATUS_LABELS   = { reported: 'Reported', ongoing: 'Ongoing', solved: 'Solved' };
-const STATUS_LABELS_V = { reported: 'Reported', ongoing: 'Ongoing', solved: 'Solved ✓' };
+const STATUS_LABELS   = { reported: 'Reported', acknowledged: 'Acknowledged', under_review: 'Under Review', ongoing: 'Ongoing', solved: 'Solved' };
+const STATUS_LABELS_V = { reported: 'Reported', acknowledged: 'Acknowledged', under_review: 'Under Review', ongoing: 'Ongoing', solved: 'Solved ✓' };
 const PRIORITY_LABELS = { critical: 'Critical', high: 'High', medium: 'Medium', low: 'Low' };
-const STATUS_CLASS    = { reported: 's-reported', ongoing: 's-ongoing', solved: 's-solved' };
+const STATUS_CLASS    = { reported: 's-reported', acknowledged: 's-acknowledged', under_review: 's-under_review', ongoing: 's-ongoing', solved: 's-solved' };
 const PRIORITY_CLASS  = { critical: 'p-critical', high: 'p-high', medium: 'p-medium', low: 'p-low' };
 
 let map, heatmapLayer;
@@ -1502,7 +1508,7 @@ function statCardFilter(type) {
   } else {
     criticalOnly  = false;
     currentFilter = type;
-    const chipMap = { all: 0, reported: 1, ongoing: 2, solved: 3 };
+    const chipMap = { all: 0, reported: 1, acknowledged: 2, under_review: 3, ongoing: 4, solved: 5 };
     const chips = document.querySelectorAll('.reports-filter .chip');
     if (chipMap[type] !== undefined) chips[chipMap[type]]?.classList.add('active');
   }
@@ -1701,7 +1707,7 @@ async function openReportDetail(reportId, userId) {
         <div style="background:#F7FAFC;border-radius:10px;padding:14px">
           <div style="font-size:11px;font-weight:700;color:#A0AEC0;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Update Status</div>
           <div style="display:flex;gap:8px;flex-wrap:wrap">
-            ${['reported','ongoing','solved'].map(s => `
+            ${['reported','acknowledged','under_review','ongoing','solved'].map(s => `
               <button onclick="updateReportStatus('${userId}','${reportId}','${s}',this)"
                 style="flex:1;min-width:90px;padding:10px;border-radius:10px;border:2px solid ${r.status===s?'#2E7D32':'#E2E8F0'};
                        background:${r.status===s?'#2E7D32':'#fff'};color:${r.status===s?'#fff':'#4A5568'};
