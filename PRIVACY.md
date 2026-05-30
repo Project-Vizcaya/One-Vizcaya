@@ -1,7 +1,7 @@
 # Privacy Policy — One Vizcaya
 
 **Effective Date:** May 27, 2026
-**App Version:** 1.1.4
+**App Version:** 1.1.10
 
 ---
 
