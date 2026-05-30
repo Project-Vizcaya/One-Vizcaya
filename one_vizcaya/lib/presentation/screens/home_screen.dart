@@ -109,12 +109,6 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Color.lerp(Theme.of(context).scaffoldBackgroundColor, _appBarColor, 0.10)!,
-      // DIAGNOSTIC BAR — remove once screen confirmed working
-      appBar: AppBar(
-        backgroundColor: Colors.green.shade700,
-        title: const Text('One Vizcaya — BUILD OK', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        automaticallyImplyLeading: false,
-      ),
       body: SafeArea(
         child: Column(
           children: [
@@ -587,41 +581,45 @@ class _HomeScreenState extends State<HomeScreen> {
       child: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-          child: Align(
-            alignment: Alignment.center,
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 360),
-              child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-            decoration: BoxDecoration(
-              color: const Color(0xFF333333),
-              borderRadius: BorderRadius.circular(28),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _BottomNavItem(
-                  icon: Icons.home_rounded,
-                  isSelected: _selectedNavIndex == 0,
-                  onTap: () => setState(() => _selectedNavIndex = 0),
-                  selectedColor: appBarColor,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Flexible(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 360),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF333333),
+                      borderRadius: BorderRadius.circular(28),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      children: [
+                        _BottomNavItem(
+                          icon: Icons.home_rounded,
+                          isSelected: _selectedNavIndex == 0,
+                          onTap: () => setState(() => _selectedNavIndex = 0),
+                          selectedColor: appBarColor,
+                        ),
+                        _BottomNavItem(
+                          icon: Icons.camera_alt_rounded,
+                          isSelected: false,
+                          onTap: () => Navigator.of(context).pushNamed('/report'),
+                          selectedColor: appBarColor,
+                        ),
+                        _BottomNavItem(
+                          icon: Icons.grid_view_rounded,
+                          isSelected: _selectedNavIndex == 2,
+                          onTap: () => setState(() => _selectedNavIndex = 2),
+                          selectedColor: appBarColor,
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
-                _BottomNavItem(
-                  icon: Icons.camera_alt_rounded,
-                  isSelected: false,
-                  onTap: () => Navigator.of(context).pushNamed('/report'),
-                  selectedColor: appBarColor,
-                ),
-                _BottomNavItem(
-                  icon: Icons.grid_view_rounded,
-                  isSelected: _selectedNavIndex == 2,
-                  onTap: () => setState(() => _selectedNavIndex = 2),
-                  selectedColor: appBarColor,
-                ),
-              ],
-            ),
-          ),
-            ),
+              ),
+            ],
           ),
         ),
       ),
