@@ -190,15 +190,206 @@ class _HomeScreenState extends State<HomeScreen> {
     Color secondaryColor,
     String welcomeMsg,
   ) {
-    // DIAGNOSTIC: if you see this red screen, the build is running the new code.
-    // Replace with real content once confirmed.
-    return Container(
-      color: Colors.red,
-      child: const Center(
-        child: Text(
-          'HOME OK - NEW BUILD',
-          style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
-        ),
+    const double iconSize = 52.0;
+    return SingleChildScrollView(
+      physics: const ClampingScrollPhysics(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // ── Top bar ──
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Row(
+              children: [
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () => _showMunicipalityPicker(context, municipality, appBarColor),
+                    child: Row(
+                      children: [
+                        _buildSealImage(municipality, size: 28),
+                        const SizedBox(width: 8),
+                        Flexible(
+                          child: Text(
+                            municipality,
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Theme.of(context).textTheme.titleLarge?.color,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        Icon(Icons.keyboard_arrow_down, color: Colors.grey.shade600, size: 22),
+                      ],
+                    ),
+                  ),
+                ),
+                Tooltip(
+                  message: 'Notifications',
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).cardColor,
+                      shape: BoxShape.circle,
+                      boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 8, offset: const Offset(0, 2))],
+                    ),
+                    child: IconButton(
+                      icon: Icon(Icons.notifications_outlined, color: Theme.of(context).textTheme.bodyLarge?.color, size: 22),
+                      onPressed: () => Navigator.of(context).pushNamed('/notifications'),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Tooltip(
+                  message: 'Profile',
+                  child: GestureDetector(
+                    onTap: () => Navigator.of(context).pushNamed('/profile'),
+                    child: Container(
+                      width: 38,
+                      height: 38,
+                      decoration: BoxDecoration(
+                        color: appBarColor,
+                        shape: BoxShape.circle,
+                        boxShadow: [BoxShadow(color: appBarColor.withValues(alpha: 0.3), blurRadius: 8, offset: const Offset(0, 2))],
+                      ),
+                      child: const Icon(Icons.person, color: Colors.white, size: 20),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // ── Welcome Card ──
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Container(
+              decoration: BoxDecoration(
+                color: Color.lerp(Theme.of(context).cardColor, appBarColor, 0.03),
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [BoxShadow(color: appBarColor.withValues(alpha: 0.08), blurRadius: 16, offset: const Offset(0, 4))],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Container(
+                    height: 6,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(colors: [appBarColor, secondaryColor]),
+                      borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+                    child: Column(
+                      children: [
+                        _buildSealImage(municipality, size: 72),
+                        const SizedBox(height: 10),
+                        Text(municipality, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: appBarColor, letterSpacing: 0.5), textAlign: TextAlign.center),
+                        const SizedBox(height: 12),
+                        Text(welcomeMsg, textAlign: TextAlign.center, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: Theme.of(context).textTheme.bodyMedium?.color, height: 1.4)),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 20),
+
+          // ── Announcements ──
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(AppStrings.get('announcements'), style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: appBarColor)),
+                GestureDetector(
+                  onTap: () => Navigator.of(context).pushNamed('/announcements'),
+                  child: Text(AppStrings.get('seeAll'), style: TextStyle(fontSize: 13, color: appBarColor.withValues(alpha: 0.7), fontWeight: FontWeight.w500)),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
+          AnnouncementsCarousel(municipality: municipality),
+
+          const SizedBox(height: 20),
+
+          // ── Weather ──
+          WeatherWidget(municipality: municipality),
+
+          const SizedBox(height: 24),
+
+          // ── Citizen Services ──
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Text(AppStrings.get('citizenServices'), style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: appBarColor)),
+          ),
+          const SizedBox(height: 16),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              children: [
+                Expanded(child: Center(child: _ServiceGridItem(iconContainerSize: iconSize, icon: Icons.report_problem_rounded, label: AppStrings.get('reportProblemLabel'), iconColor: Colors.white, bgColor: const Color(0xFF4CAF50), onTap: () => Navigator.of(context).pushNamed('/report')))),
+                Expanded(child: Center(child: _ServiceGridItem(iconContainerSize: iconSize, icon: Icons.history_rounded, label: AppStrings.get('myReportsLabel'), iconColor: Colors.white, bgColor: const Color(0xFFFF9800), onTap: () => Navigator.of(context).pushNamed('/status')))),
+                Expanded(child: Center(child: _ServiceGridItem(iconContainerSize: iconSize, icon: Icons.local_hospital_rounded, label: AppStrings.get('emergencyContactsLabel'), iconColor: Colors.white, bgColor: const Color(0xFFE53935), onTap: () => Navigator.of(context).pushNamed('/contacts')))),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 24),
+
+          // ── Information & Support ──
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Text(AppStrings.get('informationSupport'), style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: appBarColor)),
+          ),
+          const SizedBox(height: 16),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              children: [
+                Expanded(child: Center(child: _ServiceGridItem(iconContainerSize: iconSize, icon: Icons.campaign_rounded, label: AppStrings.get('announcementsLabel'), iconColor: Colors.white, bgColor: const Color(0xFF1565C0), onTap: () => Navigator.of(context).pushNamed('/announcements')))),
+                Expanded(child: Center(child: _ServiceGridItem(iconContainerSize: iconSize, icon: Icons.help_outline_rounded, label: AppStrings.get('supportFaqsLabel'), iconColor: Colors.white, bgColor: const Color(0xFF00897B), onTap: () => Navigator.of(context).pushNamed('/support')))),
+                Expanded(child: Center(child: _ServiceGridItem(iconContainerSize: iconSize, icon: Icons.settings_rounded, label: AppStrings.get('appSettingsLabel'), iconColor: Colors.white, bgColor: const Color(0xFF546E7A), onTap: () => Navigator.of(context).pushNamed('/settings')))),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 28),
+
+          // ── Recently Resolved ──
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(AppStrings.get('recentlyResolved'), style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: appBarColor)),
+                Text(AppStrings.get('liveLabel'), style: TextStyle(fontSize: 13, color: Colors.green.shade600, fontWeight: FontWeight.w600)),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Container(
+              decoration: BoxDecoration(
+                color: Color.lerp(Theme.of(context).cardColor, appBarColor, 0.03),
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [BoxShadow(color: appBarColor.withValues(alpha: 0.08), blurRadius: 12, offset: const Offset(0, 4))],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: CommunityFeed(municipality: municipality),
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 32),
+        ],
       ),
     );
   }
