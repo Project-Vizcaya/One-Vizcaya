@@ -19,7 +19,6 @@ class _HomeScreenState extends State<HomeScreen> {
   int _selectedNavIndex = 0;
   bool _isOffline = false;
   int _queuedReportCount = 0;
-  final _refreshKey = GlobalKey<RefreshIndicatorState>();
 
   @override
   void initState() {
@@ -195,12 +194,8 @@ class _HomeScreenState extends State<HomeScreen> {
       alignment: Alignment.topCenter,
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: AppConstants.kContentMaxWidth),
-        child: RefreshIndicator(
-          key: _refreshKey,
-          onRefresh: _onRefresh,
-          color: const Color(0xFF2E7D32),
-          child: SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
+        child: SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -521,7 +516,7 @@ class _HomeScreenState extends State<HomeScreen> {
           const SizedBox(height: 32),
         ],
       ),
-    ))));
+    )));
   }
 
   Widget _buildReportsPage(
