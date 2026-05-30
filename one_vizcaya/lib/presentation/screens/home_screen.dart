@@ -318,8 +318,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
           const SizedBox(height: 20),
 
-          // ── Weather ──
-          WeatherWidget(municipality: municipality),
+          // ── Weather (temporarily removed for diagnostic) ──
+          // WeatherWidget(municipality: municipality),
 
           const SizedBox(height: 24),
 
