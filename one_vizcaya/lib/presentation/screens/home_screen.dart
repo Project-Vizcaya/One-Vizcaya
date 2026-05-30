@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:http/http.dart' as http;
 import '../../core/constants/app_constants.dart';
 import '../../core/l10n/app_strings.dart';
 import '../state/municipality_state.dart';
@@ -19,6 +22,7 @@ class _HomeScreenState extends State<HomeScreen> {
   int _selectedNavIndex = 0;
   bool _isOffline = false;
   int _queuedReportCount = 0;
+  Timer? _connectivityTimer;
 
   // Municipality theme state — updated via listener instead of ValueListenableBuilder
   late String _municipality;
@@ -45,6 +49,11 @@ class _HomeScreenState extends State<HomeScreen> {
     oneVizcayaState.selectedMunicipality.addListener(_onMunicipalityChanged);
     _checkConnectivity();
     _refreshQueueCount();
+    // Periodically recheck connectivity so the banner auto-dismisses
+    _connectivityTimer = Timer.periodic(
+      const Duration(seconds: 30),
+      (_) => _checkConnectivity(),
+    );
   }
 
   Future<void> _onRefresh() async {
@@ -54,6 +63,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   void dispose() {
+    _connectivityTimer?.cancel();
     oneVizcayaState.selectedMunicipality.removeListener(_onMunicipalityChanged);
     super.dispose();
   }
@@ -64,21 +74,37 @@ class _HomeScreenState extends State<HomeScreen> {
     _refreshQueueCount();
   }
 
+  /// Checks real internet connectivity using an HTTP request.
+  /// Uses Google's generate_204 endpoint which is ultra-fast and reliable.
+  /// Falls back gracefully — any successful HTTP response means we're online.
   Future<void> _checkConnectivity() async {
+    bool online = false;
+
+    // Primary check: lightweight HTTP request to a reliable endpoint
     try {
-      await FirebaseFirestore.instance
-          .collection('_ping')
-          .doc('ping')
-          .get(const GetOptions(source: Source.server))
-          .timeout(const Duration(seconds: 5));
-      if (mounted) setState(() => _isOffline = false);
-    } on FirebaseException catch (_) {
-      // Firebase responded (e.g. permission-denied) — server is reachable, we are online
-      if (mounted) setState(() => _isOffline = false);
+      final response = await http
+          .head(Uri.parse('https://clients3.google.com/generate_204'))
+          .timeout(const Duration(seconds: 10));
+      online = response.statusCode == 204 || response.statusCode == 200;
     } catch (_) {
-      // Network-level failure (timeout, socket error) — genuinely offline
-      if (mounted) setState(() => _isOffline = true);
+      // HTTP check failed — try Firestore as fallback
+      try {
+        await FirebaseFirestore.instance
+            .collection('_ping')
+            .doc('ping')
+            .get(const GetOptions(source: Source.server))
+            .timeout(const Duration(seconds: 10));
+        online = true;
+      } on FirebaseException catch (_) {
+        // Firebase responded (e.g. permission-denied) — server is reachable
+        online = true;
+      } catch (_) {
+        // Both checks failed — genuinely offline
+        online = false;
+      }
     }
+
+    if (mounted) setState(() => _isOffline = !online);
   }
 
   Future<void> _refreshQueueCount() async {
