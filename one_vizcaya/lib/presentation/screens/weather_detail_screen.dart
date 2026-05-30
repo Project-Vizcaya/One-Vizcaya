@@ -1,6 +1,6 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
+import 'package:intl/intl.dart' hide TextDirection;
 import 'package:url_launcher/url_launcher.dart';
 import 'package:one_vizcaya/core/services/weather_service.dart';
 
@@ -61,7 +61,8 @@ class _WeatherDetailScreenState extends State<WeatherDetailScreen> {
   LinearGradient _backgroundGradient(WeatherData d) {
     final now = DateTime.now();
     final isNight = now.isBefore(d.sunrise) || now.isAfter(d.sunset);
-    final isRainy = d.conditionMain == 'Rain' ||
+    final isRainy =
+        d.conditionMain == 'Rain' ||
         d.conditionMain == 'Drizzle' ||
         d.conditionMain == 'Thunderstorm';
 
@@ -318,8 +319,9 @@ class _WeatherDetailScreenState extends State<WeatherDetailScreen> {
       decoration: BoxDecoration(
         color: const Color(0xFF1B5E20).withValues(alpha: 0.8),
         borderRadius: BorderRadius.circular(16),
-        border:
-            Border.all(color: const Color(0xFF43A047).withValues(alpha: 0.6)),
+        border: Border.all(
+          color: const Color(0xFF43A047).withValues(alpha: 0.6),
+        ),
       ),
       child: Row(
         children: [
@@ -413,15 +415,20 @@ class _WeatherDetailScreenState extends State<WeatherDetailScreen> {
               style: TextStyle(
                 color: isYesterday ? Colors.white38 : Colors.white,
                 fontSize: 14,
-                fontWeight:
-                    label == 'Today' ? FontWeight.bold : FontWeight.normal,
+                fontWeight: label == 'Today'
+                    ? FontWeight.bold
+                    : FontWeight.normal,
               ),
             ),
           ),
           if (pop > 0)
             Row(
               children: [
-                const Icon(Icons.water_drop, color: Color(0xFF82B1FF), size: 13),
+                const Icon(
+                  Icons.water_drop,
+                  color: Color(0xFF82B1FF),
+                  size: 13,
+                ),
                 const SizedBox(width: 2),
                 Text(
                   '${(pop * 100).round()}%',
@@ -437,9 +444,7 @@ class _WeatherDetailScreenState extends State<WeatherDetailScreen> {
           const Spacer(),
           Icon(
             _iconForCode(iconCode),
-            color: isYesterday
-                ? Colors.white38
-                : _iconColorForCode(iconCode),
+            color: isYesterday ? Colors.white38 : _iconColorForCode(iconCode),
             size: 20,
           ),
           const SizedBox(width: 12),
@@ -479,8 +484,8 @@ class _WeatherDetailScreenState extends State<WeatherDetailScreen> {
     final condColor = cond == 'Good'
         ? const Color(0xFF4CAF50)
         : cond == 'Fair'
-            ? const Color(0xFFFF9800)
-            : const Color(0xFFF44336);
+        ? const Color(0xFFFF9800)
+        : const Color(0xFFF44336);
 
     final nextSlots = d.hourly.take(3).toList();
 
@@ -524,13 +529,13 @@ class _WeatherDetailScreenState extends State<WeatherDetailScreen> {
                 final slotCond = h.pop > 0.6 || d.temp > 38 || d.uvIndex > 10
                     ? 'Poor'
                     : h.pop > 0.3 || d.temp > 34 || d.uvIndex > 7
-                        ? 'Fair'
-                        : 'Good';
+                    ? 'Fair'
+                    : 'Good';
                 final dotColor = slotCond == 'Good'
                     ? const Color(0xFF4CAF50)
                     : slotCond == 'Fair'
-                        ? const Color(0xFFFF9800)
-                        : const Color(0xFFF44336);
+                    ? const Color(0xFFFF9800)
+                    : const Color(0xFFF44336);
                 return Padding(
                   padding: const EdgeInsets.only(right: 16),
                   child: Column(
@@ -580,7 +585,8 @@ class _WeatherDetailScreenState extends State<WeatherDetailScreen> {
           GestureDetector(
             onTap: () async {
               final url = Uri.parse(
-                  'https://www.windy.com/?${d.lat},${d.lon},9');
+                'https://www.windy.com/?${d.lat},${d.lon},9',
+              );
               if (await canLaunchUrl(url)) {
                 await launchUrl(url, mode: LaunchMode.externalApplication);
               }
@@ -656,12 +662,12 @@ class _WeatherDetailScreenState extends State<WeatherDetailScreen> {
     final uvColor = d.uvIndex <= 2
         ? Colors.green
         : d.uvIndex <= 5
-            ? Colors.yellow
-            : d.uvIndex <= 7
-                ? Colors.orange
-                : d.uvIndex <= 10
-                    ? Colors.red
-                    : Colors.purple;
+        ? Colors.yellow
+        : d.uvIndex <= 7
+        ? Colors.orange
+        : d.uvIndex <= 10
+        ? Colors.red
+        : Colors.purple;
 
     return _frostedCard(
       child: Column(
@@ -690,8 +696,7 @@ class _WeatherDetailScreenState extends State<WeatherDetailScreen> {
           LayoutBuilder(
             builder: (context, constraints) {
               final barWidth = constraints.maxWidth;
-              final indicatorLeft =
-                  ((d.aqi - 1) / 4.0) * barWidth - 2;
+              final indicatorLeft = ((d.aqi - 1) / 4.0) * barWidth - 2;
               return ClipRRect(
                 borderRadius: BorderRadius.circular(4),
                 child: SizedBox(
@@ -738,8 +743,7 @@ class _WeatherDetailScreenState extends State<WeatherDetailScreen> {
                     children: [
                       const Text(
                         'UV Index',
-                        style:
-                            TextStyle(color: Colors.white60, fontSize: 12),
+                        style: TextStyle(color: Colors.white60, fontSize: 12),
                       ),
                       const SizedBox(height: 4),
                       Text(
@@ -771,8 +775,7 @@ class _WeatherDetailScreenState extends State<WeatherDetailScreen> {
                     children: [
                       const Text(
                         'Humidity',
-                        style:
-                            TextStyle(color: Colors.white60, fontSize: 12),
+                        style: TextStyle(color: Colors.white60, fontSize: 12),
                       ),
                       const SizedBox(height: 4),
                       Text(
@@ -787,10 +790,12 @@ class _WeatherDetailScreenState extends State<WeatherDetailScreen> {
                         d.humidity >= 70
                             ? 'High humidity'
                             : d.humidity >= 40
-                                ? 'Comfortable'
-                                : 'Low humidity',
-                        style:
-                            const TextStyle(color: Colors.white60, fontSize: 12),
+                            ? 'Comfortable'
+                            : 'Low humidity',
+                        style: const TextStyle(
+                          color: Colors.white60,
+                          fontSize: 12,
+                        ),
                       ),
                     ],
                   ),
@@ -845,9 +850,10 @@ class _WeatherDetailScreenState extends State<WeatherDetailScreen> {
             Text(
               title.toUpperCase(),
               style: const TextStyle(
-                  color: Colors.white60,
-                  fontSize: 11,
-                  letterSpacing: 0.5),
+                color: Colors.white60,
+                fontSize: 11,
+                letterSpacing: 0.5,
+              ),
             ),
             const SizedBox(height: 4),
           ],
@@ -861,12 +867,12 @@ class _WeatherDetailScreenState extends State<WeatherDetailScreen> {
     final uvColor = d.uvIndex <= 2
         ? Colors.green
         : d.uvIndex <= 5
-            ? Colors.yellow
-            : d.uvIndex <= 7
-                ? Colors.orange
-                : d.uvIndex <= 10
-                    ? Colors.red
-                    : Colors.purple;
+        ? Colors.yellow
+        : d.uvIndex <= 7
+        ? Colors.orange
+        : d.uvIndex <= 10
+        ? Colors.red
+        : Colors.purple;
     return _detailTileContainer(
       title: 'UV Index',
       child: Column(
@@ -924,7 +930,8 @@ class _WeatherDetailScreenState extends State<WeatherDetailScreen> {
                 value: d.humidity / 100.0,
                 backgroundColor: Colors.white24,
                 valueColor: const AlwaysStoppedAnimation<Color>(
-                    Color(0xFF82B1FF)),
+                  Color(0xFF82B1FF),
+                ),
               ),
             ),
           ),
@@ -938,8 +945,8 @@ class _WeatherDetailScreenState extends State<WeatherDetailScreen> {
     final windLabel = windKmh < 10
         ? 'Calm'
         : windKmh < 30
-            ? 'Breezy'
-            : 'Strong';
+        ? 'Breezy'
+        : 'Strong';
     return _detailTileContainer(
       title: 'Wind',
       child: Column(
@@ -949,8 +956,7 @@ class _WeatherDetailScreenState extends State<WeatherDetailScreen> {
             width: double.infinity,
             height: 80,
             child: CustomPaint(
-              painter: _WindCompassPainter(
-                  deg: d.windDeg, speedKmh: windKmh),
+              painter: _WindCompassPainter(deg: d.windDeg, speedKmh: windKmh),
             ),
           ),
           Text(
@@ -1009,7 +1015,11 @@ class _WeatherDetailScreenState extends State<WeatherDetailScreen> {
             ),
           ),
           Text(
-            d.pressure > 1013 ? 'Above normal' : d.pressure < 1000 ? 'Below normal' : 'Normal',
+            d.pressure > 1013
+                ? 'Above normal'
+                : d.pressure < 1000
+                ? 'Below normal'
+                : 'Normal',
             style: const TextStyle(color: Colors.white60, fontSize: 12),
           ),
         ],
@@ -1068,33 +1078,35 @@ class _WeatherDetailScreenState extends State<WeatherDetailScreen> {
               children: [
                 Column(
                   children: [
-                    const Icon(Icons.wb_sunny_outlined,
-                        color: Colors.orange, size: 18),
+                    const Icon(
+                      Icons.wb_sunny_outlined,
+                      color: Colors.orange,
+                      size: 18,
+                    ),
                     Text(
                       DateFormat('h:mm a').format(d.sunrise),
-                      style: const TextStyle(
-                          color: Colors.white, fontSize: 13),
+                      style: const TextStyle(color: Colors.white, fontSize: 13),
                     ),
                     const Text(
                       'Sunrise',
-                      style:
-                          TextStyle(color: Colors.white60, fontSize: 11),
+                      style: TextStyle(color: Colors.white60, fontSize: 11),
                     ),
                   ],
                 ),
                 Column(
                   children: [
-                    const Icon(Icons.nights_stay_outlined,
-                        color: Colors.orange, size: 18),
+                    const Icon(
+                      Icons.nights_stay_outlined,
+                      color: Colors.orange,
+                      size: 18,
+                    ),
                     Text(
                       DateFormat('h:mm a').format(d.sunset),
-                      style: const TextStyle(
-                          color: Colors.white, fontSize: 13),
+                      style: const TextStyle(color: Colors.white, fontSize: 13),
                     ),
                     const Text(
                       'Sunset',
-                      style:
-                          TextStyle(color: Colors.white60, fontSize: 11),
+                      style: TextStyle(color: Colors.white60, fontSize: 11),
                     ),
                   ],
                 ),
@@ -1121,9 +1133,7 @@ class _WeatherDetailScreenState extends State<WeatherDetailScreen> {
               SizedBox(
                 width: 80,
                 height: 80,
-                child: CustomPaint(
-                  painter: _MoonPhasePainter(phase: phase),
-                ),
+                child: CustomPaint(painter: _MoonPhasePainter(phase: phase)),
               ),
               const SizedBox(width: 16),
               Column(
@@ -1140,14 +1150,12 @@ class _WeatherDetailScreenState extends State<WeatherDetailScreen> {
                   const SizedBox(height: 4),
                   Text(
                     '${(phase * 100).toStringAsFixed(0)}% of cycle',
-                    style: const TextStyle(
-                        color: Colors.white60, fontSize: 13),
+                    style: const TextStyle(color: Colors.white60, fontSize: 13),
                   ),
                   const SizedBox(height: 8),
                   const Text(
                     'Moonrise / Moonset: —',
-                    style:
-                        TextStyle(color: Colors.white38, fontSize: 12),
+                    style: TextStyle(color: Colors.white38, fontSize: 12),
                   ),
                 ],
               ),
@@ -1199,9 +1207,10 @@ class _WeatherDetailScreenState extends State<WeatherDetailScreen> {
                 const Text(
                   'Unable to load weather',
                   style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold),
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 const SizedBox(height: 8),
                 Text(
@@ -1229,21 +1238,20 @@ class _WeatherDetailScreenState extends State<WeatherDetailScreen> {
     final d = _data!;
     final gradient = _backgroundGradient(d);
 
-    final collapsedTitle =
-        '${d.locationName} • ${d.temp.round()}°';
+    final collapsedTitle = '${d.locationName} • ${d.temp.round()}°';
 
     final hiLo = d.daily.isNotEmpty
         ? 'H:${d.daily.map((x) => x.tempMax).reduce(max).round()}° '
-            'L:${d.daily.map((x) => x.tempMin).reduce(min).round()}°'
+              'L:${d.daily.map((x) => x.tempMin).reduce(min).round()}°'
         : 'H:${d.tempMax.round()}° L:${d.tempMin.round()}°';
 
     final summaryHi = d.daily.isNotEmpty
         ? '${d.daily.map((x) => x.tempMax).reduce(min).round()} to '
-            '${d.daily.map((x) => x.tempMax).reduce(max).round()}'
+              '${d.daily.map((x) => x.tempMax).reduce(max).round()}'
         : '${d.tempMax.round()}';
     final summaryLo = d.daily.isNotEmpty
         ? '${d.daily.map((x) => x.tempMin).reduce(min).round()} to '
-            '${d.daily.map((x) => x.tempMin).reduce(max).round()}'
+              '${d.daily.map((x) => x.tempMin).reduce(max).round()}'
         : '${d.tempMin.round()}';
 
     final summaryLine =
@@ -1313,14 +1321,12 @@ class _WeatherDetailScreenState extends State<WeatherDetailScreen> {
                           ),
                           const SizedBox(height: 4),
                           Padding(
-                            padding:
-                                const EdgeInsets.symmetric(horizontal: 32),
+                            padding: const EdgeInsets.symmetric(horizontal: 32),
                             child: Text(
                               summaryLine,
                               textAlign: TextAlign.center,
                               style: TextStyle(
-                                color: Colors.white
-                                    .withValues(alpha: 0.7),
+                                color: Colors.white.withValues(alpha: 0.7),
                                 fontSize: 13,
                               ),
                             ),
@@ -1435,10 +1441,7 @@ class _RainChartPainter extends CustomPainter {
 
     // Draw y-axis max label
     final maxTp = TextPainter(
-      text: TextSpan(
-        text: '${maxMm.toStringAsFixed(1)}mm',
-        style: textStyle,
-      ),
+      text: TextSpan(text: '${maxMm.toStringAsFixed(1)}mm', style: textStyle),
       textDirection: TextDirection.ltr,
     )..layout(maxWidth: double.infinity);
     maxTp.paint(canvas, Offset(2, chartTop));
@@ -1511,7 +1514,9 @@ class _WindCompassPainter extends CustomPainter {
       textDirection: TextDirection.ltr,
     )..layout(maxWidth: double.infinity);
     speedTp.paint(
-        canvas, Offset(cx - speedTp.width / 2, cy - speedTp.height / 2));
+      canvas,
+      Offset(cx - speedTp.width / 2, cy - speedTp.height / 2),
+    );
   }
 
   @override
@@ -1577,13 +1582,11 @@ class _PressureGaugePainter extends CustomPainter {
     canvas.drawLine(Offset(cx, cy), needleEnd, needlePaint);
 
     // Center dot
-    canvas.drawCircle(
-        Offset(cx, cy), 3, Paint()..color = Colors.white);
+    canvas.drawCircle(Offset(cx, cy), 3, Paint()..color = Colors.white);
   }
 
   @override
-  bool shouldRepaint(_PressureGaugePainter old) =>
-      old.pressure != pressure;
+  bool shouldRepaint(_PressureGaugePainter old) => old.pressure != pressure;
 }
 
 class _SunriseSunsetPainter extends CustomPainter {
@@ -1650,9 +1653,7 @@ class _SunriseSunsetPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_SunriseSunsetPainter old) =>
-      old.sunrise != sunrise ||
-      old.sunset != sunset ||
-      old.now != now;
+      old.sunrise != sunrise || old.sunset != sunset || old.now != now;
 }
 
 class _MoonPhasePainter extends CustomPainter {

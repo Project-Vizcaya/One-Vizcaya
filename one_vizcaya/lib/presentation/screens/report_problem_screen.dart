@@ -115,7 +115,10 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
       return await snapshot.ref.getDownloadURL();
     } catch (e) {
       // FIX 6: Only log in debug builds to avoid leaking file paths in release
-      assert(() { debugPrint('Image upload failed: $e'); return true; }());
+      assert(() {
+        debugPrint('Image upload failed: $e');
+        return true;
+      }());
       return null;
     }
   }
@@ -166,7 +169,8 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
         final p = await SharedPreferences.getInstance();
         String? anonId = p.getString('anon_device_id');
         if (anonId == null) {
-          anonId = 'anon_${DateTime.now().millisecondsSinceEpoch}_${(1000 + (DateTime.now().microsecond % 9000))}';
+          anonId =
+              'anon_${DateTime.now().millisecondsSinceEpoch}_${(1000 + (DateTime.now().microsecond % 9000))}';
           await p.setString('anon_device_id', anonId);
         }
         userId = anonId;
@@ -190,7 +194,9 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
         'barangay': _selectedBarangay,
       };
       await OfflineQueueService().enqueue(queuePayload);
-      ToastUtils.showInfo('Report saved. Will submit automatically when you\'re back online.');
+      ToastUtils.showInfo(
+        'Report saved. Will submit automatically when you\'re back online.',
+      );
 
       // Also offer SMS as secondary option
       final reportDetails =
@@ -236,7 +242,8 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
         final prefs = await SharedPreferences.getInstance();
         String? anonId = prefs.getString('anon_device_id');
         if (anonId == null) {
-          anonId = 'anon_${DateTime.now().millisecondsSinceEpoch}_${(1000 + (DateTime.now().microsecond % 9000))}';
+          anonId =
+              'anon_${DateTime.now().millisecondsSinceEpoch}_${(1000 + (DateTime.now().microsecond % 9000))}';
           await prefs.setString('anon_device_id', anonId);
         }
         userId = anonId;
@@ -358,272 +365,300 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
       appBar: AppBar(
         backgroundColor: primaryLguColor,
         foregroundColor: Colors.white,
-        title: Text('${AppStrings.get('reportProblem')} ${AppStrings.get('prepositionTo')} $activeMunicipalityName'),
+        title: Text(
+          '${AppStrings.get('reportProblem')} ${AppStrings.get('prepositionTo')} $activeMunicipalityName',
+        ),
       ),
       body: Align(
         alignment: Alignment.topCenter,
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: AppConstants.kContentMaxWidth),
+          constraints: const BoxConstraints(
+            maxWidth: AppConstants.kContentMaxWidth,
+          ),
           child: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _SubmissionOptionsCard(
-                isOffline: _isOffline,
-                isAnonymous: _isAnonymous,
-                primaryColor: primaryLguColor,
-                onOfflineChanged: (v) => setState(() => _isOffline = v),
-                onAnonymousChanged: (v) => setState(() => _isAnonymous = v),
-              ),
-              const SizedBox(height: 24),
-              _CategoryTreeSelector(
-                primaryColor: primaryLguColor,
-                selectedPriority: _selectedPriority,
-                selectedCategory: _selectedCategory,
-                hasError: _categoryError,
-                onPrioritySelected: (p) => setState(() {
-                  _selectedPriority = p;
-                  _selectedCategory = null;
-                  _categoryError = false;
-                }),
-                onCategorySelected: (c) => setState(() {
-                  _selectedCategory = c;
-                  _categoryError = false;
-                }),
-                onReset: () => setState(() {
-                  _selectedPriority = null;
-                  _selectedCategory = null;
-                  _categoryError = false;
-                }),
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _locationController,
-                decoration: InputDecoration(
-                  labelText: 'Location / Landmark',
-                  prefixIcon: Icon(Icons.location_on, color: primaryLguColor, semanticLabel: 'Location'),
-                  hintText:
-                      'e.g., "In front of $activeMunicipalityName Municipal Hall"',
-                  focusedBorder: OutlineInputBorder(
-                    borderSide: BorderSide(color: primaryLguColor, width: 2),
+            padding: const EdgeInsets.all(16.0),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _SubmissionOptionsCard(
+                    isOffline: _isOffline,
+                    isAnonymous: _isAnonymous,
+                    primaryColor: primaryLguColor,
+                    onOfflineChanged: (v) => setState(() => _isOffline = v),
+                    onAnonymousChanged: (v) => setState(() => _isAnonymous = v),
                   ),
-                  labelStyle: TextStyle(color: primaryLguColor),
-                ),
-                validator: (value) => value == null || value.isEmpty
-                    ? 'Please enter a location'
-                    : null,
-              ),
-              const SizedBox(height: 16),
-              OutlinedButton.icon(
-                icon: _isGettingLocation
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.gps_fixed, semanticLabel: 'Attach GPS location'),
-                label: Text(
-                  _currentPosition != null
-                      ? 'Location Attached ✓'
-                      : AppStrings.get('attachPreciseLocation'),
-                ),
-                onPressed: _isOffline || _isGettingLocation
-                    ? null
-                    : _getLocation,
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: _currentPosition != null
-                      ? Colors.green
-                      : primaryLguColor,
-                  side: BorderSide(
-                    color: _currentPosition != null
-                        ? Colors.green
-                        : primaryLguColor,
+                  const SizedBox(height: 24),
+                  _CategoryTreeSelector(
+                    primaryColor: primaryLguColor,
+                    selectedPriority: _selectedPriority,
+                    selectedCategory: _selectedCategory,
+                    hasError: _categoryError,
+                    onPrioritySelected: (p) => setState(() {
+                      _selectedPriority = p;
+                      _selectedCategory = null;
+                      _categoryError = false;
+                    }),
+                    onCategorySelected: (c) => setState(() {
+                      _selectedCategory = c;
+                      _categoryError = false;
+                    }),
+                    onReset: () => setState(() {
+                      _selectedPriority = null;
+                      _selectedCategory = null;
+                      _categoryError = false;
+                    }),
                   ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              _BarangayDropdown(
-                municipality: oneVizcayaState.selectedMunicipality.value,
-                selectedBarangay: _selectedBarangay,
-                primaryColor: primaryLguColor,
-                onChanged: (val) => setState(() => _selectedBarangay = val),
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _descriptionController,
-                decoration: InputDecoration(
-                  labelText: AppStrings.get('briefDescription'),
-                  prefixIcon: Icon(Icons.description, color: primaryLguColor, semanticLabel: 'Brief description'),
-                  hintText: AppStrings.get('descriptionHint'),
-                  focusedBorder: OutlineInputBorder(
-                    borderSide: BorderSide(color: primaryLguColor, width: 2),
-                  ),
-                  labelStyle: TextStyle(color: primaryLguColor),
-                ),
-                maxLines: 4,
-                maxLength: 500,
-                buildCounter: (context,
-                        {required currentLength,
-                        required isFocused,
-                        maxLength}) =>
-                    Text(
-                  '$currentLength / 50 min',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: currentLength < 50
-                        ? Colors.red.shade400
-                        : Colors.grey.shade600,
-                  ),
-                ),
-                onChanged: (_) => setState(() {}),
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Please enter a description';
-                  }
-                  if (value.trim().length < 50) {
-                    return 'Description must be at least 50 characters';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-              OutlinedButton.icon(
-                icon: const Icon(Icons.camera_alt, semanticLabel: 'Attach photo evidence'),
-                label: Text(
-                  _selectedImage != null
-                      ? AppStrings.get('photoAttached')
-                      : AppStrings.get('attachPhoto'),
-                ),
-                onPressed: _isOffline ? null : () => _showImagePickerOptions(),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: _selectedImage != null
-                      ? Colors.green
-                      : primaryLguColor,
-                  side: BorderSide(
-                    color: _selectedImage != null
-                        ? Colors.green
-                        : primaryLguColor,
-                  ),
-                ),
-              ),
-              if (_selectedImage != null) ...[
-                const SizedBox(height: 12),
-                Stack(
-                  children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
-                      child: Image.file(
-                        _selectedImage!,
-                        height: MediaQuery.of(context).size.height * 0.22,
-                        width: double.infinity,
-                        fit: BoxFit.cover,
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _locationController,
+                    decoration: InputDecoration(
+                      labelText: 'Location / Landmark',
+                      prefixIcon: Icon(
+                        Icons.location_on,
+                        color: primaryLguColor,
+                        semanticLabel: 'Location',
                       ),
-                    ),
-                    Positioned(
-                      top: 8,
-                      right: 8,
-                      child: GestureDetector(
-                        onTap: () => setState(() {
-                          _selectedImage = null;
-                          _photoTimestamp = null;
-                          _photoLatitude = null;
-                          _photoLongitude = null;
-                        }),
-                        child: Container(
-                          padding: const EdgeInsets.all(4),
-                          decoration: const BoxDecoration(
-                            color: Colors.black54,
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(
-                            Icons.close,
-                            color: Colors.white,
-                            size: 18,
-                            semanticLabel: 'Remove photo',
-                          ),
+                      hintText:
+                          'e.g., "In front of $activeMunicipalityName Municipal Hall"',
+                      focusedBorder: OutlineInputBorder(
+                        borderSide: BorderSide(
+                          color: primaryLguColor,
+                          width: 2,
                         ),
                       ),
+                      labelStyle: TextStyle(color: primaryLguColor),
                     ),
-                  ],
-                ),
-                if (_photoTimestamp != null) ...[
-                  const SizedBox(height: 6),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
+                    validator: (value) => value == null || value.isEmpty
+                        ? 'Please enter a location'
+                        : null,
+                  ),
+                  const SizedBox(height: 16),
+                  OutlinedButton.icon(
+                    icon: _isGettingLocation
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(
+                            Icons.gps_fixed,
+                            semanticLabel: 'Attach GPS location',
+                          ),
+                    label: Text(
+                      _currentPosition != null
+                          ? 'Location Attached ✓'
+                          : AppStrings.get('attachPreciseLocation'),
                     ),
-                    decoration: BoxDecoration(
-                      color: Colors.green.shade50,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.green.shade200),
+                    onPressed: _isOffline || _isGettingLocation
+                        ? null
+                        : _getLocation,
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: _currentPosition != null
+                          ? Colors.green
+                          : primaryLguColor,
+                      side: BorderSide(
+                        color: _currentPosition != null
+                            ? Colors.green
+                            : primaryLguColor,
+                      ),
                     ),
-                    child: Row(
+                  ),
+                  const SizedBox(height: 16),
+                  _BarangayDropdown(
+                    municipality: oneVizcayaState.selectedMunicipality.value,
+                    selectedBarangay: _selectedBarangay,
+                    primaryColor: primaryLguColor,
+                    onChanged: (val) => setState(() => _selectedBarangay = val),
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _descriptionController,
+                    decoration: InputDecoration(
+                      labelText: AppStrings.get('briefDescription'),
+                      prefixIcon: Icon(
+                        Icons.description,
+                        color: primaryLguColor,
+                        semanticLabel: 'Brief description',
+                      ),
+                      hintText: AppStrings.get('descriptionHint'),
+                      focusedBorder: OutlineInputBorder(
+                        borderSide: BorderSide(
+                          color: primaryLguColor,
+                          width: 2,
+                        ),
+                      ),
+                      labelStyle: TextStyle(color: primaryLguColor),
+                    ),
+                    maxLines: 4,
+                    maxLength: 500,
+                    buildCounter:
+                        (
+                          context, {
+                          required currentLength,
+                          required isFocused,
+                          maxLength,
+                        }) => Text(
+                          '$currentLength / 50 min',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: currentLength < 50
+                                ? Colors.red.shade400
+                                : Colors.grey.shade600,
+                          ),
+                        ),
+                    onChanged: (_) => setState(() {}),
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'Please enter a description';
+                      }
+                      if (value.trim().length < 50) {
+                        return 'Description must be at least 50 characters';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  OutlinedButton.icon(
+                    icon: const Icon(
+                      Icons.camera_alt,
+                      semanticLabel: 'Attach photo evidence',
+                    ),
+                    label: Text(
+                      _selectedImage != null
+                          ? AppStrings.get('photoAttached')
+                          : AppStrings.get('attachPhoto'),
+                    ),
+                    onPressed: _isOffline
+                        ? null
+                        : () => _showImagePickerOptions(),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: _selectedImage != null
+                          ? Colors.green
+                          : primaryLguColor,
+                      side: BorderSide(
+                        color: _selectedImage != null
+                            ? Colors.green
+                            : primaryLguColor,
+                      ),
+                    ),
+                  ),
+                  if (_selectedImage != null) ...[
+                    const SizedBox(height: 12),
+                    Stack(
                       children: [
-                        ExcludeSemantics(
-                          child: Icon(
-                            Icons.verified,
-                            size: 14,
-                            color: Colors.green.shade700,
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: Image.file(
+                            _selectedImage!,
+                            height: MediaQuery.of(context).size.height * 0.22,
+                            width: double.infinity,
+                            fit: BoxFit.cover,
                           ),
                         ),
-                        const SizedBox(width: 6),
-                        Expanded(
-                          child: Text(
-                            'Evidence timestamp: '
-                            '${_photoTimestamp!.day}/${_photoTimestamp!.month}/${_photoTimestamp!.year} '
-                            '${_photoTimestamp!.hour.toString().padLeft(2, '0')}:'
-                            '${_photoTimestamp!.minute.toString().padLeft(2, '0')}'
-                            '${(_photoLatitude != null && _photoLongitude != null) ? '\nGPS: ${_photoLatitude!.toStringAsFixed(5)}, ${_photoLongitude!.toStringAsFixed(5)}' : ''}',
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: Colors.green.shade700,
+                        Positioned(
+                          top: 8,
+                          right: 8,
+                          child: GestureDetector(
+                            onTap: () => setState(() {
+                              _selectedImage = null;
+                              _photoTimestamp = null;
+                              _photoLatitude = null;
+                              _photoLongitude = null;
+                            }),
+                            child: Container(
+                              padding: const EdgeInsets.all(4),
+                              decoration: const BoxDecoration(
+                                color: Colors.black54,
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.close,
+                                color: Colors.white,
+                                size: 18,
+                                semanticLabel: 'Remove photo',
+                              ),
                             ),
                           ),
                         ),
                       ],
                     ),
-                  ),
-                ],
-              ],
-              const SizedBox(height: 24),
-              SizedBox(
-                height: 52,
-                child: ElevatedButton(
-                  onPressed: _isSubmitting ? null : _submitReport,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: primaryLguColor,
-                    foregroundColor: Colors.white,
-                  ),
-                  child: _isSubmitting
-                      ? const Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
+                    if (_photoTimestamp != null) ...[
+                      const SizedBox(height: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.green.shade50,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.green.shade200),
+                        ),
+                        child: Row(
                           children: [
-                            SizedBox(
-                              width: 18,
-                              height: 18,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
+                            ExcludeSemantics(
+                              child: Icon(
+                                Icons.verified,
+                                size: 14,
+                                color: Colors.green.shade700,
                               ),
                             ),
-                            SizedBox(width: 12),
-                            Text(AppStrings.get('submitting')),
+                            const SizedBox(width: 6),
+                            Expanded(
+                              child: Text(
+                                'Evidence timestamp: '
+                                '${_photoTimestamp!.day}/${_photoTimestamp!.month}/${_photoTimestamp!.year} '
+                                '${_photoTimestamp!.hour.toString().padLeft(2, '0')}:'
+                                '${_photoTimestamp!.minute.toString().padLeft(2, '0')}'
+                                '${(_photoLatitude != null && _photoLongitude != null) ? '\nGPS: ${_photoLatitude!.toStringAsFixed(5)}, ${_photoLongitude!.toStringAsFixed(5)}' : ''}',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: Colors.green.shade700,
+                                ),
+                              ),
+                            ),
                           ],
-                        )
-                      : Text(AppStrings.get('submit')),
-                ),
+                        ),
+                      ),
+                    ],
+                  ],
+                  const SizedBox(height: 24),
+                  SizedBox(
+                    height: 52,
+                    child: ElevatedButton(
+                      onPressed: _isSubmitting ? null : _submitReport,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: primaryLguColor,
+                        foregroundColor: Colors.white,
+                      ),
+                      child: _isSubmitting
+                          ? Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                SizedBox(width: 12),
+                                Text(AppStrings.get('submitting')),
+                              ],
+                            )
+                          : Text(AppStrings.get('submit')),
+                    ),
+                  ),
+                  const SizedBox(height: 48),
+                ],
               ),
-              const SizedBox(height: 48),
-            ],
+            ),
           ),
         ),
       ),
-          ),
-        ),
     );
   }
 
@@ -643,74 +678,78 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
       builder: (context) => Align(
         alignment: Alignment.bottomCenter,
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: AppConstants.kContentMaxWidth),
+          constraints: const BoxConstraints(
+            maxWidth: AppConstants.kContentMaxWidth,
+          ),
           child: Container(
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-          ),
-          padding: EdgeInsets.fromLTRB(
-            20, 10, 20,
-            MediaQuery.of(context).padding.bottom + 20,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade300,
-                  borderRadius: BorderRadius.circular(2),
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+            ),
+            padding: EdgeInsets.fromLTRB(
+              20,
+              10,
+              20,
+              MediaQuery.of(context).padding.bottom + 20,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 20),
-              const Text(
-                'Attach Photo Evidence',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Camera photos include a verified timestamp and GPS location.',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'Gallery photos do not include a timestamp or GPS.',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 12, color: Colors.grey.shade400),
-              ),
-              const SizedBox(height: 20),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  _imagePickerOption(
-                    icon: Icons.camera_alt_rounded,
-                    label: AppStrings.get('photoCamera'),
-                    sublabel: AppStrings.get('timestamped'),
-                    onTap: () {
-                      Navigator.pop(context);
-                      _pickImage(ImageSource.camera);
-                    },
-                  ),
-                  _imagePickerOption(
-                    icon: Icons.photo_library_rounded,
-                    label: AppStrings.get('photoGallery'),
-                    sublabel: AppStrings.get('noTimestamp'),
-                    onTap: () {
-                      Navigator.pop(context);
-                      _pickImage(ImageSource.gallery);
-                    },
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-            ],
-          ),
-      ),
+                const SizedBox(height: 20),
+                const Text(
+                  'Attach Photo Evidence',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Camera photos include a verified timestamp and GPS location.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Gallery photos do not include a timestamp or GPS.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 12, color: Colors.grey.shade400),
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    _imagePickerOption(
+                      icon: Icons.camera_alt_rounded,
+                      label: AppStrings.get('photoCamera'),
+                      sublabel: AppStrings.get('timestamped'),
+                      onTap: () {
+                        Navigator.pop(context);
+                        _pickImage(ImageSource.camera);
+                      },
+                    ),
+                    _imagePickerOption(
+                      icon: Icons.photo_library_rounded,
+                      label: AppStrings.get('photoGallery'),
+                      sublabel: AppStrings.get('noTimestamp'),
+                      onTap: () {
+                        Navigator.pop(context);
+                        _pickImage(ImageSource.gallery);
+                      },
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+              ],
+            ),
           ),
         ),
+      ),
     );
   }
 
@@ -892,14 +931,14 @@ class _SubmissionOptionsCard extends StatelessWidget {
   }
 
   Widget _sectionLabel(String text) => Text(
-        text,
-        style: const TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
-          color: Color(0xFF555555),
-          letterSpacing: 0.2,
-        ),
-      );
+    text,
+    style: const TextStyle(
+      fontSize: 12,
+      fontWeight: FontWeight.w600,
+      color: Color(0xFF555555),
+      letterSpacing: 0.2,
+    ),
+  );
 }
 
 class _ModeOption extends StatelessWidget {
@@ -961,7 +1000,9 @@ class _ModeOption extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
-                        color: selected ? selectedColor : const Color(0xFF333333),
+                        color: selected
+                            ? selectedColor
+                            : const Color(0xFF333333),
                       ),
                     ),
                     const SizedBox(height: 2),
@@ -1035,17 +1076,25 @@ class _BarangayDropdown extends StatelessWidget {
     }
 
     // Ensure the current selection is still valid for this municipality
-    final validSelection = barangays.contains(selectedBarangay) ? selectedBarangay : null;
+    final validSelection = barangays.contains(selectedBarangay)
+        ? selectedBarangay
+        : null;
 
     return DropdownButtonFormField<String>(
       value: validSelection,
       isExpanded: true,
       dropdownColor: Colors.white,
-      hint: Text('${AppStrings.get('barangay')} (${AppStrings.get('optional')})'),
+      hint: Text(
+        '${AppStrings.get('barangay')} (${AppStrings.get('optional')})',
+      ),
       decoration: InputDecoration(
-        labelText: '${AppStrings.get('barangay')} (${AppStrings.get('optional')})',
-        prefixIcon: Icon(Icons.location_city_outlined,
-            color: primaryColor, semanticLabel: 'Barangay'),
+        labelText:
+            '${AppStrings.get('barangay')} (${AppStrings.get('optional')})',
+        prefixIcon: Icon(
+          Icons.location_city_outlined,
+          color: primaryColor,
+          semanticLabel: 'Barangay',
+        ),
         focusedBorder: OutlineInputBorder(
           borderSide: BorderSide(color: primaryColor, width: 2),
         ),
@@ -1058,13 +1107,17 @@ class _BarangayDropdown extends StatelessWidget {
         // "None" option to clear the selection
         DropdownMenuItem<String>(
           value: null,
-          child: Text(AppStrings.get('noneOption'),
-              style: const TextStyle(color: Colors.grey, fontStyle: FontStyle.italic)),
+          child: Text(
+            AppStrings.get('noneOption'),
+            style: const TextStyle(
+              color: Colors.grey,
+              fontStyle: FontStyle.italic,
+            ),
+          ),
         ),
-        ...barangays.map((b) => DropdownMenuItem<String>(
-              value: b,
-              child: Text(b),
-            )),
+        ...barangays.map(
+          (b) => DropdownMenuItem<String>(value: b, child: Text(b)),
+        ),
       ],
       onChanged: onChanged,
     );
@@ -1105,9 +1158,9 @@ class _CategoryTreeSelector extends StatelessWidget {
 
   static const _prioritySubtitles = {
     ReportPriority.critical: 'Life, safety & major disasters',
-    ReportPriority.high:     'Urgent infrastructure & order',
-    ReportPriority.medium:   'Roads, utilities & environment',
-    ReportPriority.low:      'Community & general concerns',
+    ReportPriority.high: 'Urgent infrastructure & order',
+    ReportPriority.medium: 'Roads, utilities & environment',
+    ReportPriority.low: 'Community & general concerns',
   };
 
   List<ReportCategory> _categoriesFor(ReportPriority p) =>
@@ -1173,26 +1226,30 @@ class _CategoryTreeSelector extends StatelessWidget {
 
   // ── 2×2 priority tile grid ────────────────────────────────────────────────
   Widget _buildPriorityGrid() {
-    return LayoutBuilder(builder: (context, constraints) {
-      final cols = constraints.maxWidth > AppConstants.kTabletBreakpoint ? 4 : 2;
-      return GridView.count(
-        crossAxisCount: cols,
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        crossAxisSpacing: 10,
-        mainAxisSpacing: 10,
-        childAspectRatio: cols == 4 ? 2.2 : 2.4,
-        children: _priorityOrder.map((p) {
-          final count = _categoriesFor(p).length;
-          return _PriorityTile(
-            priority: p,
-            subtitle: _prioritySubtitles[p]!,
-            categoryCount: count,
-            onTap: () => onPrioritySelected(p),
-          );
-        }).toList(),
-      );
-    });
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final cols = constraints.maxWidth > AppConstants.kTabletBreakpoint
+            ? 4
+            : 2;
+        return GridView.count(
+          crossAxisCount: cols,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          crossAxisSpacing: 10,
+          mainAxisSpacing: 10,
+          childAspectRatio: cols == 4 ? 2.2 : 2.4,
+          children: _priorityOrder.map((p) {
+            final count = _categoriesFor(p).length;
+            return _PriorityTile(
+              priority: p,
+              subtitle: _prioritySubtitles[p]!,
+              categoryCount: count,
+              onTap: () => onPrioritySelected(p),
+            );
+          }).toList(),
+        );
+      },
+    );
   }
 
   // ── Selected priority header with back button ─────────────────────────────
@@ -1224,7 +1281,10 @@ class _CategoryTreeSelector extends StatelessWidget {
             const Spacer(),
             Text(
               'Change',
-              style: TextStyle(fontSize: 11, color: p.color.withValues(alpha: 0.7)),
+              style: TextStyle(
+                fontSize: 11,
+                color: p.color.withValues(alpha: 0.7),
+              ),
             ),
           ],
         ),
@@ -1239,10 +1299,14 @@ class _CategoryTreeSelector extends StatelessWidget {
       duration: const Duration(milliseconds: 250),
       curve: Curves.easeOut,
       child: Column(
-        children: categories.map((c) => _CategoryCard(
-          category: c,
-          onTap: () => onCategorySelected(c),
-        )).toList(),
+        children: categories
+            .map(
+              (c) => _CategoryCard(
+                category: c,
+                onTap: () => onCategorySelected(c),
+              ),
+            )
+            .toList(),
       ),
     );
   }
@@ -1275,7 +1339,11 @@ class _CategoryTreeSelector extends StatelessWidget {
               ),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 8),
-                child: Icon(Icons.chevron_right, size: 16, color: p.color.withValues(alpha: 0.6)),
+                child: Icon(
+                  Icons.chevron_right,
+                  size: 16,
+                  color: p.color.withValues(alpha: 0.6),
+                ),
               ),
               Expanded(
                 child: Text(
@@ -1290,7 +1358,10 @@ class _CategoryTreeSelector extends StatelessWidget {
               GestureDetector(
                 onTap: onReset,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.grey.shade200,
                     borderRadius: BorderRadius.circular(6),
@@ -1389,7 +1460,11 @@ class _PriorityTile extends StatelessWidget {
                   ],
                 ),
               ),
-              Icon(Icons.chevron_right, size: 16, color: priority.color.withValues(alpha: 0.5)),
+              Icon(
+                Icons.chevron_right,
+                size: 16,
+                color: priority.color.withValues(alpha: 0.5),
+              ),
             ],
           ),
         ),
@@ -1460,7 +1535,11 @@ class _CategoryCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 8),
-                Icon(Icons.arrow_forward_ios, size: 13, color: Colors.grey.shade400),
+                Icon(
+                  Icons.arrow_forward_ios,
+                  size: 13,
+                  color: Colors.grey.shade400,
+                ),
               ],
             ),
           ),
