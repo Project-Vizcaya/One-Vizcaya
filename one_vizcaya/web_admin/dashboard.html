@@ -951,6 +951,23 @@ let _prevReportCount = 0;         // Feature 6
 let unsubscribeReports = null;
 let unsubscribeAnnouncements = null;
 
+// Fires when Google Maps rejects the API key (billing off, domain blocked, etc.)
+window.gm_authFailure = function() {
+  const mapEl = document.getElementById('map');
+  if (mapEl) mapEl.innerHTML = `
+    <div style="height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;background:#FFF5F0;color:#B7411E;padding:2rem;text-align:center">
+      <div style="font-size:32px">🗺️</div>
+      <div style="font-weight:700;font-size:16px">Google Maps API Key Error</div>
+      <div style="font-size:13px;color:#718096;max-width:360px">
+        The API key was rejected. Go to <strong>Google Cloud Console → APIs &amp; Services → Credentials</strong>
+        and check that:<br><br>
+        1. <strong>Maps JavaScript API</strong> is enabled<br>
+        2. <strong>Billing</strong> is set up<br>
+        3. Key allows <strong>one-vizcaya-app.web.app/*</strong>
+      </div>
+    </div>`;
+};
+
 // ── Shared label / class lookup constants ─────────────────────────────────────
 const STATUS_LABELS   = { reported: 'Reported', acknowledged: 'Acknowledged', under_review: 'Under Review', ongoing: 'Ongoing', solved: 'Solved' };
 const STATUS_LABELS_V = { reported: 'Reported', acknowledged: 'Acknowledged', under_review: 'Under Review', ongoing: 'Ongoing', solved: 'Solved ✓' };
