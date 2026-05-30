@@ -109,6 +109,12 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Color.lerp(Theme.of(context).scaffoldBackgroundColor, _appBarColor, 0.10)!,
+      // DIAGNOSTIC BAR — remove once screen confirmed working
+      appBar: AppBar(
+        backgroundColor: Colors.green.shade700,
+        title: const Text('One Vizcaya — BUILD OK', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        automaticallyImplyLeading: false,
+      ),
       body: SafeArea(
         child: Column(
           children: [
