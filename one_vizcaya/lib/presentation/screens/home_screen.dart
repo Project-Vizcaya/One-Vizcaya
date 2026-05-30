@@ -48,10 +48,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _onRefresh() async {
-    await Future.wait([
-      _checkConnectivity(),
-      _refreshQueueCount(),
-    ]);
+    await Future.wait([_checkConnectivity(), _refreshQueueCount()]);
     if (mounted) setState(() {});
   }
 
@@ -75,7 +72,11 @@ class _HomeScreenState extends State<HomeScreen> {
           .get(const GetOptions(source: Source.server))
           .timeout(const Duration(seconds: 5));
       if (mounted) setState(() => _isOffline = false);
+    } on FirebaseException catch (_) {
+      // Firebase responded (e.g. permission-denied) — server is reachable, we are online
+      if (mounted) setState(() => _isOffline = false);
     } catch (_) {
+      // Network-level failure (timeout, socket error) — genuinely offline
       if (mounted) setState(() => _isOffline = true);
     }
   }
@@ -108,7 +109,11 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color.lerp(Theme.of(context).scaffoldBackgroundColor, _appBarColor, 0.10)!,
+      backgroundColor: Color.lerp(
+        Theme.of(context).scaffoldBackgroundColor,
+        _appBarColor,
+        0.10,
+      )!,
       body: SafeArea(
         child: Column(
           children: [
@@ -117,19 +122,36 @@ class _HomeScreenState extends State<HomeScreen> {
               Container(
                 width: double.infinity,
                 color: const Color(0xFFF57F17),
-                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                padding: const EdgeInsets.symmetric(
+                  vertical: 8,
+                  horizontal: 16,
+                ),
                 child: Row(
                   children: [
-                    const Icon(Icons.wifi_off, color: Colors.white, size: 16, semanticLabel: 'No internet connection'),
+                    const Icon(
+                      Icons.wifi_off,
+                      color: Colors.white,
+                      size: 16,
+                      semanticLabel: 'No internet connection',
+                    ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         AppStrings.get('offlineBanner'),
-                        style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
                     IconButton(
-                      icon: const Icon(Icons.refresh, color: Colors.white, size: 16, semanticLabel: 'Retry connection'),
+                      icon: const Icon(
+                        Icons.refresh,
+                        color: Colors.white,
+                        size: 16,
+                        semanticLabel: 'Retry connection',
+                      ),
                       onPressed: _checkConnectivity,
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(),
@@ -145,7 +167,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: Container(
                   width: double.infinity,
                   color: const Color(0xFFFFF3E0),
-                  padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 8,
+                    horizontal: 16,
+                  ),
                   child: Row(
                     children: [
                       const Text('📤', style: TextStyle(fontSize: 14)),
@@ -160,7 +185,11 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                         ),
                       ),
-                      const Icon(Icons.chevron_right, color: Color(0xFFE65100), size: 16),
+                      const Icon(
+                        Icons.chevron_right,
+                        color: Color(0xFFE65100),
+                        size: 16,
+                      ),
                     ],
                   ),
                 ),
@@ -198,7 +227,11 @@ class _HomeScreenState extends State<HomeScreen> {
               children: [
                 Expanded(
                   child: GestureDetector(
-                    onTap: () => _showMunicipalityPicker(context, municipality, appBarColor),
+                    onTap: () => _showMunicipalityPicker(
+                      context,
+                      municipality,
+                      appBarColor,
+                    ),
                     child: Row(
                       children: [
                         _buildSealImage(municipality, size: 28),
@@ -209,14 +242,20 @@ class _HomeScreenState extends State<HomeScreen> {
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
-                              color: Theme.of(context).textTheme.titleLarge?.color,
+                              color: Theme.of(
+                                context,
+                              ).textTheme.titleLarge?.color,
                             ),
                             overflow: TextOverflow.ellipsis,
                             maxLines: 1,
                           ),
                         ),
                         const SizedBox(width: 4),
-                        Icon(Icons.keyboard_arrow_down, color: Colors.grey.shade600, size: 22),
+                        Icon(
+                          Icons.keyboard_arrow_down,
+                          color: Colors.grey.shade600,
+                          size: 22,
+                        ),
                       ],
                     ),
                   ),
@@ -227,11 +266,22 @@ class _HomeScreenState extends State<HomeScreen> {
                     decoration: BoxDecoration(
                       color: Theme.of(context).cardColor,
                       shape: BoxShape.circle,
-                      boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 8, offset: const Offset(0, 2))],
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.06),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
                     ),
                     child: IconButton(
-                      icon: Icon(Icons.notifications_outlined, color: Theme.of(context).textTheme.bodyLarge?.color, size: 22),
-                      onPressed: () => Navigator.of(context).pushNamed('/notifications'),
+                      icon: Icon(
+                        Icons.notifications_outlined,
+                        color: Theme.of(context).textTheme.bodyLarge?.color,
+                        size: 22,
+                      ),
+                      onPressed: () =>
+                          Navigator.of(context).pushNamed('/notifications'),
                     ),
                   ),
                 ),
@@ -246,9 +296,19 @@ class _HomeScreenState extends State<HomeScreen> {
                       decoration: BoxDecoration(
                         color: appBarColor,
                         shape: BoxShape.circle,
-                        boxShadow: [BoxShadow(color: appBarColor.withValues(alpha: 0.3), blurRadius: 8, offset: const Offset(0, 2))],
+                        boxShadow: [
+                          BoxShadow(
+                            color: appBarColor.withValues(alpha: 0.3),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
                       ),
-                      child: const Icon(Icons.person, color: Colors.white, size: 20),
+                      child: const Icon(
+                        Icons.person,
+                        color: Colors.white,
+                        size: 20,
+                      ),
                     ),
                   ),
                 ),
@@ -261,9 +321,19 @@ class _HomeScreenState extends State<HomeScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Container(
               decoration: BoxDecoration(
-                color: Color.lerp(Theme.of(context).cardColor, appBarColor, 0.03),
+                color: Color.lerp(
+                  Theme.of(context).cardColor,
+                  appBarColor,
+                  0.03,
+                ),
                 borderRadius: BorderRadius.circular(20),
-                boxShadow: [BoxShadow(color: appBarColor.withValues(alpha: 0.08), blurRadius: 16, offset: const Offset(0, 4))],
+                boxShadow: [
+                  BoxShadow(
+                    color: appBarColor.withValues(alpha: 0.08),
+                    blurRadius: 16,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.center,
@@ -271,8 +341,12 @@ class _HomeScreenState extends State<HomeScreen> {
                   Container(
                     height: 6,
                     decoration: BoxDecoration(
-                      gradient: LinearGradient(colors: [appBarColor, secondaryColor]),
-                      borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                      gradient: LinearGradient(
+                        colors: [appBarColor, secondaryColor],
+                      ),
+                      borderRadius: const BorderRadius.vertical(
+                        top: Radius.circular(20),
+                      ),
                     ),
                   ),
                   Padding(
@@ -281,9 +355,29 @@ class _HomeScreenState extends State<HomeScreen> {
                       children: [
                         _buildSealImage(municipality, size: 72),
                         const SizedBox(height: 10),
-                        Text(municipality, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: appBarColor, letterSpacing: 0.5), textAlign: TextAlign.center),
+                        Text(
+                          municipality,
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: appBarColor,
+                            letterSpacing: 0.5,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
                         const SizedBox(height: 12),
-                        Text(welcomeMsg, textAlign: TextAlign.center, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: Theme.of(context).textTheme.bodyMedium?.color, height: 1.4)),
+                        Text(
+                          welcomeMsg,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w500,
+                            color: Theme.of(
+                              context,
+                            ).textTheme.bodyMedium?.color,
+                            height: 1.4,
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -300,10 +394,25 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(AppStrings.get('announcements'), style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: appBarColor)),
+                Text(
+                  AppStrings.get('announcements'),
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: appBarColor,
+                  ),
+                ),
                 GestureDetector(
-                  onTap: () => Navigator.of(context).pushNamed('/announcements'),
-                  child: Text(AppStrings.get('seeAll'), style: TextStyle(fontSize: 13, color: appBarColor.withValues(alpha: 0.7), fontWeight: FontWeight.w500)),
+                  onTap: () =>
+                      Navigator.of(context).pushNamed('/announcements'),
+                  child: Text(
+                    AppStrings.get('seeAll'),
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: appBarColor.withValues(alpha: 0.7),
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -320,16 +429,56 @@ class _HomeScreenState extends State<HomeScreen> {
           // ── Citizen Services ──
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Text(AppStrings.get('citizenServices'), style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: appBarColor)),
+            child: Text(
+              AppStrings.get('citizenServices'),
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: appBarColor,
+              ),
+            ),
           ),
           const SizedBox(height: 16),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Row(
               children: [
-                Expanded(child: Center(child: _ServiceGridItem(iconContainerSize: iconSize, icon: Icons.report_problem_rounded, label: AppStrings.get('reportProblemLabel'), iconColor: Colors.white, bgColor: const Color(0xFF4CAF50), onTap: () => Navigator.of(context).pushNamed('/report')))),
-                Expanded(child: Center(child: _ServiceGridItem(iconContainerSize: iconSize, icon: Icons.history_rounded, label: AppStrings.get('myReportsLabel'), iconColor: Colors.white, bgColor: const Color(0xFFFF9800), onTap: () => Navigator.of(context).pushNamed('/status')))),
-                Expanded(child: Center(child: _ServiceGridItem(iconContainerSize: iconSize, icon: Icons.local_hospital_rounded, label: AppStrings.get('emergencyContactsLabel'), iconColor: Colors.white, bgColor: const Color(0xFFE53935), onTap: () => Navigator.of(context).pushNamed('/contacts')))),
+                Expanded(
+                  child: Center(
+                    child: _ServiceGridItem(
+                      iconContainerSize: iconSize,
+                      icon: Icons.report_problem_rounded,
+                      label: AppStrings.get('reportProblemLabel'),
+                      iconColor: Colors.white,
+                      bgColor: const Color(0xFF4CAF50),
+                      onTap: () => Navigator.of(context).pushNamed('/report'),
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: Center(
+                    child: _ServiceGridItem(
+                      iconContainerSize: iconSize,
+                      icon: Icons.history_rounded,
+                      label: AppStrings.get('myReportsLabel'),
+                      iconColor: Colors.white,
+                      bgColor: const Color(0xFFFF9800),
+                      onTap: () => Navigator.of(context).pushNamed('/status'),
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: Center(
+                    child: _ServiceGridItem(
+                      iconContainerSize: iconSize,
+                      icon: Icons.local_hospital_rounded,
+                      label: AppStrings.get('emergencyContactsLabel'),
+                      iconColor: Colors.white,
+                      bgColor: const Color(0xFFE53935),
+                      onTap: () => Navigator.of(context).pushNamed('/contacts'),
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
@@ -339,16 +488,57 @@ class _HomeScreenState extends State<HomeScreen> {
           // ── Information & Support ──
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Text(AppStrings.get('informationSupport'), style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: appBarColor)),
+            child: Text(
+              AppStrings.get('informationSupport'),
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: appBarColor,
+              ),
+            ),
           ),
           const SizedBox(height: 16),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Row(
               children: [
-                Expanded(child: Center(child: _ServiceGridItem(iconContainerSize: iconSize, icon: Icons.campaign_rounded, label: AppStrings.get('announcementsLabel'), iconColor: Colors.white, bgColor: const Color(0xFF1565C0), onTap: () => Navigator.of(context).pushNamed('/announcements')))),
-                Expanded(child: Center(child: _ServiceGridItem(iconContainerSize: iconSize, icon: Icons.help_outline_rounded, label: AppStrings.get('supportFaqsLabel'), iconColor: Colors.white, bgColor: const Color(0xFF00897B), onTap: () => Navigator.of(context).pushNamed('/support')))),
-                Expanded(child: Center(child: _ServiceGridItem(iconContainerSize: iconSize, icon: Icons.settings_rounded, label: AppStrings.get('appSettingsLabel'), iconColor: Colors.white, bgColor: const Color(0xFF546E7A), onTap: () => Navigator.of(context).pushNamed('/settings')))),
+                Expanded(
+                  child: Center(
+                    child: _ServiceGridItem(
+                      iconContainerSize: iconSize,
+                      icon: Icons.campaign_rounded,
+                      label: AppStrings.get('announcementsLabel'),
+                      iconColor: Colors.white,
+                      bgColor: const Color(0xFF1565C0),
+                      onTap: () =>
+                          Navigator.of(context).pushNamed('/announcements'),
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: Center(
+                    child: _ServiceGridItem(
+                      iconContainerSize: iconSize,
+                      icon: Icons.help_outline_rounded,
+                      label: AppStrings.get('supportFaqsLabel'),
+                      iconColor: Colors.white,
+                      bgColor: const Color(0xFF00897B),
+                      onTap: () => Navigator.of(context).pushNamed('/support'),
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: Center(
+                    child: _ServiceGridItem(
+                      iconContainerSize: iconSize,
+                      icon: Icons.settings_rounded,
+                      label: AppStrings.get('appSettingsLabel'),
+                      iconColor: Colors.white,
+                      bgColor: const Color(0xFF546E7A),
+                      onTap: () => Navigator.of(context).pushNamed('/settings'),
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
@@ -361,8 +551,22 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(AppStrings.get('recentlyResolved'), style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: appBarColor)),
-                Text(AppStrings.get('liveLabel'), style: TextStyle(fontSize: 13, color: Colors.green.shade600, fontWeight: FontWeight.w600)),
+                Text(
+                  AppStrings.get('recentlyResolved'),
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: appBarColor,
+                  ),
+                ),
+                Text(
+                  AppStrings.get('liveLabel'),
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Colors.green.shade600,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ],
             ),
           ),
@@ -371,9 +575,19 @@ class _HomeScreenState extends State<HomeScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Container(
               decoration: BoxDecoration(
-                color: Color.lerp(Theme.of(context).cardColor, appBarColor, 0.03),
+                color: Color.lerp(
+                  Theme.of(context).cardColor,
+                  appBarColor,
+                  0.03,
+                ),
                 borderRadius: BorderRadius.circular(16),
-                boxShadow: [BoxShadow(color: appBarColor.withValues(alpha: 0.08), blurRadius: 12, offset: const Offset(0, 4))],
+                boxShadow: [
+                  BoxShadow(
+                    color: appBarColor.withValues(alpha: 0.08),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
               ),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(16),
@@ -463,104 +677,112 @@ class _HomeScreenState extends State<HomeScreen> {
       builder: (context) => Align(
         alignment: Alignment.bottomCenter,
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: AppConstants.kContentMaxWidth),
+          constraints: const BoxConstraints(
+            maxWidth: AppConstants.kContentMaxWidth,
+          ),
           child: Container(
-        decoration: BoxDecoration(
-          color: Theme.of(context).cardColor,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-        ),
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).padding.bottom,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const SizedBox(height: 12),
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Colors.grey.shade300,
-                borderRadius: BorderRadius.circular(2),
+            decoration: BoxDecoration(
+              color: Theme.of(context).cardColor,
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(24),
               ),
             ),
-            const SizedBox(height: 16),
-            Text(
-              AppStrings.get('selectMunicipality'),
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Theme.of(context).textTheme.titleLarge?.color,
-              ),
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(context).padding.bottom,
             ),
-            const SizedBox(height: 8),
-            Flexible(
-              child: ListView.builder(
-                shrinkWrap: true,
-                itemCount: AppConstants.municipalities.length,
-                itemBuilder: (context, index) {
-                  final m = AppConstants.municipalities[index];
-                  final isSelected = m == current;
-                  final mColor = _getMunicipalityColor(m);
-                  return ListTile(
-                    leading: Stack(
-                      alignment: Alignment.bottomRight,
-                      children: [
-                        Container(
-                          width: 44,
-                          height: 44,
-                          decoration: BoxDecoration(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const SizedBox(height: 12),
+                Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  AppStrings.get('selectMunicipality'),
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).textTheme.titleLarge?.color,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Flexible(
+                  child: ListView.builder(
+                    shrinkWrap: true,
+                    itemCount: AppConstants.municipalities.length,
+                    itemBuilder: (context, index) {
+                      final m = AppConstants.municipalities[index];
+                      final isSelected = m == current;
+                      final mColor = _getMunicipalityColor(m);
+                      return ListTile(
+                        leading: Stack(
+                          alignment: Alignment.bottomRight,
+                          children: [
+                            Container(
+                              width: 44,
+                              height: 44,
+                              decoration: BoxDecoration(
+                                color: isSelected
+                                    ? mColor.withValues(alpha: 0.12)
+                                    : Colors.grey.shade100,
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Padding(
+                                padding: const EdgeInsets.all(4),
+                                child: _buildSealImage(m, size: 36),
+                              ),
+                            ),
+                            if (isSelected)
+                              Container(
+                                width: 16,
+                                height: 16,
+                                decoration: BoxDecoration(
+                                  color: mColor,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  Icons.check,
+                                  color: Colors.white,
+                                  size: 10,
+                                ),
+                              ),
+                          ],
+                        ),
+                        title: Text(
+                          m,
+                          style: TextStyle(
+                            fontWeight: isSelected
+                                ? FontWeight.w600
+                                : FontWeight.normal,
                             color: isSelected
-                                ? mColor.withValues(alpha: 0.12)
-                                : Colors.grey.shade100,
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Padding(
-                            padding: const EdgeInsets.all(4),
-                            child: _buildSealImage(m, size: 36),
+                                ? mColor
+                                : Theme.of(context).textTheme.bodyLarge?.color,
                           ),
                         ),
-                        if (isSelected)
-                          Container(
-                            width: 16,
-                            height: 16,
-                            decoration: BoxDecoration(
-                              color: mColor,
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(Icons.check, color: Colors.white, size: 10),
-                          ),
-                      ],
-                    ),
-                    title: Text(
-                      m,
-                      style: TextStyle(
-                        fontWeight: isSelected
-                            ? FontWeight.w600
-                            : FontWeight.normal,
-                        color: isSelected
-                            ? mColor
-                            : Theme.of(context).textTheme.bodyLarge?.color,
-                      ),
-                    ),
-                    tileColor: isSelected
-                        ? mColor.withValues(alpha: 0.05)
-                        : null,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    onTap: () {
-                      oneVizcayaState.selectedMunicipality.value = m;
-                      Navigator.of(context).pop();
+                        tileColor: isSelected
+                            ? mColor.withValues(alpha: 0.05)
+                            : null,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        onTap: () {
+                          oneVizcayaState.selectedMunicipality.value = m;
+                          Navigator.of(context).pop();
+                        },
+                      );
                     },
-                  );
-                },
-              ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+              ],
             ),
-            const SizedBox(height: 16),
-          ],
-        ),
-      ),
+          ),
         ),
       ),
     );
@@ -588,7 +810,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 360),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 6,
+                    ),
                     decoration: BoxDecoration(
                       color: const Color(0xFF333333),
                       borderRadius: BorderRadius.circular(28),
@@ -605,7 +830,8 @@ class _HomeScreenState extends State<HomeScreen> {
                         _BottomNavItem(
                           icon: Icons.camera_alt_rounded,
                           isSelected: false,
-                          onTap: () => Navigator.of(context).pushNamed('/report'),
+                          onTap: () =>
+                              Navigator.of(context).pushNamed('/report'),
                           selectedColor: appBarColor,
                         ),
                         _BottomNavItem(
@@ -632,10 +858,7 @@ class _QueueBottomSheet extends StatelessWidget {
   final List<Map<String, dynamic>> queue;
   final VoidCallback onClearQueue;
 
-  const _QueueBottomSheet({
-    required this.queue,
-    required this.onClearQueue,
-  });
+  const _QueueBottomSheet({required this.queue, required this.onClearQueue});
 
   IconData _categoryIcon(String? category) {
     switch (category?.toLowerCase()) {
@@ -835,7 +1058,13 @@ class _ServiceGridItem extends StatelessWidget {
                   ),
                 ],
               ),
-              child: ExcludeSemantics(child: Icon(icon, color: iconColor, size: iconContainerSize * 0.46)),
+              child: ExcludeSemantics(
+                child: Icon(
+                  icon,
+                  color: iconColor,
+                  size: iconContainerSize * 0.46,
+                ),
+              ),
             ),
             const SizedBox(height: 8),
             Text(
