@@ -96,7 +96,7 @@ One Vizcaya is designed **in accordance with Republic Act No. 10173 (Data Privac
 
 * **Data minimization:** The app collects only what a report requires — category, location, optional photo, and a contact identity. No unnecessary personal data is gathered.
 * **Informed consent:** A first-launch consent screen explains what data is collected, why, and how long it is retained, with auditable consent timestamps.
-* **Defined retention:** Resolved reports are auto-archived after a defined retention period to limit indefinite data storage.
+* **Defined retention:** Reports are auto-archived after 12 months and permanently deleted (with their photos) after 24 months by scheduled jobs, limiting indefinite data storage.
 * **Access control:** Strict Firestore security rules ensure citizens can only access their own submissions, and admins only see data within their jurisdiction.
 * **Compliance roadmap:** Final deployment includes coordination with the LGU legal office for **National Privacy Commission (NPC) registration** and designation of a **Data Protection Officer** from the LGU.
 
@@ -236,7 +236,10 @@ The dashboard features a toggleable **Google Maps heatmap layer** overlaying rep
 - [x] **Citizen Stats Card** with animated count-up.
 - [x] **Haptic Feedback** on GPS attach and submit.
 - [x] **In-App Review Prompt** after a report is resolved.
-- [x] **Account Deletion** with 2-step type-to-confirm flow.
+- [x] **Account Deletion** with 2-step type-to-confirm flow, cascading to photo evidence in Storage (no orphaned media).
+- [x] **Download My Data** (RA 10173 access & portability) — exports profile, consent record, and all reports as JSON or PDF.
+- [x] **In-App Data Privacy Request** (RA 10173) — access / correction / erasure / objection / portability / complaint requests logged for the DPO, with DPO + NPC contacts surfaced in-app.
+- [x] **EXIF Stripping** — photo metadata (hidden GPS, camera serial, timestamp) removed before upload for data minimization.
 - [x] **Image Compression** before upload to reduce citizen data usage.
 - [x] **Trilingual UI** (English / Tagalog / Ilocano).
 
