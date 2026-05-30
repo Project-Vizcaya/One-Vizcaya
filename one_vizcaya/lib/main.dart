@@ -148,15 +148,27 @@ class _OneVizcayaAppState extends State<OneVizcayaApp> {
               primary: Color(0xFF4CAF50),
             ),
           ),
-          locale: lang == 'Tagalog'
-              ? const Locale('tl', 'PH')
-              : const Locale('en', 'US'),
-          supportedLocales: const [Locale('en', 'US'), Locale('tl', 'PH')],
+          // NOTE: flutter_localizations ships Filipino as 'fil' — there is no
+          // 'tl' locale. Using 'tl' meant no delegate could supply
+          // MaterialLocalizations, so any Material widget that needs it
+          // (e.g. RefreshIndicator) threw at build and blanked the screen.
+          locale: lang == 'Tagalog' ? const Locale('fil') : const Locale('en'),
+          supportedLocales: const [Locale('en'), Locale('fil')],
           localizationsDelegates: const [
             GlobalMaterialLocalizations.delegate,
             GlobalWidgetsLocalizations.delegate,
             GlobalCupertinoLocalizations.delegate,
           ],
+          // Guarantee the resolved locale is always one the Global delegates
+          // support, so MaterialLocalizations is never missing — on any device
+          // language. Filipino/Tagalog devices report 'fil' or 'tl'.
+          localeResolutionCallback: (locale, supportedLocales) {
+            if (locale != null &&
+                (locale.languageCode == 'fil' || locale.languageCode == 'tl')) {
+              return const Locale('fil');
+            }
+            return const Locale('en');
+          },
           theme: ThemeData(
             brightness: Brightness.light,
             primarySwatch: Colors.green,
