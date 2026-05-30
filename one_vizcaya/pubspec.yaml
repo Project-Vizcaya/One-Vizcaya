@@ -37,7 +37,7 @@ dependencies:
   printing: ^5.13.0
   in_app_review: ^2.0.9
   local_auth: ^3.0.1
-  fl_chart: ^0.69.0
+  fl_chart: ^1.2.0
 
 dev_dependencies:
   flutter_test:
