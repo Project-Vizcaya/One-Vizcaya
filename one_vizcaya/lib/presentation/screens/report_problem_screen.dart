@@ -92,24 +92,35 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
           .child('report_images')
           .child(fileName);
 
-      // Compress image before upload (target ~200 KB)
+      // Compress and re-encode the image before upload (target ~200 KB).
+      // keepExif:false strips EXIF metadata (GPS, camera serial, timestamp) so
+      // no hidden personal data is uploaded to Storage — RA 10173 data
+      // minimization. The verified GPS/timestamp we *do* keep is stored
+      // explicitly on the report document instead.
       final Uint8List? compressed = await FlutterImageCompress.compressWithFile(
         image.absolute.path,
         minWidth: 1024,
         minHeight: 1024,
         quality: 75,
         format: CompressFormat.jpeg,
+        keepExif: false,
       );
 
-      UploadTask uploadTask;
-      if (compressed != null) {
-        uploadTask = ref.putData(
-          compressed,
-          SettableMetadata(contentType: 'image/jpeg'),
-        );
-      } else {
-        uploadTask = ref.putFile(image);
+      // If re-encoding failed we deliberately do NOT fall back to uploading the
+      // original file, which would carry its raw EXIF (including GPS) into
+      // Storage. The report still submits, just without the photo.
+      if (compressed == null) {
+        assert(() {
+          debugPrint('Image compression returned null; skipping photo upload to avoid EXIF leak.');
+          return true;
+        }());
+        return null;
       }
+
+      final uploadTask = ref.putData(
+        compressed,
+        SettableMetadata(contentType: 'image/jpeg'),
+      );
 
       final snapshot = await uploadTask;
       return await snapshot.ref.getDownloadURL();

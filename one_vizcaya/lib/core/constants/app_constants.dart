@@ -357,6 +357,19 @@ class AppConstants {
     return hotline ?? defaultHotline;
   }
 
+  // ── Data Privacy (RA 10173) contacts ──────────────────────────────────────
+  // Surfaced in the in-app Data Privacy Request screen. Update the DPO email
+  // with the official LGU address before production launch.
+  static const String dpoName = 'Data Protection Officer';
+  static const String dpoOffice = 'Provincial Government of Nueva Vizcaya';
+  static const String dpoAddress = 'Capitol Compound, Bayombong, 3700 Nueva Vizcaya';
+  static const String dpoEmail = 'dpo@nueva-vizcaya.gov.ph';
+  static const String npcName = 'National Privacy Commission';
+  static const String npcAddress =
+      '5th Floor Delegation Building, PICC Complex, Pasay City';
+  static const String npcWebsite = 'https://privacy.gov.ph';
+  static const String npcHotline = '1-866-NPC-9993';
+
   static const Map<String, dynamic> municipalityThemes = {
     'Bambang': {
       'appBarColor': Color(0xFFE2725B), // Terracotta

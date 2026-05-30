@@ -77,6 +77,20 @@ service cloud.firestore {
         allow read, write: if isOwner(userId);
         allow read:        if isAdmin();
       }
+
+      // Per-user data-subject requests (RA 10173: access/correction/erasure/etc.)
+      // Citizens file and read their own; admins (the DPO) read and update status.
+      match /dataRequests/{requestId} {
+        allow read, create: if isOwner(userId);
+        allow read, update: if isAdmin();
+        allow delete:       if isProvincialAdmin();
+      }
+    }
+
+    // ─── Data-subject requests (collectionGroup) ─────────────────────────────
+    // Lets the DPO / admins list every privacy request across all users.
+    match /{path=**}/dataRequests/{requestId} {
+      allow read, update: if isAdmin();
     }
 
     // ─── CollectionGroup query ───────────────────────────────────────────────

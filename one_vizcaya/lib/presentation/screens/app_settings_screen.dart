@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/l10n/app_strings.dart';
 import '../state/municipality_state.dart';
@@ -110,6 +111,22 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
                   title: AppStrings.get('privacyPolicy'),
                   subtitle: AppStrings.get('privacyPolicySubtitle'),
                   onTap: () => Navigator.of(context).pushNamed('/privacy'),
+                ),
+                _DividerLine(),
+                _NavigationTile(
+                  icon: Icons.download_outlined,
+                  iconColor: const Color(0xFF00897B),
+                  title: AppStrings.get('downloadMyData'),
+                  subtitle: AppStrings.get('downloadMyDataSubtitle'),
+                  onTap: () => Navigator.of(context).pushNamed('/my-data'),
+                ),
+                _DividerLine(),
+                _NavigationTile(
+                  icon: Icons.gavel_outlined,
+                  iconColor: const Color(0xFF5E35B1),
+                  title: AppStrings.get('dataPrivacyRequest'),
+                  subtitle: AppStrings.get('dataPrivacyRequestSubtitle'),
+                  onTap: () => Navigator.of(context).pushNamed('/data-request'),
                 ),
                 _DividerLine(),
                 _NavigationTile(
@@ -533,6 +550,20 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
           .doc(uid)
           .collection('reports')
           .get();
+
+      // RA 10173 (Right to Erasure): delete the user's photo evidence from
+      // Cloud Storage so no orphaned images with embedded location data remain.
+      for (final doc in reportsSnap.docs) {
+        final imageUrl = doc.data()['imageUrl'] as String?;
+        if (imageUrl != null && imageUrl.isNotEmpty) {
+          try {
+            await FirebaseStorage.instance.refFromURL(imageUrl).delete();
+          } catch (_) {
+            // Already gone or unreadable — continue; report doc is still removed.
+          }
+        }
+      }
+
       final batch = firestore.batch();
       for (final doc in reportsSnap.docs) {
         batch.delete(doc.reference);
