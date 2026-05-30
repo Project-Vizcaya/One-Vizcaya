@@ -1327,9 +1327,11 @@ function renderAnalytics() {
 
   // Status pie
   const statusCounts = {
-    Reported: allReports.filter(r=>r.status==='reported').length,
-    Ongoing:  allReports.filter(r=>r.status==='ongoing').length,
-    Solved:   allReports.filter(r=>r.status==='solved').length,
+    Reported:     allReports.filter(r=>r.status==='reported').length,
+    Acknowledged: allReports.filter(r=>r.status==='acknowledged').length,
+    'Under Review': allReports.filter(r=>r.status==='under_review').length,
+    Ongoing:      allReports.filter(r=>r.status==='ongoing').length,
+    Solved:       allReports.filter(r=>r.status==='solved').length,
   };
 
   const chartDefaults = { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { font: { size: 11 }, boxWidth: 12 } } } };
@@ -1363,7 +1365,7 @@ function renderAnalytics() {
     data: {
       labels: Object.keys(statusCounts),
       datasets: [{ data: Object.values(statusCounts),
-        backgroundColor: ['#276749','#C05621','#2E7D32'], borderWidth: 2 }]
+        backgroundColor: ['#276749','#00695C','#6B21A8','#C05621','#2E7D32'], borderWidth: 2 }]
     },
     options: { ...chartDefaults }
   });

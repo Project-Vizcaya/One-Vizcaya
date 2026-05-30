@@ -156,7 +156,7 @@ class _ReportStatusCardState extends State<ReportStatusCard>
     const size = 20.0;
 
     return SizedBox(
-      height: 56,
+      height: 68,
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: List.generate(stepLabels.length * 2 - 1, (i) {
