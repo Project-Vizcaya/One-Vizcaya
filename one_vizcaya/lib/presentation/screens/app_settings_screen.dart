@@ -301,17 +301,17 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
                 ),
                 _DividerLine(),
                 _InfoTile(
-                  icon: Icons.person_outline,
+                  icon: Icons.groups_outlined,
                   iconColor: _lguColor,
                   title: 'Developer',
-                  value: 'Aaron Anthony A. Gano II',
+                  value: 'Project: Vizcaya Team',
                 ),
                 _DividerLine(),
                 _InfoTile(
-                  icon: Icons.school_outlined,
+                  icon: Icons.favorite_outline,
                   iconColor: _lguColor,
-                  title: 'Institution',
-                  value: 'Nueva Vizcaya State University',
+                  title: 'Made For',
+                  value: 'The People of Nueva Vizcaya',
                 ),
                 _DividerLine(),
                 _NavigationTile(
@@ -459,7 +459,7 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
                   controller: confirmController,
                   onChanged: (val) {
                     setDialogState(() {
-                      _isDeleteTyped = val.trim() == 'DELETE';
+                      _isDeleteTyped = val.trim().toUpperCase() == 'DELETE';
                     });
                   },
                   decoration: InputDecoration(
@@ -771,7 +771,7 @@ class _SettingsCard extends StatelessWidget {
 class _DividerLine extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return Divider(height: 1, indent: 56, color: Colors.grey.shade100);
+    return Divider(height: 1, indent: 56, color: Theme.of(context).dividerColor);
   }
 }
 

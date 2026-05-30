@@ -136,6 +136,11 @@ class _WeatherWidgetState extends State<WeatherWidget> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardBg = isDark ? const Color(0xFF1B2A33) : const Color(0xFFE3F2FD);
+    final cardBorder = isDark ? const Color(0xFF2E4450) : const Color(0xFFBBDEFB);
+    final titleColor = isDark ? const Color(0xFFE3F2FD) : const Color(0xFF37474F);
+    final subColor = isDark ? const Color(0xFF9FB3BF) : const Color(0xFF546E7A);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: InkWell(
@@ -144,9 +149,9 @@ class _WeatherWidgetState extends State<WeatherWidget> {
         child: Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: const Color(0xFFE3F2FD),
+            color: cardBg,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFFBBDEFB)),
+            border: Border.all(color: cardBorder),
           ),
           child: _isLoading
               ? const SizedBox(
@@ -156,7 +161,7 @@ class _WeatherWidgetState extends State<WeatherWidget> {
                 )
               : Row(
                   children: [
-                    Icon(_icon, size: 44, color: const Color(0xFF546E7A)),
+                    Icon(_icon, size: 44, color: subColor),
                     const SizedBox(width: 14),
                     Expanded(
                       child: Column(
@@ -164,18 +169,18 @@ class _WeatherWidgetState extends State<WeatherWidget> {
                         children: [
                           Text(
                             '$_locationName Weather',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 14,
-                              color: Color(0xFF37474F),
+                              color: titleColor,
                             ),
                           ),
                           const SizedBox(height: 2),
                           Text(
                             '$_condition • $_temp°C',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 13,
-                              color: Color(0xFF546E7A),
+                              color: subColor,
                             ),
                           ),
                           Text(
@@ -185,16 +190,16 @@ class _WeatherWidgetState extends State<WeatherWidget> {
                               fontSize: 11,
                               color: _isOffline
                                   ? Colors.orange.shade700
-                                  : const Color(0xFF78909C),
+                                  : subColor,
                             ),
                           ),
                         ],
                       ),
                     ),
                     IconButton(
-                      icon: const Icon(
+                      icon: Icon(
                         Icons.refresh,
-                        color: Color(0xFF546E7A),
+                        color: subColor,
                         size: 20,
                       ),
                       onPressed: _fetchWeather,

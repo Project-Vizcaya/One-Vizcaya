@@ -864,18 +864,21 @@ class _SubmissionOptionsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.grey.shade50,
+        color: isDark ? theme.colorScheme.surface : Colors.grey.shade50,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(
+            color: isDark ? theme.dividerColor : Colors.grey.shade200),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // ── How to send ────────────────────────────────────────────────
-          _sectionLabel('How would you like to send this?'),
+          _sectionLabel(context, 'How would you like to send this?'),
           const SizedBox(height: 10),
           Row(
             children: [
@@ -907,7 +910,7 @@ class _SubmissionOptionsCard extends StatelessWidget {
           const SizedBox(height: 14),
 
           // ── Identity ──────────────────────────────────────────────────
-          _sectionLabel('Your identity'),
+          _sectionLabel(context, 'Your identity'),
           const SizedBox(height: 10),
           Row(
             children: [
@@ -941,12 +944,14 @@ class _SubmissionOptionsCard extends StatelessWidget {
     );
   }
 
-  Widget _sectionLabel(String text) => Text(
+  Widget _sectionLabel(BuildContext context, String text) => Text(
     text,
-    style: const TextStyle(
+    style: TextStyle(
       fontSize: 12,
       fontWeight: FontWeight.w600,
-      color: Color(0xFF555555),
+      color: Theme.of(context).brightness == Brightness.dark
+          ? const Color(0xFFA8ADB5)
+          : const Color(0xFF555555),
       letterSpacing: 0.2,
     ),
   );
@@ -973,6 +978,8 @@ class _ModeOption extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     return Semantics(
       button: true,
       selected: selected,
@@ -985,11 +992,13 @@ class _ModeOption extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
           decoration: BoxDecoration(
             color: selected
-                ? selectedColor.withValues(alpha: 0.1)
-                : Colors.white,
+                ? selectedColor.withValues(alpha: isDark ? 0.22 : 0.1)
+                : (isDark ? theme.colorScheme.surfaceContainerHighest : Colors.white),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: selected ? selectedColor : Colors.grey.shade300,
+              color: selected
+                  ? selectedColor
+                  : (isDark ? theme.dividerColor : Colors.grey.shade300),
               width: selected ? 2 : 1,
             ),
           ),
@@ -999,7 +1008,9 @@ class _ModeOption extends StatelessWidget {
               Icon(
                 icon,
                 size: 20,
-                color: selected ? selectedColor : Colors.grey.shade500,
+                color: selected
+                    ? selectedColor
+                    : (isDark ? const Color(0xFFA8ADB5) : Colors.grey.shade500),
               ),
               const SizedBox(width: 8),
               Expanded(
@@ -1013,7 +1024,9 @@ class _ModeOption extends StatelessWidget {
                         fontWeight: FontWeight.w700,
                         color: selected
                             ? selectedColor
-                            : const Color(0xFF333333),
+                            : (isDark
+                                ? theme.colorScheme.onSurface
+                                : const Color(0xFF333333)),
                       ),
                     ),
                     const SizedBox(height: 2),
@@ -1022,8 +1035,8 @@ class _ModeOption extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 11,
                         color: selected
-                            ? selectedColor.withValues(alpha: 0.75)
-                            : Colors.grey.shade500,
+                            ? selectedColor.withValues(alpha: isDark ? 0.9 : 0.75)
+                            : (isDark ? const Color(0xFFA8ADB5) : Colors.grey.shade500),
                       ),
                     ),
                   ],
@@ -1094,7 +1107,7 @@ class _BarangayDropdown extends StatelessWidget {
     return DropdownButtonFormField<String>(
       value: validSelection,
       isExpanded: true,
-      dropdownColor: Colors.white,
+      dropdownColor: Theme.of(context).colorScheme.surface,
       hint: Text(
         '${AppStrings.get('barangay')} (${AppStrings.get('optional')})',
       ),
@@ -1181,7 +1194,7 @@ class _CategoryTreeSelector extends StatelessWidget {
   Widget build(BuildContext context) {
     // ── State C: both selected → show breadcrumb summary ──────────────────
     if (selectedCategory != null) {
-      return _buildSummary();
+      return _buildSummary(context);
     }
 
     return Column(
@@ -1323,8 +1336,10 @@ class _CategoryTreeSelector extends StatelessWidget {
   }
 
   // ── Summary breadcrumb after full selection ───────────────────────────────
-  Widget _buildSummary() {
+  Widget _buildSummary(BuildContext context) {
     final p = selectedCategory!.basePriority;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1359,10 +1374,12 @@ class _CategoryTreeSelector extends StatelessWidget {
               Expanded(
                 child: Text(
                   selectedCategory!.displayName,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
-                    color: Color(0xFF1A1A1A),
+                    color: isDark
+                        ? theme.colorScheme.onSurface
+                        : const Color(0xFF1A1A1A),
                   ),
                 ),
               ),
@@ -1374,7 +1391,9 @@ class _CategoryTreeSelector extends StatelessWidget {
                     vertical: 4,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.grey.shade200,
+                    color: isDark
+                        ? theme.colorScheme.surfaceContainerHighest
+                        : Colors.grey.shade200,
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Text(
@@ -1382,7 +1401,9 @@ class _CategoryTreeSelector extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w600,
-                      color: Colors.grey.shade700,
+                      color: isDark
+                          ? const Color(0xFFA8ADB5)
+                          : Colors.grey.shade700,
                     ),
                   ),
                 ),
@@ -1494,10 +1515,12 @@ class _CategoryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final p = category.basePriority;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Material(
-        color: Colors.white,
+        color: isDark ? theme.colorScheme.surfaceContainerHighest : Colors.white,
         borderRadius: BorderRadius.circular(12),
         child: InkWell(
           onTap: onTap,
@@ -1506,14 +1529,17 @@ class _CategoryCard extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.grey.shade200),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.03),
-                  blurRadius: 4,
-                  offset: const Offset(0, 2),
-                ),
-              ],
+              border: Border.all(
+                  color: isDark ? theme.dividerColor : Colors.grey.shade200),
+              boxShadow: isDark
+                  ? null
+                  : [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.03),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
             ),
             child: Row(
               children: [
@@ -1525,10 +1551,12 @@ class _CategoryCard extends StatelessWidget {
                     children: [
                       Text(
                         category.displayName,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
-                          color: Color(0xFF1A1A1A),
+                          color: isDark
+                              ? theme.colorScheme.onSurface
+                              : const Color(0xFF1A1A1A),
                         ),
                       ),
                       const SizedBox(height: 2),

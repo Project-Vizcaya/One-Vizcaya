@@ -129,9 +129,9 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
       useSafeArea: true,
       backgroundColor: Colors.transparent,
       builder: (context) => Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
         ),
         padding: EdgeInsets.only(
           bottom: MediaQuery.of(context).viewInsets.bottom +
@@ -158,12 +158,12 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
                   ),
                 ),
                 const SizedBox(height: 20),
-                const Text(
+                Text(
                   'Edit Profile',
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF333333),
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                 ),
                 const SizedBox(height: 24),
@@ -328,7 +328,7 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
     final phoneNumber = user?.phoneNumber ?? 'Not available';
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: _isLoading
           ? const Center(
               child: CircularProgressIndicator(color: Color(0xFF4CAF50)),
@@ -337,8 +337,8 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
               slivers: [
                 // ── Top app bar ──
                 SliverAppBar(
-                  backgroundColor: const Color(0xFFF5F5F5),
-                  foregroundColor: const Color(0xFF333333),
+                  backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+                  foregroundColor: Theme.of(context).colorScheme.onSurface,
                   elevation: 0,
                   pinned: true,
                   centerTitle: true,
@@ -430,10 +430,10 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
                           _profile?.name.isNotEmpty == true
                               ? _profile!.name.toUpperCase()
                               : 'ONE VIZCAYA USER',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
-                            color: Color(0xFF333333),
+                            color: Theme.of(context).colorScheme.onSurface,
                             letterSpacing: 0.8,
                           ),
                         ),
@@ -529,7 +529,7 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
                     child: Container(
                       padding: const EdgeInsets.fromLTRB(12, 14, 12, 16),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: Theme.of(context).cardColor,
                         borderRadius: BorderRadius.circular(18),
                         boxShadow: [
                           BoxShadow(
@@ -548,12 +548,12 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
                               const Icon(Icons.bar_chart,
                                   color: Color(0xFF4CAF50), size: 18),
                               const SizedBox(width: 6),
-                              const Text(
+                              Text(
                                 'Your Contribution',
                                 style: TextStyle(
                                   fontSize: 13,
                                   fontWeight: FontWeight.w600,
-                                  color: Color(0xFF333333),
+                                  color: Theme.of(context).colorScheme.onSurface,
                                 ),
                               ),
                             ],
@@ -667,7 +667,7 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
                   child: Container(
                     margin: const EdgeInsets.symmetric(horizontal: 16),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: Theme.of(context).cardColor,
                       borderRadius: BorderRadius.circular(18),
                       boxShadow: [
                         BoxShadow(
@@ -779,7 +779,7 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
                       child: Container(
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: Theme.of(context).cardColor,
                           borderRadius: BorderRadius.circular(14),
                           boxShadow: [
                             BoxShadow(
@@ -826,7 +826,7 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
   Widget _menuDivider() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Divider(height: 1, color: Colors.grey.shade200),
+      child: Divider(height: 1, color: Theme.of(context).dividerColor),
     );
   }
 }
@@ -911,7 +911,9 @@ class _ProfileMenuItem extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
         child: Row(
           children: [
-            Icon(icon, size: 22, color: textColor ?? Colors.grey.shade700),
+            Icon(icon,
+                size: 22,
+                color: textColor ?? Theme.of(context).colorScheme.onSurface),
             const SizedBox(width: 16),
             Expanded(
               child: Text(
@@ -919,7 +921,7 @@ class _ProfileMenuItem extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w500,
-                  color: textColor ?? const Color(0xFF333333),
+                  color: textColor ?? Theme.of(context).colorScheme.onSurface,
                 ),
               ),
             ),

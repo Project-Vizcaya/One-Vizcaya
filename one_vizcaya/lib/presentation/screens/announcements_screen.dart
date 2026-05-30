@@ -18,7 +18,7 @@ class AnnouncementsScreen extends StatelessWidget {
     final municipality = oneVizcayaState.selectedMunicipality.value;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F7F7),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         backgroundColor: lguColor,
         foregroundColor: Colors.white,
@@ -359,7 +359,7 @@ class _AnnouncementCardState extends State<_AnnouncementCard> {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
         border: isUrgent
             ? Border.all(color: Colors.red.shade400, width: 1.5)
@@ -486,10 +486,10 @@ class _AnnouncementCardState extends State<_AnnouncementCard> {
                 const SizedBox(height: 10),
                 Text(
                   title,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF1A1A2E),
+                    color: Theme.of(context).colorScheme.onSurface,
                     height: 1.3,
                   ),
                   maxLines: 3,
