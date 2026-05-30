@@ -60,5 +60,20 @@
 	<string>One Vizcaya needs access to your photo library so you can attach images to incident reports.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>One Vizcaya needs permission to save photos to your library.</string>
+	<key>NSFaceIDUsageDescription</key>
+	<string>One Vizcaya uses Face ID to quickly and securely verify your identity.</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>com.onevizcaya.app</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>onevizcaya</string>
+			</array>
+		</dict>
+	</array>
 </dict>
 </plist>
