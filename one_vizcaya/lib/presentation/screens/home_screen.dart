@@ -20,9 +20,29 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isOffline = false;
   int _queuedReportCount = 0;
 
+  // Municipality theme state — updated via listener instead of ValueListenableBuilder
+  late String _municipality;
+  late Color _appBarColor;
+  late Color _secondaryColor;
+  late String _welcomeMsg;
+
+  void _syncMunicipalityTheme() {
+    final theme = oneVizcayaState.activeTheme;
+    _municipality = oneVizcayaState.selectedMunicipality.value;
+    _appBarColor = theme['appBarColor'] as Color;
+    _secondaryColor = (theme['secondaryColor'] as Color?) ?? _appBarColor;
+    _welcomeMsg = theme['welcomeMsg'] as String;
+  }
+
+  void _onMunicipalityChanged() {
+    if (mounted) setState(_syncMunicipalityTheme);
+  }
+
   @override
   void initState() {
     super.initState();
+    _syncMunicipalityTheme();
+    oneVizcayaState.selectedMunicipality.addListener(_onMunicipalityChanged);
     _checkConnectivity();
     _refreshQueueCount();
   }
@@ -33,6 +53,12 @@ class _HomeScreenState extends State<HomeScreen> {
       _refreshQueueCount(),
     ]);
     if (mounted) setState(() {});
+  }
+
+  @override
+  void dispose() {
+    oneVizcayaState.selectedMunicipality.removeListener(_onMunicipalityChanged);
+    super.dispose();
   }
 
   @override
@@ -81,115 +107,84 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder<String>(
-      valueListenable: oneVizcayaState.selectedMunicipality,
-      builder: (context, municipality, child) {
-        final activeTheme = oneVizcayaState.activeTheme;
-        final appBarColor = activeTheme['appBarColor'] as Color;
-        final secondaryColor = (activeTheme['secondaryColor'] as Color?) ?? appBarColor;
-        final welcomeMsg = activeTheme['welcomeMsg'] as String;
-
-        return Scaffold(
-          backgroundColor: Color.lerp(Theme.of(context).scaffoldBackgroundColor, appBarColor, 0.10)!,
-          body: SafeArea(
-            child: Column(
-              children: [
-                // ── Offline banner ──
-                if (_isOffline)
-                  Container(
-                    width: double.infinity,
-                    color: const Color(0xFFF57F17),
-                    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.wifi_off, color: Colors.white, size: 16, semanticLabel: 'No internet connection'),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            AppStrings.get('offlineBanner'),
-                            style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
-                          ),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.refresh, color: Colors.white, size: 16, semanticLabel: 'Retry connection'),
-                          onPressed: _checkConnectivity,
-                          padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(),
-                        ),
-                      ],
+    return Scaffold(
+      backgroundColor: Color.lerp(Theme.of(context).scaffoldBackgroundColor, _appBarColor, 0.10)!,
+      body: SafeArea(
+        child: Column(
+          children: [
+            // ── Offline banner ──
+            if (_isOffline)
+              Container(
+                width: double.infinity,
+                color: const Color(0xFFF57F17),
+                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                child: Row(
+                  children: [
+                    const Icon(Icons.wifi_off, color: Colors.white, size: 16, semanticLabel: 'No internet connection'),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        AppStrings.get('offlineBanner'),
+                        style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
+                      ),
                     ),
-                  ),
+                    IconButton(
+                      icon: const Icon(Icons.refresh, color: Colors.white, size: 16, semanticLabel: 'Retry connection'),
+                      onPressed: _checkConnectivity,
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    ),
+                  ],
+                ),
+              ),
 
-                // ── Queued reports banner ──
-                AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 350),
-                  transitionBuilder: (child, animation) => SlideTransition(
-                    position: Tween<Offset>(
-                      begin: const Offset(0, -1),
-                      end: Offset.zero,
-                    ).animate(animation),
-                    child: child,
-                  ),
-                  child: _queuedReportCount > 0
-                      ? GestureDetector(
-                          key: const ValueKey('queue_banner'),
-                          onTap: () => _showQueueBottomSheet(context),
-                          child: Container(
-                            width: double.infinity,
-                            color: const Color(0xFFFFF3E0),
-                            padding: const EdgeInsets.symmetric(
-                              vertical: 8,
-                              horizontal: 16,
-                            ),
-                            child: Row(
-                              children: [
-                                const Text('📤', style: TextStyle(fontSize: 14)),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: Text(
-                                    '$_queuedReportCount ${_queuedReportCount == 1 ? 'report' : 'reports'} queued — will submit when you\'re back online',
-                                    style: const TextStyle(
-                                      color: Color(0xFFE65100),
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ),
-                                Icon(
-                                  Icons.chevron_right,
-                                  color: const Color(0xFFE65100),
-                                  size: 16,
-                                ),
-                              ],
-                            ),
+            // ── Queued reports banner ──
+            if (_queuedReportCount > 0)
+              GestureDetector(
+                onTap: () => _showQueueBottomSheet(context),
+                child: Container(
+                  width: double.infinity,
+                  color: const Color(0xFFFFF3E0),
+                  padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                  child: Row(
+                    children: [
+                      const Text('📤', style: TextStyle(fontSize: 14)),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          '$_queuedReportCount ${_queuedReportCount == 1 ? 'report' : 'reports'} queued — will submit when you\'re back online',
+                          style: const TextStyle(
+                            color: Color(0xFFE65100),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
                           ),
-                        )
-                      : const SizedBox.shrink(key: ValueKey('queue_empty')),
+                        ),
+                      ),
+                      const Icon(Icons.chevron_right, color: Color(0xFFE65100), size: 16),
+                    ],
+                  ),
                 ),
+              ),
 
-                Expanded(
-                  child: _selectedNavIndex == 0
-                      ? _buildHomePage(context, municipality, appBarColor, secondaryColor, welcomeMsg)
-                      : _selectedNavIndex == 1
-                      ? _buildReportsPage(context, municipality, appBarColor)
-                      : _buildProfileRedirect(context),
-                ),
-              ],
+            Expanded(
+              child: _selectedNavIndex == 0
+                  ? _buildHomePage(context)
+                  : _selectedNavIndex == 1
+                  ? _buildReportsPage(context, _municipality, _appBarColor)
+                  : _buildProfileRedirect(context),
             ),
-          ),
-          bottomNavigationBar: _buildBottomNav(appBarColor),
-        );
-      },
+          ],
+        ),
+      ),
+      bottomNavigationBar: _buildBottomNav(_appBarColor),
     );
   }
 
-  Widget _buildHomePage(
-    BuildContext context,
-    String municipality,
-    Color appBarColor,
-    Color secondaryColor,
-    String welcomeMsg,
-  ) {
+  Widget _buildHomePage(BuildContext context) {
+    final municipality = _municipality;
+    final appBarColor = _appBarColor;
+    final secondaryColor = _secondaryColor;
+    final welcomeMsg = _welcomeMsg;
     const double iconSize = 52.0;
     return SingleChildScrollView(
       physics: const ClampingScrollPhysics(),
@@ -318,10 +313,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
           const SizedBox(height: 20),
 
-          // ── Weather (temporarily removed for diagnostic) ──
-          // WeatherWidget(municipality: municipality),
+          WeatherWidget(municipality: municipality),
 
-          const SizedBox(height: 24),
+          const SizedBox(height: 8),
 
           // ── Citizen Services ──
           Padding(
