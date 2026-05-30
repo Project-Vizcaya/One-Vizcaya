@@ -99,7 +99,7 @@ class _SupportScreenState extends State<SupportScreen> {
     final municipality = oneVizcayaState.selectedMunicipality.value;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F7F7),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         backgroundColor: lguColor,
         foregroundColor: Colors.white,
@@ -179,7 +179,7 @@ class _SupportScreenState extends State<SupportScreen> {
             Container(
               margin: const EdgeInsets.symmetric(horizontal: 16),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: Theme.of(context).cardColor,
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
@@ -241,7 +241,7 @@ class _SupportScreenState extends State<SupportScreen> {
                         Divider(
                           height: 1,
                           indent: 68,
-                          color: Colors.grey.shade100,
+                          color: Theme.of(context).dividerColor,
                         ),
                     ],
                   );
@@ -265,7 +265,7 @@ class _SupportScreenState extends State<SupportScreen> {
             Container(
               margin: const EdgeInsets.symmetric(horizontal: 16),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: Theme.of(context).cardColor,
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
@@ -326,7 +326,7 @@ class _SupportScreenState extends State<SupportScreen> {
                                     fontSize: 14,
                                     color: isExpanded
                                         ? lguColor
-                                        : const Color(0xFF333333),
+                                        : Theme.of(context).colorScheme.onSurface,
                                   ),
                                 ),
                               ),
@@ -357,7 +357,7 @@ class _SupportScreenState extends State<SupportScreen> {
                         Divider(
                           height: 1,
                           indent: 52,
-                          color: Colors.grey.shade100,
+                          color: Theme.of(context).dividerColor,
                         ),
                     ],
                   );
@@ -514,12 +514,12 @@ class NotificationsScreen extends StatelessWidget {
                     return Container(
                       decoration: BoxDecoration(
                         color: isRead
-                            ? Colors.white
+                            ? Theme.of(context).cardColor
                             : lguColor.withValues(alpha: 0.06),
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
                           color: isRead
-                              ? Colors.grey.shade200
+                              ? Theme.of(context).dividerColor
                               : lguColor.withValues(alpha: 0.25),
                         ),
                       ),
