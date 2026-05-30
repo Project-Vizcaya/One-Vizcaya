@@ -1,7 +1,6 @@
-import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
+import { createFileRoute, Outlet } from "@tanstack/react-router";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { useAuthStore } from "@/stores/authStore";
-import { useAuth } from "@/hooks/useAuth";
 
 export const Route = createFileRoute("/dashboard")({
   component: DashboardLayout,
@@ -9,7 +8,6 @@ export const Route = createFileRoute("/dashboard")({
 
 function DashboardLayout() {
   const { user, isLoading } = useAuthStore();
-  useAuth(); // sets up listener
 
   if (isLoading) {
     return (

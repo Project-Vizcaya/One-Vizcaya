@@ -1,4 +1,5 @@
-import { createFileRoute, redirect } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useEffect } from "react";
 import { LoginForm } from "@/components/auth/LoginForm";
 import { useAuthStore } from "@/stores/authStore";
 
@@ -8,6 +9,13 @@ export const Route = createFileRoute("/login")({
 
 function LoginPage() {
   const { user, isLoading } = useAuthStore();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!isLoading && user) {
+      navigate({ to: "/dashboard", replace: true });
+    }
+  }, [user, isLoading, navigate]);
 
   if (isLoading) {
     return (
@@ -17,10 +25,7 @@ function LoginPage() {
     );
   }
 
-  if (user) {
-    window.location.replace("/dashboard");
-    return null;
-  }
+  if (user) return null;
 
   return <LoginForm />;
 }

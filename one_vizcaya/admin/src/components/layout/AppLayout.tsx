@@ -113,7 +113,7 @@ export function AppLayout({ children }: AppLayoutProps) {
             <Menu className="h-5 w-5" />
           </Button>
           <div className="flex items-center gap-2 min-w-0">
-            <img src="/img/seals/nv-seal.png" alt="NV" className="h-7 w-7 rounded-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+            <img src="/img/seals/nueva-vizcaya.png" alt="NV" className="h-7 w-7 rounded-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
             <span className="font-semibold text-sm truncate">One Vizcaya</span>
           </div>
           <div className="ml-auto flex items-center gap-1">
@@ -173,7 +173,7 @@ function SidebarContent({
       {/* Logo */}
       <div className="flex items-center gap-3 px-4 py-4 border-b shrink-0">
         <img
-          src="/img/seals/nv-seal.png"
+          src="/img/seals/nueva-vizcaya.png"
           alt="Nueva Vizcaya"
           className="h-9 w-9 rounded-full object-cover ring-2 ring-green-100"
           onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}

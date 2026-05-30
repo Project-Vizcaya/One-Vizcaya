@@ -87,7 +87,7 @@ export function LoginForm() {
         <div className="text-center mb-8">
           <div className="flex justify-center mb-4">
             <img
-              src="/img/seals/nv-seal.png"
+              src="/img/seals/nueva-vizcaya.png"
               alt="Nueva Vizcaya"
               className="h-20 w-20 rounded-full ring-4 ring-white/20 shadow-xl object-cover"
               onError={(e) => {
