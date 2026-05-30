@@ -1425,7 +1425,7 @@ class _RainChartPainter extends CustomPainter {
             style: textStyle,
           ),
           textDirection: TextDirection.ltr,
-        )..layout();
+        )..layout(maxWidth: double.infinity);
         tp.paint(
           canvas,
           Offset(x - tp.width / 2 + barWidth / 2, chartBottom + 4),
@@ -1440,7 +1440,7 @@ class _RainChartPainter extends CustomPainter {
         style: textStyle,
       ),
       textDirection: TextDirection.ltr,
-    )..layout();
+    )..layout(maxWidth: double.infinity);
     maxTp.paint(canvas, Offset(2, chartTop));
   }
 
@@ -1482,7 +1482,7 @@ class _WindCompassPainter extends CustomPainter {
       final tp = TextPainter(
         text: TextSpan(text: labels[i], style: labelStyle),
         textDirection: TextDirection.ltr,
-      )..layout();
+      )..layout(maxWidth: double.infinity);
       tp.paint(canvas, offsets[i] - Offset(tp.width / 2, tp.height / 2));
     }
 
@@ -1509,7 +1509,7 @@ class _WindCompassPainter extends CustomPainter {
         ),
       ),
       textDirection: TextDirection.ltr,
-    )..layout();
+    )..layout(maxWidth: double.infinity);
     speedTp.paint(
         canvas, Offset(cx - speedTp.width / 2, cy - speedTp.height / 2));
   }

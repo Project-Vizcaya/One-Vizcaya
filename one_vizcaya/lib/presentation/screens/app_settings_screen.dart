@@ -353,7 +353,7 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
             onPressed: () async {
               final prefs = await SharedPreferences.getInstance();
               await prefs.remove('last_sms_sent');
-              Navigator.pop(ctx);
+              if (ctx.mounted) Navigator.pop(ctx);
               ToastUtils.showSuccess('Cache cleared successfully');
             },
             style: ElevatedButton.styleFrom(backgroundColor: _lguColor),
@@ -601,7 +601,7 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
               await prefs.remove('high_contrast');
               await prefs.remove('language');
               await prefs.remove('report_sort');
-              Navigator.pop(ctx);
+              if (ctx.mounted) Navigator.pop(ctx);
               _loadSettings();
               ToastUtils.showSuccess('Settings reset to defaults');
             },
