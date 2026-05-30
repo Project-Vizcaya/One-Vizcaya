@@ -190,15 +190,11 @@ class _HomeScreenState extends State<HomeScreen> {
     Color secondaryColor,
     String welcomeMsg,
   ) {
-    return Align(
-      alignment: Alignment.topCenter,
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: AppConstants.kContentMaxWidth),
-        child: SingleChildScrollView(
-            physics: const BouncingScrollPhysics(),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
+    return SingleChildScrollView(
+      physics: const ClampingScrollPhysics(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
           // ── Top bar ──
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -516,7 +512,7 @@ class _HomeScreenState extends State<HomeScreen> {
           const SizedBox(height: 32),
         ],
       ),
-    )));
+    );
   }
 
   Widget _buildReportsPage(
