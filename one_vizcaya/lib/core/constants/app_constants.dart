@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 
 class AppConstants {
   /// Update this whenever you bump the version in pubspec.yaml.
-  static const String appVersion = '1.1.4';
-  static const int buildNumber = 9;
+  static const String appVersion = '1.1.5';
+  static const int buildNumber = 2;
   static const String appVersionDisplay = '$appVersion (Build $buildNumber)';
 
   /// Content is centered and capped at this width on tablets / wide screens.
