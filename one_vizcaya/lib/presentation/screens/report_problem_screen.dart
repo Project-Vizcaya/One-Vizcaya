@@ -599,10 +599,10 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
                     foregroundColor: Colors.white,
                   ),
                   child: _isSubmitting
-                      ? const Row(
+                      ? Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            SizedBox(
+                            const SizedBox(
                               width: 18,
                               height: 18,
                               child: CircularProgressIndicator(
@@ -610,7 +610,7 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
                                 color: Colors.white,
                               ),
                             ),
-                            SizedBox(width: 12),
+                            const SizedBox(width: 12),
                             Text(AppStrings.get('submitting')),
                           ],
                         )
