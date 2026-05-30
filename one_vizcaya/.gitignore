@@ -36,3 +36,9 @@
 
 # My Private Secrets
 lib/secrets.dart
+
+# React admin build output
+web_admin_react/
+
+# Node modules
+**/node_modules/
