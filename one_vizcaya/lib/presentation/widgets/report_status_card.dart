@@ -150,6 +150,11 @@ class _ReportStatusCardState extends State<ReportStatusCard>
 
   Widget _buildStepTracker() {
     final step = _currentStep(widget.report.status);
+    // Terminal state: the report is resolved, so the final node is completed,
+    // not "in progress". Without this, the last (Resolved) circle stays as a
+    // pulsing active outline and never shows its checkmark.
+    final isResolved = widget.report.status == ReportStatus.solved ||
+        widget.report.status == ReportStatus.archived;
     const stepLabels = ['Reported', 'Acknowledged', 'Under Review', 'In Progress', 'Resolved'];
     final activeColor = Colors.green.shade600;
     const greyColor = Color(0xFFBDBDBD);
@@ -178,8 +183,12 @@ class _ReportStatusCardState extends State<ReportStatusCard>
 
           // Circle node
           final circleIndex = i ~/ 2;
-          final isDone = step > circleIndex;
-          final isActive = step == circleIndex; // current step, not yet done
+          // A node is done if a later step is current, or if the report is in a
+          // terminal (resolved) state and this is the current/final node.
+          final isDone =
+              step > circleIndex || (isResolved && step == circleIndex);
+          final isActive =
+              step == circleIndex && !isResolved; // current step, not yet done
 
           Widget circle = AnimatedContainer(
             duration: const Duration(milliseconds: 300),
