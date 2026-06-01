@@ -66,6 +66,8 @@ class _ReportStatusCardState extends State<ReportStatusCard>
     setState(() => _checkingFeedback = true);
     try {
       final doc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(widget.report.userId ?? user.uid)
           .collection('reports')
           .doc(widget.report.id)
           .collection('feedback')
@@ -442,7 +444,14 @@ class _ReportStatusCardState extends State<ReportStatusCard>
                                 if (user == null) return;
                                 setSheetState(() => submitting = true);
                                 try {
+                                  // Write feedback co-located with the report
+                                  // at users/{owner}/reports/{id}/feedback/{uid}
+                                  // so it matches the security rules and admins
+                                  // can read it. (In My Reports the owner is the
+                                  // signed-in user.)
                                   await FirebaseFirestore.instance
+                                      .collection('users')
+                                      .doc(widget.report.userId ?? user.uid)
                                       .collection('reports')
                                       .doc(widget.report.id)
                                       .collection('feedback')

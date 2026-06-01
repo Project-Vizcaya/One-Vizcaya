@@ -1689,6 +1689,12 @@ class _ReportDetailSheet extends StatelessWidget {
                     ),
                   ],
 
+                  // Citizen satisfaction feedback (only meaningful once solved)
+                  if (report.status == ReportStatus.solved) ...[
+                    const SizedBox(height: 12),
+                    _CitizenFeedbackSection(report: report, lguColor: lguColor),
+                  ],
+
                   const SizedBox(height: 24),
                   const Divider(),
                   const SizedBox(height: 12),
@@ -1860,6 +1866,146 @@ class _ReportDetailSheet extends StatelessWidget {
       case ReportStatus.archived:
         return 'Archived';
     }
+  }
+}
+
+/// Shows the citizen's satisfaction rating + comment for a resolved report,
+/// read from users/{owner}/reports/{id}/feedback. Lets admins close the loop
+/// on how well an issue was actually resolved.
+class _CitizenFeedbackSection extends StatelessWidget {
+  final ProblemReport report;
+  final Color lguColor;
+
+  const _CitizenFeedbackSection({required this.report, required this.lguColor});
+
+  @override
+  Widget build(BuildContext context) {
+    // Anonymous reports have no owner path to read feedback from.
+    final ownerId = report.userId;
+    if (ownerId == null || ownerId.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    final query = FirebaseFirestore.instance
+        .collection('users')
+        .doc(ownerId)
+        .collection('reports')
+        .doc(report.id)
+        .collection('feedback')
+        .limit(1)
+        .snapshots();
+
+    return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+      stream: query,
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) return const SizedBox.shrink();
+        final docs = snapshot.data!.docs;
+        if (docs.isEmpty) {
+          // Resolved but the citizen hasn't rated yet.
+          return Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.grey.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.hourglass_empty,
+                    size: 16, color: Colors.grey.shade600),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Awaiting citizen feedback on this resolution.',
+                    style: TextStyle(
+                        fontSize: 12, color: Colors.grey.shade700),
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+
+        final data = docs.first.data();
+        final rating = (data['rating'] as num?)?.toInt() ?? 0;
+        final comment = (data['comment'] as String?)?.trim() ?? '';
+        final ratingColor = rating <= 2
+            ? Colors.orange.shade700
+            : rating == 3
+                ? Colors.amber.shade800
+                : Colors.green.shade700;
+
+        return Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: ratingColor.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: ratingColor.withValues(alpha: 0.3)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.reviews_outlined, size: 16, color: ratingColor),
+                  const SizedBox(width: 6),
+                  Text(
+                    'Citizen Feedback',
+                    style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: ratingColor),
+                  ),
+                  if (rating <= 2) ...[
+                    const SizedBox(width: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Colors.orange.shade700,
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: const Text('Low rating',
+                          style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 9,
+                              fontWeight: FontWeight.bold)),
+                    ),
+                  ],
+                ],
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  ...List.generate(
+                      5,
+                      (i) => Icon(
+                            i < rating ? Icons.star : Icons.star_border,
+                            size: 18,
+                            color: ratingColor,
+                          )),
+                  const SizedBox(width: 8),
+                  Text('$rating/5',
+                      style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: ratingColor)),
+                ],
+              ),
+              if (comment.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Text(
+                  '“$comment”',
+                  style: TextStyle(
+                      fontSize: 12,
+                      fontStyle: FontStyle.italic,
+                      color: Theme.of(context).colorScheme.onSurface),
+                ),
+              ],
+            ],
+          ),
+        );
+      },
+    );
   }
 }
 
@@ -3392,10 +3538,124 @@ class _AnalyticsTab extends StatelessWidget {
       children: [
         _buildKpiGrid(),
         const SizedBox(height: 20),
+        _buildSatisfactionCard(),
+        const SizedBox(height: 20),
         _buildBarangayChart(),
         const SizedBox(height: 20),
         _buildCategoryPieChart(),
       ],
+    );
+  }
+
+  // ── Citizen Satisfaction (from feedback collectionGroup) ───────────────────
+  Widget _buildSatisfactionCard() {
+    // Restrict to the municipalities visible in this dashboard view so the
+    // average reflects the admin's jurisdiction.
+    final munis = reports.map((r) => r.municipality).toSet();
+
+    return Card(
+      elevation: 2,
+      shadowColor: Colors.black12,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.reviews_outlined, size: 16, color: lguColor),
+                const SizedBox(width: 6),
+                Text('Citizen Satisfaction',
+                    style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                        color: lguColor)),
+              ],
+            ),
+            const SizedBox(height: 12),
+            StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+              stream: FirebaseFirestore.instance
+                  .collectionGroup('feedback')
+                  .snapshots(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 8),
+                    child: Center(
+                        child: SizedBox(
+                            height: 18,
+                            width: 18,
+                            child:
+                                CircularProgressIndicator(strokeWidth: 2))),
+                  );
+                }
+                final docs = (snapshot.data?.docs ?? []).where((d) {
+                  final m = d.data()['municipality'] as String?;
+                  return m != null && munis.contains(m);
+                }).toList();
+
+                if (docs.isEmpty) {
+                  return Text('No ratings submitted yet.',
+                      style: TextStyle(
+                          fontSize: 12, color: Colors.grey.shade600));
+                }
+
+                final ratings = docs
+                    .map((d) => (d.data()['rating'] as num?)?.toInt() ?? 0)
+                    .where((r) => r > 0)
+                    .toList();
+                if (ratings.isEmpty) {
+                  return Text('No ratings submitted yet.',
+                      style: TextStyle(
+                          fontSize: 12, color: Colors.grey.shade600));
+                }
+                final avg =
+                    ratings.reduce((a, b) => a + b) / ratings.length;
+                final lowCount = ratings.where((r) => r <= 2).length;
+
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Text(avg.toStringAsFixed(1),
+                        style: TextStyle(
+                            fontSize: 32,
+                            fontWeight: FontWeight.bold,
+                            color: lguColor)),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: List.generate(5, (i) {
+                              final filled = i < avg.round();
+                              return Icon(
+                                  filled ? Icons.star : Icons.star_border,
+                                  size: 18,
+                                  color: Colors.amber.shade700);
+                            }),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            '${ratings.length} rating${ratings.length == 1 ? '' : 's'}'
+                            '${lowCount > 0 ? '  •  $lowCount low (≤2★)' : ''}',
+                            style: TextStyle(
+                                fontSize: 12,
+                                color: lowCount > 0
+                                    ? Colors.orange.shade800
+                                    : Colors.grey.shade600),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
+          ],
+        ),
+      ),
     );
   }
 
