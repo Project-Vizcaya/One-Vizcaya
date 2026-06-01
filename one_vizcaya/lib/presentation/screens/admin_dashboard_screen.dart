@@ -1176,6 +1176,51 @@ class _ReportDetailSheet extends StatelessWidget {
     return '${dt.month}/${dt.day}/${dt.year}  $hour:$minute $period';
   }
 
+  // Open the report's photo evidence full-screen with pinch-to-zoom, so admins
+  // can inspect details (cracks, water levels, plate numbers) during triage.
+  void _showFullScreenPhoto(BuildContext context, String url, String reportId) {
+    Navigator.of(context).push(
+      PageRouteBuilder(
+        opaque: false,
+        barrierColor: Colors.black,
+        pageBuilder: (ctx, _, __) => Scaffold(
+          backgroundColor: Colors.black,
+          appBar: AppBar(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            foregroundColor: Colors.white,
+            leading: IconButton(
+              icon: const Icon(Icons.close),
+              onPressed: () => Navigator.of(ctx).pop(),
+            ),
+          ),
+          body: Center(
+            child: Hero(
+              tag: 'admin_report_photo_$reportId',
+              child: InteractiveViewer(
+                minScale: 0.8,
+                maxScale: 5.0,
+                child: Image.network(
+                  url,
+                  fit: BoxFit.contain,
+                  loadingBuilder: (_, child, progress) => progress == null
+                      ? child
+                      : const Center(
+                          child:
+                              CircularProgressIndicator(color: Colors.white)),
+                  errorBuilder: (_, __, ___) => const Center(
+                    child: Text('Image unavailable',
+                        style: TextStyle(color: Colors.white70)),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   void _confirmDelete(BuildContext context) {
     showDialog(
       context: context,
@@ -1460,27 +1505,60 @@ class _ReportDetailSheet extends StatelessWidget {
                           color: lguColor),
                     ),
                     const SizedBox(height: 8),
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
-                      child: Image.network(
-                        report.imageUrl!,
-                        fit: BoxFit.cover,
-                        loadingBuilder: (_, child, progress) =>
-                            progress == null
-                                ? child
-                                : const SizedBox(
-                                    height: 120,
-                                    child: Center(
-                                        child:
-                                            CircularProgressIndicator())),
-                        errorBuilder: (_, __, ___) => Container(
-                          height: 80,
-                          decoration: BoxDecoration(
-                            color: Colors.grey.shade100,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Center(
-                              child: Text('Image unavailable')),
+                    GestureDetector(
+                      onTap: () => _showFullScreenPhoto(
+                          context, report.imageUrl!, report.id),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: Stack(
+                          alignment: Alignment.bottomRight,
+                          children: [
+                            Hero(
+                              tag: 'admin_report_photo_${report.id}',
+                              child: Image.network(
+                                report.imageUrl!,
+                                fit: BoxFit.cover,
+                                width: double.infinity,
+                                loadingBuilder: (_, child, progress) =>
+                                    progress == null
+                                        ? child
+                                        : const SizedBox(
+                                            height: 120,
+                                            child: Center(
+                                                child:
+                                                    CircularProgressIndicator())),
+                                errorBuilder: (_, __, ___) => Container(
+                                  height: 80,
+                                  decoration: BoxDecoration(
+                                    color: Colors.grey.shade100,
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: const Center(
+                                      child: Text('Image unavailable')),
+                                ),
+                              ),
+                            ),
+                            Container(
+                              margin: const EdgeInsets.all(8),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: Colors.black54,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.zoom_in,
+                                      size: 14, color: Colors.white),
+                                  SizedBox(width: 4),
+                                  Text('Tap to enlarge',
+                                      style: TextStyle(
+                                          color: Colors.white, fontSize: 11)),
+                                ],
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
