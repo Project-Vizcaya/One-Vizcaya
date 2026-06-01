@@ -3507,21 +3507,25 @@ class _AnalyticsTab extends StatelessWidget {
       counts[key] = (counts[key] ?? 0) + 1;
     }
 
-    // Top 10 by count, descending
+    // Top 6 by count, descending (keeps bottom labels readable)
     final sorted = counts.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
-    final top = sorted.take(10).toList();
+    final top = sorted.take(6).toList();
 
     if (top.isEmpty) return const SizedBox.shrink();
 
     final maxVal = top.first.value.toDouble();
+    // Round the axis ceiling up to a whole number and use integer gridlines.
+    final axisMax = (maxVal < 1 ? 1 : maxVal).ceilToDouble();
+    final interval =
+        (axisMax / 4).ceilToDouble().clamp(1.0, double.infinity).toDouble();
 
     return Card(
       elevation: 2,
       shadowColor: Colors.black12,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 16, 24, 16),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -3539,20 +3543,21 @@ class _AnalyticsTab extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 20),
             SizedBox(
-              height: top.length * 42.0,
+              height: 220,
               child: BarChart(
                 BarChartData(
-                  alignment: BarChartAlignment.start,
-                  maxY: maxVal * 1.2,
+                  alignment: BarChartAlignment.spaceAround,
+                  maxY: axisMax,
+                  minY: 0,
                   barTouchData: BarTouchData(
                     touchTooltipData: BarTouchTooltipData(
                       getTooltipItem: (group, groupIndex, rod, rodIndex) {
                         final name = top[group.x].key;
                         final count = rod.toY.toInt();
                         return BarTooltipItem(
-                          '$name\n$count reports',
+                          '$name\n$count report${count == 1 ? '' : 's'}',
                           const TextStyle(
                             color: Colors.white,
                             fontSize: 11,
@@ -3564,41 +3569,44 @@ class _AnalyticsTab extends StatelessWidget {
                   ),
                   titlesData: FlTitlesData(
                     show: true,
+                    // Y axis: report counts (integers only)
                     leftTitles: AxisTitles(
                       sideTitles: SideTitles(
                         showTitles: true,
-                        reservedSize: 120,
+                        reservedSize: 28,
+                        interval: interval,
+                        getTitlesWidget: (value, meta) {
+                          if (value != value.roundToDouble()) {
+                            return const SizedBox.shrink();
+                          }
+                          return Text(
+                            value.toInt().toString(),
+                            style: const TextStyle(fontSize: 10),
+                          );
+                        },
+                      ),
+                    ),
+                    // X axis: barangay names under each bar
+                    bottomTitles: AxisTitles(
+                      sideTitles: SideTitles(
+                        showTitles: true,
+                        reservedSize: 44,
                         getTitlesWidget: (value, meta) {
                           final index = value.toInt();
                           if (index < 0 || index >= top.length) {
                             return const SizedBox.shrink();
                           }
                           final label = top[index].key;
-                          final display = label.length > 16
-                              ? '${label.substring(0, 14)}…'
+                          final display = label.length > 10
+                              ? '${label.substring(0, 9)}…'
                               : label;
                           return Padding(
-                            padding: const EdgeInsets.only(right: 6),
+                            padding: const EdgeInsets.only(top: 6),
                             child: Text(
                               display,
-                              textAlign: TextAlign.right,
-                              style: const TextStyle(fontSize: 10),
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(fontSize: 9),
                             ),
-                          );
-                        },
-                      ),
-                    ),
-                    bottomTitles: AxisTitles(
-                      sideTitles: SideTitles(
-                        showTitles: true,
-                        reservedSize: 20,
-                        getTitlesWidget: (value, meta) {
-                          if (value == meta.max || value == meta.min) {
-                            return const SizedBox.shrink();
-                          }
-                          return Text(
-                            value.toInt().toString(),
-                            style: const TextStyle(fontSize: 10),
                           );
                         },
                       ),
@@ -3610,9 +3618,10 @@ class _AnalyticsTab extends StatelessWidget {
                   ),
                   gridData: FlGridData(
                     show: true,
-                    drawHorizontalLine: false,
-                    drawVerticalLine: true,
-                    getDrawingVerticalLine: (value) => FlLine(
+                    drawHorizontalLine: true,
+                    drawVerticalLine: false,
+                    horizontalInterval: interval,
+                    getDrawingHorizontalLine: (value) => FlLine(
                       color: Colors.grey.shade200,
                       strokeWidth: 1,
                     ),
@@ -3627,14 +3636,13 @@ class _AnalyticsTab extends StatelessWidget {
                         BarChartRodData(
                           toY: count,
                           color: lguColor,
-                          width: 18,
-                          borderRadius: const BorderRadius.only(
-                            topRight: Radius.circular(4),
-                            bottomRight: Radius.circular(4),
+                          width: 22,
+                          borderRadius: const BorderRadius.vertical(
+                            top: Radius.circular(4),
                           ),
                           backDrawRodData: BackgroundBarChartRodData(
                             show: true,
-                            toY: maxVal * 1.2,
+                            toY: axisMax,
                             color: lguColor.withValues(alpha: 0.07),
                           ),
                         ),

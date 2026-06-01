@@ -17,8 +17,12 @@ class ReportStatusScreen extends StatefulWidget {
   _ReportStatusScreenState createState() => _ReportStatusScreenState();
 }
 
+/// Sort options for the citizen's "My Reports" list.
+enum ReportSort { newest, oldest, highestPriority, lowestPriority }
+
 class _ReportStatusScreenState extends State<ReportStatusScreen> {
   ReportPriority? _filterPriority;
+  ReportSort _sort = ReportSort.newest;
   String? _highlightedReportId;
   final ScrollController _scrollController = ScrollController();
   final ReportRepository _reportRepository = FirebaseReportRepository();
@@ -36,6 +40,34 @@ class _ReportStatusScreenState extends State<ReportStatusScreen> {
   void dispose() {
     _scrollController.dispose();
     super.dispose();
+  }
+
+  PopupMenuItem<ReportSort> _sortItem(
+      ReportSort value, String label, IconData icon) {
+    final selected = _sort == value;
+    final color = selected
+        ? (oneVizcayaState.activeTheme['appBarColor'] as Color)
+        : null;
+    return PopupMenuItem<ReportSort>(
+      value: value,
+      child: Row(
+        children: [
+          Icon(icon, size: 18, color: color),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              label,
+              style: TextStyle(
+                color: color,
+                fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
+              ),
+            ),
+          ),
+          if (selected)
+            Icon(Icons.check, size: 16, color: color),
+        ],
+      ),
+    );
   }
 
   void _scrollToHighlighted(List<ProblemReport> reports) {
@@ -72,6 +104,22 @@ class _ReportStatusScreenState extends State<ReportStatusScreen> {
         backgroundColor: activeLguColor,
         title: Text('${AppStrings.get('myReportsTitle')} ${AppStrings.get('prepositionTo')} $activeMunicipalityName'),
         actions: [
+          PopupMenuButton<ReportSort>(
+            icon: const Icon(Icons.sort),
+            tooltip: AppStrings.get('sortBy'),
+            initialValue: _sort,
+            onSelected: (value) => setState(() => _sort = value),
+            itemBuilder: (context) => [
+              _sortItem(ReportSort.newest, AppStrings.get('sortNewest'),
+                  Icons.schedule),
+              _sortItem(ReportSort.oldest, AppStrings.get('sortOldest'),
+                  Icons.history),
+              _sortItem(ReportSort.highestPriority,
+                  AppStrings.get('sortHighest'), Icons.arrow_upward),
+              _sortItem(ReportSort.lowestPriority,
+                  AppStrings.get('sortLowest'), Icons.arrow_downward),
+            ],
+          ),
           IconButton(
             icon: const Icon(Icons.qr_code_scanner),
             tooltip: AppStrings.get('scanQr'),
@@ -88,9 +136,13 @@ class _ReportStatusScreenState extends State<ReportStatusScreen> {
             child: Column(
         children: [
           // Priority filter chips
-          Container(
+          Builder(builder: (context) {
+          final barBg = Theme.of(context).brightness == Brightness.dark
+              ? Theme.of(context).colorScheme.surface
+              : Colors.grey.shade100;
+          return Container(
             width: double.infinity,
-            color: Colors.grey.shade100,
+            color: barBg,
             child: Stack(
               children: [
                 SingleChildScrollView(
@@ -133,8 +185,8 @@ class _ReportStatusScreenState extends State<ReportStatusScreen> {
                           begin: Alignment.centerLeft,
                           end: Alignment.centerRight,
                           colors: [
-                            Colors.grey.shade100.withValues(alpha: 0),
-                            Colors.grey.shade100,
+                            barBg.withValues(alpha: 0),
+                            barBg,
                           ],
                         ),
                       ),
@@ -143,7 +195,8 @@ class _ReportStatusScreenState extends State<ReportStatusScreen> {
                 ),
               ],
             ),
-          ),
+          );
+          }),
           // Reports list
           Expanded(
             child: StreamBuilder<List<ProblemReport>>(
@@ -170,12 +223,25 @@ class _ReportStatusScreenState extends State<ReportStatusScreen> {
                   );
                 }
 
-                // Apply priority filter, then sort by priority score (highest first)
+                // Apply priority filter, then the selected sort order
                 var reports = snapshot.data!;
                 if (_filterPriority != null) {
                   reports = reports.where((r) => r.priority == _filterPriority).toList();
                 }
-                reports.sort((a, b) => b.priorityScore.compareTo(a.priorityScore));
+                switch (_sort) {
+                  case ReportSort.newest:
+                    reports.sort((a, b) => b.reportedAt.compareTo(a.reportedAt));
+                    break;
+                  case ReportSort.oldest:
+                    reports.sort((a, b) => a.reportedAt.compareTo(b.reportedAt));
+                    break;
+                  case ReportSort.highestPriority:
+                    reports.sort((a, b) => b.priorityScore.compareTo(a.priorityScore));
+                    break;
+                  case ReportSort.lowestPriority:
+                    reports.sort((a, b) => a.priorityScore.compareTo(b.priorityScore));
+                    break;
+                }
 
                 if (reports.isEmpty) {
                   return Center(
