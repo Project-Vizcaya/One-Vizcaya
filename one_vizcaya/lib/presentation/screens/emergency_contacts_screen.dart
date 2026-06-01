@@ -39,6 +39,64 @@ class EmergencyContactsScreen extends StatelessWidget {
       'number': '09171227150',
       'type': 'disaster',
     },
+    // ── Mental health & crisis support ──
+    {
+      'name': 'NCMH Crisis Hotline (Mental Health)',
+      'number': '1553',
+      'type': 'mentalHealth',
+    },
+    {
+      'name': 'NCMH Mobile (Mental Health / Suicide)',
+      'number': '09178998727',
+      'type': 'mentalHealth',
+    },
+    {
+      'name': 'Hopeline PH (Suicide Prevention)',
+      'number': '09175584673',
+      'type': 'mentalHealth',
+    },
+    // ── Women, children & social welfare ──
+    {
+      'name': 'PNP Women & Children Protection',
+      'number': '09197777377',
+      'type': 'women',
+    },
+    {
+      'name': 'DSWD Hotline',
+      'number': '16545',
+      'type': 'women',
+    },
+    // ── Humanitarian & utilities ──
+    {
+      'name': 'Philippine Red Cross',
+      'number': '143',
+      'type': 'redcross',
+    },
+    {
+      'name': 'PHIVOLCS (Earthquake/Volcano)',
+      'number': '02-8929-9254',
+      'type': 'disaster',
+    },
+    {
+      'name': 'PAGASA Weather',
+      'number': '02-8284-0800',
+      'type': 'disaster',
+    },
+    {
+      'name': 'Bureau of Fire Protection (National)',
+      'number': '02-8426-0219',
+      'type': 'fire',
+    },
+    {
+      'name': 'PNP Text Hotline',
+      'number': '0917-847-5757',
+      'type': 'police',
+    },
+    {
+      'name': 'Land Transportation Office (LTO)',
+      'number': '1342',
+      'type': 'infrastructure',
+    },
   ];
 
   static const Map<String, List<Map<String, String>>> _localContacts = {
@@ -125,6 +183,21 @@ class EmergencyContactsScreen extends StatelessWidget {
     ],
   };
 
+  // Province-wide services relevant to every municipality (hospitals, utilities,
+  // and provincial offices). Shown under "Provincial Services" on every screen.
+  static const List<Map<String, String>> _provincialServices = [
+    {'name': 'Region II Trauma & Medical Center (R2TMC)', 'number': '078-321-2222', 'type': 'medical'},
+    {'name': 'Veterans Regional Hospital (Bayombong)', 'number': '078-321-2305', 'type': 'medical'},
+    {'name': 'NV Provincial Hospital', 'number': '09228680843', 'type': 'medical'},
+    {'name': 'NUVELCO (Electric Coop) Hotline', 'number': '078-321-2102', 'type': 'utility'},
+    {'name': 'Nueva Vizcaya Water District', 'number': '078-321-2151', 'type': 'utility'},
+    {'name': 'PNP Provincial HQ (Camp Diego)', 'number': '09985985926', 'type': 'police'},
+    {'name': 'BFP Provincial Office', 'number': '078-803-1730', 'type': 'fire'},
+    {'name': 'Philippine Red Cross – Nueva Vizcaya', 'number': '078-321-2738', 'type': 'redcross'},
+    {'name': 'Provincial Social Welfare (PSWDO)', 'number': '078-803-2419', 'type': 'women'},
+    {'name': 'Provincial Health Office', 'number': '078-321-2024', 'type': 'medical'},
+  ];
+
   IconData _getIconForType(String? type) {
     switch (type) {
       case 'police':
@@ -137,6 +210,14 @@ class EmergencyContactsScreen extends StatelessWidget {
         return Icons.warning;
       case 'infrastructure':
         return Icons.construction;
+      case 'mentalHealth':
+        return Icons.psychology_outlined;
+      case 'women':
+        return Icons.support_agent;
+      case 'redcross':
+        return Icons.bloodtype_outlined;
+      case 'utility':
+        return Icons.bolt_outlined;
       default:
         return Icons.phone;
     }
@@ -154,6 +235,14 @@ class EmergencyContactsScreen extends StatelessWidget {
         return 'Disaster';
       case 'infrastructure':
         return 'Infrastructure';
+      case 'mentalHealth':
+        return 'Mental Health';
+      case 'women':
+        return 'Women and Children';
+      case 'redcross':
+        return 'Red Cross';
+      case 'utility':
+        return 'Utility';
       default:
         return 'Emergency';
     }
@@ -171,6 +260,14 @@ class EmergencyContactsScreen extends StatelessWidget {
         return const Color(0xFFE65100);
       case 'infrastructure':
         return const Color(0xFF6A1B9A);
+      case 'mentalHealth':
+        return const Color(0xFF00897B);
+      case 'women':
+        return const Color(0xFFAD1457);
+      case 'redcross':
+        return const Color(0xFFC62828);
+      case 'utility':
+        return const Color(0xFF455A64);
       default:
         return lguColor;
     }
@@ -302,6 +399,11 @@ class EmergencyContactsScreen extends StatelessWidget {
               ...localContacts.map(
                   (c) => _buildContactTile(c, activeLguColor, context)),
             ],
+
+            // ── Province-wide services (shown for every municipality) ──
+            _buildSectionHeader('Provincial Services', activeLguColor),
+            ..._provincialServices.map(
+                (c) => _buildContactTile(c, activeLguColor, context)),
 
             // ── National / Provincial hotlines ──
             _buildSectionHeader(
