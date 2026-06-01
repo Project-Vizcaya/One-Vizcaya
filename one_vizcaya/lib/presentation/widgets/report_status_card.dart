@@ -1,9 +1,15 @@
 import 'dart:async';
+import 'dart:typed_data';
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'dart:io';
 import '../../domain/models/problem_report.dart';
 import '../../domain/enums/report_status.dart';
 import '../../core/utils/toast_utils.dart';
@@ -927,13 +933,47 @@ class _ReportStatusCardState extends State<ReportStatusCard>
     );
   }
 
+  // Build a QR payload that is BOTH an app deep link and human-readable.
+  // The deep link lets the in-app scanner jump straight to this report, while
+  // the extra query params mean a generic phone QR scanner still shows useful
+  // text (ID, category, status, municipality, GPS).
+  String _buildQrPayload() {
+    final r = widget.report;
+    final params = <String, String>{
+      'reportId': r.id,
+      'category': r.category.displayName,
+      'status': r.status.toShortString(),
+      'municipality': r.municipality,
+    };
+    // Owner uid lets an admin scanner resolve the exact Firestore path
+    // (users/{owner}/reports/{reportId}). Resolved from the doc path even for
+    // anonymous reports; omitted only if truly unknown.
+    if (r.userId != null && r.userId!.isNotEmpty) {
+      params['owner'] = r.userId!;
+    }
+    if (r.latitude != null && r.longitude != null) {
+      params['gps'] =
+          '${r.latitude!.toStringAsFixed(5)},${r.longitude!.toStringAsFixed(5)}';
+    }
+    final query = params.entries
+        .map((e) =>
+            '${e.key}=${Uri.encodeQueryComponent(e.value)}')
+        .join('&');
+    return 'onevizcaya://status?$query';
+  }
+
   void _showReportQr(BuildContext context) {
-    final qrValue =
-        'onevizcaya://status?reportId=${widget.report.id}';
+    final qrValue = _buildQrPayload();
+    final qrKey = GlobalKey();
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
       builder: (ctx) => Container(
         padding: EdgeInsets.only(
           left: 24, right: 24, top: 24,
@@ -948,16 +988,131 @@ class _ReportStatusCardState extends State<ReportStatusCard>
                   TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
             ),
             const SizedBox(height: 16),
-            QrImageView(data: qrValue, size: 200),
-            const SizedBox(height: 12),
-            const Text(
-              'Show to LGU staff to track this report',
-              style: TextStyle(color: Colors.grey, fontSize: 12),
+            // Wrapped in RepaintBoundary + white padding so it can be captured
+            // as a clean, scannable image for saving/sharing.
+            RepaintBoundary(
+              key: qrKey,
+              child: Container(
+                color: Colors.white,
+                padding: const EdgeInsets.all(16),
+                child: QrImageView(
+                  data: qrValue,
+                  size: 200,
+                  backgroundColor: Colors.white,
+                ),
+              ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
+            Text(
+              '${widget.report.category.displayName} • ${_getStatusText(widget.report.status)}',
+              style: const TextStyle(
+                  fontWeight: FontWeight.w600, fontSize: 13),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 4),
+            const Text(
+              'Show to LGU staff, or share/print to track this report',
+              style: TextStyle(color: Colors.grey, fontSize: 12),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () => _shareQrImage(qrKey),
+                    icon: const Icon(Icons.share, size: 18),
+                    label: const Text('Share'),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () => _saveQrImage(qrKey),
+                    icon: const Icon(Icons.download, size: 18),
+                    label: const Text('Save Image'),
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ],
         ),
       ),
     );
+  }
+
+  // Render the QR RepaintBoundary to PNG bytes for save/share.
+  Future<Uint8List?> _captureQr(GlobalKey key) async {
+    try {
+      final boundary =
+          key.currentContext?.findRenderObject() as RenderRepaintBoundary?;
+      if (boundary == null) return null;
+      final image = await boundary.toImage(pixelRatio: 3.0);
+      final byteData =
+          await image.toByteData(format: ui.ImageByteFormat.png);
+      return byteData?.buffer.asUint8List();
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<File?> _writeTempPng(Uint8List bytes) async {
+    try {
+      final dir = await getTemporaryDirectory();
+      final file = File(
+          '${dir.path}/onevizcaya_report_${widget.report.id}.png');
+      await file.writeAsBytes(bytes);
+      return file;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> _shareQrImage(GlobalKey key) async {
+    final bytes = await _captureQr(key);
+    if (bytes == null) {
+      ToastUtils.showError('Could not generate QR image.');
+      return;
+    }
+    final file = await _writeTempPng(bytes);
+    if (file == null) {
+      ToastUtils.showError('Could not prepare QR image.');
+      return;
+    }
+    await SharePlus.instance.share(
+      ShareParams(
+        files: [XFile(file.path, mimeType: 'image/png')],
+        text:
+            'One Vizcaya report — ${widget.report.category.displayName} (${_getStatusText(widget.report.status)})',
+      ),
+    );
+  }
+
+  Future<void> _saveQrImage(GlobalKey key) async {
+    final bytes = await _captureQr(key);
+    if (bytes == null) {
+      ToastUtils.showError('Could not generate QR image.');
+      return;
+    }
+    final file = await _writeTempPng(bytes);
+    if (file == null) {
+      ToastUtils.showError('Could not save QR image.');
+      return;
+    }
+    // Surface the saved file via the share sheet's "Save to Files/Photos"
+    // option — avoids platform-specific gallery permissions.
+    await SharePlus.instance.share(
+      ShareParams(
+        files: [XFile(file.path, mimeType: 'image/png')],
+        text: 'One Vizcaya report QR',
+      ),
+    );
+    ToastUtils.showInfo('Use "Save to Files" or "Save Image" to keep the QR.');
   }
 }

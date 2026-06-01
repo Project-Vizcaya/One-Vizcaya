@@ -16,7 +16,9 @@ import '../../data/services/role_service.dart';
 import '../../features/auth/domain/entities/app_user.dart';
 import '../../core/utils/toast_utils.dart';
 import '../../core/constants/app_constants.dart';
+import '../../core/l10n/app_strings.dart';
 import '../state/municipality_state.dart';
+import 'qr_scanner_screen.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // MAIN SCREEN
@@ -352,6 +354,45 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
     }
   }
 
+  // Scan a citizen's report QR and open it directly in the dashboard — fast
+  // in-person triage at a field desk.
+  Future<void> _scanReportQr() async {
+    final raw = await scanReportQr(context);
+    if (raw == null || !mounted) return;
+    final parsed = parseReportQr(raw);
+    if (parsed == null) {
+      ToastUtils.showError(AppStrings.get('invalidQr'));
+      return;
+    }
+    final reportId = parsed['reportId']!;
+    final owner = parsed['owner'];
+
+    ToastUtils.showInfo('Looking up report…');
+    try {
+      DocumentSnapshot<Map<String, dynamic>>? doc;
+
+      // Preferred: exact path when the QR carries the owner uid.
+      if (owner != null && owner.isNotEmpty) {
+        final d = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(owner)
+            .collection('reports')
+            .doc(reportId)
+            .get();
+        if (d.exists) doc = d;
+      }
+
+      if (!mounted) return;
+      if (doc == null) {
+        ToastUtils.showError('Report not found in your jurisdiction.');
+        return;
+      }
+      _showReportDetail(ProblemReport.fromFirestore(doc));
+    } catch (e) {
+      if (mounted) ToastUtils.showError('Could not open report: $e');
+    }
+  }
+
   void _showReportDetail(ProblemReport report) {
     showModalBottomSheet(
       context: context,
@@ -457,6 +498,11 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                 }),
               ),
             ),
+          IconButton(
+            icon: const Icon(Icons.qr_code_scanner),
+            tooltip: AppStrings.get('scanQr'),
+            onPressed: _scanReportQr,
+          ),
           IconButton(
             icon: const Icon(Icons.refresh),
             tooltip: 'Refresh',

@@ -8,6 +8,7 @@ import '../../domain/repositories/report_repository.dart';
 import '../../data/repositories_impl/firebase_report_repository.dart';
 import '../state/municipality_state.dart';
 import '../widgets/report_status_card.dart';
+import 'qr_scanner_screen.dart';
 
 class ReportStatusScreen extends StatefulWidget {
   const ReportStatusScreen({super.key});
@@ -70,6 +71,13 @@ class _ReportStatusScreenState extends State<ReportStatusScreen> {
       appBar: AppBar(
         backgroundColor: activeLguColor,
         title: Text('${AppStrings.get('myReportsTitle')} ${AppStrings.get('prepositionTo')} $activeMunicipalityName'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.qr_code_scanner),
+            tooltip: AppStrings.get('scanQr'),
+            onPressed: () => scanAndOpenReport(context),
+          ),
+        ],
       ),
       body: SafeArea(
         top: false,
