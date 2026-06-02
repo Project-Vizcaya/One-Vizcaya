@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
   LayoutDashboard, Map, FileText, BarChart3, Users, Megaphone,
@@ -16,7 +16,7 @@ import {
 import { useAuthStore } from "@/stores/authStore";
 import { useAuth } from "@/hooks/useAuth";
 import { useReports } from "@/hooks/useReports";
-import { cn } from "@/lib/utils";
+import { cn, getMunicipalityVars, getMunicipalityColor } from "@/lib/utils";
 import type { AuthUser } from "@/types";
 import { MUNICIPALITIES } from "@/data/municipalities";
 import type { AdminRole } from "@/lib/firebase";
@@ -74,6 +74,20 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const municipality = viewAs === "municipal" ? viewMunicipality : null;
   const { reports } = useReports(municipality);
   const criticalOpen = reports.filter((r) => r.priority === "critical" && r.status !== "solved").length;
+
+  // Apply municipality colour theme to :root so portaled components (Sheet, dialogs) also inherit it
+  useEffect(() => {
+    const root = document.documentElement;
+    const vars = getMunicipalityVars(municipality);
+    const CSS_VARS = ["--gov-green-900","--gov-green-800","--gov-green-700","--gov-green-50",
+                      "--primary","--primary-foreground","--ring","--accent","--accent-foreground"];
+    if (Object.keys(vars).length > 0) {
+      Object.entries(vars).forEach(([k, v]) => root.style.setProperty(k, v));
+    } else {
+      CSS_VARS.forEach((k) => root.style.removeProperty(k));
+    }
+    return () => { CSS_VARS.forEach((k) => root.style.removeProperty(k)); };
+  }, [municipality]);
 
   const isActive = (path: string, exact?: boolean) =>
     exact ? currentPath === path : currentPath.startsWith(path);
@@ -166,10 +180,13 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           </div>
         )}
 
-        {/* View scope banner */}
+        {/* View scope banner — coloured with the active municipality's brand colour */}
         {viewAs === "municipal" && viewMunicipality && (
-          <div className="bg-blue-700 text-white text-xs font-semibold px-4 py-1.5 text-center shrink-0 tracking-wide">
-            📍 VIEWING: MUNICIPALITY OF {viewMunicipality.toUpperCase()}
+          <div
+            className="text-white text-[11px] font-bold px-4 py-1.5 text-center shrink-0 tracking-widest uppercase"
+            style={{ backgroundColor: getMunicipalityColor(viewMunicipality) ?? "hsl(var(--gov-green-800))" }}
+          >
+            Municipality of {viewMunicipality}
           </div>
         )}
 
@@ -199,19 +216,33 @@ function SidebarContent({
 }: SidebarContentProps) {
   return (
     <div className="flex flex-col h-full min-h-0">
-      {/* Sidebar header */}
+      {/* Sidebar header — colour adapts to active municipality */}
       <div className="bg-[hsl(var(--gov-green-900))] text-white px-4 py-4 shrink-0">
         <div className="flex items-center gap-3">
           <img
-            src="/img/seals/nueva-vizcaya.png"
-            alt="Nueva Vizcaya Seal"
+            src={viewAs === "municipal" && viewMunicipality
+              ? `/img/seals/${viewMunicipality.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "")}.png`
+              : "/img/seals/nueva-vizcaya.png"
+            }
+            alt={viewAs === "municipal" && viewMunicipality ? `${viewMunicipality} Seal` : "Nueva Vizcaya Seal"}
             className="h-10 w-10 rounded-full object-cover ring-2 ring-white/20 shrink-0"
-            onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+            onError={(e) => {
+              (e.target as HTMLImageElement).src = "/img/seals/nueva-vizcaya.png";
+            }}
           />
           <div className="min-w-0">
             <p className="font-bold text-sm leading-tight">One Vizcaya</p>
-            <p className="text-[11px] text-white/60 leading-tight mt-0.5">Provincial Government</p>
-            <p className="text-[10px] text-white/50 leading-tight">Nueva Vizcaya</p>
+            {viewAs === "municipal" && viewMunicipality ? (
+              <>
+                <p className="text-[11px] text-white/70 leading-tight mt-0.5">Municipality of</p>
+                <p className="text-[11px] font-semibold text-white/90 leading-tight truncate">{viewMunicipality}</p>
+              </>
+            ) : (
+              <>
+                <p className="text-[11px] text-white/60 leading-tight mt-0.5">Provincial Government</p>
+                <p className="text-[10px] text-white/50 leading-tight">Nueva Vizcaya</p>
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -245,8 +276,20 @@ function SidebarContent({
               <DropdownMenuSeparator />
               <DropdownMenuLabel className="text-[10px] uppercase tracking-widest text-muted-foreground">Municipalities</DropdownMenuLabel>
               {MUNICIPALITIES.map((m) => (
-                <DropdownMenuItem key={m.name} onClick={() => setViewAs("municipal", m.name)} className="text-xs">
+                <DropdownMenuItem
+                  key={m.name}
+                  onClick={() => setViewAs("municipal", m.name)}
+                  className="text-xs gap-2"
+                >
+                  <span
+                    className="h-2.5 w-2.5 rounded-full shrink-0 ring-1 ring-black/10"
+                    style={{ backgroundColor: m.color }}
+                    aria-hidden
+                  />
                   {m.name}
+                  {viewMunicipality === m.name && (
+                    <span className="ml-auto text-[10px] font-bold text-muted-foreground">Active</span>
+                  )}
                 </DropdownMenuItem>
               ))}
             </DropdownMenuContent>
