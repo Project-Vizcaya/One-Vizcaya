@@ -7,6 +7,10 @@ class AppConstants {
   static const int buildNumber = 14;
   static const String appVersionDisplay = '$appVersion (Build $buildNumber)';
 
+  /// Web-based admin portal (Firebase Hosting). Admins can jump to it from the
+  /// in-app admin dashboard. Update this if the hosting domain changes.
+  static const String adminPortalUrl = 'https://one-vizcaya-app.web.app';
+
   /// Content is centered and capped at this width on tablets / wide screens.
   static const double kTabletBreakpoint = 600.0;
   static const double kContentMaxWidth = 700.0;

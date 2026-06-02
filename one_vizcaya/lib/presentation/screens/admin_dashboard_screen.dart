@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:pdf/pdf.dart';
@@ -358,6 +359,21 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
 
   // Scan a citizen's report QR and open it directly in the dashboard — fast
   // in-person triage at a field desk.
+  // Jump from the in-app admin dashboard to the full web admin portal in one
+  // tap (opens in the device browser).
+  Future<void> _openAdminWebsite() async {
+    final uri = Uri.parse(AppConstants.adminPortalUrl);
+    try {
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } else {
+        ToastUtils.showError('Could not open the admin website');
+      }
+    } catch (e) {
+      ToastUtils.showError('Failed to open admin website: $e');
+    }
+  }
+
   Future<void> _scanReportQr() async {
     final raw = await scanReportQr(context);
     if (raw == null || !mounted) return;
@@ -506,6 +522,11 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
             icon: const Icon(Icons.qr_code_scanner),
             tooltip: AppStrings.get('scanQr'),
             onPressed: _scanReportQr,
+          ),
+          IconButton(
+            icon: const Icon(Icons.open_in_browser),
+            tooltip: 'Open Admin Website',
+            onPressed: _openAdminWebsite,
           ),
           IconButton(
             icon: const Icon(Icons.refresh),
