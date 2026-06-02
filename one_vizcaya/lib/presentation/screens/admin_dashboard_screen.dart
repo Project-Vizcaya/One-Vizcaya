@@ -16,6 +16,7 @@ import '../../data/services/admin_service.dart';
 import '../../data/services/role_service.dart';
 import '../../features/auth/domain/entities/app_user.dart';
 import '../../core/utils/toast_utils.dart';
+import '../../core/services/link_metadata_service.dart';
 import '../../core/constants/app_constants.dart';
 import '../../core/l10n/app_strings.dart';
 import '../state/municipality_state.dart';
@@ -3076,6 +3077,47 @@ class _AddAnnouncementSheetState
   late String _selectedMunicipality;
   bool _isUrgent = false;
   bool _isPosting = false;
+  bool _isFetchingMeta = false;
+
+  // Paste a source link and auto-generate the headline + body from the page's
+  // Open Graph / meta tags, so admins don't have to copy-paste each field.
+  Future<void> _autofillFromLink() async {
+    final url = _sourceUrlController.text.trim();
+    if (url.isEmpty) {
+      ToastUtils.showError('Paste a source link first');
+      return;
+    }
+    setState(() => _isFetchingMeta = true);
+    final meta = await LinkMetadataService.fetch(url);
+    if (!mounted) return;
+    setState(() => _isFetchingMeta = false);
+
+    if (meta == null) {
+      ToastUtils.showError(
+          'Could not read that link. Check the URL or fill the fields in manually.');
+      return;
+    }
+    if (meta.isEmpty) {
+      ToastUtils.showInfo(
+          'No preview info found on that page. Please fill the fields in manually.');
+      return;
+    }
+    setState(() {
+      if (meta.title != null && meta.title!.isNotEmpty) {
+        _titleController.text = meta.title!;
+      }
+      if (meta.description != null && meta.description!.isNotEmpty) {
+        _bodyController.text = meta.description!;
+      }
+      if (_sourceLabelController.text.trim().isEmpty &&
+          meta.siteName != null &&
+          meta.siteName!.isNotEmpty) {
+        _sourceLabelController.text = meta.siteName!;
+      }
+    });
+    ToastUtils.showSuccess('Headline and message filled from the link — '
+        'review and edit before posting.');
+  }
 
   @override
   void initState() {
@@ -3300,6 +3342,32 @@ class _AddAnnouncementSheetState
                   keyboardType: TextInputType.url,
                   helperText:
                       'Citizens can tap to view original post'),
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: _isFetchingMeta ? null : _autofillFromLink,
+                  icon: _isFetchingMeta
+                      ? SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2, color: widget.lguColor),
+                        )
+                      : const Icon(Icons.auto_fix_high, size: 18),
+                  label: Text(_isFetchingMeta
+                      ? 'Reading link…'
+                      : 'Auto-fill title & message from link'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: widget.lguColor,
+                    side:
+                        BorderSide(color: widget.lguColor.withValues(alpha: 0.5)),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+              ),
               const SizedBox(height: 12),
               _catalogField(
                   controller: _sourceLabelController,
