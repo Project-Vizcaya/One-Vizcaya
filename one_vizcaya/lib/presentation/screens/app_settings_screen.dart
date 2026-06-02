@@ -300,11 +300,12 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
                   value: AppConstants.appVersionDisplay,
                 ),
                 _DividerLine(),
-                _InfoTile(
+                _NavigationTile(
                   icon: Icons.groups_outlined,
                   iconColor: _lguColor,
-                  title: 'Developer',
-                  value: 'Project: Vizcaya Team',
+                  title: 'Developers',
+                  subtitle: 'Aaron Anthony A. Gano II — Lead Developer',
+                  onTap: () => Navigator.of(context).pushNamed('/developers'),
                 ),
                 _DividerLine(),
                 _InfoTile(
