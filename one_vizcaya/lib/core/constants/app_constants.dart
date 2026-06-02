@@ -29,6 +29,26 @@ class AppConstants {
     'Villaverde',
   ];
 
+  // Municipal seal image assets, keyed by municipality. Single source of truth
+  // shared by the home header and the municipality info sheet.
+  static const Map<String, String> municipalitySeals = {
+    'Alfonso Castañeda': 'assets/images/seals/alfonso-castaneda.png',
+    'Ambaguio': 'assets/images/seals/ambaguio.png',
+    'Aritao': 'assets/images/seals/aritao.png',
+    'Bagabag': 'assets/images/seals/bagabag.png',
+    'Bambang': 'assets/images/seals/bambang.png',
+    'Bayombong': 'assets/images/seals/bayombong.png',
+    'Diadi': 'assets/images/seals/diadi.png',
+    'Dupax del Norte': 'assets/images/seals/dupax-del-norte.png',
+    'Dupax del Sur': 'assets/images/seals/dupax-del-sur.png',
+    'Kasibu': 'assets/images/seals/kasibu.png',
+    'Kayapa': 'assets/images/seals/kayapa.png',
+    'Quezon': 'assets/images/seals/quezon.png',
+    'Santa Fe': 'assets/images/seals/santa-fe.png',
+    'Solano': 'assets/images/seals/solano.png',
+    'Villaverde': 'assets/images/seals/villaverde.png',
+  };
+
   static const Map<String, List<String>> municipalityBarangays = {
     'Alfonso Castañeda': [
       'Abuyo',
