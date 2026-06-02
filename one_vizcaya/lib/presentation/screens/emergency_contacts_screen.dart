@@ -55,6 +55,16 @@ class EmergencyContactsScreen extends StatelessWidget {
       'number': '09175584673',
       'type': 'mentalHealth',
     },
+    {
+      'name': 'In Touch Crisis Line (24/7 Counselling)',
+      'number': '09178001123',
+      'type': 'mentalHealth',
+    },
+    {
+      'name': 'Natasha Goulbourn Foundation (Depression)',
+      'number': '09178044673',
+      'type': 'mentalHealth',
+    },
     // ── Women, children & social welfare ──
     {
       'name': 'PNP Women & Children Protection',
@@ -65,6 +75,59 @@ class EmergencyContactsScreen extends StatelessWidget {
       'name': 'DSWD Hotline',
       'number': '16545',
       'type': 'women',
+    },
+    {
+      'name': 'Bantay Bata 163 (Child Protection)',
+      'number': '163',
+      'type': 'women',
+    },
+    {
+      'name': 'VAWC / Anti-Violence Hotline',
+      'number': '09178671907',
+      'type': 'women',
+    },
+    // ── Health services ──
+    {
+      'name': 'DOH Hotline',
+      'number': '1555',
+      'type': 'medical',
+    },
+    {
+      'name': 'PhilHealth Hotline',
+      'number': '02-8441-7442',
+      'type': 'medical',
+    },
+    // ── Government & citizen services ──
+    {
+      'name': '8888 Citizens\' Complaint Hotline',
+      'number': '8888',
+      'type': 'gov',
+    },
+    {
+      'name': 'DOLE Hotline (Workers\' Concerns)',
+      'number': '1349',
+      'type': 'gov',
+    },
+    {
+      'name': 'DTI Consumer Hotline',
+      'number': '1384',
+      'type': 'gov',
+    },
+    // ── Cybercrime & anti-illegal drugs ──
+    {
+      'name': 'PNP Anti-Cybercrime Group',
+      'number': '09985988116',
+      'type': 'cyber',
+    },
+    {
+      'name': 'PDEA Anti-Drug Hotline',
+      'number': '09178927362',
+      'type': 'police',
+    },
+    {
+      'name': 'NBI Hotline',
+      'number': '02-8523-8231',
+      'type': 'police',
     },
     // ── Humanitarian & utilities ──
     {
@@ -196,6 +259,8 @@ class EmergencyContactsScreen extends StatelessWidget {
     {'name': 'Philippine Red Cross – Nueva Vizcaya', 'number': '078-321-2738', 'type': 'redcross'},
     {'name': 'Provincial Social Welfare (PSWDO)', 'number': '078-803-2419', 'type': 'women'},
     {'name': 'Provincial Health Office', 'number': '078-321-2024', 'type': 'medical'},
+    {'name': 'Provincial Veterinary Office (Rabies/Animal Bite)', 'number': '078-321-2024', 'type': 'vet'},
+    {'name': 'Provincial Disaster Risk Reduction (PDRRMO)', 'number': '09171227150', 'type': 'disaster'},
   ];
 
   IconData _getIconForType(String? type) {
@@ -218,6 +283,12 @@ class EmergencyContactsScreen extends StatelessWidget {
         return Icons.bloodtype_outlined;
       case 'utility':
         return Icons.bolt_outlined;
+      case 'gov':
+        return Icons.account_balance_outlined;
+      case 'cyber':
+        return Icons.security_outlined;
+      case 'vet':
+        return Icons.pets_outlined;
       default:
         return Icons.phone;
     }
@@ -243,6 +314,12 @@ class EmergencyContactsScreen extends StatelessWidget {
         return 'Red Cross';
       case 'utility':
         return 'Utility';
+      case 'gov':
+        return 'Government Service';
+      case 'cyber':
+        return 'Cybercrime';
+      case 'vet':
+        return 'Veterinary';
       default:
         return 'Emergency';
     }
@@ -268,6 +345,12 @@ class EmergencyContactsScreen extends StatelessWidget {
         return const Color(0xFFC62828);
       case 'utility':
         return const Color(0xFF455A64);
+      case 'gov':
+        return const Color(0xFF3949AB);
+      case 'cyber':
+        return const Color(0xFF283593);
+      case 'vet':
+        return const Color(0xFF00695C);
       default:
         return lguColor;
     }
