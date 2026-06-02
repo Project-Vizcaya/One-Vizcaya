@@ -1,7 +1,9 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { AuthUser } from "@/types";
-import type { AdminRole } from "@/lib/firebase";
+import { ADMIN_ROLES, type AdminRole } from "@/lib/firebase";
+
+const PROVINCIAL_ROLES: AdminRole[] = ["admin", "provincial_admin", "super_admin"];
 
 interface AuthState {
   user: AuthUser | null;
@@ -32,7 +34,7 @@ export const useAuthStore = create<AuthState>()(
           set({ user: null, viewAs: "provincial", viewMunicipality: null });
           return;
         }
-        const isProvincial = (["admin", "provincial_admin", "super_admin"] as AdminRole[]).includes(user.role);
+        const isProvincial = PROVINCIAL_ROLES.includes(user.role as AdminRole);
         set({
           user,
           viewAs: isProvincial ? "provincial" : "municipal",
@@ -40,27 +42,22 @@ export const useAuthStore = create<AuthState>()(
         });
       },
 
-      setViewAs: (view, municipality) => {
-        set({
-          viewAs: view,
-          viewMunicipality: view === "municipal" ? (municipality ?? null) : null,
-        });
-      },
+      setViewAs: (view, municipality) =>
+        set({ viewAs: view, viewMunicipality: view === "municipal" ? (municipality ?? null) : null }),
 
       setLoading: (loading) => set({ isLoading: loading }),
       setSessionExpired: (expired) => set({ sessionExpired: expired }),
-
-      clearAuth: () =>
-        set({ user: null, viewAs: "provincial", viewMunicipality: null, sessionExpired: false }),
+      clearAuth: () => set({ user: null, viewAs: "provincial", viewMunicipality: null, sessionExpired: false }),
 
       getEffectiveMunicipality: () => {
         const { viewAs, viewMunicipality } = get();
         return viewAs === "municipal" ? viewMunicipality : null;
       },
 
+      // Must be provincial role AND currently viewing province-wide
       canViewAll: () => {
-        const { viewAs } = get();
-        return viewAs === "provincial";
+        const { viewAs, user } = get();
+        return viewAs === "provincial" && PROVINCIAL_ROLES.includes(user?.role as AdminRole);
       },
     }),
     {

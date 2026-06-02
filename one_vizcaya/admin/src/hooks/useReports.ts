@@ -1,43 +1,46 @@
 import { useEffect, useState } from "react";
 import {
-  collectionGroup,
-  query,
-  orderBy,
-  limit,
-  where,
-  onSnapshot,
-  doc,
-  updateDoc,
-  Timestamp,
-  arrayUnion,
-  deleteDoc,
+  collectionGroup, query, orderBy, limit, where,
+  onSnapshot, doc, updateDoc, Timestamp, arrayUnion, deleteDoc,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import type { Report, ReportNote, ReportStatus } from "@/types";
 
-function toReport(docSnap: { id: string; data: () => Record<string, unknown>; ref: { parent: { parent: { id: string } | null } | null } }): Report {
-  const d = docSnap.data();
+function toDate(val: unknown): Date {
+  if (val instanceof Timestamp) return val.toDate();
+  if (typeof val === "number") return new Date(val);
+  if (typeof val === "string") return new Date(val);
+  if (val instanceof Date) return val;
+  return new Date();
+}
+
+function toReport(d: {
+  id: string;
+  data: () => Record<string, unknown>;
+  ref: { parent: { parent: { id: string } | null } | null };
+}): Report {
+  const data = d.data();
   return {
-    id: docSnap.id,
-    userId: docSnap.ref?.parent?.parent?.id ?? (d.userId as string) ?? "",
-    category: (d.category as string) ?? "Other",
-    priority: (d.priority as Report["priority"]) ?? "low",
-    status: (d.status as Report["status"]) ?? "reported",
-    municipality: (d.municipality as string) ?? "",
-    barangay: d.barangay as string | undefined,
-    location: (d.location as string) ?? "",
-    description: (d.description as string) ?? "",
-    isAnonymous: (d.isAnonymous as boolean) ?? false,
-    reportedAt: d.reportedAt instanceof Timestamp ? d.reportedAt.toDate() : new Date(),
-    resolvedAt: d.resolvedAt instanceof Timestamp ? d.resolvedAt.toDate() : undefined,
-    notes: ((d.notes as ReportNote[]) ?? []).map((n) => ({
+    id: d.id,
+    userId: d.ref?.parent?.parent?.id ?? (data.userId as string) ?? "",
+    category:         (data.category as string)   ?? "Other",
+    priority:         (data.priority as Report["priority"]) ?? "low",
+    status:           (data.status   as Report["status"])   ?? "reported",
+    municipality:     (data.municipality as string) ?? "",
+    barangay:          data.barangay as string | undefined,
+    location:         (data.location as string) ?? "",
+    description:      (data.description as string) ?? "",
+    isAnonymous:      (data.isAnonymous as boolean) ?? false,
+    reportedAt:        toDate(data.reportedAt),
+    resolvedAt:        data.resolvedAt ? toDate(data.resolvedAt) : undefined,
+    notes: ((data.notes as ReportNote[]) ?? []).map((n) => ({
       ...n,
-      timestamp: n.timestamp instanceof Timestamp ? (n.timestamp as unknown as Timestamp).toDate() : new Date(n.timestamp),
+      timestamp: toDate(n.timestamp),
     })),
-    assignedResponder: d.assignedResponder as string | undefined,
-    satisfactionRating: d.satisfactionRating as number | undefined,
-    imageUrl: d.imageUrl as string | undefined,
-    lastModified: d.lastModified instanceof Timestamp ? d.lastModified.toDate() : new Date(),
+    assignedResponder: data.assignedResponder as string | undefined,
+    satisfactionRating:data.satisfactionRating as number | undefined,
+    imageUrl:          data.imageUrl as string | undefined,
+    lastModified:      toDate(data.lastModified),
   };
 }
 
@@ -46,21 +49,15 @@ export function useReports(municipality: string | null) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const baseQuery = collectionGroup(db, "reports");
+    const base = collectionGroup(db, "reports");
     const q = municipality
-      ? query(baseQuery, where("municipality", "==", municipality), orderBy("reportedAt", "desc"), limit(256))
-      : query(baseQuery, orderBy("reportedAt", "desc"), limit(256));
+      ? query(base, where("municipality", "==", municipality), orderBy("reportedAt", "desc"), limit(256))
+      : query(base, orderBy("reportedAt", "desc"), limit(256));
 
     const unsub = onSnapshot(
       q,
-      (snap) => {
-        setReports(snap.docs.map(toReport));
-        setLoading(false);
-      },
-      (err) => {
-        console.error("Reports listener error:", err);
-        setLoading(false);
-      }
+      (snap) => { setReports(snap.docs.map(toReport)); setLoading(false); },
+      (err)  => { console.error("Reports listener:", err); setLoading(false); }
     );
 
     return unsub;
@@ -69,13 +66,11 @@ export function useReports(municipality: string | null) {
   return { reports, loading };
 }
 
-export async function updateReportStatus(
-  userId: string,
-  reportId: string,
-  status: ReportStatus
-) {
-  const ref = doc(db, "users", userId, "reports", reportId);
-  await updateDoc(ref, { status, lastModified: Timestamp.now() });
+export async function updateReportStatus(userId: string, reportId: string, status: ReportStatus) {
+  await updateDoc(doc(db, "users", userId, "reports", reportId), {
+    status,
+    lastModified: Timestamp.now(),
+  });
 }
 
 export async function addReportNote(
@@ -83,8 +78,7 @@ export async function addReportNote(
   reportId: string,
   note: Omit<ReportNote, "timestamp"> & { timestamp: Date }
 ) {
-  const ref = doc(db, "users", userId, "reports", reportId);
-  await updateDoc(ref, {
+  await updateDoc(doc(db, "users", userId, "reports", reportId), {
     notes: arrayUnion({ ...note, timestamp: Timestamp.fromDate(note.timestamp) }),
     lastModified: Timestamp.now(),
   });
