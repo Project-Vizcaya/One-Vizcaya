@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import '../enums/report_category.dart';
 import '../enums/report_status.dart';
 import '../enums/report_priority.dart';
+import '../enums/handling_level.dart';
 
 class ProblemReport {
   final String id;
@@ -29,6 +30,9 @@ class ProblemReport {
   // Escalation
   final bool escalatedToProvince;
   final DateTime? escalatedAt;
+
+  // Administrative tier currently handling this report (Barangay → Region II)
+  final HandlingLevel handlingLevel;
 
   // Anonymous reporting
   final bool isAnonymous;
@@ -63,6 +67,7 @@ class ProblemReport {
     this.photoLongitude,
     this.escalatedToProvince = false,
     this.escalatedAt,
+    this.handlingLevel = HandlingLevel.municipal,
     this.isAnonymous = false,
     this.resolvedAt,
     this.barangay,
@@ -126,6 +131,7 @@ class ProblemReport {
       photoLongitude: (data['photoLongitude'] as num?)?.toDouble(),
       escalatedToProvince: data['escalatedToProvince'] as bool? ?? false,
       escalatedAt: (data['escalatedAt'] as Timestamp?)?.toDate(),
+      handlingLevel: HandlingLevel.fromString(data['handlingLevel'] as String?),
       isAnonymous: data['isAnonymous'] as bool? ?? false,
       resolvedAt: (data['resolvedAt'] as Timestamp?)?.toDate(),
       barangay: (data['barangay'] as String?)?.isEmpty == true ? null : data['barangay'] as String?,
@@ -158,6 +164,7 @@ class ProblemReport {
       'escalatedAt': escalatedAt != null
           ? Timestamp.fromDate(escalatedAt!)
           : null,
+      'handlingLevel': handlingLevel.key,
       'isAnonymous': isAnonymous,
       'resolvedAt': resolvedAt != null
           ? Timestamp.fromDate(resolvedAt!)

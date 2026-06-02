@@ -9,6 +9,7 @@ import 'package:fl_chart/fl_chart.dart';
 import '../../domain/models/problem_report.dart';
 import '../../domain/enums/report_priority.dart';
 import '../../domain/enums/report_status.dart';
+import '../../domain/enums/handling_level.dart';
 import '../../domain/repositories/report_repository.dart';
 import '../../data/repositories_impl/firebase_report_repository.dart';
 import '../../data/services/admin_service.dart';
@@ -409,6 +410,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
             _reportRepository.updateReportStatus(userId, reportId, newStatus),
         onEscalate: (reportId, userId) =>
             _reportRepository.escalateToProvince(userId, reportId),
+        onTransfer: (reportId, userId, level) =>
+            _reportRepository.transferToLevel(userId, reportId, level),
         onDelete: (reportId, userId) =>
             _reportRepository.deleteReport(userId, reportId),
         onFlagUpdate: (reportId, userId, isFlagged) =>
@@ -1196,6 +1199,8 @@ class _ReportDetailSheet extends StatelessWidget {
   final void Function(String reportId, String userId, String newStatus)
       onStatusUpdate;
   final Future<void> Function(String reportId, String userId) onEscalate;
+  final Future<void> Function(
+      String reportId, String userId, HandlingLevel level) onTransfer;
   final Future<void> Function(String reportId, String userId) onDelete;
   final Future<void> Function(String reportId, String userId, bool isFlagged)
       onFlagUpdate;
@@ -1207,6 +1212,7 @@ class _ReportDetailSheet extends StatelessWidget {
     required this.canDelete,
     required this.onStatusUpdate,
     required this.onEscalate,
+    required this.onTransfer,
     required this.onDelete,
     required this.onFlagUpdate,
   });
@@ -1261,6 +1267,150 @@ class _ReportDetailSheet extends StatelessWidget {
                 ),
               ),
             ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // Lets a municipal admin route the report to the correct administrative
+  // tier (Barangay → Municipal → Provincial → Region II), with on-screen
+  // criteria so the routing decision is consistent and defensible.
+  void _showTransferSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Theme.of(context).cardColor,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetCtx) => DraggableScrollableSheet(
+        initialChildSize: 0.7,
+        minChildSize: 0.4,
+        maxChildSize: 0.95,
+        expand: false,
+        builder: (ctx, scrollController) => Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+          child: ListView(
+            controller: scrollController,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Transfer / Route Report',
+                style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                    color: lguColor),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Choose the administrative tier that should handle this report. '
+                'Use the criteria below to route it to the right level.',
+                style: TextStyle(fontSize: 12.5, color: Colors.grey.shade600),
+              ),
+              const SizedBox(height: 16),
+              ...HandlingLevel.values.map((level) {
+                final isCurrent = report.handlingLevel == level;
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  decoration: BoxDecoration(
+                    color: level.color.withValues(alpha: 0.06),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: isCurrent
+                          ? level.color
+                          : level.color.withValues(alpha: 0.25),
+                      width: isCurrent ? 2 : 1,
+                    ),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(level.icon, color: level.color, size: 20),
+                            const SizedBox(width: 8),
+                            Text(
+                              level.displayName,
+                              style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 15,
+                                  color: level.color),
+                            ),
+                            const Spacer(),
+                            if (isCurrent)
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 8, vertical: 3),
+                                decoration: BoxDecoration(
+                                  color: level.color,
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: const Text(
+                                  'CURRENT',
+                                  style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold),
+                                ),
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          level.criteria,
+                          style: const TextStyle(fontSize: 12.5, height: 1.45),
+                        ),
+                        const SizedBox(height: 10),
+                        SizedBox(
+                          width: double.infinity,
+                          child: OutlinedButton.icon(
+                            icon: Icon(
+                                isCurrent
+                                    ? Icons.check
+                                    : Icons.swap_horiz,
+                                size: 16),
+                            label: Text(isCurrent
+                                ? 'Already at this level'
+                                : 'Transfer to ${level.displayName}'),
+                            onPressed: isCurrent || report.userId == null
+                                ? null
+                                : () async {
+                                    Navigator.pop(ctx); // close sheet
+                                    Navigator.pop(context); // close detail
+                                    await onTransfer(report.id,
+                                        report.userId!, level);
+                                  },
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: level.color,
+                              side: BorderSide(
+                                  color: level.color
+                                      .withValues(alpha: 0.6)),
+                              padding:
+                                  const EdgeInsets.symmetric(vertical: 10),
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10)),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }),
+            ],
           ),
         ),
       ),
@@ -1793,6 +1943,54 @@ class _ReportDetailSheet extends StatelessWidget {
                         ),
                     ],
                   ),
+
+                  if (!isProvincialView && report.userId != null) ...[
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Icon(report.handlingLevel.icon,
+                            size: 16, color: report.handlingLevel.color),
+                        const SizedBox(width: 6),
+                        Text(
+                          'Currently handled at: ',
+                          style: TextStyle(
+                              fontSize: 12, color: Colors.grey.shade600),
+                        ),
+                        Text(
+                          report.handlingLevel.displayName,
+                          style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: report.handlingLevel.color),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        icon: const Icon(Icons.alt_route, size: 16),
+                        label: const Text('Transfer / Route Report'),
+                        onPressed: () => _showTransferSheet(context),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: lguColor,
+                          side: BorderSide(
+                              color: lguColor.withValues(alpha: 0.6)),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12)),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Route to the Barangay for very local matters, or escalate '
+                      'to Provincial / Region II when it exceeds local capacity.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                          fontSize: 11, color: Colors.grey.shade500),
+                    ),
+                  ],
 
                   if (!isProvincialView &&
                       !report.escalatedToProvince &&

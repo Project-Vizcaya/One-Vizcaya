@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import '../../domain/models/problem_report.dart';
+import '../../domain/enums/handling_level.dart';
 import '../../domain/repositories/report_repository.dart';
 import '../../core/utils/toast_utils.dart';
 
@@ -209,6 +210,34 @@ class FirebaseReportRepository implements ReportRepository {
       ToastUtils.showSuccess('Report escalated to Provincial Office');
     } catch (e) {
       ToastUtils.showError('Failed to escalate report: $e');
+      rethrow;
+    }
+  }
+
+  @override
+  Future<void> transferToLevel(
+      String userId, String reportId, HandlingLevel level) async {
+    try {
+      // Keep escalatedToProvince in sync so existing province views/badges
+      // continue to work: it's true for provincial and Region II tiers.
+      final escalated = level == HandlingLevel.provincial ||
+          level == HandlingLevel.regionII;
+      final data = <String, dynamic>{
+        'handlingLevel': level.key,
+        'escalatedToProvince': escalated,
+      };
+      if (escalated) {
+        data['escalatedAt'] = FieldValue.serverTimestamp();
+      }
+      await _firestore
+          .collection('users')
+          .doc(userId)
+          .collection('reports')
+          .doc(reportId)
+          .update(data);
+      ToastUtils.showSuccess('Report transferred to ${level.displayName} level');
+    } catch (e) {
+      ToastUtils.showError('Failed to transfer report: $e');
       rethrow;
     }
   }
