@@ -143,11 +143,16 @@ class PrivacyPolicyScreen extends StatelessWidget {
             const _SectionBody(
               'You have the right to: Access your data; Correct inaccurate data; '
               'request Erasure or Blocking; Object to processing; Data '
-              'Portability (receive a structured copy); and to lodge a Complaint '
-              'with the National Privacy Commission.\n\n'
+              'Portability (receive a structured copy); Withdraw your consent at '
+              'any time; and to lodge a Complaint with the National Privacy '
+              'Commission. You also have the right to be informed and the right '
+              'to damages for violations under the Act.\n\n'
               'You can exercise these in the app: Settings → Location & Privacy → '
               '"Download My Data" (access & portability) and "Data Privacy '
-              'Request" (access / correction / erasure / objection / complaint).',
+              'Request" (access / correction / erasure / objection / complaint). '
+              'Withdrawing consent or deleting your account stops further '
+              'processing, though some data may be retained where the law '
+              'requires.',
             ),
 
             const _SectionTitle('9. Security'),
@@ -164,6 +169,37 @@ class PrivacyPolicyScreen extends StatelessWidget {
               'One Vizcaya is not directed to children under 18 and we do not '
               'knowingly collect their data. If you believe a minor has provided '
               'data, contact the DPO for immediate deletion.',
+            ),
+
+            const _SectionTitle('11. Legal Basis for Processing'),
+            const _SectionBody(
+              'We process your personal data only when there is a lawful basis '
+              'under Sections 12 and 13 of RA 10173, namely:\n'
+              '•  Your informed consent, given on the setup screen;\n'
+              '•  Compliance with a legal obligation of the LGU;\n'
+              '•  The legitimate public-service function and mandate of the LGU '
+              'to respond to citizen reports.\n\n'
+              'Sensitive personal information, if ever collected, is processed '
+              'only with your consent or as otherwise allowed by law.',
+            ),
+
+            const _SectionTitle('12. International Data Transfers'),
+            const _SectionBody(
+              'One Vizcaya uses Google Firebase (Firebase Authentication, Cloud '
+              'Firestore, Storage, Messaging and App Check). Google may process '
+              'and store data on secure servers located outside the Philippines. '
+              'Where this happens, the transfer is protected by Google\'s '
+              'contractual and security safeguards, and we remain accountable '
+              'for your data under RA 10173.',
+            ),
+
+            const _SectionTitle('13. Changes to This Policy'),
+            const _SectionBody(
+              'We may update this policy to reflect new features or legal '
+              'requirements. Material changes will be announced in the app and '
+              'the Effective Date above will be updated. Continued use after an '
+              'update means you accept the revised policy; if you do not agree, '
+              'you may withdraw consent or delete your account.',
             ),
 
             const SizedBox(height: 20),
