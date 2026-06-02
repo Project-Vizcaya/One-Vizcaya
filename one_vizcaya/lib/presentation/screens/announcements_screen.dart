@@ -55,6 +55,9 @@ class _AnnouncementsList extends StatefulWidget {
 class _AnnouncementsListState extends State<_AnnouncementsList> {
   Set<String> _bookmarkedIds = {};
   bool _showBookmarked = false;
+  bool _newestFirst = true;
+  // null = all agencies; otherwise the selected "postedBy" agency name.
+  String? _agencyFilter;
 
   static const String _prefsKey = 'bookmarked_announcements';
 
@@ -147,10 +150,34 @@ class _AnnouncementsListState extends State<_AnnouncementsList> {
           return muni == widget.municipality || muni == 'All';
         }).toList();
 
-        // Apply bookmark filter if active
-        final docs = _showBookmarked
-            ? allDocs.where((d) => _bookmarkedIds.contains(d.id)).toList()
-            : allDocs;
+        // Distinct agencies (postedBy) for the agency filter dropdown.
+        final agencies = allDocs
+            .map((d) =>
+                (d.data() as Map<String, dynamic>)['postedBy'] as String? ??
+                'LGU')
+            .toSet()
+            .toList()
+          ..sort();
+
+        // If the selected agency no longer exists in the feed, reset it.
+        if (_agencyFilter != null && !agencies.contains(_agencyFilter)) {
+          _agencyFilter = null;
+        }
+
+        // Apply bookmark + agency filters
+        var docs = allDocs.where((d) {
+          if (_showBookmarked && !_bookmarkedIds.contains(d.id)) return false;
+          if (_agencyFilter != null) {
+            final by = (d.data() as Map<String, dynamic>)['postedBy']
+                    as String? ??
+                'LGU';
+            if (by != _agencyFilter) return false;
+          }
+          return true;
+        }).toList();
+
+        // The stream is newest-first; reverse for oldest-first.
+        if (!_newestFirst) docs = docs.reversed.toList();
 
         return RefreshIndicator(
           color: Colors.green,
@@ -165,6 +192,8 @@ class _AnnouncementsListState extends State<_AnnouncementsList> {
                       const EdgeInsets.fromLTRB(16, 12, 16, 4),
                   child: Wrap(
                     spacing: 8,
+                    runSpacing: 8,
+                    crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
                       FilterChip(
                         label: Text(AppStrings.get('filterAll')),
@@ -208,6 +237,94 @@ class _AnnouncementsListState extends State<_AnnouncementsList> {
                           fontWeight: _showBookmarked
                               ? FontWeight.w600
                               : FontWeight.normal,
+                        ),
+                      ),
+                      // ── Sort: newest / oldest ──
+                      ActionChip(
+                        avatar: Icon(
+                          _newestFirst
+                              ? Icons.arrow_downward
+                              : Icons.arrow_upward,
+                          size: 16,
+                          color: widget.lguColor,
+                        ),
+                        label: Text(_newestFirst ? 'Newest' : 'Oldest'),
+                        labelStyle: TextStyle(
+                          color: widget.lguColor,
+                          fontWeight: FontWeight.w600,
+                        ),
+                        side: BorderSide(
+                            color: widget.lguColor.withValues(alpha: 0.4)),
+                        backgroundColor:
+                            widget.lguColor.withValues(alpha: 0.06),
+                        onPressed: () =>
+                            setState(() => _newestFirst = !_newestFirst),
+                      ),
+                      // ── Agency filter ──
+                      PopupMenuButton<String?>(
+                        tooltip: 'Filter by agency',
+                        onSelected: (v) => setState(() => _agencyFilter = v),
+                        itemBuilder: (ctx) => [
+                          PopupMenuItem<String?>(
+                            value: null,
+                            child: Row(
+                              children: [
+                                Icon(Icons.done,
+                                    size: 16,
+                                    color: _agencyFilter == null
+                                        ? widget.lguColor
+                                        : Colors.transparent),
+                                const SizedBox(width: 8),
+                                const Text('All Agencies'),
+                              ],
+                            ),
+                          ),
+                          ...agencies.map((a) => PopupMenuItem<String?>(
+                                value: a,
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.done,
+                                        size: 16,
+                                        color: _agencyFilter == a
+                                            ? widget.lguColor
+                                            : Colors.transparent),
+                                    const SizedBox(width: 8),
+                                    Flexible(child: Text(a)),
+                                  ],
+                                ),
+                              )),
+                        ],
+                        child: Chip(
+                          avatar: Icon(Icons.apartment,
+                              size: 16, color: widget.lguColor),
+                          label: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                _agencyFilter == null
+                                    ? 'Agency'
+                                    : (_agencyFilter!.length > 18
+                                        ? '${_agencyFilter!.substring(0, 18)}…'
+                                        : _agencyFilter!),
+                              ),
+                              const Icon(Icons.arrow_drop_down, size: 18),
+                            ],
+                          ),
+                          labelStyle: TextStyle(
+                            color: _agencyFilter == null
+                                ? Colors.grey.shade600
+                                : widget.lguColor,
+                            fontWeight: _agencyFilter == null
+                                ? FontWeight.normal
+                                : FontWeight.w600,
+                          ),
+                          side: BorderSide(
+                              color: _agencyFilter == null
+                                  ? Colors.grey.shade300
+                                  : widget.lguColor.withValues(alpha: 0.4)),
+                          backgroundColor: _agencyFilter == null
+                              ? null
+                              : widget.lguColor.withValues(alpha: 0.06),
                         ),
                       ),
                     ],

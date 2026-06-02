@@ -93,6 +93,12 @@ service cloud.firestore {
       allow read, update: if isAdmin();
     }
 
+    // ─── Citizen feedback (collectionGroup) ──────────────────────────────────
+    // Lets admins read satisfaction ratings across all reports for analytics.
+    match /{path=**}/feedback/{feedbackId} {
+      allow read: if isAdmin();
+    }
+
     // ─── CollectionGroup query ───────────────────────────────────────────────
     // Citizens need read access for the community "Recently Resolved" feed.
     // Admins additionally need update access for status management.

@@ -10,6 +10,7 @@ import '../../features/announcements/presentation/widgets/announcements_carousel
 import '../../features/reports/presentation/widgets/community_feed.dart';
 import '../../core/widgets/weather_widget.dart';
 import '../../data/services/offline_queue_service.dart';
+import '../widgets/municipality_info_sheet.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -342,10 +343,12 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
 
-          // ── Welcome Card ──
+          // ── Welcome Card (tap to view municipality info) ──
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Container(
+            child: GestureDetector(
+              onTap: () => showMunicipalityInfoSheet(context, municipality),
+              child: Container(
               decoration: BoxDecoration(
                 color: Color.lerp(
                   Theme.of(context).cardColor,
@@ -391,6 +394,24 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                           textAlign: TextAlign.center,
                         ),
+                        const SizedBox(height: 6),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.info_outline,
+                                size: 13,
+                                color: appBarColor.withValues(alpha: 0.7)),
+                            const SizedBox(width: 4),
+                            Text(
+                              'Tap to learn about this municipality',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: appBarColor.withValues(alpha: 0.7),
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
                         const SizedBox(height: 12),
                         Text(
                           welcomeMsg,
@@ -409,6 +430,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ],
               ),
+            ),
             ),
           ),
 
@@ -660,26 +682,8 @@ class _HomeScreenState extends State<HomeScreen> {
     return const Color(0xFF616161);
   }
 
-  static const Map<String, String> _muniSealAssets = {
-    'Alfonso Castañeda': 'assets/images/seals/alfonso-castaneda.png',
-    'Ambaguio': 'assets/images/seals/ambaguio.png',
-    'Aritao': 'assets/images/seals/aritao.png',
-    'Bagabag': 'assets/images/seals/bagabag.png',
-    'Bambang': 'assets/images/seals/bambang.png',
-    'Bayombong': 'assets/images/seals/bayombong.png',
-    'Diadi': 'assets/images/seals/diadi.png',
-    'Dupax del Norte': 'assets/images/seals/dupax-del-norte.png',
-    'Dupax del Sur': 'assets/images/seals/dupax-del-sur.png',
-    'Kasibu': 'assets/images/seals/kasibu.png',
-    'Kayapa': 'assets/images/seals/kayapa.png',
-    'Quezon': 'assets/images/seals/quezon.png',
-    'Santa Fe': 'assets/images/seals/santa-fe.png',
-    'Solano': 'assets/images/seals/solano.png',
-    'Villaverde': 'assets/images/seals/villaverde.png',
-  };
-
   Widget _buildSealImage(String municipality, {double size = 40}) {
-    final asset = _muniSealAssets[municipality];
+    final asset = AppConstants.municipalitySeals[municipality];
     if (asset == null) return const SizedBox.shrink();
     return Image.asset(
       asset,

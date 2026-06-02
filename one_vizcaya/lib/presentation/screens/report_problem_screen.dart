@@ -33,11 +33,19 @@ class ReportProblemScreen extends StatefulWidget {
 }
 
 class _ReportProblemScreenState extends State<ReportProblemScreen> {
+  // Description length policy: a citizen must write enough to be actionable
+  // (min) but is kept concise so emergency reports don't create long queues
+  // (soft max). Characters typed beyond the max are shown struck-through in
+  // red so the reporter can trim before submitting.
+  static const int _descMin = 30;
+  static const int _descMax = 75;
+
   final _formKey = GlobalKey<FormState>();
   ReportCategory? _selectedCategory;
   ReportPriority? _selectedPriority;
   bool _categoryError = false;
-  final _descriptionController = TextEditingController();
+  final _descriptionController =
+      _LimitHighlightTextEditingController(limit: _descMax);
   final _locationController = TextEditingController();
   String? _selectedBarangay;
   bool _isOffline = false;
@@ -503,29 +511,45 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
                       labelStyle: TextStyle(color: primaryLguColor),
                     ),
                     maxLines: 4,
-                    maxLength: 500,
+                    // No hard cap: we let the reporter type past the max so the
+                    // overflow can be shown struck-through in red, then block
+                    // submission in the validator.
                     buildCounter:
                         (
                           context, {
                           required currentLength,
                           required isFocused,
                           maxLength,
-                        }) => Text(
-                          '$currentLength / 50 min',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: currentLength < 50
-                                ? Colors.red.shade400
-                                : Colors.grey.shade600,
-                          ),
-                        ),
+                        }) {
+                          final tooShort = currentLength < _descMin;
+                          final tooLong = currentLength > _descMax;
+                          return Text(
+                            tooShort
+                                ? '$currentLength / $_descMin min'
+                                : '$currentLength / $_descMax max',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: (tooShort || tooLong)
+                                  ? FontWeight.w600
+                                  : FontWeight.normal,
+                              color: (tooShort || tooLong)
+                                  ? Colors.red.shade400
+                                  : Colors.grey.shade600,
+                            ),
+                          );
+                        },
                     onChanged: (_) => setState(() {}),
                     validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
+                      final text = value?.trim() ?? '';
+                      if (text.isEmpty) {
                         return 'Please enter a description';
                       }
-                      if (value.trim().length < 50) {
-                        return 'Description must be at least 50 characters';
+                      if (text.length < _descMin) {
+                        return 'Description must be at least $_descMin characters';
+                      }
+                      if (text.length > _descMax) {
+                        return 'Description must be $_descMax characters or fewer '
+                            '(remove the text in red)';
                       }
                       return null;
                     },
@@ -1584,6 +1608,49 @@ class _CategoryCard extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// A text controller that renders any characters typed beyond [limit] in red
+/// with a strike-through, so the user can see they have exceeded the allowed
+/// length without being hard-blocked from typing (submission is still gated by
+/// the field's validator).
+class _LimitHighlightTextEditingController extends TextEditingController {
+  final int limit;
+  _LimitHighlightTextEditingController({required this.limit});
+
+  @override
+  TextSpan buildTextSpan({
+    required BuildContext context,
+    TextStyle? style,
+    required bool withComposing,
+  }) {
+    final value = text;
+    if (value.characters.length <= limit) {
+      return super.buildTextSpan(
+        context: context,
+        style: style,
+        withComposing: withComposing,
+      );
+    }
+    // Split on grapheme clusters so emoji/accented input isn't cut mid-glyph.
+    final allowed = value.characters.take(limit).toString();
+    final overflow = value.characters.skip(limit).toString();
+    return TextSpan(
+      style: style,
+      children: [
+        TextSpan(text: allowed),
+        TextSpan(
+          text: overflow,
+          style: (style ?? const TextStyle()).copyWith(
+            color: Colors.red.shade600,
+            decoration: TextDecoration.lineThrough,
+            decorationColor: Colors.red.shade600,
+            decorationThickness: 2,
+          ),
+        ),
+      ],
     );
   }
 }

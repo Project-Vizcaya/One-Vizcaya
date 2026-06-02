@@ -24,6 +24,7 @@ import 'presentation/screens/onboarding_screen.dart';
 import 'presentation/screens/weather_detail_screen.dart';
 import 'presentation/screens/my_data_screen.dart';
 import 'presentation/screens/data_request_screen.dart';
+import 'presentation/screens/developers_screen.dart';
 import 'features/auth/presentation/screens/privacy_policy_screen.dart';
 import 'presentation/widgets/auth_gate.dart';
 import 'presentation/state/municipality_state.dart';
@@ -262,6 +263,7 @@ class _OneVizcayaAppState extends State<OneVizcayaApp> {
             '/privacy': (context) => const PrivacyPolicyScreen(),
             '/my-data': (context) => const MyDataScreen(),
             '/data-request': (context) => const DataRequestScreen(),
+            '/developers': (context) => const DevelopersScreen(),
           },
         );
           },
