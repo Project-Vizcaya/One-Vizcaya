@@ -1,63 +1,81 @@
-import { useState, useCallback } from "react";
+import { useState, useMemo } from "react";
 import {
-  APIProvider,
-  Map,
-  AdvancedMarker,
-  InfoWindow,
-  useMap,
+  APIProvider, Map, AdvancedMarker, InfoWindow,
 } from "@vis.gl/react-google-maps";
 import { MAPS_API_KEY, NV_CENTER, NV_ZOOM } from "@/lib/firebase";
 import { MUNICIPALITIES } from "@/data/municipalities";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Layers, MapPin, Shield, Flame } from "lucide-react";
+import { Layers, MapPin, Shield } from "lucide-react";
+import { cn } from "@/lib/utils";
 import type { Report, Responder } from "@/types";
+
+const PRIORITY_COLORS: Record<string, string> = {
+  critical: "#DC2626",
+  high:     "#F97316",
+  medium:   "#F59E0B",
+  low:      "#6B7280",
+};
+
+// Deterministic jitter from report ID so markers don't move on re-render
+function stableOffset(id: string): { lat: number; lng: number } {
+  let h = 0;
+  for (let i = 0; i < id.length; i++) h = ((h << 5) - h + id.charCodeAt(i)) | 0;
+  const latOff = ((h & 0xffff) / 0xffff - 0.5) * 0.025;
+  const lngOff = (((h >> 16) & 0xffff) / 0xffff - 0.5) * 0.025;
+  return { lat: latOff, lng: lngOff };
+}
 
 interface MapViewProps {
   reports: Report[];
   responders: Responder[];
 }
 
-const PRIORITY_COLORS: Record<string, string> = {
-  critical: "#DC2626",
-  high: "#F97316",
-  medium: "#F59E0B",
-  low: "#6B7280",
-};
-
 export function MapView({ reports, responders }: MapViewProps) {
-  const [showHeatmap, setShowHeatmap] = useState(true);
+  const [showHeatmap,    setShowHeatmap]    = useState(true);
   const [showResponders, setShowResponders] = useState(true);
-  const [showPins, setShowPins] = useState(true);
-  const [muniFilter, setMuniFilter] = useState("all");
-  const [selectedReport, setSelectedReport] = useState<Report | null>(null);
+  const [showPins,       setShowPins]       = useState(true);
+  const [muniFilter,     setMuniFilter]     = useState("all");
+  const [selectedReport,    setSelectedReport]    = useState<Report | null>(null);
   const [selectedResponder, setSelectedResponder] = useState<Responder | null>(null);
 
-  const filteredReports = muniFilter === "all"
-    ? reports
-    : reports.filter((r) => r.municipality === muniFilter);
+  const filteredReports    = useMemo(() => muniFilter === "all" ? reports    : reports.filter((r) => r.municipality === muniFilter),    [reports, muniFilter]);
+  const filteredResponders = useMemo(() => muniFilter === "all" ? responders : responders.filter((r) => r.municipality === muniFilter), [responders, muniFilter]);
 
-  const filteredResponders = muniFilter === "all"
-    ? responders
-    : responders.filter((r) => r.municipality === muniFilter);
+  const reportsByMuni = useMemo(() =>
+    reports.reduce<Record<string, number>>((acc, r) => {
+      acc[r.municipality] = (acc[r.municipality] ?? 0) + 1;
+      return acc;
+    }, {}),
+  [reports]);
 
-  const mapCenter = muniFilter !== "all"
-    ? (MUNICIPALITIES.find((m) => m.name === muniFilter)?.center ?? NV_CENTER)
-    : NV_CENTER;
+  const maxCount = useMemo(() => Math.max(...Object.values(reportsByMuni), 1), [reportsByMuni]);
 
-  const reportsByMuni = reports.reduce<Record<string, number>>((acc, r) => {
-    acc[r.municipality] = (acc[r.municipality] ?? 0) + 1;
-    return acc;
-  }, {});
-  const maxCount = Math.max(...Object.values(reportsByMuni), 1);
+  const mapCenter = useMemo(() =>
+    muniFilter !== "all"
+      ? (MUNICIPALITIES.find((m) => m.name === muniFilter)?.center ?? NV_CENTER)
+      : NV_CENTER,
+  [muniFilter]);
+
+  // Stable pin positions computed once per report ID
+  const reportPins = useMemo(() =>
+    filteredReports
+      .filter((r) => r.status !== "solved")
+      .map((r) => {
+        const muni = MUNICIPALITIES.find((m) => m.name === r.municipality);
+        if (!muni?.center) return null;
+        const off = stableOffset(r.id);
+        return { report: r, pos: { lat: muni.center.lat + off.lat, lng: muni.center.lng + off.lng } };
+      })
+      .filter(Boolean) as { report: Report; pos: { lat: number; lng: number } }[],
+  [filteredReports]);
 
   return (
     <div className="space-y-3">
       {/* Controls */}
       <div className="flex flex-wrap items-center gap-2">
         <Select value={muniFilter} onValueChange={setMuniFilter}>
-          <SelectTrigger className="h-8 text-xs w-44">
+          <SelectTrigger className="h-8 text-xs w-44" aria-label="Filter by municipality">
             <SelectValue placeholder="All Municipalities" />
           </SelectTrigger>
           <SelectContent>
@@ -68,30 +86,19 @@ export function MapView({ reports, responders }: MapViewProps) {
           </SelectContent>
         </Select>
 
-        <div className="flex gap-1.5">
-          <ToggleButton
-            active={showHeatmap}
-            onClick={() => setShowHeatmap(!showHeatmap)}
-            icon={<Layers className="h-3.5 w-3.5" />}
-            label="Heat"
-          />
-          <ToggleButton
-            active={showResponders}
-            onClick={() => setShowResponders(!showResponders)}
-            icon={<Shield className="h-3.5 w-3.5" />}
-            label="Responders"
-          />
-          <ToggleButton
-            active={showPins}
-            onClick={() => setShowPins(!showPins)}
-            icon={<MapPin className="h-3.5 w-3.5" />}
-            label="Pins"
-          />
+        <div className="flex gap-1.5" role="group" aria-label="Map layer toggles">
+          <ToggleButton active={showHeatmap}    onClick={() => setShowHeatmap(!showHeatmap)}       icon={<Layers className="h-3.5 w-3.5" aria-hidden />} label="Heat" />
+          <ToggleButton active={showResponders} onClick={() => setShowResponders(!showResponders)} icon={<Shield className="h-3.5 w-3.5" aria-hidden />} label="Responders" />
+          <ToggleButton active={showPins}       onClick={() => setShowPins(!showPins)}             icon={<MapPin className="h-3.5 w-3.5" aria-hidden />} label="Pins" />
         </div>
+
+        <span className="text-xs text-muted-foreground ml-auto hidden sm:block">
+          {filteredReports.filter((r) => r.status !== "solved").length} active incidents
+        </span>
       </div>
 
       {/* Map */}
-      <div className="rounded-xl overflow-hidden border shadow-sm" style={{ height: 480 }}>
+      <div className="rounded-lg overflow-hidden border shadow-sm" style={{ height: "clamp(300px, 50vw, 500px)" }}>
         <APIProvider apiKey={MAPS_API_KEY}>
           <Map
             mapId="one-vizcaya-map"
@@ -99,29 +106,25 @@ export function MapView({ reports, responders }: MapViewProps) {
             defaultZoom={NV_ZOOM}
             center={mapCenter}
             gestureHandling="greedy"
-            disableDefaultUI={false}
-            mapTypeId="roadmap"
           >
-            {/* Municipality overlays */}
+            {/* Municipality bubble markers */}
             {showHeatmap && MUNICIPALITIES.map((muni) => {
+              if (!muni.center) return null;
               const count = reportsByMuni[muni.name] ?? 0;
               const intensity = count / maxCount;
-              if (!muni.center) return null;
+              const size = Math.max(28, 22 + count * 3);
               return (
-                <AdvancedMarker
-                  key={`muni-${muni.name}`}
-                  position={muni.center}
-                >
+                <AdvancedMarker key={`muni-${muni.name}`} position={muni.center} title={`${muni.name}: ${count} reports`}>
                   <div
-                    className="rounded-full flex items-center justify-center text-white text-xs font-bold shadow-lg cursor-pointer"
+                    className="rounded-full flex items-center justify-center text-white font-bold shadow-lg border-2 border-white/30 cursor-default"
                     style={{
                       backgroundColor: muni.color,
-                      opacity: 0.7 + intensity * 0.3,
-                      width: Math.max(32, 24 + count * 2) + "px",
-                      height: Math.max(32, 24 + count * 2) + "px",
-                      fontSize: count > 9 ? "10px" : "12px",
+                      opacity: 0.6 + intensity * 0.4,
+                      width: `${size}px`,
+                      height: `${size}px`,
+                      fontSize: size < 32 ? "10px" : "12px",
                     }}
-                    title={`${muni.name}: ${count} reports`}
+                    aria-label={`${muni.name}: ${count} reports`}
                   >
                     {count > 0 ? count : ""}
                   </div>
@@ -129,69 +132,66 @@ export function MapView({ reports, responders }: MapViewProps) {
               );
             })}
 
-            {/* Report pins */}
-            {showPins && filteredReports.filter((r) => r.status !== "solved").map((report) => {
-              const muni = MUNICIPALITIES.find((m) => m.name === report.municipality);
-              if (!muni?.center) return null;
-              const offset = {
-                lat: muni.center.lat + (Math.random() - 0.5) * 0.02,
-                lng: muni.center.lng + (Math.random() - 0.5) * 0.02,
-              };
-              return (
-                <AdvancedMarker
-                  key={`report-${report.id}`}
-                  position={offset}
-                  onClick={() => { setSelectedReport(report); setSelectedResponder(null); }}
-                >
-                  <div
-                    className="w-3 h-3 rounded-full border-2 border-white shadow-md cursor-pointer hover:scale-150 transition-transform"
-                    style={{ backgroundColor: PRIORITY_COLORS[report.priority] ?? "#6B7280" }}
-                  />
-                </AdvancedMarker>
-              );
-            })}
+            {/* Report pins — stable positions */}
+            {showPins && reportPins.map(({ report: r, pos }) => (
+              <AdvancedMarker
+                key={`pin-${r.id}`}
+                position={pos}
+                title={`${r.category} – ${r.priority}`}
+                onClick={() => { setSelectedReport(r); setSelectedResponder(null); }}
+              >
+                <div
+                  className="w-3 h-3 rounded-full border-2 border-white shadow-md cursor-pointer hover:scale-150 transition-transform"
+                  style={{ backgroundColor: PRIORITY_COLORS[r.priority] ?? "#6B7280" }}
+                  aria-label={`${r.priority} priority: ${r.category}`}
+                />
+              </AdvancedMarker>
+            ))}
 
             {/* Responder markers */}
-            {showResponders && filteredResponders.filter((r) => r.lat && r.lng).map((responder) => (
+            {showResponders && filteredResponders.filter((r) => r.lat && r.lng).map((r) => (
               <AdvancedMarker
-                key={`resp-${responder.id}`}
-                position={{ lat: responder.lat!, lng: responder.lng! }}
-                onClick={() => { setSelectedResponder(responder); setSelectedReport(null); }}
+                key={`resp-${r.id}`}
+                position={{ lat: r.lat!, lng: r.lng! }}
+                title={`${r.name} (${r.type})`}
+                onClick={() => { setSelectedResponder(r); setSelectedReport(null); }}
               >
-                <div className="bg-blue-600 text-white text-xs px-1.5 py-0.5 rounded shadow font-medium cursor-pointer hover:bg-blue-700 transition-colors whitespace-nowrap">
-                  🛡 {responder.name.split(" ")[0]}
+                <div
+                  className="bg-blue-700 text-white text-[10px] px-1.5 py-0.5 rounded shadow-md font-semibold cursor-pointer hover:bg-blue-800 transition-colors whitespace-nowrap border border-white/20"
+                  aria-label={`Responder: ${r.name}`}
+                >
+                  🛡 {r.name.split(" ")[0]}
                 </div>
               </AdvancedMarker>
             ))}
 
-            {/* Report info window */}
-            {selectedReport && (
-              <InfoWindow
-                position={
-                  MUNICIPALITIES.find((m) => m.name === selectedReport.municipality)?.center ?? NV_CENTER
-                }
-                onCloseClick={() => setSelectedReport(null)}
-              >
-                <div className="text-sm space-y-1 min-w-[180px]">
-                  <p className="font-semibold">{selectedReport.category}</p>
-                  <p className="text-muted-foreground">{selectedReport.municipality}</p>
-                  <div className="flex gap-1">
-                    <span className="text-xs px-1.5 py-0.5 rounded bg-gray-100 capitalize">{selectedReport.status.replace("_", " ")}</span>
-                    <span className="text-xs px-1.5 py-0.5 rounded bg-red-100 text-red-700 capitalize">{selectedReport.priority}</span>
+            {/* Report popup */}
+            {selectedReport && (() => {
+              const muni = MUNICIPALITIES.find((m) => m.name === selectedReport.municipality);
+              return muni?.center ? (
+                <InfoWindow position={muni.center} onCloseClick={() => setSelectedReport(null)}>
+                  <div className="text-sm space-y-1.5 min-w-[180px]">
+                    <p className="font-bold text-sm">{selectedReport.category}</p>
+                    <p className="text-muted-foreground text-xs">{selectedReport.municipality}</p>
+                    <div className="flex gap-1 flex-wrap">
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 font-medium uppercase">{selectedReport.status.replace("_", " ")}</span>
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-red-100 text-red-700 font-medium uppercase">{selectedReport.priority}</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground line-clamp-2">{selectedReport.description}</p>
                   </div>
-                </div>
-              </InfoWindow>
-            )}
+                </InfoWindow>
+              ) : null;
+            })()}
 
-            {/* Responder info window */}
-            {selectedResponder && selectedResponder.lat && selectedResponder.lng && (
+            {/* Responder popup */}
+            {selectedResponder?.lat && selectedResponder?.lng && (
               <InfoWindow
                 position={{ lat: selectedResponder.lat, lng: selectedResponder.lng }}
                 onCloseClick={() => setSelectedResponder(null)}
               >
                 <div className="text-sm space-y-1 min-w-[160px]">
-                  <p className="font-semibold">{selectedResponder.name}</p>
-                  <p className="text-muted-foreground capitalize">{selectedResponder.type} · {selectedResponder.municipality}</p>
+                  <p className="font-bold">{selectedResponder.name}</p>
+                  <p className="text-muted-foreground text-xs capitalize">{selectedResponder.type} · {selectedResponder.municipality}</p>
                   {selectedResponder.phone && (
                     <a href={`tel:${selectedResponder.phone}`} className="text-blue-600 text-xs hover:underline block">
                       📞 {selectedResponder.phone}
@@ -205,31 +205,32 @@ export function MapView({ reports, responders }: MapViewProps) {
       </div>
 
       {/* Legend */}
-      <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
-        <div className="flex items-center gap-1"><div className="w-3 h-3 rounded-full bg-red-600" />Critical</div>
-        <div className="flex items-center gap-1"><div className="w-3 h-3 rounded-full bg-orange-500" />High</div>
-        <div className="flex items-center gap-1"><div className="w-3 h-3 rounded-full bg-yellow-500" />Medium</div>
-        <div className="flex items-center gap-1"><div className="w-3 h-3 rounded-full bg-gray-400" />Low</div>
-        <div className="flex items-center gap-1"><div className="w-3 h-3 rounded bg-blue-600" />Responder</div>
+      <div className="flex flex-wrap gap-3 text-xs text-muted-foreground" role="img" aria-label="Map legend">
+        {Object.entries(PRIORITY_COLORS).map(([p, c]) => (
+          <div key={p} className="flex items-center gap-1">
+            <div className="w-2.5 h-2.5 rounded-full border border-white shadow-sm shrink-0" style={{ backgroundColor: c }} />
+            <span className="capitalize">{p}</span>
+          </div>
+        ))}
+        <div className="flex items-center gap-1">
+          <div className="w-5 h-3.5 rounded bg-blue-700" />
+          <span>Responder</span>
+        </div>
       </div>
     </div>
   );
 }
 
-function ToggleButton({
-  active, onClick, icon, label,
-}: {
-  active: boolean;
-  onClick: () => void;
-  icon: React.ReactNode;
-  label: string;
+function ToggleButton({ active, onClick, icon, label }: {
+  active: boolean; onClick: () => void; icon: React.ReactNode; label: string;
 }) {
   return (
     <Button
       variant={active ? "default" : "outline"}
       size="sm"
-      className="h-8 text-xs gap-1 px-2"
+      className="h-8 text-xs gap-1.5 px-2.5"
       onClick={onClick}
+      aria-pressed={active}
     >
       {icon}
       <span className="hidden sm:inline">{label}</span>

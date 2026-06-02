@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { MapView } from "@/components/map/MapView";
 import { useReports } from "@/hooks/useReports";
 import { useResponders } from "@/hooks/useResponders";
@@ -10,16 +10,27 @@ export const Route = createFileRoute("/dashboard/map")({
 });
 
 function MapPage() {
-  const { getEffectiveMunicipality } = useAuthStore();
+  const { getEffectiveMunicipality, user } = useAuthStore();
   const municipality = getEffectiveMunicipality();
   const { reports } = useReports(municipality);
   const { responders } = useResponders();
 
   return (
-    <div className="p-4 md:p-6 max-w-[1600px] mx-auto">
-      <div className="mb-5">
-        <h1 className="text-xl font-bold">Interactive Map</h1>
-        <p className="text-sm text-muted-foreground">Report heatmap & responder locations across Nueva Vizcaya</p>
+    <div className="p-3 sm:p-5 lg:p-6 space-y-5 max-w-[1600px] mx-auto">
+      <div className="flex items-start justify-between gap-4 pb-3 border-b">
+        <div>
+          <div className="flex items-center gap-2 mb-0.5">
+            <div className="h-1 w-4 rounded bg-[hsl(var(--gov-green-800))]" />
+            <h1 className="text-lg font-bold tracking-tight">Interactive Map</h1>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            {municipality ? `Municipality of ${municipality}` : "Province of Nueva Vizcaya"} · Report heatmap & responder locations
+          </p>
+        </div>
+        <div className="text-right shrink-0">
+          <p className="text-xs font-semibold text-foreground">{user?.name}</p>
+          <p className="text-[10px] text-muted-foreground">{new Date().toLocaleDateString("en-PH", { weekday: "short", year: "numeric", month: "short", day: "numeric" })}</p>
+        </div>
       </div>
 
       <Card>
