@@ -113,7 +113,7 @@ class AppStrings {
       // Report form
       'selectCategory': 'Select Problem Category',
       'briefDescription': 'Brief Description',
-      'descriptionHint': 'Describe the problem in detail (min. 50 characters).',
+      'descriptionHint': 'Describe the problem (30–75 characters).',
       'attachPreciseLocation': 'Attach Precise Location (GPS)',
       'submitAnonymously': 'Submit Anonymously',
       'anonymousSubtitle': 'Your name and phone number will not be attached to this report.',
@@ -379,7 +379,7 @@ class AppStrings {
       // Report form
       'selectCategory': 'Pumili ng Kategorya ng Problema',
       'briefDescription': 'Maikling Paglalarawan',
-      'descriptionHint': 'Ilarawan ang problema nang detalyado (min. 50 karakter).',
+      'descriptionHint': 'Ilarawan ang problema (30–75 karakter).',
       'attachPreciseLocation': 'Ilakip ang Tiyak na Lokasyon (GPS)',
       'submitAnonymously': 'Isumite nang Hindi Nagpapakilala',
       'anonymousSubtitle': 'Hindi ilalakip ang iyong pangalan at numero ng telepono sa ulat na ito.',
@@ -645,7 +645,7 @@ class AppStrings {
       // Report form
       'selectCategory': 'Pilien ti Kategorya ti Problema',
       'briefDescription': 'Ababa nga Deskripsyon',
-      'descriptionHint': 'Iladawan ti problema a detalyado (min. 50 karakter).',
+      'descriptionHint': 'Iladawan ti problema (30–75 a karakter).',
       'attachPreciseLocation': 'Idugang ti Tukoy nga Lugar (GPS)',
       'submitAnonymously': 'Isumite nga Anonimo',
       'anonymousSubtitle': 'Saan a maidurog ti nagan ken numero ti telepono mo iti daytoy a report.',
