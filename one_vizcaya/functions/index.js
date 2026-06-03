@@ -537,13 +537,18 @@ exports.archiveOldReports = onSchedule(
     cutoff.setFullYear(cutoff.getFullYear() - 1);
     const cutoffTs = admin.firestore.Timestamp.fromDate(cutoff);
 
+    // Firestore allows an inequality on only ONE field per query, so we filter
+    // by reportedAt in the query and exclude already-archived docs in code.
     const snapshot = await db
       .collectionGroup("reports")
       .where("reportedAt", "<", cutoffTs)
-      .where("status", "!=", "archived")
       .get();
 
-    if (snapshot.empty) {
+    const toArchive = snapshot.docs.filter(
+      (d) => d.data().status !== "archived"
+    );
+
+    if (toArchive.length === 0) {
       console.log("archiveOldReports: nothing to archive");
       return;
     }
@@ -551,7 +556,7 @@ exports.archiveOldReports = onSchedule(
     // Use rolling batches to stay under Firestore's 500-write limit
     let batch = db.batch();
     let count = 0;
-    for (const doc of snapshot.docs) {
+    for (const doc of toArchive) {
       batch.update(doc.ref, {
         status: "archived",
         archivedAt: admin.firestore.FieldValue.serverTimestamp(),
@@ -564,7 +569,7 @@ exports.archiveOldReports = onSchedule(
       }
     }
     if (count > 0) await batch.commit();
-    console.log(`archiveOldReports: archived ${snapshot.size} reports`);
+    console.log(`archiveOldReports: archived ${toArchive.length} reports`);
   }
 );
 
@@ -655,10 +660,15 @@ exports.onNewBroadcast = onDocumentCreated(
 
     const db = admin.firestore();
 
-    // Query users in the target scope
-    let query = db.collection("users").where("fcmToken", "!=", null);
+    // Query users in the target scope. Firestore can't combine an inequality
+    // (fcmToken != null) with an equality on a different field without a
+    // composite index, so for a scoped broadcast we filter by municipality
+    // only and drop token-less users in code below.
+    let query;
     if (scope && scope !== "All Province") {
-      query = query.where("municipality", "==", scope);
+      query = db.collection("users").where("municipality", "==", scope);
+    } else {
+      query = db.collection("users").where("fcmToken", "!=", null);
     }
 
     const usersSnap = await query.get();
