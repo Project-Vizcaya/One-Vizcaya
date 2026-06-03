@@ -70,7 +70,9 @@ void main() async {
   }
   NotificationService.instance
       .initialize()
-      .then((_) => NotificationService.instance.navigatorKey = _navigatorKey)
+      .then<void>((_) {
+        NotificationService.instance.navigatorKey = _navigatorKey;
+      })
       .catchError((e) => debugPrint('Notification init error: $e'));
 }
 

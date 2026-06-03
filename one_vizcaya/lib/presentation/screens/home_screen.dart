@@ -57,11 +57,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Future<void> _onRefresh() async {
-    await Future.wait([_checkConnectivity(), _refreshQueueCount()]);
-    if (mounted) setState(() {});
-  }
-
   @override
   void dispose() {
     _connectivityTimer?.cancel();

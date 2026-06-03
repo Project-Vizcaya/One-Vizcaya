@@ -100,12 +100,17 @@ class _AnnouncementsListState extends State<_AnnouncementsList> {
   }
 
   Future<void> _onRefresh() async {
-    // Force a fresh Firestore fetch
-    await FirebaseFirestore.instance
-        .collection('announcements')
-        .orderBy('timestamp', descending: true)
-        .get(const GetOptions(source: Source.server))
-        .catchError((_) {});
+    // Force a fresh Firestore fetch; ignore errors (the live stream still
+    // drives the UI), but use try/catch so we don't return the wrong type
+    // from catchError.
+    try {
+      await FirebaseFirestore.instance
+          .collection('announcements')
+          .orderBy('timestamp', descending: true)
+          .get(const GetOptions(source: Source.server));
+    } catch (e) {
+      debugPrint('Announcements refresh failed: $e');
+    }
     if (mounted) setState(() {});
   }
 

@@ -336,7 +336,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
           ),
         ),
       ),
-    );
+    ).whenComplete(phoneController.dispose);
   }
 
   Widget? _roleDescription(UserRole role) {
