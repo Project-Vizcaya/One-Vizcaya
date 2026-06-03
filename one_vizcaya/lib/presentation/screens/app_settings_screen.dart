@@ -521,7 +521,7 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
           );
         },
       ),
-    );
+    ).whenComplete(confirmController.dispose);
   }
 
   Future<void> _deleteAccount(BuildContext context) async {
@@ -642,29 +642,6 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
           ),
         ],
       ),
-    );
-  }
-}
-
-// ── Deletion consequence bullet point ──
-class _DeleteConsequenceItem extends StatelessWidget {
-  final String text;
-  const _DeleteConsequenceItem({required this.text});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Icon(Icons.close, size: 16, color: Colors.red.shade600),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Text(
-            text,
-            style: TextStyle(fontSize: 13, color: Colors.grey.shade800),
-          ),
-        ),
-      ],
     );
   }
 }

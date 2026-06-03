@@ -100,12 +100,17 @@ class _AnnouncementsListState extends State<_AnnouncementsList> {
   }
 
   Future<void> _onRefresh() async {
-    // Force a fresh Firestore fetch
-    await FirebaseFirestore.instance
-        .collection('announcements')
-        .orderBy('timestamp', descending: true)
-        .get(const GetOptions(source: Source.server))
-        .catchError((_) {});
+    // Force a fresh Firestore fetch; ignore errors (the live stream still
+    // drives the UI), but use try/catch so we don't return the wrong type
+    // from catchError.
+    try {
+      await FirebaseFirestore.instance
+          .collection('announcements')
+          .orderBy('timestamp', descending: true)
+          .get(const GetOptions(source: Source.server));
+    } catch (e) {
+      debugPrint('Announcements refresh failed: $e');
+    }
     if (mounted) setState(() {});
   }
 
@@ -159,19 +164,21 @@ class _AnnouncementsListState extends State<_AnnouncementsList> {
             .toList()
           ..sort();
 
-        // If the selected agency no longer exists in the feed, reset it.
-        if (_agencyFilter != null && !agencies.contains(_agencyFilter)) {
-          _agencyFilter = null;
-        }
+        // Treat the selected agency as cleared if it no longer exists in the
+        // feed — computed locally so we don't mutate state during build().
+        final activeAgency =
+            (_agencyFilter != null && agencies.contains(_agencyFilter))
+                ? _agencyFilter
+                : null;
 
         // Apply bookmark + agency filters
         var docs = allDocs.where((d) {
           if (_showBookmarked && !_bookmarkedIds.contains(d.id)) return false;
-          if (_agencyFilter != null) {
+          if (activeAgency != null) {
             final by = (d.data() as Map<String, dynamic>)['postedBy']
                     as String? ??
                 'LGU';
-            if (by != _agencyFilter) return false;
+            if (by != activeAgency) return false;
           }
           return true;
         }).toList();
@@ -271,7 +278,7 @@ class _AnnouncementsListState extends State<_AnnouncementsList> {
                               children: [
                                 Icon(Icons.done,
                                     size: 16,
-                                    color: _agencyFilter == null
+                                    color: activeAgency == null
                                         ? widget.lguColor
                                         : Colors.transparent),
                                 const SizedBox(width: 8),
@@ -285,7 +292,7 @@ class _AnnouncementsListState extends State<_AnnouncementsList> {
                                   children: [
                                     Icon(Icons.done,
                                         size: 16,
-                                        color: _agencyFilter == a
+                                        color: activeAgency == a
                                             ? widget.lguColor
                                             : Colors.transparent),
                                     const SizedBox(width: 8),
@@ -301,28 +308,28 @@ class _AnnouncementsListState extends State<_AnnouncementsList> {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Text(
-                                _agencyFilter == null
+                                activeAgency == null
                                     ? 'Agency'
-                                    : (_agencyFilter!.length > 18
-                                        ? '${_agencyFilter!.substring(0, 18)}…'
-                                        : _agencyFilter!),
+                                    : (activeAgency.length > 18
+                                        ? '${activeAgency.substring(0, 18)}…'
+                                        : activeAgency),
                               ),
                               const Icon(Icons.arrow_drop_down, size: 18),
                             ],
                           ),
                           labelStyle: TextStyle(
-                            color: _agencyFilter == null
+                            color: activeAgency == null
                                 ? Colors.grey.shade600
                                 : widget.lguColor,
-                            fontWeight: _agencyFilter == null
+                            fontWeight: activeAgency == null
                                 ? FontWeight.normal
                                 : FontWeight.w600,
                           ),
                           side: BorderSide(
-                              color: _agencyFilter == null
+                              color: activeAgency == null
                                   ? Colors.grey.shade300
                                   : widget.lguColor.withValues(alpha: 0.4)),
-                          backgroundColor: _agencyFilter == null
+                          backgroundColor: activeAgency == null
                               ? null
                               : widget.lguColor.withValues(alpha: 0.06),
                         ),

@@ -319,7 +319,11 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
           ),
         ),
       ),
-    );
+    ).whenComplete(() {
+      nameController.dispose();
+      emailController.dispose();
+      locationController.dispose();
+    });
   }
 
   @override

@@ -22,6 +22,7 @@ class _SmsCooldownButtonState extends State<SmsCooldownButton> {
 
   Future<void> _checkCooldown() async {
     final remaining = await SmsCooldownManager.secondsRemaining();
+    if (!mounted) return;
     if (remaining > 0) _startCountdown(remaining);
   }
 

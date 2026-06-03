@@ -520,7 +520,7 @@ class _ReportStatusCardState extends State<ReportStatusCard>
           },
         );
       },
-    );
+    ).whenComplete(commentController.dispose);
   }
 
   // ── POLISH 3: Production-quality Photo Viewer ────────────────────────────

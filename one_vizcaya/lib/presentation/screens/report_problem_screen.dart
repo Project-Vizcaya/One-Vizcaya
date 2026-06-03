@@ -224,6 +224,8 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
           'Location: ${_locationController.text}\n'
           'Description: ${_descriptionController.text}';
       await _sendSmsReport(municipalityReportingTo, reportDetails);
+      // Opening the SMS app can background/dispose this screen during the await.
+      if (!mounted) return;
       setState(() => _isSubmitting = false);
     } else {
       await _sendOnlineReport(municipalityReportingTo);
@@ -338,7 +340,7 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
             'municipal engineering database.$priorityMsg',
       );
     } on FirebaseException catch (e) {
-      setState(() => _isSubmitting = false);
+      if (mounted) setState(() => _isSubmitting = false);
       if (e.code == 'unavailable') {
         ToastUtils.showError(
           'No internet connection. Please try again when online, or use SMS mode.',
@@ -347,7 +349,7 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
         ToastUtils.showError('Submission failed: ${e.message}');
       }
     } catch (e) {
-      setState(() => _isSubmitting = false);
+      if (mounted) setState(() => _isSubmitting = false);
       ToastUtils.showError('An error occurred. Please try again.');
     }
   }
@@ -540,14 +542,18 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
                         },
                     onChanged: (_) => setState(() {}),
                     validator: (value) {
-                      final text = value?.trim() ?? '';
-                      if (text.isEmpty) {
+                      final raw = value ?? '';
+                      final trimmed = raw.trim();
+                      if (trimmed.isEmpty) {
                         return 'Please enter a description';
                       }
-                      if (text.length < _descMin) {
+                      // Measure in grapheme clusters to match the counter and the
+                      // red strike-through highlighter (which also use .characters),
+                      // so emoji/accented input can't give a contradictory result.
+                      if (trimmed.characters.length < _descMin) {
                         return 'Description must be at least $_descMin characters';
                       }
-                      if (text.length > _descMax) {
+                      if (raw.characters.length > _descMax) {
                         return 'Description must be $_descMax characters or fewer '
                             '(remove the text in red)';
                       }
@@ -1626,8 +1632,13 @@ class _LimitHighlightTextEditingController extends TextEditingController {
     TextStyle? style,
     required bool withComposing,
   }) {
-    final value = text;
-    if (value.characters.length <= limit) {
+    final str = text;
+    // While an IME composing region is active, defer to the default rendering
+    // so the composing underline isn't broken; the overflow highlight reappears
+    // once composing commits.
+    final composing = value.composing;
+    if (str.characters.length <= limit ||
+        (withComposing && composing.isValid && !composing.isCollapsed)) {
       return super.buildTextSpan(
         context: context,
         style: style,
@@ -1635,8 +1646,8 @@ class _LimitHighlightTextEditingController extends TextEditingController {
       );
     }
     // Split on grapheme clusters so emoji/accented input isn't cut mid-glyph.
-    final allowed = value.characters.take(limit).toString();
-    final overflow = value.characters.skip(limit).toString();
+    final allowed = str.characters.take(limit).toString();
+    final overflow = str.characters.skip(limit).toString();
     return TextSpan(
       style: style,
       children: [

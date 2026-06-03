@@ -54,8 +54,17 @@ service cloud.firestore {
     // ─── User profiles ──────────────────────────────────────────────────────
     match /users/{userId} {
       allow read:   if isOwner(userId) || isAdmin();
-      allow create: if isOwner(userId);
-      allow update: if isOwner(userId) || isProvincialAdmin();
+      // A user may create/update their OWN profile but must NOT set or change
+      // their own 'role' (privilege-escalation guard). Only provincial+ admins
+      // may assign roles. role() falls back to this field, so it must be
+      // write-protected against the owner.
+      allow create: if (isOwner(userId)
+                        && request.resource.data.get('role', 'citizen') == 'citizen')
+                    || isProvincialAdmin();
+      allow update: if (isOwner(userId)
+                        && request.resource.data.get('role', 'citizen')
+                           == resource.data.get('role', 'citizen'))
+                    || isProvincialAdmin();
       allow delete: if isProvincialAdmin();
 
       // Per-user reports sub-collection
@@ -100,10 +109,14 @@ service cloud.firestore {
     }
 
     // ─── CollectionGroup query ───────────────────────────────────────────────
-    // Citizens need read access for the community "Recently Resolved" feed.
-    // Admins additionally need update access for status management.
+    // Citizens need read access ONLY for the community "Recently Resolved" feed,
+    // which queries where status == 'solved'. Restricting the rule to solved
+    // reports forces that filter and stops citizens from reading other people's
+    // open reports (descriptions, phone, GPS) via a collectionGroup query.
+    // Owners still read their own reports through the users/{uid}/reports rule.
+    // Admins can read everything for triage.
     match /{path=**}/reports/{reportId} {
-      allow read:   if isAuth(); // community feed requires citizen read
+      allow read:   if isAdmin() || (isAuth() && resource.data.status == 'solved');
       allow update: if isAdmin();
       allow delete: if isProvincialAdmin();
     }

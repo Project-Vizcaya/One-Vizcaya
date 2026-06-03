@@ -23,9 +23,14 @@ class RoleService {
     }
   }
 
-  /// Stream of all users ordered by name, for the role management tab.
+  /// Stream of users ordered by name, for the role management tab. Capped so
+  /// the live listener can't read the entire (growing) user base at once.
   Stream<QuerySnapshot> getUsersStream() {
-    return _firestore.collection('users').orderBy('name').snapshots();
+    return _firestore
+        .collection('users')
+        .orderBy('name')
+        .limit(500)
+        .snapshots();
   }
 }
 
