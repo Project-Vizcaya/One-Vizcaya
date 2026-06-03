@@ -118,8 +118,10 @@ class ProblemReport {
       municipality: municipalityStr.isEmpty ? 'Unknown' : municipalityStr,
       status: ReportStatusExtension.fromString(data['status'] as String? ?? 'reported'),
       priority: ReportPriority.fromString(data['priority']),
-      priorityScore: data['priorityScore'] ?? 0,
-      duplicateCount: data['duplicateCount'] ?? 0,
+      // Coerce via num so a value stored as a double (e.g. 95.0 from the web
+      // admin) doesn't throw "double is not int" and blank the whole stream.
+      priorityScore: (data['priorityScore'] as num?)?.toInt() ?? 0,
+      duplicateCount: (data['duplicateCount'] as num?)?.toInt() ?? 0,
       reportedAt: (data['reportedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       latitude: (data['latitude'] as num?)?.toDouble(),
       longitude: (data['longitude'] as num?)?.toDouble(),

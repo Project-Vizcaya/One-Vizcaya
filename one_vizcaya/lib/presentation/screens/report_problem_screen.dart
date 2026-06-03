@@ -224,6 +224,8 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
           'Location: ${_locationController.text}\n'
           'Description: ${_descriptionController.text}';
       await _sendSmsReport(municipalityReportingTo, reportDetails);
+      // Opening the SMS app can background/dispose this screen during the await.
+      if (!mounted) return;
       setState(() => _isSubmitting = false);
     } else {
       await _sendOnlineReport(municipalityReportingTo);
@@ -338,7 +340,7 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
             'municipal engineering database.$priorityMsg',
       );
     } on FirebaseException catch (e) {
-      setState(() => _isSubmitting = false);
+      if (mounted) setState(() => _isSubmitting = false);
       if (e.code == 'unavailable') {
         ToastUtils.showError(
           'No internet connection. Please try again when online, or use SMS mode.',
@@ -347,7 +349,7 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
         ToastUtils.showError('Submission failed: ${e.message}');
       }
     } catch (e) {
-      setState(() => _isSubmitting = false);
+      if (mounted) setState(() => _isSubmitting = false);
       ToastUtils.showError('An error occurred. Please try again.');
     }
   }
