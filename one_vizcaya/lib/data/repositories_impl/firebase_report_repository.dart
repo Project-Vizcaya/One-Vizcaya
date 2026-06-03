@@ -55,12 +55,16 @@ class FirebaseReportRepository implements ReportRepository {
         .transform(_safeReportTransformer('getUserReports'));
   }
 
+  // Cap live admin queries so a growing dataset can't balloon reads/memory.
+  static const int _adminQueryLimit = 500;
+
   @override
   Stream<List<ProblemReport>> getAllMunicipalityReports(String municipality) {
     return _firestore
         .collectionGroup('reports')
         .where('municipality', isEqualTo: municipality)
         .orderBy('priorityScore', descending: true)
+        .limit(_adminQueryLimit)
         .snapshots()
         .transform(_safeReportTransformer('getAllMunicipalityReports'));
   }
@@ -70,6 +74,7 @@ class FirebaseReportRepository implements ReportRepository {
     return _firestore
         .collectionGroup('reports')
         .orderBy('reportedAt', descending: true)
+        .limit(_adminQueryLimit)
         .snapshots()
         .transform(_safeReportTransformer('getAllProvincialReports'));
   }
@@ -81,20 +86,23 @@ class FirebaseReportRepository implements ReportRepository {
       List<ProblemReport>
     >.fromHandlers(
       handleData: (snapshot, sink) {
-        try {
-          sink.add(
-            snapshot.docs
-                .map((doc) => ProblemReport.fromFirestore(doc))
-                .toList(),
-          );
-        } catch (e) {
-          debugPrint('$tag parse error: $e');
-          sink.add([]);
+        // Parse each doc independently so one malformed document can't blank
+        // the entire list — skip bad docs and surface the rest.
+        final reports = <ProblemReport>[];
+        for (final doc in snapshot.docs) {
+          try {
+            reports.add(ProblemReport.fromFirestore(doc));
+          } catch (e) {
+            debugPrint('$tag parse error on ${doc.id}: $e');
+          }
         }
+        sink.add(reports);
       },
       handleError: (error, stackTrace, sink) {
+        // Forward the error so the UI shows an error state instead of silently
+        // rendering "no reports" (which hid missing-index/permission failures).
         debugPrint('$tag stream error: $error');
-        sink.add([]);
+        sink.addError(error, stackTrace);
       },
     );
   }

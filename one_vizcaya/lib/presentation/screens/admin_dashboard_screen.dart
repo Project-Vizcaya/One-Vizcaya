@@ -3862,8 +3862,12 @@ class _AnalyticsTab extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+              // Safety cap so this analytics listener can't read an unbounded,
+              // ever-growing feedback set (it's still filtered by municipality
+              // in code below).
               stream: FirebaseFirestore.instance
                   .collectionGroup('feedback')
+                  .limit(2000)
                   .snapshots(),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {

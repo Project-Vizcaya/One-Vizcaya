@@ -225,7 +225,9 @@ class MunicipalityInfoService {
           'user-agent': 'OneVizcaya/1.0 (civic app)',
         },
       ).timeout(const Duration(seconds: 8));
-      if (res.statusCode == 200) {
+      // The summary endpoint returns small JSON; guard against an unexpectedly
+      // large body before decoding.
+      if (res.statusCode == 200 && res.bodyBytes.length <= 512 * 1024) {
         final data = jsonDecode(res.body) as Map<String, dynamic>;
         if (data['type'] == 'disambiguation') return null;
         final extract = data['extract'] as String?;

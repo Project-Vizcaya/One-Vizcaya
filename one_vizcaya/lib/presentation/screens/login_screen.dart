@@ -598,6 +598,12 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
     _currentVerificationId = widget.verificationId;
   }
 
+  @override
+  void dispose() {
+    _codeController.dispose();
+    super.dispose();
+  }
+
   Future<void> _verifyCode() async {
     if (_codeController.text.length < 6) {
       ToastUtils.showError('Please enter the complete 6-digit code.');

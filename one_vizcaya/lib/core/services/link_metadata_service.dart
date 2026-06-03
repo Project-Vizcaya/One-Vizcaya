@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 /// Metadata scraped from a web page, used to auto-fill an announcement from a
@@ -27,18 +28,30 @@ class LinkMetadataService {
     final uri = Uri.tryParse(url);
     if (uri == null || !uri.hasAuthority) return null;
 
+    // Stream the body with a hard byte cap so a huge or hostile page can't
+    // exhaust memory. OG/meta tags live in <head>, so an early stop is safe.
+    const maxBytes = 1024 * 1024; // 1 MB
+    final client = http.Client();
     try {
-      final res = await http.get(
-        uri,
-        headers: const {
+      final request = http.Request('GET', uri)
+        ..followRedirects = true
+        ..headers.addAll(const {
           // A browser-like UA improves the odds that sites return OG tags.
           'user-agent':
               'Mozilla/5.0 (Linux; Android) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Mobile Safari/537.36',
           'accept': 'text/html,application/xhtml+xml',
-        },
-      ).timeout(const Duration(seconds: 12));
-      if (res.statusCode != 200) return null;
-      final html = res.body;
+        });
+      final streamed =
+          await client.send(request).timeout(const Duration(seconds: 12));
+      if (streamed.statusCode != 200) return null;
+
+      final bytes = <int>[];
+      await for (final chunk
+          in streamed.stream.timeout(const Duration(seconds: 12))) {
+        bytes.addAll(chunk);
+        if (bytes.length >= maxBytes) break; // we already have the <head>
+      }
+      final html = utf8.decode(bytes, allowMalformed: true);
       return LinkMetadata(
         title: _meta(html, ['og:title', 'twitter:title']) ?? _title(html),
         description: _meta(
@@ -47,19 +60,24 @@ class LinkMetadataService {
       );
     } catch (_) {
       return null;
+    } finally {
+      client.close();
     }
   }
 
   // Finds a <meta> tag whose property/name matches one of [keys] and returns
   // its (entity-decoded) content attribute.
   static String? _meta(String html, List<String> keys) {
-    final tagRe = RegExp(r'<meta\b[^>]*>', caseSensitive: false);
+    // Quote-aware: allow '>' inside quoted attribute values so the tag isn't
+    // truncated. Precompute the tag list once (not per key) for performance.
+    final tagRe =
+        RegExp(r'''<meta\b(?:[^>"']|"[^"]*"|'[^']*')*>''', caseSensitive: false);
+    final tags = tagRe.allMatches(html).map((m) => m.group(0)!).toList();
     for (final key in keys) {
       final keyRe = RegExp(
           '(?:property|name)\\s*=\\s*["\']${RegExp.escape(key)}["\']',
           caseSensitive: false);
-      for (final m in tagRe.allMatches(html)) {
-        final tag = m.group(0)!;
+      for (final tag in tags) {
         if (!keyRe.hasMatch(tag)) continue;
         final dq = RegExp(r'content\s*=\s*"([^"]*)"', caseSensitive: false)
             .firstMatch(tag);

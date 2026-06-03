@@ -542,14 +542,18 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
                         },
                     onChanged: (_) => setState(() {}),
                     validator: (value) {
-                      final text = value?.trim() ?? '';
-                      if (text.isEmpty) {
+                      final raw = value ?? '';
+                      final trimmed = raw.trim();
+                      if (trimmed.isEmpty) {
                         return 'Please enter a description';
                       }
-                      if (text.length < _descMin) {
+                      // Measure in grapheme clusters to match the counter and the
+                      // red strike-through highlighter (which also use .characters),
+                      // so emoji/accented input can't give a contradictory result.
+                      if (trimmed.characters.length < _descMin) {
                         return 'Description must be at least $_descMin characters';
                       }
-                      if (text.length > _descMax) {
+                      if (raw.characters.length > _descMax) {
                         return 'Description must be $_descMax characters or fewer '
                             '(remove the text in red)';
                       }
@@ -1628,8 +1632,13 @@ class _LimitHighlightTextEditingController extends TextEditingController {
     TextStyle? style,
     required bool withComposing,
   }) {
-    final value = text;
-    if (value.characters.length <= limit) {
+    final str = text;
+    // While an IME composing region is active, defer to the default rendering
+    // so the composing underline isn't broken; the overflow highlight reappears
+    // once composing commits.
+    final composing = value.composing;
+    if (str.characters.length <= limit ||
+        (withComposing && composing.isValid && !composing.isCollapsed)) {
       return super.buildTextSpan(
         context: context,
         style: style,
@@ -1637,8 +1646,8 @@ class _LimitHighlightTextEditingController extends TextEditingController {
       );
     }
     // Split on grapheme clusters so emoji/accented input isn't cut mid-glyph.
-    final allowed = value.characters.take(limit).toString();
-    final overflow = value.characters.skip(limit).toString();
+    final allowed = str.characters.take(limit).toString();
+    final overflow = str.characters.skip(limit).toString();
     return TextSpan(
       style: style,
       children: [
