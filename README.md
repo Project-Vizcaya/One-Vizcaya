@@ -434,7 +434,7 @@ A common and fair concern is *"what if the developers disappear?"* This model ad
 
 <p align="center">
   <b>Developed By the Project: Vizcaya Team</b><br>
-  <b>Aaron Anthony A. Gano II</b> — Lead Developer (<i>Mysterious_Alarm</i>)<br>
+  <b>Mysterious_Alarm</b> — Lead Developer<br>
   <b>Sean Godric Reyes</b> — Co-Developer<br>
   <b>Darius Acosta</b> — Co-Developer<br>
   <i>Nueva Vizcaya State University (NVSU)</i><br><br>

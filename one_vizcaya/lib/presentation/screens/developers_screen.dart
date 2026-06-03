@@ -8,7 +8,7 @@ class DevelopersScreen extends StatelessWidget {
   const DevelopersScreen({super.key});
 
   // Lead Developer is highlighted on its own card above the team list.
-  static const String _leadName = 'Aaron Anthony A. Gano II';
+  static const String _leadName = 'Mysterious_Alarm';
   static const String _leadRole = 'Lead Developer';
 
   // Areas of contribution under the Project: Vizcaya Team banner. Named

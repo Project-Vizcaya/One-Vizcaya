@@ -150,4 +150,4 @@ This system is **not dependent on its original developer**.
 
 ---
 
-*Figures are estimates for planning purposes and will be re-validated against live Firebase pricing before any procurement decision. Prepared by Aaron Anthony A. Gano II, BS Computer Science (Robotics), Nueva Vizcaya State University.*
+*Figures are estimates for planning purposes and will be re-validated against live Firebase pricing before any procurement decision. Prepared by Mysterious_Alarm, Nueva Vizcaya State University.*
