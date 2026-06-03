@@ -11,9 +11,17 @@ class DevelopersScreen extends StatelessWidget {
   static const String _leadName = 'Aaron Anthony A. Gano II';
   static const String _leadRole = 'Lead Developer';
 
-  // Areas of contribution under the Project: Vizcaya Team banner. Names can be
-  // filled in by the team; roles describe how One Vizcaya was built.
+  // Areas of contribution under the Project: Vizcaya Team banner. Named
+  // co-developers are listed first, followed by the project's work areas.
   static const List<Map<String, String>> _team = [
+    {
+      'name': 'Sean Godric Reyes',
+      'role': 'Co-Developer',
+    },
+    {
+      'name': 'Darius Acosta',
+      'role': 'Co-Developer',
+    },
     {
       'name': 'Project: Vizcaya Team',
       'role': 'Mobile App Development (Flutter)',

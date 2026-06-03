@@ -435,6 +435,8 @@ A common and fair concern is *"what if the developers disappear?"* This model ad
 <p align="center">
   <b>Developed By the Project: Vizcaya Team</b><br>
   <b>Aaron Anthony A. Gano II</b> — Lead Developer (<i>Mysterious_Alarm</i>)<br>
+  <b>Sean Godric Reyes</b> — Co-Developer<br>
+  <b>Darius Acosta</b> — Co-Developer<br>
   <i>Nueva Vizcaya State University (NVSU)</i><br><br>
   <i>Designed in accordance with Republic Act No. 10173 — Data Privacy Act of 2012</i>
 </p>
