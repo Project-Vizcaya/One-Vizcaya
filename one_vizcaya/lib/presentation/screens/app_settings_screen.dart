@@ -3,6 +3,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:local_auth/local_auth.dart';
+import '../widgets/biometric_lock.dart';
 import '../../core/l10n/app_strings.dart';
 import '../state/municipality_state.dart';
 import '../../core/constants/app_constants.dart';
@@ -21,6 +23,7 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
   bool _offlineModeEnabled = false;
   bool _highContrastMode = false;
   bool _darkModeEnabled = false;
+  bool _biometricLock = false;
   String _selectedLanguage = 'English';
   // Internal sort order key stored in prefs (language-independent)
   String _reportSortKey = 'newestFirst';
@@ -40,6 +43,7 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
       _offlineModeEnabled = prefs.getBool('offline_mode') ?? false;
       _highContrastMode = prefs.getBool('high_contrast') ?? false;
       _darkModeEnabled = prefs.getBool('dark_mode') ?? false;
+      _biometricLock = prefs.getBool(kBiometricAppLockKey) ?? false;
       _selectedLanguage = prefs.getString('language') ?? 'English';
       _reportSortKey = prefs.getString('report_sort') ?? 'newestFirst';
     });
@@ -50,6 +54,39 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
     if (value is bool) await prefs.setBool(key, value);
     if (value is String) await prefs.setString(key, value);
     ToastUtils.showSuccess('Setting saved');
+  }
+
+  // Enabling the app lock first verifies a biometric/credential is available
+  // and that the user can authenticate, so they don't lock themselves out.
+  Future<void> _toggleBiometricLock(bool enable) async {
+    if (!enable) {
+      setState(() => _biometricLock = false);
+      _saveSetting(kBiometricAppLockKey, false);
+      return;
+    }
+    final auth = LocalAuthentication();
+    try {
+      final supported =
+          await auth.isDeviceSupported() || await auth.canCheckBiometrics;
+      if (!supported) {
+        ToastUtils.showError(
+            'No biometrics or screen lock set up on this device');
+        return;
+      }
+      final ok = await auth.authenticate(
+        localizedReason: 'Confirm to enable biometric app lock',
+      );
+      if (!ok) {
+        ToastUtils.showError('Could not verify — app lock not enabled');
+        return;
+      }
+    } catch (e) {
+      ToastUtils.showError('Biometric setup failed: $e');
+      return;
+    }
+    if (!mounted) return;
+    setState(() => _biometricLock = true);
+    _saveSetting(kBiometricAppLockKey, true);
   }
 
   Color get _lguColor => oneVizcayaState.activeTheme['appBarColor'] as Color;
@@ -103,6 +140,16 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
                     setState(() => _locationEnabled = val);
                     _saveSetting('location_enabled', val);
                   },
+                ),
+                _DividerLine(),
+                _ToggleTile(
+                  icon: Icons.fingerprint,
+                  iconColor: const Color(0xFF2E7D32),
+                  title: 'Biometric App Lock',
+                  subtitle:
+                      'Require fingerprint / face unlock to open the app',
+                  value: _biometricLock,
+                  onChanged: _toggleBiometricLock,
                 ),
                 _DividerLine(),
                 _NavigationTile(
