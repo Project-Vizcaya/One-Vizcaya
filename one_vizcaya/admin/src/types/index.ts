@@ -20,6 +20,8 @@ export interface Report {
   municipality: string;
   barangay?: string;
   location: string;
+  latitude?: number;
+  longitude?: number;
   description: string;
   isAnonymous: boolean;
   reportedAt: Date;
