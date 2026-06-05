@@ -50,13 +50,13 @@ dev_dependencies:
   flutter_native_splash: ^2.4.1
 
 flutter_native_splash:
-  color: "#1565C0"
+  color: "#15522F"
   image: assets/images/Seal_of_Nueva_Vizcaya.svg.png
-  color_dark: "#0D47A1"
+  color_dark: "#15522F"
   image_dark: assets/images/Seal_of_Nueva_Vizcaya.svg.png
   android_12:
     image: assets/images/Seal_of_Nueva_Vizcaya.svg.png
-    icon_background_color: "#1565C0"
+    icon_background_color: "#15522F"
   fullscreen: false
 
 flutter:
