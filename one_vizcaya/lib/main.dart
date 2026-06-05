@@ -27,6 +27,7 @@ import 'presentation/screens/data_request_screen.dart';
 import 'presentation/screens/developers_screen.dart';
 import 'features/auth/presentation/screens/privacy_policy_screen.dart';
 import 'presentation/widgets/auth_gate.dart';
+import 'presentation/widgets/biometric_lock.dart';
 import 'presentation/state/municipality_state.dart';
 
 void main() async {
@@ -150,6 +151,9 @@ class _OneVizcayaAppState extends State<OneVizcayaApp> {
           navigatorKey: _navigatorKey,
           title: 'One Vizcaya',
           debugShowCheckedModeBanner: false,
+          // Wraps every route with the biometric app-lock overlay.
+          builder: (context, child) =>
+              BiometricLockOverlay(child: child ?? const SizedBox.shrink()),
           themeMode: isDark ? ThemeMode.dark : ThemeMode.light,
           darkTheme: _buildDarkTheme(),
           // NOTE: flutter_localizations ships Filipino as 'fil' — there is no
