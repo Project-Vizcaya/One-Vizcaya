@@ -29,6 +29,8 @@ function toReport(d: {
     municipality:     (data.municipality as string) ?? "",
     barangay:          data.barangay as string | undefined,
     location:         (data.location as string) ?? "",
+    latitude:         typeof data.latitude  === "number" ? data.latitude  : undefined,
+    longitude:        typeof data.longitude === "number" ? data.longitude : undefined,
     description:      (data.description as string) ?? "",
     isAnonymous:      (data.isAnonymous as boolean) ?? false,
     reportedAt:        toDate(data.reportedAt),

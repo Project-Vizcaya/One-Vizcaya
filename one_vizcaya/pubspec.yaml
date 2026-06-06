@@ -28,7 +28,7 @@ dependencies:
   shared_preferences: ^2.3.2
   qr_flutter: ^4.1.0
   app_links: ^7.0.0
-  firebase_messaging: 16.2.2
+  firebase_messaging: ^16.3.0
   flutter_image_compress: ^2.3.0
   flutter_localizations:
     sdk: flutter
@@ -39,7 +39,7 @@ dependencies:
   local_auth: ^3.0.1
   fl_chart: ^1.2.0
   mobile_scanner: ^7.0.0
-  share_plus: ^11.0.0
+  share_plus: ^13.1.0
   path_provider: ^2.1.4
 
 dev_dependencies:
