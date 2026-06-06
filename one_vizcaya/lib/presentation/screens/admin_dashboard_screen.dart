@@ -92,6 +92,25 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
   Color get _activeLguColor =>
       oneVizcayaState.activeTheme['appBarColor'] as Color;
 
+  // Static, softly-washed Nueva Vizcaya green for the Provincial dashboard so it
+  // reads as the province's identity (not whichever municipality is selected).
+  static const Color _provincialHeaderColor = Color(0xFF388A54);
+
+  // Color used for the top region (app bar, tabs, summary bar). The Provincial
+  // dashboard is fixed to the NV green; municipal dashboards keep their hue but
+  // are desaturated and pulled to a readable mid-lightness so the deep primaries
+  // aren't overpowering and white text stays legible.
+  Color get _headerColor =>
+      _isProvincialView ? _provincialHeaderColor : _washHeader(_activeLguColor);
+
+  static Color _washHeader(Color c) {
+    final hsl = HSLColor.fromColor(c);
+    return hsl
+        .withSaturation((hsl.saturation * 0.72).clamp(0.0, 1.0))
+        .withLightness((hsl.lightness * 0.5 + 0.26).clamp(0.30, 0.44))
+        .toColor();
+  }
+
   Stream<List<ProblemReport>>? _reportsStream;
 
   void _rebuildReportsStream() {
@@ -483,12 +502,13 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
     }
 
     final lguColor = _activeLguColor;
+    final headerColor = _headerColor;
     final muniName = _activeMunicipalityName;
     final tabController = _tabController!;
 
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: lguColor,
+        backgroundColor: headerColor,
         foregroundColor: Colors.white,
         title: Text(
           _isProvincialView
@@ -585,7 +605,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
             children: [
               if (_isOffline) _OfflineBanner(lguColor: lguColor),
               if (_isProvincialView) _ProvincialBanner(lguColor: lguColor),
-              _buildSummaryBar(lguColor),
+              _buildSummaryBar(headerColor),
               _buildFilterBar(lguColor),
               _buildSortRow(lguColor),
               Expanded(
