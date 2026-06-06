@@ -26,13 +26,17 @@ class _BiometricLockOverlayState extends State<BiometricLockOverlay>
   final LocalAuthentication _auth = LocalAuthentication();
   bool _enabled = false;
   bool _locked = false;
-  bool _busy = false;
+  // True only while the OS biometric/credential prompt is on screen. The prompt
+  // itself makes the app go paused→resumed, so we MUST ignore those lifecycle
+  // events while it's up — otherwise a successful unlock immediately re-locks
+  // and loops forever.
+  bool _authenticating = false;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _loadAndMaybeLock();
+    _init();
   }
 
   @override
@@ -43,37 +47,36 @@ class _BiometricLockOverlayState extends State<BiometricLockOverlay>
 
   bool get _signedIn => FirebaseAuth.instance.currentUser != null;
 
-  Future<void> _loadAndMaybeLock() async {
+  Future<void> _init() async {
     final prefs = await SharedPreferences.getInstance();
     _enabled = prefs.getBool(kBiometricAppLockKey) ?? false;
     if (_enabled && _signedIn) {
-      if (mounted) setState(() => _locked = true);
+      if (!mounted) return;
+      setState(() => _locked = true);
       _authenticate();
     }
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (!_enabled || !_signedIn) return;
+    // Ignore the pause/resume churn caused by our own auth prompt.
+    if (_authenticating) return;
+
     if (state == AppLifecycleState.paused ||
         state == AppLifecycleState.hidden) {
-      // Re-lock when leaving the foreground so content is hidden in the
-      // app switcher and a fresh unlock is required on return.
-      if (_enabled && _signedIn && !_locked && mounted) {
-        setState(() => _locked = true);
-      }
+      // Re-lock when genuinely leaving the foreground so content is hidden in
+      // the app switcher and a fresh unlock is required on return.
+      if (!_locked && mounted) setState(() => _locked = true);
     } else if (state == AppLifecycleState.resumed) {
-      if (_locked && _signedIn) {
-        _authenticate();
-      } else {
-        // Pick up a newly-enabled lock without needing a relaunch.
-        _loadAndMaybeLock();
-      }
+      // Auto-prompt only if we're actually locked (never right after unlocking).
+      if (_locked) _authenticate();
     }
   }
 
   Future<void> _authenticate() async {
-    if (_busy) return;
-    setState(() => _busy = true);
+    if (_authenticating || !_locked) return; // guard against re-entrancy/loops
+    setState(() => _authenticating = true);
     bool ok = false;
     try {
       // No biometricOnly flag → device PIN/pattern works as a fallback, so a
@@ -86,7 +89,7 @@ class _BiometricLockOverlayState extends State<BiometricLockOverlay>
     }
     if (!mounted) return;
     setState(() {
-      _busy = false;
+      _authenticating = false;
       if (ok) _locked = false;
     });
   }
@@ -98,7 +101,7 @@ class _BiometricLockOverlayState extends State<BiometricLockOverlay>
         widget.child,
         if (_locked && _signedIn)
           Positioned.fill(
-            child: _LockScreen(busy: _busy, onUnlock: _authenticate),
+            child: _LockScreen(busy: _authenticating, onUnlock: _authenticate),
           ),
       ],
     );
