@@ -691,7 +691,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                     }
 
                     return ListView.builder(
-                      padding: const EdgeInsets.all(8),
+                      // Extra bottom inset so the last card clears the system
+                      // navigation bar and stays fully tappable.
+                      padding: EdgeInsets.fromLTRB(
+                          8, 8, 8, MediaQuery.of(context).padding.bottom + 24),
                       itemCount: reports.length,
                       itemBuilder: (context, index) {
                         final report = reports[index];
@@ -2898,8 +2901,8 @@ class _AnnouncementsTab extends StatelessWidget {
               }
 
               return ListView.builder(
-                padding:
-                    const EdgeInsets.fromLTRB(16, 16, 16, 100),
+                padding: EdgeInsets.fromLTRB(
+                    16, 16, 16, MediaQuery.of(context).padding.bottom + 100),
                 itemCount: docs.length,
                 itemBuilder: (context, index) {
                   final doc = docs[index];
@@ -3841,7 +3844,8 @@ class _AnalyticsTab extends StatelessWidget {
     }
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+      padding: EdgeInsets.fromLTRB(
+          16, 16, 16, MediaQuery.of(context).padding.bottom + 32),
       children: [
         _buildKpiGrid(),
         const SizedBox(height: 20),
@@ -4608,8 +4612,8 @@ class _RoleManagementTabState extends State<_RoleManagementTab> {
               }
 
               return ListView.builder(
-                padding:
-                    const EdgeInsets.fromLTRB(12, 0, 12, 24),
+                padding: EdgeInsets.fromLTRB(
+                    12, 0, 12, MediaQuery.of(context).padding.bottom + 100),
                 itemCount: docs.length,
                 itemBuilder: (context, index) {
                   final doc = docs[index];
