@@ -25,7 +25,7 @@
     }
   },
   "hosting": {
-    "public": "apps/admin/dist",
+    "public": "apps/web/dist",
     "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
     "rewrites": [
       {
