@@ -1,0 +1,19 @@
+{
+  "name": "one-vizcaya",
+  "private": true,
+  "workspaces": [
+    "apps/admin",
+    "apps/functions"
+  ],
+  "scripts": {
+    "build": "turbo build",
+    "build:admin": "turbo build --filter=one-vizcaya-admin",
+    "dev": "turbo dev --filter=one-vizcaya-admin",
+    "lint": "turbo lint",
+    "deploy": "npm run build:admin && firebase deploy"
+  },
+  "devDependencies": {
+    "turbo": "^2.9.16"
+  },
+  "packageManager": "npm@10.9.2"
+}
