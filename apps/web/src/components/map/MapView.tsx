@@ -1,6 +1,6 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
-  APIProvider, Map, AdvancedMarker, InfoWindow, Polygon,
+  APIProvider, Map, AdvancedMarker, InfoWindow, Polygon, useMap,
 } from "@vis.gl/react-google-maps";
 import { MAPS_API_KEY, NV_CENTER, NV_ZOOM } from "@/lib/firebase";
 import { MUNICIPALITIES } from "@/data/municipalities";
@@ -9,6 +9,20 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Layers, MapPin, Shield } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Report, Responder } from "@/types";
+
+// Imperatively recenters the map only when its inputs change (i.e. when a
+// different municipality is selected). It does NOT bind center/zoom as
+// controlled props, so the user can still freely pan and zoom.
+function CameraController({ center, zoom }: { center: { lat: number; lng: number }; zoom: number }) {
+  const map = useMap();
+  useEffect(() => {
+    if (!map) return;
+    map.panTo(center);
+    map.setZoom(zoom);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [map, center.lat, center.lng, zoom]);
+  return null;
+}
 
 const PRIORITY_COLORS: Record<string, string> = {
   critical: "#DC2626",
@@ -153,9 +167,12 @@ export function MapView({ reports, responders }: MapViewProps) {
             mapId="one-vizcaya-map"
             defaultCenter={mapCenter}
             defaultZoom={NV_ZOOM}
-            center={mapCenter}
             gestureHandling="greedy"
           >
+            <CameraController
+              center={mapCenter}
+              zoom={muniFilter === "all" ? NV_ZOOM : 11}
+            />
             {/* Choropleth intensity overlay — municipality polygons coloured green→yellow→red */}
             {showHeatmap && muniPolygons.map(({ muni, paths, color }) => (
               <Polygon

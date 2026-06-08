@@ -100,7 +100,8 @@ class _DataRequestScreenState extends State<DataRequestScreen> {
         elevation: 0,
       ),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.fromLTRB(
+            16, 16, 16, MediaQuery.of(context).padding.bottom + 32),
         children: [
           Container(
             padding: const EdgeInsets.all(14),

@@ -190,10 +190,10 @@ class EmergencyContactsScreen extends StatelessWidget {
       {'name': 'MDRRMO Bambang', 'number': '09175861838', 'type': 'disaster'},
     ],
     'Bayombong': [
-      {'name': 'PNP Bayombong', 'number': '09153116455', 'type': 'police'},
-      {'name': 'BFP Bayombong', 'number': '09187654321', 'type': 'fire'},
+      {'name': 'PNP Bayombong', 'number': '09169196455', 'type': 'police'},
+      {'name': 'BFP Bayombong', 'number': '09151721574', 'type': 'fire'},
       {'name': 'Nueva Vizcaya Prov. Hospital', 'number': '09228680843', 'type': 'medical'},
-      {'name': 'PDRRMO Nueva Vizcaya', 'number': '09171227150', 'type': 'disaster'},
+      {'name': 'PDRRMO Nueva Vizcaya', 'number': '09178500670', 'type': 'disaster'},
     ],
     'Diadi': [
       {'name': 'PNP Diadi', 'number': '09989673133', 'type': 'police'},
@@ -236,6 +236,7 @@ class EmergencyContactsScreen extends StatelessWidget {
     'Solano': [
       {'name': 'PNP Solano', 'number': '09274008033', 'type': 'police'},
       {'name': 'BFP Solano', 'number': '09360620305', 'type': 'fire'},
+      {'name': 'Solano RHU', 'number': '09679103054', 'type': 'medical'},
       {'name': 'R2TMC Medical', 'number': '09068195569', 'type': 'medical'},
       {'name': 'MDRRMO Solano', 'number': '09263833744', 'type': 'disaster'},
     ],
