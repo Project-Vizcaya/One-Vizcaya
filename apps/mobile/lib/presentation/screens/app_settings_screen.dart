@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:local_auth/local_auth.dart';
+import '../widgets/biometric_lock.dart';
 import '../../core/l10n/app_strings.dart';
 import '../state/municipality_state.dart';
 import '../../core/constants/app_constants.dart';
@@ -20,6 +23,7 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
   bool _offlineModeEnabled = false;
   bool _highContrastMode = false;
   bool _darkModeEnabled = false;
+  bool _biometricLock = false;
   String _selectedLanguage = 'English';
   // Internal sort order key stored in prefs (language-independent)
   String _reportSortKey = 'newestFirst';
@@ -39,6 +43,7 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
       _offlineModeEnabled = prefs.getBool('offline_mode') ?? false;
       _highContrastMode = prefs.getBool('high_contrast') ?? false;
       _darkModeEnabled = prefs.getBool('dark_mode') ?? false;
+      _biometricLock = prefs.getBool(kBiometricAppLockKey) ?? false;
       _selectedLanguage = prefs.getString('language') ?? 'English';
       _reportSortKey = prefs.getString('report_sort') ?? 'newestFirst';
     });
@@ -49,6 +54,39 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
     if (value is bool) await prefs.setBool(key, value);
     if (value is String) await prefs.setString(key, value);
     ToastUtils.showSuccess('Setting saved');
+  }
+
+  // Enabling the app lock first verifies a biometric/credential is available
+  // and that the user can authenticate, so they don't lock themselves out.
+  Future<void> _toggleBiometricLock(bool enable) async {
+    if (!enable) {
+      setState(() => _biometricLock = false);
+      _saveSetting(kBiometricAppLockKey, false);
+      return;
+    }
+    final auth = LocalAuthentication();
+    try {
+      final supported =
+          await auth.isDeviceSupported() || await auth.canCheckBiometrics;
+      if (!supported) {
+        ToastUtils.showError(
+            'No biometrics or screen lock set up on this device');
+        return;
+      }
+      final ok = await auth.authenticate(
+        localizedReason: 'Confirm to enable biometric app lock',
+      );
+      if (!ok) {
+        ToastUtils.showError('Could not verify — app lock not enabled');
+        return;
+      }
+    } catch (e) {
+      ToastUtils.showError('Biometric setup failed: $e');
+      return;
+    }
+    if (!mounted) return;
+    setState(() => _biometricLock = true);
+    _saveSetting(kBiometricAppLockKey, true);
   }
 
   Color get _lguColor => oneVizcayaState.activeTheme['appBarColor'] as Color;
@@ -104,12 +142,38 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
                   },
                 ),
                 _DividerLine(),
+                _ToggleTile(
+                  icon: Icons.fingerprint,
+                  iconColor: const Color(0xFF2E7D32),
+                  title: 'Biometric App Lock',
+                  subtitle:
+                      'Require fingerprint / face unlock to open the app',
+                  value: _biometricLock,
+                  onChanged: _toggleBiometricLock,
+                ),
+                _DividerLine(),
                 _NavigationTile(
                   icon: Icons.privacy_tip_outlined,
                   iconColor: const Color(0xFF2E7D32),
                   title: AppStrings.get('privacyPolicy'),
                   subtitle: AppStrings.get('privacyPolicySubtitle'),
                   onTap: () => Navigator.of(context).pushNamed('/privacy'),
+                ),
+                _DividerLine(),
+                _NavigationTile(
+                  icon: Icons.download_outlined,
+                  iconColor: const Color(0xFF00897B),
+                  title: AppStrings.get('downloadMyData'),
+                  subtitle: AppStrings.get('downloadMyDataSubtitle'),
+                  onTap: () => Navigator.of(context).pushNamed('/my-data'),
+                ),
+                _DividerLine(),
+                _NavigationTile(
+                  icon: Icons.gavel_outlined,
+                  iconColor: const Color(0xFF5E35B1),
+                  title: AppStrings.get('dataPrivacyRequest'),
+                  subtitle: AppStrings.get('dataPrivacyRequestSubtitle'),
+                  onTap: () => Navigator.of(context).pushNamed('/data-request'),
                 ),
                 _DividerLine(),
                 _NavigationTile(
@@ -283,18 +347,19 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
                   value: AppConstants.appVersionDisplay,
                 ),
                 _DividerLine(),
-                _InfoTile(
-                  icon: Icons.person_outline,
+                _NavigationTile(
+                  icon: Icons.groups_outlined,
                   iconColor: _lguColor,
-                  title: 'Developer',
-                  value: 'Aaron Anthony A. Gano II',
+                  title: 'Developers',
+                  subtitle: 'Mysterious_Alarm — Lead Developer',
+                  onTap: () => Navigator.of(context).pushNamed('/developers'),
                 ),
                 _DividerLine(),
                 _InfoTile(
-                  icon: Icons.school_outlined,
+                  icon: Icons.favorite_outline,
                   iconColor: _lguColor,
-                  title: 'Institution',
-                  value: 'Nueva Vizcaya State University',
+                  title: 'Made For',
+                  value: 'The People of Nueva Vizcaya',
                 ),
                 _DividerLine(),
                 _NavigationTile(
@@ -442,7 +507,7 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
                   controller: confirmController,
                   onChanged: (val) {
                     setDialogState(() {
-                      _isDeleteTyped = val.trim() == 'DELETE';
+                      _isDeleteTyped = val.trim().toUpperCase() == 'DELETE';
                     });
                   },
                   decoration: InputDecoration(
@@ -503,7 +568,7 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
           );
         },
       ),
-    );
+    ).whenComplete(confirmController.dispose);
   }
 
   Future<void> _deleteAccount(BuildContext context) async {
@@ -533,6 +598,20 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
           .doc(uid)
           .collection('reports')
           .get();
+
+      // RA 10173 (Right to Erasure): delete the user's photo evidence from
+      // Cloud Storage so no orphaned images with embedded location data remain.
+      for (final doc in reportsSnap.docs) {
+        final imageUrl = doc.data()['imageUrl'] as String?;
+        if (imageUrl != null && imageUrl.isNotEmpty) {
+          try {
+            await FirebaseStorage.instance.refFromURL(imageUrl).delete();
+          } catch (_) {
+            // Already gone or unreadable — continue; report doc is still removed.
+          }
+        }
+      }
+
       final batch = firestore.batch();
       for (final doc in reportsSnap.docs) {
         batch.delete(doc.reference);
@@ -610,29 +689,6 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
           ),
         ],
       ),
-    );
-  }
-}
-
-// ── Deletion consequence bullet point ──
-class _DeleteConsequenceItem extends StatelessWidget {
-  final String text;
-  const _DeleteConsequenceItem({required this.text});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Icon(Icons.close, size: 16, color: Colors.red.shade600),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Text(
-            text,
-            style: TextStyle(fontSize: 13, color: Colors.grey.shade800),
-          ),
-        ),
-      ],
     );
   }
 }
@@ -740,7 +796,7 @@ class _SettingsCard extends StatelessWidget {
 class _DividerLine extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return Divider(height: 1, indent: 56, color: Colors.grey.shade100);
+    return Divider(height: 1, indent: 56, color: Theme.of(context).dividerColor);
   }
 }
 

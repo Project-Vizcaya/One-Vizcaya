@@ -172,6 +172,7 @@ class _LoginScreenState extends State<LoginScreen>
       }
 
       final prefs = await SharedPreferences.getInstance();
+      if (!mounted) return;
       final savedPhone = prefs.getString('saved_phone_number');
       if (savedPhone == null || savedPhone.isEmpty) {
         setState(() => _isBiometricLoading = false);
@@ -596,6 +597,12 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
   void initState() {
     super.initState();
     _currentVerificationId = widget.verificationId;
+  }
+
+  @override
+  void dispose() {
+    _codeController.dispose();
+    super.dispose();
   }
 
   Future<void> _verifyCode() async {

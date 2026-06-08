@@ -1,7 +1,7 @@
 name: one_vizcaya
 description: "One Vizcaya is a cross-platform mobile application built with Flutter and Firebase, connecting the citizens of all 15 municipalities of Nueva Vizcaya to their Local Government Units (LGU)."
 publish_to: 'none'
-version: 1.1.9+6
+version: 1.3.12+14
 
 environment:
   sdk: ^3.9.2
@@ -28,7 +28,7 @@ dependencies:
   shared_preferences: ^2.3.2
   qr_flutter: ^4.1.0
   app_links: ^7.0.0
-  firebase_messaging: 16.2.2
+  firebase_messaging: ^16.3.0
   flutter_image_compress: ^2.3.0
   flutter_localizations:
     sdk: flutter
@@ -38,6 +38,9 @@ dependencies:
   in_app_review: ^2.0.9
   local_auth: ^3.0.1
   fl_chart: ^1.2.0
+  mobile_scanner: ^7.0.0
+  share_plus: ^13.1.0
+  path_provider: ^2.1.4
 
 dev_dependencies:
   flutter_test:
@@ -47,13 +50,13 @@ dev_dependencies:
   flutter_native_splash: ^2.4.1
 
 flutter_native_splash:
-  color: "#1565C0"
+  color: "#15522F"
   image: assets/images/Seal_of_Nueva_Vizcaya.svg.png
-  color_dark: "#0D47A1"
+  color_dark: "#15522F"
   image_dark: assets/images/Seal_of_Nueva_Vizcaya.svg.png
   android_12:
     image: assets/images/Seal_of_Nueva_Vizcaya.svg.png
-    icon_background_color: "#1565C0"
+    icon_background_color: "#15522F"
   fullscreen: false
 
 flutter:

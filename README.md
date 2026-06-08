@@ -86,6 +86,8 @@ One Vizcaya is a unified, bidirectional data ecosystem composed of three major r
   * `flutter_image_compress` — Client-side image compression before upload
   * `geolocator` — GPS coordinate capture for report geotagging
   * `shared_preferences` — Offline queue, bookmarks, dark mode, language persistence
+  * `http` — Live Wikipedia municipality summaries and announcement link metadata
+  * `url_launcher` — Tappable hotlines, source links, Wikipedia, and the web admin portal
 * **Geospatial Services:** Native Android `Geolocator` bindings, Google Maps API, Google Maps Visualization (heatmap layer), OpenStreetMap GeoJSON boundary data.
 
 ---
@@ -96,7 +98,7 @@ One Vizcaya is designed **in accordance with Republic Act No. 10173 (Data Privac
 
 * **Data minimization:** The app collects only what a report requires — category, location, optional photo, and a contact identity. No unnecessary personal data is gathered.
 * **Informed consent:** A first-launch consent screen explains what data is collected, why, and how long it is retained, with auditable consent timestamps.
-* **Defined retention:** Resolved reports are auto-archived after a defined retention period to limit indefinite data storage.
+* **Defined retention:** Reports are auto-archived after 12 months and permanently deleted (with their photos) after 24 months by scheduled jobs, limiting indefinite data storage.
 * **Access control:** Strict Firestore security rules ensure citizens can only access their own submissions, and admins only see data within their jurisdiction.
 * **Compliance roadmap:** Final deployment includes coordination with the LGU legal office for **National Privacy Commission (NPC) registration** and designation of a **Data Protection Officer** from the LGU.
 
@@ -105,25 +107,27 @@ One Vizcaya is designed **in accordance with Republic Act No. 10173 (Data Privac
 ---
 
 ## 🎨 UI, Theming & Identity
-To instill local pride and immediately identify the active jurisdiction, the ecosystem features adaptive theming. The interface shifts colors depending on the authenticated jurisdiction, drawing from each town's geography, industries, and cultural identity.
+To instill local pride and immediately identify the active jurisdiction, the ecosystem features adaptive theming. Each municipality has a **definitive title** and a coordinated **three-color scheme** — a **Primary** (app bar / main), **Secondary** (accent / icons), and **Tertiary** (surface / cards) color — drawn from its geography, industries, and cultural identity. The interface re-themes automatically based on the selected jurisdiction.
 
-| Municipality | Theme Identity | Dominant Hex | Regional Symbolism |
-| :--- | :--- | :--- | :--- |
-| **Bambang** | Agricultural Hub | `#E2725B` | Terracotta soil and clay pottery traditions |
-| **Solano** | Commercial Center | `#FF4500` | Vibrant orange representing rapid economic trade |
-| **Bayombong** | Provincial Capital | `#4169E1` | Royal blue for the seat of government and law |
-| **Aritao** | Southern Gateway | `#2E8B57` | Eco-green symbolizing the valley entry checkpoints |
-| **Bagabag** | Pineapple Capital | `#FFD700` | Golden yellow celebrating rich agricultural harvests |
-| **Villaverde** | Historical Gateway | `#228B22` | Deep forest green representing pristine valley mountains |
-| **Diadi** | Ecotourism Hub | `#008080` | Vibrant teal for the Magat River and local lakes |
-| **Quezon** | Highland Haven | `#6A5ACD` | Serene deep purple mirroring the high mountain mists |
-| **Santa Fe** | Mountain Gateway | `#708090` | Slate gray symbolizing the hard mountain passes and Dalton Pass |
-| **Ambaguio** | Cloud Haven | `#87CEEB` | Sky blue celebrating high-altitude views and coffee peaks |
-| **Kasibu** | Citrus Capital | `#FFA500` | Citrus orange representing the famous local orange orchards |
-| **Dupax del Norte** | Cultural Heritage | `#800000` | Rich maroon celebrating indigenous historical roots |
-| **Dupax del Sur** | Historic Town | `#A0522D` | Rustic sienna honoring centuries-old brick architecture |
-| **Alfonso Castañeda** | Water Source | `#000080` | Navy blue honoring major rivers and reservoir resources |
-| **Kayapa** | Vegetable Bowl | `#6B8E23` | Olive green reflecting upland farming and fresh produce |
+| Municipality | Definitive Title | Primary (App Bar) | Secondary (Accent) | Tertiary (Surface) |
+| :--- | :--- | :--- | :--- | :--- |
+| **Alfonso Castañeda** | The Hydroelectric Powerhouse | `#8B0000` Deep Red | `#FFD700` Gold | `#F8EBEB` Soft Red Tint |
+| **Ambaguio** | The Gateway to Mount Pulag | `#008080` Teal | `#FFA500` Orange | `#E5F2F2` Soft Teal Tint |
+| **Aritao** | The Onion Capital | `#E27D60` Onion Coral | `#85DCBA` Leaf Green | `#FCEEEA` Soft Coral Tint |
+| **Bagabag** | The Pineapple Haven | `#F4A460` Goldenrod | `#228B22` Pineapple Green | `#FDF6E3` Warm Yellow Tint |
+| **Bambang** | The Agricultural Hub | `#800000` Maroon | `#FFFFFF` White | `#FDF5F5` Soft Maroon Tint |
+| **Bayombong** | The Educational and Institutional Capital | `#006400` Dark Green | `#FFD700` Gold | `#E6EFE6` Soft Green Tint |
+| **Diadi** | The Eco-Tourism Sanctuary | `#2E8B57` Sea Green | `#D2691E` Earth Brown | `#EAF3EE` Light Sea Green |
+| **Dupax del Norte** | The Agro-Forestry Frontier | `#8B4513` Saddle Brown | `#556B2F` Olive Green | `#F3EBE6` Light Earth Tint |
+| **Dupax del Sur** | The Heritage Capital | `#A52A2A` Burgundy | `#DAA520` Antique Gold | `#F6EAEA` Soft Burgundy Tint |
+| **Kasibu** | The Citrus Capital of the Philippines | `#FF8C00` Citrus Orange | `#32CD32` Lime Green | `#FFF4E6` Light Orange Tint |
+| **Kayapa** | The Summer Capital of Nueva Vizcaya | `#4682B4` Steel Blue | `#228B22` Forest Green | `#EDF2F6` Soft Blue Tint |
+| **Quezon** | The Mineral Outpost | `#4169E1` Royal Blue | `#FFD700` Gold | `#EAEFFC` Light Blue Tint |
+| **Santa Fe** | The Gateway to Cagayan Valley | `#556B2F` Dark Olive | `#8B0000` Brick Red | `#EEF0EA` Light Olive Tint |
+| **Solano** | The Premier Commercial Core | `#0A369D` Deep Blue | `#FFC107` Amber | `#E6EBF5` Soft Blue Tint |
+| **Villaverde** | The Trailblazer's Sanctuary | `#32CD32` Lime Green | `#FFA500` Sun Orange | `#EAFCEA` Light Lime Tint |
+
+> Tapping the municipality seal on the home screen opens an **info sheet** about that town — its definitive title, founding, barangay list, and trivia — combining curated offline facts with a live, fact-checked summary from Wikipedia.
 
 ---
 
@@ -151,6 +155,18 @@ The core operational design of One Vizcaya is its **Hierarchical Escalation Engi
 * **Level 4 — The Escalation Trigger:** If the emergency exceeds local capacity, the Municipal Administrator selects **"Escalate to Province."**
 * **Level 5 — Provincial Command Center (Super-Admin View):** The report appears on the Provincial Command Hub, flagged with an **[ESCALATED]** banner and surfaced on the real-time heatmap.
 * **Level 6 — Provincial Resolution (Strategic Deployment):** The Provincial Action Team coordinates with entities such as the **DPWH District Engineering Office** to dispatch resources. Citizens receive a final resolution notification and can rate the response.
+
+### 🔀 Tiered Routing (Not Just Upward Escalation)
+Beyond upward escalation, admins can **route a report to the correct administrative tier** in one tap from the report detail view, with on-screen **criteria** for each tier so the decision is consistent and defensible:
+
+| Tier | When it applies |
+| :--- | :--- |
+| **Barangay** | Very local, low-risk matters a barangay can resolve (stray animals, uncollected garbage, clogged local canals, minor streetlight/signage issues). |
+| **Municipal** | Town-wide services and infrastructure beyond a single barangay's resources (municipal roads, local flooding/drainage, public health and safety). |
+| **Provincial** | High-impact or cross-municipal incidents needing provincial resources (major disasters, provincial roads/bridges, large-scale hazards). |
+| **Region II** | National/regional mandate or assets (national highways and bridges via DPWH Region II, region-wide calamities, matters beyond provincial capacity). |
+
+This lets municipal admins push hyper-local issues **down** to the Barangay LGU as well as escalate them **up**, keeping each report at the most appropriate level.
 
 ---
 
@@ -221,6 +237,9 @@ The dashboard features a toggleable **Google Maps heatmap layer** overlaying rep
 - [x] **Responder Assignment** from the report detail modal.
 - [x] **Per-Municipality Analytics** (counts, resolution rates, trends).
 - [x] **Report Pagination** with real-time stream updates.
+- [x] **Tiered Report Routing** — transfer a report to the correct administrative tier (Barangay / Municipal / Provincial / Region II), with on-screen routing criteria, including routing *down* to the Barangay LGU.
+- [x] **One-Tap Web Admin Portal** — jump from the in-app admin dashboard to the full web admin portal in the browser.
+- [x] **Announcement Link Auto-Fill** — paste a source URL and auto-generate the headline and body from the page's Open Graph / meta tags (manual entry remains the fallback when a link exposes no preview).
 
 ### 🟢 Mobile App Features — *Implemented*
 - [x] **Offline Report Queue** with live queue-count banner and auto-flush on reconnect.
@@ -232,11 +251,19 @@ The dashboard features a toggleable **Google Maps heatmap layer** overlaying rep
 - [x] **Citizen Feedback & Rating** with duplicate-submission prevention.
 - [x] **Full-Screen Photo Viewer** with Hero animation and pinch-to-zoom.
 - [x] **Share Report** via native SMS deep link.
-- [x] **Announcement Bookmarks** with persistence and filter chip.
+- [x] **Announcement Bookmarks** with persistence, plus **sort (newest/oldest)** and **filter by posting agency**.
+- [x] **Municipality Info Sheet** — tap the home seal to view a town's definitive title, founding, barangay list, and trivia (curated offline + live Wikipedia summary).
+- [x] **Concise Report Descriptions** — 30-character minimum / 75-character maximum, with overflow characters shown struck-through in red so reporters can trim before submitting (keeps emergency reports fast to triage).
+- [x] **Expanded Report Categories** — contemporary and frequently-reported options across every priority tier (e.g., Vehicular Accident, Hazardous Spill, Online Scam / Cyber Fraud, Traffic Obstruction, Internet/Telecom).
 - [x] **Citizen Stats Card** with animated count-up.
 - [x] **Haptic Feedback** on GPS attach and submit.
 - [x] **In-App Review Prompt** after a report is resolved.
-- [x] **Account Deletion** with 2-step type-to-confirm flow.
+- [x] **Account Deletion** with 2-step type-to-confirm flow, cascading to photo evidence in Storage (no orphaned media).
+- [x] **Download My Data** (RA 10173 access & portability) — exports profile, consent record, and all reports as JSON or PDF.
+- [x] **In-App Data Privacy Request** (RA 10173) — access / correction / erasure / objection / portability / complaint requests logged for the DPO, with DPO + NPC contacts surfaced in-app.
+- [x] **Full In-App Privacy Policy** (RA 10173) — complete, readable policy covering legal basis, data sharing, retention, international transfers, consent withdrawal, and rights; reachable from Settings, Login, and the Setup consent step.
+- [x] **Expanded Emergency Hotlines** — national, provincial, and municipal contacts including mental-health & suicide-crisis lines (NCMH 1553, Hopeline, In Touch), women & child protection, health (DOH, PhilHealth), cybercrime, and citizen-service hotlines (8888, DOLE, DTI).
+- [x] **EXIF Stripping** — photo metadata (hidden GPS, camera serial, timestamp) removed before upload for data minimization.
 - [x] **Image Compression** before upload to reduce citizen data usage.
 - [x] **Trilingual UI** (English / Tagalog / Ilocano).
 
@@ -406,8 +433,10 @@ A common and fair concern is *"what if the developers disappear?"* This model ad
 ---
 
 <p align="center">
-  <b>Developed By</b><br>
- (<i>Mysterious_Alarm</i>)<br>
-  <i>BS Computer Science (Robotics), Nueva Vizcaya State University (NVSU)</i><br><br>
+  <b>Developed By the Project: Vizcaya Team</b><br>
+  <b>Mysterious_Alarm</b> — Lead Developer<br>
+  <b>Sean Godric Reyes</b> — Co-Developer<br>
+  <b>Darius Acosta</b> — Co-Developer<br>
+  <i>Nueva Vizcaya State University (NVSU)</i><br><br>
   <i>Designed in accordance with Republic Act No. 10173 — Data Privacy Act of 2012</i>
 </p>

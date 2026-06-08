@@ -1,0 +1,37 @@
+rules_version = '2';
+
+// Firebase Storage security rules for One Vizcaya.
+// Mirrors the role model in firestore.rules: citizens upload their own report
+// photo evidence; any authenticated user (citizens for the community feed,
+// admins for triage) can read it. Without these rules photo uploads/reads are
+// denied by default — which left report photos missing in the admin view.
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function isAuth() {
+      return request.auth != null;
+    }
+
+    // Report photo evidence. Files are named "<uid>_<timestamp>.jpg".
+    match /report_images/{imageId} {
+      // Any signed-in user can view evidence (admins triage; citizens see the
+      // community "Recently Resolved" feed and their own report photos).
+      allow read: if isAuth();
+
+      // Authenticated users may upload, but only JPEG/PNG images up to 10 MB
+      // (client compresses to ~200 KB; this is a safety ceiling).
+      allow create: if isAuth()
+        && request.resource.size < 10 * 1024 * 1024
+        && request.resource.contentType.matches('image/(jpeg|png)');
+
+      // Evidence is immutable from the client; deletion is handled server-side
+      // by Cloud Functions (account deletion / retention cleanup).
+      allow update, delete: if false;
+    }
+
+    // Deny everything else by default.
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

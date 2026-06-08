@@ -1,6 +1,6 @@
 // DEPLOYMENT: requires Firebase Blaze (pay-as-you-go) plan.
 // Run: cd functions && npm install && firebase deploy --only functions
-const { onDocumentCreated, onDocumentUpdated } = require("firebase-functions/v2/firestore");
+const { onDocumentCreated, onDocumentUpdated, onDocumentDeleted } = require("firebase-functions/v2/firestore");
 const { onSchedule } = require("firebase-functions/v2/scheduler");
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const admin = require("firebase-admin");
@@ -537,13 +537,18 @@ exports.archiveOldReports = onSchedule(
     cutoff.setFullYear(cutoff.getFullYear() - 1);
     const cutoffTs = admin.firestore.Timestamp.fromDate(cutoff);
 
+    // Firestore allows an inequality on only ONE field per query, so we filter
+    // by reportedAt in the query and exclude already-archived docs in code.
     const snapshot = await db
       .collectionGroup("reports")
       .where("reportedAt", "<", cutoffTs)
-      .where("status", "!=", "archived")
       .get();
 
-    if (snapshot.empty) {
+    const toArchive = snapshot.docs.filter(
+      (d) => d.data().status !== "archived"
+    );
+
+    if (toArchive.length === 0) {
       console.log("archiveOldReports: nothing to archive");
       return;
     }
@@ -551,7 +556,7 @@ exports.archiveOldReports = onSchedule(
     // Use rolling batches to stay under Firestore's 500-write limit
     let batch = db.batch();
     let count = 0;
-    for (const doc of snapshot.docs) {
+    for (const doc of toArchive) {
       batch.update(doc.ref, {
         status: "archived",
         archivedAt: admin.firestore.FieldValue.serverTimestamp(),
@@ -564,7 +569,7 @@ exports.archiveOldReports = onSchedule(
       }
     }
     if (count > 0) await batch.commit();
-    console.log(`archiveOldReports: archived ${snapshot.size} reports`);
+    console.log(`archiveOldReports: archived ${toArchive.length} reports`);
   }
 );
 
@@ -655,10 +660,15 @@ exports.onNewBroadcast = onDocumentCreated(
 
     const db = admin.firestore();
 
-    // Query users in the target scope
-    let query = db.collection("users").where("fcmToken", "!=", null);
+    // Query users in the target scope. Firestore can't combine an inequality
+    // (fcmToken != null) with an equality on a different field without a
+    // composite index, so for a scoped broadcast we filter by municipality
+    // only and drop token-less users in code below.
+    let query;
     if (scope && scope !== "All Province") {
-      query = query.where("municipality", "==", scope);
+      query = db.collection("users").where("municipality", "==", scope);
+    } else {
+      query = db.collection("users").where("fcmToken", "!=", null);
     }
 
     const usersSnap = await query.get();
@@ -688,5 +698,80 @@ exports.onNewBroadcast = onDocumentCreated(
         })
         .catch((e) => console.error("Batch FCM failed:", e));
     }
+  }
+);
+
+// ── RA 10173: storage cleanup helper ─────────────────────────────────────────
+// Derives the Storage object path from a Firebase download URL and deletes it.
+// Used to guarantee no orphaned photo evidence (with embedded EXIF/location)
+// survives report or account deletion.
+async function deleteImageByUrl(imageUrl) {
+  if (!imageUrl || typeof imageUrl !== "string") return;
+  try {
+    // Download URLs look like:
+    //   https://firebasestorage.googleapis.com/v0/b/<bucket>/o/<ENCODED_PATH>?alt=media&token=...
+    const match = imageUrl.match(/\/o\/([^?]+)/);
+    if (!match) return;
+    const objectPath = decodeURIComponent(match[1]);
+    await admin.storage().bucket().file(objectPath).delete();
+  } catch (e) {
+    // Already deleted or unreadable — safe to ignore.
+    console.log(`deleteImageByUrl: skipped (${e.message})`);
+  }
+}
+
+// ── Cascade-delete photo evidence when a report is removed ───────────────────
+// Fires whenever a report document is deleted (citizen account deletion, admin
+// purge, or the retention job below). Removes the linked Storage image so the
+// Right to Erasure is fully honoured, not just at the Firestore layer.
+exports.cleanupReportImageOnDelete = onDocumentDeleted(
+  "users/{userId}/reports/{reportId}",
+  async (event) => {
+    const data = event.data?.data();
+    if (!data) return;
+    await deleteImageByUrl(data.imageUrl);
+  }
+);
+
+// ── RA 10173 retention: purge reports older than 24 months ───────────────────
+// Runs daily at 3 AM Manila time. The privacy policy commits to deleting
+// archived reports after 24 months; archiveOldReports only marks them at 12
+// months. This job deletes report documents (and their photos) past 24 months,
+// which also triggers cleanupReportImageOnDelete for Storage cleanup.
+exports.deleteOldArchivedReports = onSchedule(
+  { schedule: "0 3 * * *", timeZone: "Asia/Manila" },
+  async () => {
+    const db = admin.firestore();
+    const cutoff = new Date();
+    cutoff.setFullYear(cutoff.getFullYear() - 2);
+    const cutoffTs = admin.firestore.Timestamp.fromDate(cutoff);
+
+    const snapshot = await db
+      .collectionGroup("reports")
+      .where("reportedAt", "<", cutoffTs)
+      .get();
+
+    if (snapshot.empty) {
+      console.log("deleteOldArchivedReports: nothing to delete");
+      return;
+    }
+
+    // Delete photos first (best-effort), then the docs in rolling batches.
+    let batch = db.batch();
+    let count = 0;
+    let deleted = 0;
+    for (const doc of snapshot.docs) {
+      await deleteImageByUrl(doc.data().imageUrl);
+      batch.delete(doc.ref);
+      count++;
+      deleted++;
+      if (count >= 490) {
+        await batch.commit();
+        batch = db.batch();
+        count = 0;
+      }
+    }
+    if (count > 0) await batch.commit();
+    console.log(`deleteOldArchivedReports: deleted ${deleted} reports older than 24 months`);
   }
 );

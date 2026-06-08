@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:pdf/pdf.dart';
@@ -9,14 +10,18 @@ import 'package:fl_chart/fl_chart.dart';
 import '../../domain/models/problem_report.dart';
 import '../../domain/enums/report_priority.dart';
 import '../../domain/enums/report_status.dart';
+import '../../domain/enums/handling_level.dart';
 import '../../domain/repositories/report_repository.dart';
 import '../../data/repositories_impl/firebase_report_repository.dart';
 import '../../data/services/admin_service.dart';
 import '../../data/services/role_service.dart';
 import '../../features/auth/domain/entities/app_user.dart';
 import '../../core/utils/toast_utils.dart';
+import '../../core/services/link_metadata_service.dart';
 import '../../core/constants/app_constants.dart';
+import '../../core/l10n/app_strings.dart';
 import '../state/municipality_state.dart';
+import 'qr_scanner_screen.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // MAIN SCREEN
@@ -86,6 +91,25 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
 
   Color get _activeLguColor =>
       oneVizcayaState.activeTheme['appBarColor'] as Color;
+
+  // Static, softly-washed Nueva Vizcaya green for the Provincial dashboard so it
+  // reads as the province's identity (not whichever municipality is selected).
+  static const Color _provincialHeaderColor = Color(0xFF388A54);
+
+  // Color used for the top region (app bar, tabs, summary bar). The Provincial
+  // dashboard is fixed to the NV green; municipal dashboards keep their hue but
+  // are desaturated and pulled to a readable mid-lightness so the deep primaries
+  // aren't overpowering and white text stays legible.
+  Color get _headerColor =>
+      _isProvincialView ? _provincialHeaderColor : _washHeader(_activeLguColor);
+
+  static Color _washHeader(Color c) {
+    final hsl = HSLColor.fromColor(c);
+    return hsl
+        .withSaturation((hsl.saturation * 0.72).clamp(0.0, 1.0))
+        .withLightness((hsl.lightness * 0.5 + 0.26).clamp(0.30, 0.44))
+        .toColor();
+  }
 
   Stream<List<ProblemReport>>? _reportsStream;
 
@@ -331,7 +355,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
           ),
         ),
       ),
-    );
+    ).whenComplete(phoneController.dispose);
   }
 
   Widget? _roleDescription(UserRole role) {
@@ -352,6 +376,60 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
     }
   }
 
+  // Scan a citizen's report QR and open it directly in the dashboard — fast
+  // in-person triage at a field desk.
+  // Jump from the in-app admin dashboard to the full web admin portal in one
+  // tap (opens in the device browser).
+  Future<void> _openAdminWebsite() async {
+    final uri = Uri.parse(AppConstants.adminPortalUrl);
+    try {
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } else {
+        ToastUtils.showError('Could not open the admin website');
+      }
+    } catch (e) {
+      ToastUtils.showError('Failed to open admin website: $e');
+    }
+  }
+
+  Future<void> _scanReportQr() async {
+    final raw = await scanReportQr(context);
+    if (raw == null || !mounted) return;
+    final parsed = parseReportQr(raw);
+    if (parsed == null) {
+      ToastUtils.showError(AppStrings.get('invalidQr'));
+      return;
+    }
+    final reportId = parsed['reportId']!;
+    final owner = parsed['owner'];
+
+    ToastUtils.showInfo('Looking up report…');
+    try {
+      DocumentSnapshot<Map<String, dynamic>>? doc;
+
+      // Preferred: exact path when the QR carries the owner uid.
+      if (owner != null && owner.isNotEmpty) {
+        final d = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(owner)
+            .collection('reports')
+            .doc(reportId)
+            .get();
+        if (d.exists) doc = d;
+      }
+
+      if (!mounted) return;
+      if (doc == null) {
+        ToastUtils.showError('Report not found in your jurisdiction.');
+        return;
+      }
+      _showReportDetail(ProblemReport.fromFirestore(doc));
+    } catch (e) {
+      if (mounted) ToastUtils.showError('Could not open report: $e');
+    }
+  }
+
   void _showReportDetail(ProblemReport report) {
     showModalBottomSheet(
       context: context,
@@ -368,6 +446,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
             _reportRepository.updateReportStatus(userId, reportId, newStatus),
         onEscalate: (reportId, userId) =>
             _reportRepository.escalateToProvince(userId, reportId),
+        onTransfer: (reportId, userId, level) =>
+            _reportRepository.transferToLevel(userId, reportId, level),
         onDelete: (reportId, userId) =>
             _reportRepository.deleteReport(userId, reportId),
         onFlagUpdate: (reportId, userId, isFlagged) =>
@@ -422,12 +502,13 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
     }
 
     final lguColor = _activeLguColor;
+    final headerColor = _headerColor;
     final muniName = _activeMunicipalityName;
     final tabController = _tabController!;
 
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: lguColor,
+        backgroundColor: headerColor,
         foregroundColor: Colors.white,
         title: Text(
           _isProvincialView
@@ -457,6 +538,16 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                 }),
               ),
             ),
+          IconButton(
+            icon: const Icon(Icons.qr_code_scanner),
+            tooltip: AppStrings.get('scanQr'),
+            onPressed: _scanReportQr,
+          ),
+          IconButton(
+            icon: const Icon(Icons.open_in_browser),
+            tooltip: 'Open Admin Website',
+            onPressed: _openAdminWebsite,
+          ),
           IconButton(
             icon: const Icon(Icons.refresh),
             tooltip: 'Refresh',
@@ -514,7 +605,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
             children: [
               if (_isOffline) _OfflineBanner(lguColor: lguColor),
               if (_isProvincialView) _ProvincialBanner(lguColor: lguColor),
-              _buildSummaryBar(lguColor),
+              _buildSummaryBar(headerColor),
               _buildFilterBar(lguColor),
               _buildSortRow(lguColor),
               Expanded(
@@ -600,7 +691,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                     }
 
                     return ListView.builder(
-                      padding: const EdgeInsets.all(8),
+                      // Extra bottom inset so the last card clears the system
+                      // navigation bar and stays fully tappable.
+                      padding: EdgeInsets.fromLTRB(
+                          8, 8, 8, MediaQuery.of(context).padding.bottom + 24),
                       itemCount: reports.length,
                       itemBuilder: (context, index) {
                         final report = reports[index];
@@ -1150,6 +1244,8 @@ class _ReportDetailSheet extends StatelessWidget {
   final void Function(String reportId, String userId, String newStatus)
       onStatusUpdate;
   final Future<void> Function(String reportId, String userId) onEscalate;
+  final Future<void> Function(
+      String reportId, String userId, HandlingLevel level) onTransfer;
   final Future<void> Function(String reportId, String userId) onDelete;
   final Future<void> Function(String reportId, String userId, bool isFlagged)
       onFlagUpdate;
@@ -1161,6 +1257,7 @@ class _ReportDetailSheet extends StatelessWidget {
     required this.canDelete,
     required this.onStatusUpdate,
     required this.onEscalate,
+    required this.onTransfer,
     required this.onDelete,
     required this.onFlagUpdate,
   });
@@ -1174,6 +1271,195 @@ class _ReportDetailSheet extends StatelessWidget {
     final period = dt.hour >= 12 ? 'PM' : 'AM';
     final minute = dt.minute.toString().padLeft(2, '0');
     return '${dt.month}/${dt.day}/${dt.year}  $hour:$minute $period';
+  }
+
+  // Open the report's photo evidence full-screen with pinch-to-zoom, so admins
+  // can inspect details (cracks, water levels, plate numbers) during triage.
+  void _showFullScreenPhoto(BuildContext context, String url, String reportId) {
+    Navigator.of(context).push(
+      PageRouteBuilder(
+        opaque: false,
+        barrierColor: Colors.black,
+        pageBuilder: (ctx, _, __) => Scaffold(
+          backgroundColor: Colors.black,
+          appBar: AppBar(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            foregroundColor: Colors.white,
+            leading: IconButton(
+              icon: const Icon(Icons.close),
+              onPressed: () => Navigator.of(ctx).pop(),
+            ),
+          ),
+          body: Center(
+            child: Hero(
+              tag: 'admin_report_photo_$reportId',
+              child: InteractiveViewer(
+                minScale: 0.8,
+                maxScale: 5.0,
+                child: Image.network(
+                  url,
+                  fit: BoxFit.contain,
+                  loadingBuilder: (_, child, progress) => progress == null
+                      ? child
+                      : const Center(
+                          child:
+                              CircularProgressIndicator(color: Colors.white)),
+                  errorBuilder: (_, __, ___) => const Center(
+                    child: Text('Image unavailable',
+                        style: TextStyle(color: Colors.white70)),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // Lets a municipal admin route the report to the correct administrative
+  // tier (Barangay → Municipal → Provincial → Region II), with on-screen
+  // criteria so the routing decision is consistent and defensible.
+  void _showTransferSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Theme.of(context).cardColor,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetCtx) => DraggableScrollableSheet(
+        initialChildSize: 0.7,
+        minChildSize: 0.4,
+        maxChildSize: 0.95,
+        expand: false,
+        builder: (ctx, scrollController) => Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+          child: ListView(
+            controller: scrollController,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Transfer / Route Report',
+                style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                    color: lguColor),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Choose the administrative tier that should handle this report. '
+                'Use the criteria below to route it to the right level.',
+                style: TextStyle(fontSize: 12.5, color: Colors.grey.shade600),
+              ),
+              const SizedBox(height: 16),
+              ...HandlingLevel.values.map((level) {
+                final isCurrent = report.handlingLevel == level;
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  decoration: BoxDecoration(
+                    color: level.color.withValues(alpha: 0.06),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: isCurrent
+                          ? level.color
+                          : level.color.withValues(alpha: 0.25),
+                      width: isCurrent ? 2 : 1,
+                    ),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(level.icon, color: level.color, size: 20),
+                            const SizedBox(width: 8),
+                            Text(
+                              level.displayName,
+                              style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 15,
+                                  color: level.color),
+                            ),
+                            const Spacer(),
+                            if (isCurrent)
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 8, vertical: 3),
+                                decoration: BoxDecoration(
+                                  color: level.color,
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: const Text(
+                                  'CURRENT',
+                                  style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold),
+                                ),
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          level.criteria,
+                          style: const TextStyle(fontSize: 12.5, height: 1.45),
+                        ),
+                        const SizedBox(height: 10),
+                        SizedBox(
+                          width: double.infinity,
+                          child: OutlinedButton.icon(
+                            icon: Icon(
+                                isCurrent
+                                    ? Icons.check
+                                    : Icons.swap_horiz,
+                                size: 16),
+                            label: Text(isCurrent
+                                ? 'Already at this level'
+                                : 'Transfer to ${level.displayName}'),
+                            onPressed: isCurrent || report.userId == null
+                                ? null
+                                : () async {
+                                    Navigator.pop(ctx); // close sheet
+                                    Navigator.pop(context); // close detail
+                                    await onTransfer(report.id,
+                                        report.userId!, level);
+                                  },
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: level.color,
+                              side: BorderSide(
+                                  color: level.color
+                                      .withValues(alpha: 0.6)),
+                              padding:
+                                  const EdgeInsets.symmetric(vertical: 10),
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10)),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   void _confirmDelete(BuildContext context) {
@@ -1460,27 +1746,60 @@ class _ReportDetailSheet extends StatelessWidget {
                           color: lguColor),
                     ),
                     const SizedBox(height: 8),
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
-                      child: Image.network(
-                        report.imageUrl!,
-                        fit: BoxFit.cover,
-                        loadingBuilder: (_, child, progress) =>
-                            progress == null
-                                ? child
-                                : const SizedBox(
-                                    height: 120,
-                                    child: Center(
-                                        child:
-                                            CircularProgressIndicator())),
-                        errorBuilder: (_, __, ___) => Container(
-                          height: 80,
-                          decoration: BoxDecoration(
-                            color: Colors.grey.shade100,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Center(
-                              child: Text('Image unavailable')),
+                    GestureDetector(
+                      onTap: () => _showFullScreenPhoto(
+                          context, report.imageUrl!, report.id),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: Stack(
+                          alignment: Alignment.bottomRight,
+                          children: [
+                            Hero(
+                              tag: 'admin_report_photo_${report.id}',
+                              child: Image.network(
+                                report.imageUrl!,
+                                fit: BoxFit.cover,
+                                width: double.infinity,
+                                loadingBuilder: (_, child, progress) =>
+                                    progress == null
+                                        ? child
+                                        : const SizedBox(
+                                            height: 120,
+                                            child: Center(
+                                                child:
+                                                    CircularProgressIndicator())),
+                                errorBuilder: (_, __, ___) => Container(
+                                  height: 80,
+                                  decoration: BoxDecoration(
+                                    color: Colors.grey.shade100,
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: const Center(
+                                      child: Text('Image unavailable')),
+                                ),
+                              ),
+                            ),
+                            Container(
+                              margin: const EdgeInsets.all(8),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: Colors.black54,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.zoom_in,
+                                      size: 14, color: Colors.white),
+                                  SizedBox(width: 4),
+                                  Text('Tap to enlarge',
+                                      style: TextStyle(
+                                          color: Colors.white, fontSize: 11)),
+                                ],
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
@@ -1563,6 +1882,12 @@ class _ReportDetailSheet extends StatelessWidget {
                         ],
                       ),
                     ),
+                  ],
+
+                  // Citizen satisfaction feedback (only meaningful once solved)
+                  if (report.status == ReportStatus.solved) ...[
+                    const SizedBox(height: 12),
+                    _CitizenFeedbackSection(report: report, lguColor: lguColor),
                   ],
 
                   const SizedBox(height: 24),
@@ -1664,6 +1989,54 @@ class _ReportDetailSheet extends StatelessWidget {
                     ],
                   ),
 
+                  if (!isProvincialView && report.userId != null) ...[
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Icon(report.handlingLevel.icon,
+                            size: 16, color: report.handlingLevel.color),
+                        const SizedBox(width: 6),
+                        Text(
+                          'Currently handled at: ',
+                          style: TextStyle(
+                              fontSize: 12, color: Colors.grey.shade600),
+                        ),
+                        Text(
+                          report.handlingLevel.displayName,
+                          style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: report.handlingLevel.color),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        icon: const Icon(Icons.alt_route, size: 16),
+                        label: const Text('Transfer / Route Report'),
+                        onPressed: () => _showTransferSheet(context),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: lguColor,
+                          side: BorderSide(
+                              color: lguColor.withValues(alpha: 0.6)),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12)),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Route to the Barangay for very local matters, or escalate '
+                      'to Provincial / Region II when it exceeds local capacity.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                          fontSize: 11, color: Colors.grey.shade500),
+                    ),
+                  ],
+
                   if (!isProvincialView &&
                       !report.escalatedToProvince &&
                       report.userId != null) ...[
@@ -1736,6 +2109,146 @@ class _ReportDetailSheet extends StatelessWidget {
       case ReportStatus.archived:
         return 'Archived';
     }
+  }
+}
+
+/// Shows the citizen's satisfaction rating + comment for a resolved report,
+/// read from users/{owner}/reports/{id}/feedback. Lets admins close the loop
+/// on how well an issue was actually resolved.
+class _CitizenFeedbackSection extends StatelessWidget {
+  final ProblemReport report;
+  final Color lguColor;
+
+  const _CitizenFeedbackSection({required this.report, required this.lguColor});
+
+  @override
+  Widget build(BuildContext context) {
+    // Anonymous reports have no owner path to read feedback from.
+    final ownerId = report.userId;
+    if (ownerId == null || ownerId.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    final query = FirebaseFirestore.instance
+        .collection('users')
+        .doc(ownerId)
+        .collection('reports')
+        .doc(report.id)
+        .collection('feedback')
+        .limit(1)
+        .snapshots();
+
+    return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+      stream: query,
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) return const SizedBox.shrink();
+        final docs = snapshot.data!.docs;
+        if (docs.isEmpty) {
+          // Resolved but the citizen hasn't rated yet.
+          return Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.grey.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.hourglass_empty,
+                    size: 16, color: Colors.grey.shade600),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Awaiting citizen feedback on this resolution.',
+                    style: TextStyle(
+                        fontSize: 12, color: Colors.grey.shade700),
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+
+        final data = docs.first.data();
+        final rating = (data['rating'] as num?)?.toInt() ?? 0;
+        final comment = (data['comment'] as String?)?.trim() ?? '';
+        final ratingColor = rating <= 2
+            ? Colors.orange.shade700
+            : rating == 3
+                ? Colors.amber.shade800
+                : Colors.green.shade700;
+
+        return Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: ratingColor.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: ratingColor.withValues(alpha: 0.3)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.reviews_outlined, size: 16, color: ratingColor),
+                  const SizedBox(width: 6),
+                  Text(
+                    'Citizen Feedback',
+                    style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: ratingColor),
+                  ),
+                  if (rating <= 2) ...[
+                    const SizedBox(width: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Colors.orange.shade700,
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: const Text('Low rating',
+                          style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 9,
+                              fontWeight: FontWeight.bold)),
+                    ),
+                  ],
+                ],
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  ...List.generate(
+                      5,
+                      (i) => Icon(
+                            i < rating ? Icons.star : Icons.star_border,
+                            size: 18,
+                            color: ratingColor,
+                          )),
+                  const SizedBox(width: 8),
+                  Text('$rating/5',
+                      style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: ratingColor)),
+                ],
+              ),
+              if (comment.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Text(
+                  '“$comment”',
+                  style: TextStyle(
+                      fontSize: 12,
+                      fontStyle: FontStyle.italic,
+                      color: Theme.of(context).colorScheme.onSurface),
+                ),
+              ],
+            ],
+          ),
+        );
+      },
+    );
   }
 }
 
@@ -2388,8 +2901,8 @@ class _AnnouncementsTab extends StatelessWidget {
               }
 
               return ListView.builder(
-                padding:
-                    const EdgeInsets.fromLTRB(16, 16, 16, 100),
+                padding: EdgeInsets.fromLTRB(
+                    16, 16, 16, MediaQuery.of(context).padding.bottom + 100),
                 itemCount: docs.length,
                 itemBuilder: (context, index) {
                   final doc = docs[index];
@@ -2608,6 +3121,47 @@ class _AddAnnouncementSheetState
   late String _selectedMunicipality;
   bool _isUrgent = false;
   bool _isPosting = false;
+  bool _isFetchingMeta = false;
+
+  // Paste a source link and auto-generate the headline + body from the page's
+  // Open Graph / meta tags, so admins don't have to copy-paste each field.
+  Future<void> _autofillFromLink() async {
+    final url = _sourceUrlController.text.trim();
+    if (url.isEmpty) {
+      ToastUtils.showError('Paste a source link first');
+      return;
+    }
+    setState(() => _isFetchingMeta = true);
+    final meta = await LinkMetadataService.fetch(url);
+    if (!mounted) return;
+    setState(() => _isFetchingMeta = false);
+
+    if (meta == null) {
+      ToastUtils.showError(
+          'Could not read that link. Check the URL or fill the fields in manually.');
+      return;
+    }
+    if (meta.isEmpty) {
+      ToastUtils.showInfo(
+          'No preview info found on that page. Please fill the fields in manually.');
+      return;
+    }
+    setState(() {
+      if (meta.title != null && meta.title!.isNotEmpty) {
+        _titleController.text = meta.title!;
+      }
+      if (meta.description != null && meta.description!.isNotEmpty) {
+        _bodyController.text = meta.description!;
+      }
+      if (_sourceLabelController.text.trim().isEmpty &&
+          meta.siteName != null &&
+          meta.siteName!.isNotEmpty) {
+        _sourceLabelController.text = meta.siteName!;
+      }
+    });
+    ToastUtils.showSuccess('Headline and message filled from the link — '
+        'review and edit before posting.');
+  }
 
   @override
   void initState() {
@@ -2832,6 +3386,32 @@ class _AddAnnouncementSheetState
                   keyboardType: TextInputType.url,
                   helperText:
                       'Citizens can tap to view original post'),
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: _isFetchingMeta ? null : _autofillFromLink,
+                  icon: _isFetchingMeta
+                      ? SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2, color: widget.lguColor),
+                        )
+                      : const Icon(Icons.auto_fix_high, size: 18),
+                  label: Text(_isFetchingMeta
+                      ? 'Reading link…'
+                      : 'Auto-fill title & message from link'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: widget.lguColor,
+                    side:
+                        BorderSide(color: widget.lguColor.withValues(alpha: 0.5)),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+              ),
               const SizedBox(height: 12),
               _catalogField(
                   controller: _sourceLabelController,
@@ -3264,14 +3844,133 @@ class _AnalyticsTab extends StatelessWidget {
     }
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+      padding: EdgeInsets.fromLTRB(
+          16, 16, 16, MediaQuery.of(context).padding.bottom + 32),
       children: [
         _buildKpiGrid(),
+        const SizedBox(height: 20),
+        _buildSatisfactionCard(),
         const SizedBox(height: 20),
         _buildBarangayChart(),
         const SizedBox(height: 20),
         _buildCategoryPieChart(),
       ],
+    );
+  }
+
+  // ── Citizen Satisfaction (from feedback collectionGroup) ───────────────────
+  Widget _buildSatisfactionCard() {
+    // Restrict to the municipalities visible in this dashboard view so the
+    // average reflects the admin's jurisdiction.
+    final munis = reports.map((r) => r.municipality).toSet();
+
+    return Card(
+      elevation: 2,
+      shadowColor: Colors.black12,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.reviews_outlined, size: 16, color: lguColor),
+                const SizedBox(width: 6),
+                Text('Citizen Satisfaction',
+                    style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                        color: lguColor)),
+              ],
+            ),
+            const SizedBox(height: 12),
+            StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+              // Safety cap so this analytics listener can't read an unbounded,
+              // ever-growing feedback set (it's still filtered by municipality
+              // in code below).
+              stream: FirebaseFirestore.instance
+                  .collectionGroup('feedback')
+                  .limit(2000)
+                  .snapshots(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 8),
+                    child: Center(
+                        child: SizedBox(
+                            height: 18,
+                            width: 18,
+                            child:
+                                CircularProgressIndicator(strokeWidth: 2))),
+                  );
+                }
+                final docs = (snapshot.data?.docs ?? []).where((d) {
+                  final m = d.data()['municipality'] as String?;
+                  return m != null && munis.contains(m);
+                }).toList();
+
+                if (docs.isEmpty) {
+                  return Text('No ratings submitted yet.',
+                      style: TextStyle(
+                          fontSize: 12, color: Colors.grey.shade600));
+                }
+
+                final ratings = docs
+                    .map((d) => (d.data()['rating'] as num?)?.toInt() ?? 0)
+                    .where((r) => r > 0)
+                    .toList();
+                if (ratings.isEmpty) {
+                  return Text('No ratings submitted yet.',
+                      style: TextStyle(
+                          fontSize: 12, color: Colors.grey.shade600));
+                }
+                final avg =
+                    ratings.reduce((a, b) => a + b) / ratings.length;
+                final lowCount = ratings.where((r) => r <= 2).length;
+
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Text(avg.toStringAsFixed(1),
+                        style: TextStyle(
+                            fontSize: 32,
+                            fontWeight: FontWeight.bold,
+                            color: lguColor)),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: List.generate(5, (i) {
+                              final filled = i < avg.round();
+                              return Icon(
+                                  filled ? Icons.star : Icons.star_border,
+                                  size: 18,
+                                  color: Colors.amber.shade700);
+                            }),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            '${ratings.length} rating${ratings.length == 1 ? '' : 's'}'
+                            '${lowCount > 0 ? '  •  $lowCount low (≤2★)' : ''}',
+                            style: TextStyle(
+                                fontSize: 12,
+                                color: lowCount > 0
+                                    ? Colors.orange.shade800
+                                    : Colors.grey.shade600),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -3383,21 +4082,25 @@ class _AnalyticsTab extends StatelessWidget {
       counts[key] = (counts[key] ?? 0) + 1;
     }
 
-    // Top 10 by count, descending
+    // Top 6 by count, descending (keeps bottom labels readable)
     final sorted = counts.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
-    final top = sorted.take(10).toList();
+    final top = sorted.take(6).toList();
 
     if (top.isEmpty) return const SizedBox.shrink();
 
     final maxVal = top.first.value.toDouble();
+    // Round the axis ceiling up to a whole number and use integer gridlines.
+    final axisMax = (maxVal < 1 ? 1 : maxVal).ceilToDouble();
+    final interval =
+        (axisMax / 4).ceilToDouble().clamp(1.0, double.infinity).toDouble();
 
     return Card(
       elevation: 2,
       shadowColor: Colors.black12,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 16, 24, 16),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -3415,20 +4118,21 @@ class _AnalyticsTab extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 20),
             SizedBox(
-              height: top.length * 42.0,
+              height: 220,
               child: BarChart(
                 BarChartData(
-                  alignment: BarChartAlignment.start,
-                  maxY: maxVal * 1.2,
+                  alignment: BarChartAlignment.spaceAround,
+                  maxY: axisMax,
+                  minY: 0,
                   barTouchData: BarTouchData(
                     touchTooltipData: BarTouchTooltipData(
                       getTooltipItem: (group, groupIndex, rod, rodIndex) {
                         final name = top[group.x].key;
                         final count = rod.toY.toInt();
                         return BarTooltipItem(
-                          '$name\n$count reports',
+                          '$name\n$count report${count == 1 ? '' : 's'}',
                           const TextStyle(
                             color: Colors.white,
                             fontSize: 11,
@@ -3440,41 +4144,44 @@ class _AnalyticsTab extends StatelessWidget {
                   ),
                   titlesData: FlTitlesData(
                     show: true,
+                    // Y axis: report counts (integers only)
                     leftTitles: AxisTitles(
                       sideTitles: SideTitles(
                         showTitles: true,
-                        reservedSize: 120,
+                        reservedSize: 28,
+                        interval: interval,
+                        getTitlesWidget: (value, meta) {
+                          if (value != value.roundToDouble()) {
+                            return const SizedBox.shrink();
+                          }
+                          return Text(
+                            value.toInt().toString(),
+                            style: const TextStyle(fontSize: 10),
+                          );
+                        },
+                      ),
+                    ),
+                    // X axis: barangay names under each bar
+                    bottomTitles: AxisTitles(
+                      sideTitles: SideTitles(
+                        showTitles: true,
+                        reservedSize: 44,
                         getTitlesWidget: (value, meta) {
                           final index = value.toInt();
                           if (index < 0 || index >= top.length) {
                             return const SizedBox.shrink();
                           }
                           final label = top[index].key;
-                          final display = label.length > 16
-                              ? '${label.substring(0, 14)}…'
+                          final display = label.length > 10
+                              ? '${label.substring(0, 9)}…'
                               : label;
                           return Padding(
-                            padding: const EdgeInsets.only(right: 6),
+                            padding: const EdgeInsets.only(top: 6),
                             child: Text(
                               display,
-                              textAlign: TextAlign.right,
-                              style: const TextStyle(fontSize: 10),
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(fontSize: 9),
                             ),
-                          );
-                        },
-                      ),
-                    ),
-                    bottomTitles: AxisTitles(
-                      sideTitles: SideTitles(
-                        showTitles: true,
-                        reservedSize: 20,
-                        getTitlesWidget: (value, meta) {
-                          if (value == meta.max || value == meta.min) {
-                            return const SizedBox.shrink();
-                          }
-                          return Text(
-                            value.toInt().toString(),
-                            style: const TextStyle(fontSize: 10),
                           );
                         },
                       ),
@@ -3486,9 +4193,10 @@ class _AnalyticsTab extends StatelessWidget {
                   ),
                   gridData: FlGridData(
                     show: true,
-                    drawHorizontalLine: false,
-                    drawVerticalLine: true,
-                    getDrawingVerticalLine: (value) => FlLine(
+                    drawHorizontalLine: true,
+                    drawVerticalLine: false,
+                    horizontalInterval: interval,
+                    getDrawingHorizontalLine: (value) => FlLine(
                       color: Colors.grey.shade200,
                       strokeWidth: 1,
                     ),
@@ -3503,14 +4211,13 @@ class _AnalyticsTab extends StatelessWidget {
                         BarChartRodData(
                           toY: count,
                           color: lguColor,
-                          width: 18,
-                          borderRadius: const BorderRadius.only(
-                            topRight: Radius.circular(4),
-                            bottomRight: Radius.circular(4),
+                          width: 22,
+                          borderRadius: const BorderRadius.vertical(
+                            top: Radius.circular(4),
                           ),
                           backDrawRodData: BackgroundBarChartRodData(
                             show: true,
-                            toY: maxVal * 1.2,
+                            toY: axisMax,
                             color: lguColor.withValues(alpha: 0.07),
                           ),
                         ),
@@ -3905,8 +4612,8 @@ class _RoleManagementTabState extends State<_RoleManagementTab> {
               }
 
               return ListView.builder(
-                padding:
-                    const EdgeInsets.fromLTRB(12, 0, 12, 24),
+                padding: EdgeInsets.fromLTRB(
+                    12, 0, 12, MediaQuery.of(context).padding.bottom + 100),
                 itemCount: docs.length,
                 itemBuilder: (context, index) {
                   final doc = docs[index];

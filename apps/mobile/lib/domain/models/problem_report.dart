@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import '../enums/report_category.dart';
 import '../enums/report_status.dart';
 import '../enums/report_priority.dart';
+import '../enums/handling_level.dart';
 
 class ProblemReport {
   final String id;
@@ -29,6 +30,9 @@ class ProblemReport {
   // Escalation
   final bool escalatedToProvince;
   final DateTime? escalatedAt;
+
+  // Administrative tier currently handling this report (Barangay → Region II)
+  final HandlingLevel handlingLevel;
 
   // Anonymous reporting
   final bool isAnonymous;
@@ -63,6 +67,7 @@ class ProblemReport {
     this.photoLongitude,
     this.escalatedToProvince = false,
     this.escalatedAt,
+    this.handlingLevel = HandlingLevel.municipal,
     this.isAnonymous = false,
     this.resolvedAt,
     this.barangay,
@@ -113,8 +118,10 @@ class ProblemReport {
       municipality: municipalityStr.isEmpty ? 'Unknown' : municipalityStr,
       status: ReportStatusExtension.fromString(data['status'] as String? ?? 'reported'),
       priority: ReportPriority.fromString(data['priority']),
-      priorityScore: data['priorityScore'] ?? 0,
-      duplicateCount: data['duplicateCount'] ?? 0,
+      // Coerce via num so a value stored as a double (e.g. 95.0 from the web
+      // admin) doesn't throw "double is not int" and blank the whole stream.
+      priorityScore: (data['priorityScore'] as num?)?.toInt() ?? 0,
+      duplicateCount: (data['duplicateCount'] as num?)?.toInt() ?? 0,
       reportedAt: (data['reportedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       latitude: (data['latitude'] as num?)?.toDouble(),
       longitude: (data['longitude'] as num?)?.toDouble(),
@@ -126,6 +133,7 @@ class ProblemReport {
       photoLongitude: (data['photoLongitude'] as num?)?.toDouble(),
       escalatedToProvince: data['escalatedToProvince'] as bool? ?? false,
       escalatedAt: (data['escalatedAt'] as Timestamp?)?.toDate(),
+      handlingLevel: HandlingLevel.fromString(data['handlingLevel'] as String?),
       isAnonymous: data['isAnonymous'] as bool? ?? false,
       resolvedAt: (data['resolvedAt'] as Timestamp?)?.toDate(),
       barangay: (data['barangay'] as String?)?.isEmpty == true ? null : data['barangay'] as String?,
@@ -158,6 +166,7 @@ class ProblemReport {
       'escalatedAt': escalatedAt != null
           ? Timestamp.fromDate(escalatedAt!)
           : null,
+      'handlingLevel': handlingLevel.key,
       'isAnonymous': isAnonymous,
       'resolvedAt': resolvedAt != null
           ? Timestamp.fromDate(resolvedAt!)

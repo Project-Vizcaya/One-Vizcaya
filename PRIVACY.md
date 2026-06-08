@@ -1,7 +1,7 @@
 # Privacy Policy — One Vizcaya
 
 **Effective Date:** May 27, 2026
-**App Version:** 1.1.4
+**App Version:** 1.1.10
 
 ---
 
@@ -73,7 +73,7 @@ We do **not** sell your data to third parties.
 | User profiles | Until account deletion request |
 | Notification logs | 90 days |
 
-Reports older than **12 months** are automatically archived by the system and no longer appear in active views.
+Reports older than **12 months** are automatically archived by the system and no longer appear in active views. Reports older than **24 months** are automatically and permanently deleted — including their photo evidence — by a scheduled retention job.
 
 ---
 
@@ -88,7 +88,7 @@ Under the Data Privacy Act of 2012, you have the right to:
 5. **Data Portability** — receive your data in a structured format
 6. **Complaint** — lodge a complaint with the National Privacy Commission (NPC)
 
-To exercise these rights, contact the LGU Data Protection Officer at the address above.
+You can exercise these rights directly in the app: **Settings → Location & Privacy → Data Privacy Request** lets you file an access, correction, erasure, objection, portability, or complaint request, which is logged for the Data Protection Officer to act on. You may also download a structured copy of your data at any time via **Settings → Location & Privacy → Download My Data** (JSON or PDF). Alternatively, contact the LGU Data Protection Officer at the address above.
 
 ---
 
@@ -99,6 +99,8 @@ To exercise these rights, contact the LGU Data Protection Officer at the address
 - Firebase App Check is enabled to block unauthorised API calls
 - Passwords are not stored (the App uses phone-number OTP via Firebase Auth)
 - Sensitive fields (FCM tokens, phone numbers) are not exposed in client-side queries outside the user's own document
+- **Photos are stripped of EXIF metadata** (hidden GPS, camera serial, original timestamp) before upload, so no incidental personal data is stored in images
+- **Account deletion is complete:** deleting your account also removes your uploaded photos from storage — no orphaned media is left behind
 
 ---
 

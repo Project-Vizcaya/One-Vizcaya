@@ -1,4 +1,5 @@
 import '../models/problem_report.dart';
+import '../enums/handling_level.dart';
 
 abstract class ReportRepository {
   Future<void> submitReport(ProblemReport report, String userId);
@@ -18,6 +19,11 @@ abstract class ReportRepository {
 
   /// Admin: Escalate a report to provincial level
   Future<void> escalateToProvince(String userId, String reportId);
+
+  /// Admin: Transfer a report to a specific administrative tier
+  /// (Barangay, Municipal, Provincial, or Region II).
+  Future<void> transferToLevel(
+      String userId, String reportId, HandlingLevel level);
 
   /// Provincial Admin: Permanently delete a report
   Future<void> deleteReport(String userId, String reportId);

@@ -33,11 +33,19 @@ class ReportProblemScreen extends StatefulWidget {
 }
 
 class _ReportProblemScreenState extends State<ReportProblemScreen> {
+  // Description length policy: a citizen must write enough to be actionable
+  // (min) but is kept concise so emergency reports don't create long queues
+  // (soft max). Characters typed beyond the max are shown struck-through in
+  // red so the reporter can trim before submitting.
+  static const int _descMin = 30;
+  static const int _descMax = 75;
+
   final _formKey = GlobalKey<FormState>();
   ReportCategory? _selectedCategory;
   ReportPriority? _selectedPriority;
   bool _categoryError = false;
-  final _descriptionController = TextEditingController();
+  final _descriptionController =
+      _LimitHighlightTextEditingController(limit: _descMax);
   final _locationController = TextEditingController();
   String? _selectedBarangay;
   bool _isOffline = false;
@@ -92,24 +100,35 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
           .child('report_images')
           .child(fileName);
 
-      // Compress image before upload (target ~200 KB)
+      // Compress and re-encode the image before upload (target ~200 KB).
+      // keepExif:false strips EXIF metadata (GPS, camera serial, timestamp) so
+      // no hidden personal data is uploaded to Storage — RA 10173 data
+      // minimization. The verified GPS/timestamp we *do* keep is stored
+      // explicitly on the report document instead.
       final Uint8List? compressed = await FlutterImageCompress.compressWithFile(
         image.absolute.path,
         minWidth: 1024,
         minHeight: 1024,
         quality: 75,
         format: CompressFormat.jpeg,
+        keepExif: false,
       );
 
-      UploadTask uploadTask;
-      if (compressed != null) {
-        uploadTask = ref.putData(
-          compressed,
-          SettableMetadata(contentType: 'image/jpeg'),
-        );
-      } else {
-        uploadTask = ref.putFile(image);
+      // If re-encoding failed we deliberately do NOT fall back to uploading the
+      // original file, which would carry its raw EXIF (including GPS) into
+      // Storage. The report still submits, just without the photo.
+      if (compressed == null) {
+        assert(() {
+          debugPrint('Image compression returned null; skipping photo upload to avoid EXIF leak.');
+          return true;
+        }());
+        return null;
       }
+
+      final uploadTask = ref.putData(
+        compressed,
+        SettableMetadata(contentType: 'image/jpeg'),
+      );
 
       final snapshot = await uploadTask;
       return await snapshot.ref.getDownloadURL();
@@ -205,6 +224,8 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
           'Location: ${_locationController.text}\n'
           'Description: ${_descriptionController.text}';
       await _sendSmsReport(municipalityReportingTo, reportDetails);
+      // Opening the SMS app can background/dispose this screen during the await.
+      if (!mounted) return;
       setState(() => _isSubmitting = false);
     } else {
       await _sendOnlineReport(municipalityReportingTo);
@@ -319,7 +340,7 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
             'municipal engineering database.$priorityMsg',
       );
     } on FirebaseException catch (e) {
-      setState(() => _isSubmitting = false);
+      if (mounted) setState(() => _isSubmitting = false);
       if (e.code == 'unavailable') {
         ToastUtils.showError(
           'No internet connection. Please try again when online, or use SMS mode.',
@@ -328,7 +349,7 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
         ToastUtils.showError('Submission failed: ${e.message}');
       }
     } catch (e) {
-      setState(() => _isSubmitting = false);
+      if (mounted) setState(() => _isSubmitting = false);
       ToastUtils.showError('An error occurred. Please try again.');
     }
   }
@@ -492,29 +513,49 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
                       labelStyle: TextStyle(color: primaryLguColor),
                     ),
                     maxLines: 4,
-                    maxLength: 500,
+                    // No hard cap: we let the reporter type past the max so the
+                    // overflow can be shown struck-through in red, then block
+                    // submission in the validator.
                     buildCounter:
                         (
                           context, {
                           required currentLength,
                           required isFocused,
                           maxLength,
-                        }) => Text(
-                          '$currentLength / 50 min',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: currentLength < 50
-                                ? Colors.red.shade400
-                                : Colors.grey.shade600,
-                          ),
-                        ),
+                        }) {
+                          final tooShort = currentLength < _descMin;
+                          final tooLong = currentLength > _descMax;
+                          return Text(
+                            tooShort
+                                ? '$currentLength / $_descMin min'
+                                : '$currentLength / $_descMax max',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: (tooShort || tooLong)
+                                  ? FontWeight.w600
+                                  : FontWeight.normal,
+                              color: (tooShort || tooLong)
+                                  ? Colors.red.shade400
+                                  : Colors.grey.shade600,
+                            ),
+                          );
+                        },
                     onChanged: (_) => setState(() {}),
                     validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
+                      final raw = value ?? '';
+                      final trimmed = raw.trim();
+                      if (trimmed.isEmpty) {
                         return 'Please enter a description';
                       }
-                      if (value.trim().length < 50) {
-                        return 'Description must be at least 50 characters';
+                      // Measure in grapheme clusters to match the counter and the
+                      // red strike-through highlighter (which also use .characters),
+                      // so emoji/accented input can't give a contradictory result.
+                      if (trimmed.characters.length < _descMin) {
+                        return 'Description must be at least $_descMin characters';
+                      }
+                      if (raw.characters.length > _descMax) {
+                        return 'Description must be $_descMax characters or fewer '
+                            '(remove the text in red)';
                       }
                       return null;
                     },
@@ -853,18 +894,21 @@ class _SubmissionOptionsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.grey.shade50,
+        color: isDark ? theme.colorScheme.surface : Colors.grey.shade50,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(
+            color: isDark ? theme.dividerColor : Colors.grey.shade200),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // ── How to send ────────────────────────────────────────────────
-          _sectionLabel('How would you like to send this?'),
+          _sectionLabel(context, 'How would you like to send this?'),
           const SizedBox(height: 10),
           Row(
             children: [
@@ -896,7 +940,7 @@ class _SubmissionOptionsCard extends StatelessWidget {
           const SizedBox(height: 14),
 
           // ── Identity ──────────────────────────────────────────────────
-          _sectionLabel('Your identity'),
+          _sectionLabel(context, 'Your identity'),
           const SizedBox(height: 10),
           Row(
             children: [
@@ -930,12 +974,14 @@ class _SubmissionOptionsCard extends StatelessWidget {
     );
   }
 
-  Widget _sectionLabel(String text) => Text(
+  Widget _sectionLabel(BuildContext context, String text) => Text(
     text,
-    style: const TextStyle(
+    style: TextStyle(
       fontSize: 12,
       fontWeight: FontWeight.w600,
-      color: Color(0xFF555555),
+      color: Theme.of(context).brightness == Brightness.dark
+          ? const Color(0xFFA8ADB5)
+          : const Color(0xFF555555),
       letterSpacing: 0.2,
     ),
   );
@@ -962,6 +1008,8 @@ class _ModeOption extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     return Semantics(
       button: true,
       selected: selected,
@@ -974,11 +1022,13 @@ class _ModeOption extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
           decoration: BoxDecoration(
             color: selected
-                ? selectedColor.withValues(alpha: 0.1)
-                : Colors.white,
+                ? selectedColor.withValues(alpha: isDark ? 0.22 : 0.1)
+                : (isDark ? theme.colorScheme.surfaceContainerHighest : Colors.white),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: selected ? selectedColor : Colors.grey.shade300,
+              color: selected
+                  ? selectedColor
+                  : (isDark ? theme.dividerColor : Colors.grey.shade300),
               width: selected ? 2 : 1,
             ),
           ),
@@ -988,7 +1038,9 @@ class _ModeOption extends StatelessWidget {
               Icon(
                 icon,
                 size: 20,
-                color: selected ? selectedColor : Colors.grey.shade500,
+                color: selected
+                    ? selectedColor
+                    : (isDark ? const Color(0xFFA8ADB5) : Colors.grey.shade500),
               ),
               const SizedBox(width: 8),
               Expanded(
@@ -1002,7 +1054,9 @@ class _ModeOption extends StatelessWidget {
                         fontWeight: FontWeight.w700,
                         color: selected
                             ? selectedColor
-                            : const Color(0xFF333333),
+                            : (isDark
+                                ? theme.colorScheme.onSurface
+                                : const Color(0xFF333333)),
                       ),
                     ),
                     const SizedBox(height: 2),
@@ -1011,8 +1065,8 @@ class _ModeOption extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 11,
                         color: selected
-                            ? selectedColor.withValues(alpha: 0.75)
-                            : Colors.grey.shade500,
+                            ? selectedColor.withValues(alpha: isDark ? 0.9 : 0.75)
+                            : (isDark ? const Color(0xFFA8ADB5) : Colors.grey.shade500),
                       ),
                     ),
                   ],
@@ -1083,7 +1137,7 @@ class _BarangayDropdown extends StatelessWidget {
     return DropdownButtonFormField<String>(
       value: validSelection,
       isExpanded: true,
-      dropdownColor: Colors.white,
+      dropdownColor: Theme.of(context).colorScheme.surface,
       hint: Text(
         '${AppStrings.get('barangay')} (${AppStrings.get('optional')})',
       ),
@@ -1170,7 +1224,7 @@ class _CategoryTreeSelector extends StatelessWidget {
   Widget build(BuildContext context) {
     // ── State C: both selected → show breadcrumb summary ──────────────────
     if (selectedCategory != null) {
-      return _buildSummary();
+      return _buildSummary(context);
     }
 
     return Column(
@@ -1312,8 +1366,10 @@ class _CategoryTreeSelector extends StatelessWidget {
   }
 
   // ── Summary breadcrumb after full selection ───────────────────────────────
-  Widget _buildSummary() {
+  Widget _buildSummary(BuildContext context) {
     final p = selectedCategory!.basePriority;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1348,10 +1404,12 @@ class _CategoryTreeSelector extends StatelessWidget {
               Expanded(
                 child: Text(
                   selectedCategory!.displayName,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
-                    color: Color(0xFF1A1A1A),
+                    color: isDark
+                        ? theme.colorScheme.onSurface
+                        : const Color(0xFF1A1A1A),
                   ),
                 ),
               ),
@@ -1363,7 +1421,9 @@ class _CategoryTreeSelector extends StatelessWidget {
                     vertical: 4,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.grey.shade200,
+                    color: isDark
+                        ? theme.colorScheme.surfaceContainerHighest
+                        : Colors.grey.shade200,
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Text(
@@ -1371,7 +1431,9 @@ class _CategoryTreeSelector extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w600,
-                      color: Colors.grey.shade700,
+                      color: isDark
+                          ? const Color(0xFFA8ADB5)
+                          : Colors.grey.shade700,
                     ),
                   ),
                 ),
@@ -1483,10 +1545,12 @@ class _CategoryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final p = category.basePriority;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Material(
-        color: Colors.white,
+        color: isDark ? theme.colorScheme.surfaceContainerHighest : Colors.white,
         borderRadius: BorderRadius.circular(12),
         child: InkWell(
           onTap: onTap,
@@ -1495,14 +1559,17 @@ class _CategoryCard extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.grey.shade200),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.03),
-                  blurRadius: 4,
-                  offset: const Offset(0, 2),
-                ),
-              ],
+              border: Border.all(
+                  color: isDark ? theme.dividerColor : Colors.grey.shade200),
+              boxShadow: isDark
+                  ? null
+                  : [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.03),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
             ),
             child: Row(
               children: [
@@ -1514,10 +1581,12 @@ class _CategoryCard extends StatelessWidget {
                     children: [
                       Text(
                         category.displayName,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
-                          color: Color(0xFF1A1A1A),
+                          color: isDark
+                              ? theme.colorScheme.onSurface
+                              : const Color(0xFF1A1A1A),
                         ),
                       ),
                       const SizedBox(height: 2),
@@ -1545,6 +1614,54 @@ class _CategoryCard extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// A text controller that renders any characters typed beyond [limit] in red
+/// with a strike-through, so the user can see they have exceeded the allowed
+/// length without being hard-blocked from typing (submission is still gated by
+/// the field's validator).
+class _LimitHighlightTextEditingController extends TextEditingController {
+  final int limit;
+  _LimitHighlightTextEditingController({required this.limit});
+
+  @override
+  TextSpan buildTextSpan({
+    required BuildContext context,
+    TextStyle? style,
+    required bool withComposing,
+  }) {
+    final str = text;
+    // While an IME composing region is active, defer to the default rendering
+    // so the composing underline isn't broken; the overflow highlight reappears
+    // once composing commits.
+    final composing = value.composing;
+    if (str.characters.length <= limit ||
+        (withComposing && composing.isValid && !composing.isCollapsed)) {
+      return super.buildTextSpan(
+        context: context,
+        style: style,
+        withComposing: withComposing,
+      );
+    }
+    // Split on grapheme clusters so emoji/accented input isn't cut mid-glyph.
+    final allowed = str.characters.take(limit).toString();
+    final overflow = str.characters.skip(limit).toString();
+    return TextSpan(
+      style: style,
+      children: [
+        TextSpan(text: allowed),
+        TextSpan(
+          text: overflow,
+          style: (style ?? const TextStyle()).copyWith(
+            color: Colors.red.shade600,
+            decoration: TextDecoration.lineThrough,
+            decorationColor: Colors.red.shade600,
+            decorationThickness: 2,
+          ),
+        ),
+      ],
     );
   }
 }

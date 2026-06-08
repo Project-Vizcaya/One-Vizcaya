@@ -18,7 +18,7 @@ class AnnouncementsScreen extends StatelessWidget {
     final municipality = oneVizcayaState.selectedMunicipality.value;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F7F7),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         backgroundColor: lguColor,
         foregroundColor: Colors.white,
@@ -55,6 +55,9 @@ class _AnnouncementsList extends StatefulWidget {
 class _AnnouncementsListState extends State<_AnnouncementsList> {
   Set<String> _bookmarkedIds = {};
   bool _showBookmarked = false;
+  bool _newestFirst = true;
+  // null = all agencies; otherwise the selected "postedBy" agency name.
+  String? _agencyFilter;
 
   static const String _prefsKey = 'bookmarked_announcements';
 
@@ -97,12 +100,17 @@ class _AnnouncementsListState extends State<_AnnouncementsList> {
   }
 
   Future<void> _onRefresh() async {
-    // Force a fresh Firestore fetch
-    await FirebaseFirestore.instance
-        .collection('announcements')
-        .orderBy('timestamp', descending: true)
-        .get(const GetOptions(source: Source.server))
-        .catchError((_) {});
+    // Force a fresh Firestore fetch; ignore errors (the live stream still
+    // drives the UI), but use try/catch so we don't return the wrong type
+    // from catchError.
+    try {
+      await FirebaseFirestore.instance
+          .collection('announcements')
+          .orderBy('timestamp', descending: true)
+          .get(const GetOptions(source: Source.server));
+    } catch (e) {
+      debugPrint('Announcements refresh failed: $e');
+    }
     if (mounted) setState(() {});
   }
 
@@ -147,10 +155,36 @@ class _AnnouncementsListState extends State<_AnnouncementsList> {
           return muni == widget.municipality || muni == 'All';
         }).toList();
 
-        // Apply bookmark filter if active
-        final docs = _showBookmarked
-            ? allDocs.where((d) => _bookmarkedIds.contains(d.id)).toList()
-            : allDocs;
+        // Distinct agencies (postedBy) for the agency filter dropdown.
+        final agencies = allDocs
+            .map((d) =>
+                (d.data() as Map<String, dynamic>)['postedBy'] as String? ??
+                'LGU')
+            .toSet()
+            .toList()
+          ..sort();
+
+        // Treat the selected agency as cleared if it no longer exists in the
+        // feed — computed locally so we don't mutate state during build().
+        final activeAgency =
+            (_agencyFilter != null && agencies.contains(_agencyFilter))
+                ? _agencyFilter
+                : null;
+
+        // Apply bookmark + agency filters
+        var docs = allDocs.where((d) {
+          if (_showBookmarked && !_bookmarkedIds.contains(d.id)) return false;
+          if (activeAgency != null) {
+            final by = (d.data() as Map<String, dynamic>)['postedBy']
+                    as String? ??
+                'LGU';
+            if (by != activeAgency) return false;
+          }
+          return true;
+        }).toList();
+
+        // The stream is newest-first; reverse for oldest-first.
+        if (!_newestFirst) docs = docs.reversed.toList();
 
         return RefreshIndicator(
           color: Colors.green,
@@ -165,6 +199,8 @@ class _AnnouncementsListState extends State<_AnnouncementsList> {
                       const EdgeInsets.fromLTRB(16, 12, 16, 4),
                   child: Wrap(
                     spacing: 8,
+                    runSpacing: 8,
+                    crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
                       FilterChip(
                         label: Text(AppStrings.get('filterAll')),
@@ -208,6 +244,94 @@ class _AnnouncementsListState extends State<_AnnouncementsList> {
                           fontWeight: _showBookmarked
                               ? FontWeight.w600
                               : FontWeight.normal,
+                        ),
+                      ),
+                      // ── Sort: newest / oldest ──
+                      ActionChip(
+                        avatar: Icon(
+                          _newestFirst
+                              ? Icons.arrow_downward
+                              : Icons.arrow_upward,
+                          size: 16,
+                          color: widget.lguColor,
+                        ),
+                        label: Text(_newestFirst ? 'Newest' : 'Oldest'),
+                        labelStyle: TextStyle(
+                          color: widget.lguColor,
+                          fontWeight: FontWeight.w600,
+                        ),
+                        side: BorderSide(
+                            color: widget.lguColor.withValues(alpha: 0.4)),
+                        backgroundColor:
+                            widget.lguColor.withValues(alpha: 0.06),
+                        onPressed: () =>
+                            setState(() => _newestFirst = !_newestFirst),
+                      ),
+                      // ── Agency filter ──
+                      PopupMenuButton<String?>(
+                        tooltip: 'Filter by agency',
+                        onSelected: (v) => setState(() => _agencyFilter = v),
+                        itemBuilder: (ctx) => [
+                          PopupMenuItem<String?>(
+                            value: null,
+                            child: Row(
+                              children: [
+                                Icon(Icons.done,
+                                    size: 16,
+                                    color: activeAgency == null
+                                        ? widget.lguColor
+                                        : Colors.transparent),
+                                const SizedBox(width: 8),
+                                const Text('All Agencies'),
+                              ],
+                            ),
+                          ),
+                          ...agencies.map((a) => PopupMenuItem<String?>(
+                                value: a,
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.done,
+                                        size: 16,
+                                        color: activeAgency == a
+                                            ? widget.lguColor
+                                            : Colors.transparent),
+                                    const SizedBox(width: 8),
+                                    Flexible(child: Text(a)),
+                                  ],
+                                ),
+                              )),
+                        ],
+                        child: Chip(
+                          avatar: Icon(Icons.apartment,
+                              size: 16, color: widget.lguColor),
+                          label: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                activeAgency == null
+                                    ? 'Agency'
+                                    : (activeAgency.length > 18
+                                        ? '${activeAgency.substring(0, 18)}…'
+                                        : activeAgency),
+                              ),
+                              const Icon(Icons.arrow_drop_down, size: 18),
+                            ],
+                          ),
+                          labelStyle: TextStyle(
+                            color: activeAgency == null
+                                ? Colors.grey.shade600
+                                : widget.lguColor,
+                            fontWeight: activeAgency == null
+                                ? FontWeight.normal
+                                : FontWeight.w600,
+                          ),
+                          side: BorderSide(
+                              color: activeAgency == null
+                                  ? Colors.grey.shade300
+                                  : widget.lguColor.withValues(alpha: 0.4)),
+                          backgroundColor: activeAgency == null
+                              ? null
+                              : widget.lguColor.withValues(alpha: 0.06),
                         ),
                       ),
                     ],
@@ -359,7 +483,7 @@ class _AnnouncementCardState extends State<_AnnouncementCard> {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
         border: isUrgent
             ? Border.all(color: Colors.red.shade400, width: 1.5)
@@ -486,10 +610,10 @@ class _AnnouncementCardState extends State<_AnnouncementCard> {
                 const SizedBox(height: 10),
                 Text(
                   title,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF1A1A2E),
+                    color: Theme.of(context).colorScheme.onSurface,
                     height: 1.3,
                   ),
                   maxLines: 3,

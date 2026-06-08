@@ -22,7 +22,12 @@ import 'presentation/screens/profile_management_screen.dart';
 import 'presentation/screens/app_settings_screen.dart';
 import 'presentation/screens/onboarding_screen.dart';
 import 'presentation/screens/weather_detail_screen.dart';
+import 'presentation/screens/my_data_screen.dart';
+import 'presentation/screens/data_request_screen.dart';
+import 'presentation/screens/developers_screen.dart';
+import 'features/auth/presentation/screens/privacy_policy_screen.dart';
 import 'presentation/widgets/auth_gate.dart';
+import 'presentation/widgets/biometric_lock.dart';
 import 'presentation/state/municipality_state.dart';
 
 void main() async {
@@ -55,7 +60,9 @@ void main() async {
   if (!kIsWeb) {
     FirebaseAppCheck.instance
         .activate(
-          androidProvider: AndroidProvider.debug,
+          androidProvider: kReleaseMode
+              ? AndroidProvider.playIntegrity
+              : AndroidProvider.debug,
           appleProvider: kReleaseMode
               ? AppleProvider.deviceCheck
               : AppleProvider.debug,
@@ -64,7 +71,9 @@ void main() async {
   }
   NotificationService.instance
       .initialize()
-      .then((_) => NotificationService.instance.navigatorKey = _navigatorKey)
+      .then<void>((_) {
+        NotificationService.instance.navigatorKey = _navigatorKey;
+      })
       .catchError((e) => debugPrint('Notification init error: $e'));
 }
 
@@ -142,12 +151,11 @@ class _OneVizcayaAppState extends State<OneVizcayaApp> {
           navigatorKey: _navigatorKey,
           title: 'One Vizcaya',
           debugShowCheckedModeBanner: false,
+          // Wraps every route with the biometric app-lock overlay.
+          builder: (context, child) =>
+              BiometricLockOverlay(child: child ?? const SizedBox.shrink()),
           themeMode: isDark ? ThemeMode.dark : ThemeMode.light,
-          darkTheme: ThemeData.dark().copyWith(
-            colorScheme: const ColorScheme.dark(
-              primary: Color(0xFF4CAF50),
-            ),
-          ),
+          darkTheme: _buildDarkTheme(),
           // NOTE: flutter_localizations ships Filipino as 'fil' — there is no
           // 'tl' locale. Using 'tl' meant no delegate could supply
           // MaterialLocalizations, so any Material widget that needs it
@@ -260,6 +268,10 @@ class _OneVizcayaAppState extends State<OneVizcayaApp> {
                   municipality:
                       oneVizcayaState.selectedMunicipality.value,
                 ),
+            '/privacy': (context) => const PrivacyPolicyScreen(),
+            '/my-data': (context) => const MyDataScreen(),
+            '/data-request': (context) => const DataRequestScreen(),
+            '/developers': (context) => const DevelopersScreen(),
           },
         );
           },
@@ -267,4 +279,112 @@ class _OneVizcayaAppState extends State<OneVizcayaApp> {
       },
     );
   }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Dark theme
+// A cohesive, soft dark palette (no harsh pure-black) that mirrors the light
+// theme's rounded, low-elevation style. Defines surfaces, cards, inputs, text,
+// dialogs and bottom sheets so every Theme-driven widget reads consistently.
+// ─────────────────────────────────────────────────────────────────────────────
+ThemeData _buildDarkTheme() {
+  const bg = Color(0xFF121316); // scaffold background
+  const surface = Color(0xFF1C1E22); // cards / sheets
+  const surfaceHigh = Color(0xFF24272C); // inputs / elevated tiles
+  const textPrimary = Color(0xFFE8EAED);
+  const textSecondary = Color(0xFFA8ADB5);
+  const accent = Color(0xFF66BB6A); // green, lifted for dark contrast
+  const divider = Color(0x1FFFFFFF);
+
+  final base = ThemeData.dark(useMaterial3: true);
+
+  return base.copyWith(
+    scaffoldBackgroundColor: bg,
+    canvasColor: bg,
+    dividerColor: divider,
+    colorScheme: const ColorScheme.dark(
+      primary: accent,
+      onPrimary: Color(0xFF06210A),
+      secondary: accent,
+      surface: surface,
+      onSurface: textPrimary,
+      surfaceContainerHighest: surfaceHigh,
+      error: Color(0xFFEF5350),
+    ),
+    textTheme: base.textTheme
+        .apply(bodyColor: textPrimary, displayColor: textPrimary)
+        .copyWith(
+          headlineSmall: const TextStyle(
+              fontWeight: FontWeight.bold, fontSize: 24, color: textPrimary),
+          titleMedium: const TextStyle(
+              fontWeight: FontWeight.bold, fontSize: 16, color: textPrimary),
+          bodyLarge: const TextStyle(fontSize: 16, color: textPrimary),
+          bodyMedium: const TextStyle(fontSize: 14, color: textSecondary),
+        ),
+    iconTheme: const IconThemeData(color: textPrimary),
+    appBarTheme: const AppBarTheme(
+      elevation: 0,
+      backgroundColor: surface,
+      foregroundColor: textPrimary,
+      titleTextStyle: TextStyle(
+          color: textPrimary, fontSize: 20, fontWeight: FontWeight.bold),
+      iconTheme: IconThemeData(color: textPrimary),
+    ),
+    cardColor: surface,
+    cardTheme: CardThemeData(
+      elevation: 0,
+      color: surface,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.0)),
+    ),
+    dialogTheme: DialogThemeData(
+      backgroundColor: surface,
+      surfaceTintColor: Colors.transparent,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.0)),
+      titleTextStyle: const TextStyle(
+          color: textPrimary, fontSize: 20, fontWeight: FontWeight.bold),
+      contentTextStyle: const TextStyle(color: textSecondary, fontSize: 14),
+    ),
+    bottomSheetTheme: const BottomSheetThemeData(
+      backgroundColor: surface,
+      surfaceTintColor: Colors.transparent,
+    ),
+    dividerTheme: const DividerThemeData(color: divider, thickness: 1),
+    listTileTheme: const ListTileThemeData(
+      iconColor: textSecondary,
+      textColor: textPrimary,
+    ),
+    switchTheme: SwitchThemeData(
+      thumbColor: WidgetStateProperty.resolveWith(
+          (s) => s.contains(WidgetState.selected) ? accent : const Color(0xFFB0B0B0)),
+      trackColor: WidgetStateProperty.resolveWith((s) =>
+          s.contains(WidgetState.selected) ? accent.withValues(alpha: 0.5) : surfaceHigh),
+    ),
+    inputDecorationTheme: InputDecorationTheme(
+      filled: true,
+      fillColor: surfaceHigh,
+      hintStyle: const TextStyle(color: textSecondary),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14.0),
+        borderSide: const BorderSide(color: divider),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14.0),
+        borderSide: const BorderSide(color: divider),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14.0),
+        borderSide: const BorderSide(color: accent, width: 1.5),
+      ),
+    ),
+    elevatedButtonTheme: ElevatedButtonThemeData(
+      style: ElevatedButton.styleFrom(
+        backgroundColor: accent,
+        foregroundColor: const Color(0xFF06210A),
+        elevation: 0,
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(14.0)),
+        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 24),
+      ),
+    ),
+  );
 }

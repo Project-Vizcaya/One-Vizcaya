@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import '../../domain/models/problem_report.dart';
+import '../../domain/enums/handling_level.dart';
 import '../../domain/repositories/report_repository.dart';
 import '../../core/utils/toast_utils.dart';
 
@@ -54,12 +55,16 @@ class FirebaseReportRepository implements ReportRepository {
         .transform(_safeReportTransformer('getUserReports'));
   }
 
+  // Cap live admin queries so a growing dataset can't balloon reads/memory.
+  static const int _adminQueryLimit = 500;
+
   @override
   Stream<List<ProblemReport>> getAllMunicipalityReports(String municipality) {
     return _firestore
         .collectionGroup('reports')
         .where('municipality', isEqualTo: municipality)
         .orderBy('priorityScore', descending: true)
+        .limit(_adminQueryLimit)
         .snapshots()
         .transform(_safeReportTransformer('getAllMunicipalityReports'));
   }
@@ -69,6 +74,7 @@ class FirebaseReportRepository implements ReportRepository {
     return _firestore
         .collectionGroup('reports')
         .orderBy('reportedAt', descending: true)
+        .limit(_adminQueryLimit)
         .snapshots()
         .transform(_safeReportTransformer('getAllProvincialReports'));
   }
@@ -80,20 +86,23 @@ class FirebaseReportRepository implements ReportRepository {
       List<ProblemReport>
     >.fromHandlers(
       handleData: (snapshot, sink) {
-        try {
-          sink.add(
-            snapshot.docs
-                .map((doc) => ProblemReport.fromFirestore(doc))
-                .toList(),
-          );
-        } catch (e) {
-          debugPrint('$tag parse error: $e');
-          sink.add([]);
+        // Parse each doc independently so one malformed document can't blank
+        // the entire list — skip bad docs and surface the rest.
+        final reports = <ProblemReport>[];
+        for (final doc in snapshot.docs) {
+          try {
+            reports.add(ProblemReport.fromFirestore(doc));
+          } catch (e) {
+            debugPrint('$tag parse error on ${doc.id}: $e');
+          }
         }
+        sink.add(reports);
       },
       handleError: (error, stackTrace, sink) {
+        // Forward the error so the UI shows an error state instead of silently
+        // rendering "no reports" (which hid missing-index/permission failures).
         debugPrint('$tag stream error: $error');
-        sink.add([]);
+        sink.addError(error, stackTrace);
       },
     );
   }
@@ -209,6 +218,34 @@ class FirebaseReportRepository implements ReportRepository {
       ToastUtils.showSuccess('Report escalated to Provincial Office');
     } catch (e) {
       ToastUtils.showError('Failed to escalate report: $e');
+      rethrow;
+    }
+  }
+
+  @override
+  Future<void> transferToLevel(
+      String userId, String reportId, HandlingLevel level) async {
+    try {
+      // Keep escalatedToProvince in sync so existing province views/badges
+      // continue to work: it's true for provincial and Region II tiers.
+      final escalated = level == HandlingLevel.provincial ||
+          level == HandlingLevel.regionII;
+      final data = <String, dynamic>{
+        'handlingLevel': level.key,
+        'escalatedToProvince': escalated,
+      };
+      if (escalated) {
+        data['escalatedAt'] = FieldValue.serverTimestamp();
+      }
+      await _firestore
+          .collection('users')
+          .doc(userId)
+          .collection('reports')
+          .doc(reportId)
+          .update(data);
+      ToastUtils.showSuccess('Report transferred to ${level.displayName} level');
+    } catch (e) {
+      ToastUtils.showError('Failed to transfer report: $e');
       rethrow;
     }
   }
