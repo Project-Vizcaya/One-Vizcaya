@@ -1,0 +1,19 @@
+{
+  "name": "one-vizcaya",
+  "private": true,
+  "workspaces": [
+    "apps/web",
+    "apps/functions"
+  ],
+  "scripts": {
+    "build": "turbo build",
+    "build:web": "turbo build --filter=one-vizcaya-web",
+    "dev": "turbo dev --filter=one-vizcaya-web",
+    "lint": "turbo lint",
+    "deploy": "npm run build:web && firebase deploy"
+  },
+  "devDependencies": {
+    "turbo": "^2.9.16"
+  },
+  "packageManager": "npm@10.9.2"
+}

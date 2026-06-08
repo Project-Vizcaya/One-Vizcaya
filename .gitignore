@@ -1,2 +1,65 @@
+# ── Turbo ──────────────────────────────────────────────────────────────────────
+.turbo/
+
+# ── Node / npm ─────────────────────────────────────────────────────────────────
+node_modules/
+.npm/
+
+# ── Build outputs ──────────────────────────────────────────────────────────────
+dist/
+build/
+out/
+
+# ── Firebase ───────────────────────────────────────────────────────────────────
+.firebase/
+firebase-debug.log
+firebase-debug.*.log
+.runtimeconfig.json
+
+# ── Firebase secrets — NEVER commit ────────────────────────────────────────────
+**/firebase_options.dart
+**/google-services.json
+**/GoogleService-Info.plist
+
+# ── Environment variables ──────────────────────────────────────────────────────
+.env
+.env.*
+!.env.example
+
+# ── Flutter / Dart ─────────────────────────────────────────────────────────────
+**/.dart_tool/
+**/.flutter-plugins
+**/.flutter-plugins-dependencies
+**/.pub-cache/
+**/.pub/
+**/doc/api/
+
+# ── Android ────────────────────────────────────────────────────────────────────
+**/android/local.properties
+**/android/.gradle
+**/android/key.properties
+**/*.jks
+**/*.keystore
+**/android/captures/
+**/android/.cxx/
+
+# ── iOS ────────────────────────────────────────────────────────────────────────
+**/ios/Pods/
+**/ios/.symlinks/
+
+# ── IDE ────────────────────────────────────────────────────────────────────────
+.idea/
+.vscode/
+*.iml
+
+# ── OS ─────────────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+
+# ── Project secrets ────────────────────────────────────────────────────────────
+apps/mobile/lib/secrets.dart
+**/debug.keystore
+
+# ── Geojson (large, excluded from repo) ────────────────────────────────────────
 nueva_vizcaya_municipalities.geojson
-one_vizcaya/assets/nueva_vizcaya_municipalities.geojson
+apps/mobile/assets/nueva_vizcaya_municipalities.geojson
