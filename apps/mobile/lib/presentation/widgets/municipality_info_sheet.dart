@@ -99,7 +99,8 @@ class _MunicipalityInfoSheetState extends State<_MunicipalityInfoSheet> {
               Expanded(
                 child: ListView(
                   controller: scrollController,
-                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
+                  padding: EdgeInsets.fromLTRB(
+                      20, 16, 20, MediaQuery.of(context).padding.bottom + 32),
                   children: [
                     // ── Header ──
                     Row(

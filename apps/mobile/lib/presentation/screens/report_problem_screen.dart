@@ -275,6 +275,12 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
       if (_selectedImage != null) {
         ToastUtils.showSuccess('Uploading photo evidence…');
         imageUrl = await _uploadImage(_selectedImage!, userId);
+        // Don't fail silently: if a photo was attached but the upload didn't
+        // succeed, tell the reporter the report will save without it.
+        if (imageUrl == null || imageUrl.isEmpty) {
+          ToastUtils.showError(
+              'Photo could not be uploaded — submitting report without it.');
+        }
       }
 
       final priorityResult = await _priorityService.calculatePriority(
