@@ -3,7 +3,7 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import {
   LayoutDashboard, Map, FileText, BarChart3, Users, Megaphone,
   Radio, Menu, LogOut, ChevronDown, Shield, Building2, ClipboardList,
-  AlertCircle, X,
+  AlertCircle, X, BadgeCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -35,6 +35,7 @@ const NAV_GROUPS = [
     label: "Directory",
     items: [
       { path: "/dashboard/responders", label: "Responders", icon: Shield },
+      { path: "/dashboard/verifications", label: "Residency", icon: BadgeCheck },
       { path: "/dashboard/users", label: "Admin Users", icon: Users },
     ],
   },

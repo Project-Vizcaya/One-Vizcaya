@@ -13,6 +13,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as DashboardRouteRouteImport } from './routes/dashboard/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as DashboardIndexRouteImport } from './routes/dashboard/index'
+import { Route as DashboardVerificationsRouteImport } from './routes/dashboard/verifications'
 import { Route as DashboardUsersRouteImport } from './routes/dashboard/users'
 import { Route as DashboardRespondersRouteImport } from './routes/dashboard/responders'
 import { Route as DashboardReportsRouteImport } from './routes/dashboard/reports'
@@ -40,6 +41,11 @@ const IndexRoute = IndexRouteImport.update({
 const DashboardIndexRoute = DashboardIndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => DashboardRouteRoute,
+} as any)
+const DashboardVerificationsRoute = DashboardVerificationsRouteImport.update({
+  id: '/verifications',
+  path: '/verifications',
   getParentRoute: () => DashboardRouteRoute,
 } as any)
 const DashboardUsersRoute = DashboardUsersRouteImport.update({
@@ -95,6 +101,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/reports': typeof DashboardReportsRoute
   '/dashboard/responders': typeof DashboardRespondersRoute
   '/dashboard/users': typeof DashboardUsersRoute
+  '/dashboard/verifications': typeof DashboardVerificationsRoute
   '/dashboard/': typeof DashboardIndexRoute
 }
 export interface FileRoutesByTo {
@@ -108,6 +115,7 @@ export interface FileRoutesByTo {
   '/dashboard/reports': typeof DashboardReportsRoute
   '/dashboard/responders': typeof DashboardRespondersRoute
   '/dashboard/users': typeof DashboardUsersRoute
+  '/dashboard/verifications': typeof DashboardVerificationsRoute
   '/dashboard': typeof DashboardIndexRoute
 }
 export interface FileRoutesById {
@@ -123,6 +131,7 @@ export interface FileRoutesById {
   '/dashboard/reports': typeof DashboardReportsRoute
   '/dashboard/responders': typeof DashboardRespondersRoute
   '/dashboard/users': typeof DashboardUsersRoute
+  '/dashboard/verifications': typeof DashboardVerificationsRoute
   '/dashboard/': typeof DashboardIndexRoute
 }
 export interface FileRouteTypes {
@@ -139,6 +148,7 @@ export interface FileRouteTypes {
     | '/dashboard/reports'
     | '/dashboard/responders'
     | '/dashboard/users'
+    | '/dashboard/verifications'
     | '/dashboard/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -152,6 +162,7 @@ export interface FileRouteTypes {
     | '/dashboard/reports'
     | '/dashboard/responders'
     | '/dashboard/users'
+    | '/dashboard/verifications'
     | '/dashboard'
   id:
     | '__root__'
@@ -166,6 +177,7 @@ export interface FileRouteTypes {
     | '/dashboard/reports'
     | '/dashboard/responders'
     | '/dashboard/users'
+    | '/dashboard/verifications'
     | '/dashboard/'
   fileRoutesById: FileRoutesById
 }
@@ -203,6 +215,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/dashboard/'
       preLoaderRoute: typeof DashboardIndexRouteImport
+      parentRoute: typeof DashboardRouteRoute
+    }
+    '/dashboard/verifications': {
+      id: '/dashboard/verifications'
+      path: '/verifications'
+      fullPath: '/dashboard/verifications'
+      preLoaderRoute: typeof DashboardVerificationsRouteImport
       parentRoute: typeof DashboardRouteRoute
     }
     '/dashboard/users': {
@@ -273,6 +292,7 @@ interface DashboardRouteRouteChildren {
   DashboardReportsRoute: typeof DashboardReportsRoute
   DashboardRespondersRoute: typeof DashboardRespondersRoute
   DashboardUsersRoute: typeof DashboardUsersRoute
+  DashboardVerificationsRoute: typeof DashboardVerificationsRoute
   DashboardIndexRoute: typeof DashboardIndexRoute
 }
 
@@ -285,6 +305,7 @@ const DashboardRouteRouteChildren: DashboardRouteRouteChildren = {
   DashboardReportsRoute: DashboardReportsRoute,
   DashboardRespondersRoute: DashboardRespondersRoute,
   DashboardUsersRoute: DashboardUsersRoute,
+  DashboardVerificationsRoute: DashboardVerificationsRoute,
   DashboardIndexRoute: DashboardIndexRoute,
 }
 
