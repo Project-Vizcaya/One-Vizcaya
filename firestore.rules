@@ -65,7 +65,10 @@ service cloud.firestore {
                         && request.resource.data.get('role', 'citizen')
                            == resource.data.get('role', 'citizen'))
                     || isProvincialAdmin();
-      allow delete: if isProvincialAdmin();
+      // A user may erase their OWN profile (RA 10173 right to erasure). Their
+      // reports are NOT deletable here (see reports rule) — they are archived
+      // and retained as official LGU records on account deletion.
+      allow delete: if isOwner(userId) || isProvincialAdmin();
 
       // Per-user reports sub-collection.
       // Anonymous reporting is NOT allowed: every report must carry the

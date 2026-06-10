@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:local_auth/local_auth.dart';
 import '../widgets/biometric_lock.dart';
@@ -592,36 +591,43 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
       // Step 1 is shown by the dialog
       await Future.delayed(const Duration(milliseconds: 400));
 
-      // Delete all reports for this user
+      // PPDO requirement: when a citizen deletes their account, their REPORTS
+      // are retained as official LGU records (readable by authorised admins),
+      // not erased. We denormalise the reporter's name onto each report so it
+      // stays readable after the personal profile is removed. Lawful basis:
+      // the LGU's public-authority function to maintain incident records
+      // (RA 10173 erasure exemptions) — disclosed in the Privacy Policy.
+      final profileSnap =
+          await firestore.collection('users').doc(uid).get();
+      final reporterName =
+          (profileSnap.data()?['name'] as String?)?.trim().isNotEmpty == true
+              ? profileSnap.data()!['name'] as String
+              : 'Former resident';
+
       final reportsSnap = await firestore
           .collection('users')
           .doc(uid)
           .collection('reports')
           .get();
 
-      // RA 10173 (Right to Erasure): delete the user's photo evidence from
-      // Cloud Storage so no orphaned images with embedded location data remain.
-      for (final doc in reportsSnap.docs) {
-        final imageUrl = doc.data()['imageUrl'] as String?;
-        if (imageUrl != null && imageUrl.isNotEmpty) {
-          try {
-            await FirebaseStorage.instance.refFromURL(imageUrl).delete();
-          } catch (_) {
-            // Already gone or unreadable — continue; report doc is still removed.
-          }
-        }
-      }
-
+      // Archive (retain) every report — keep content, location, phone, photo.
       final batch = firestore.batch();
       for (final doc in reportsSnap.docs) {
-        batch.delete(doc.reference);
+        batch.update(doc.reference, {
+          'archived': true,
+          'archivedReason': 'account_deleted',
+          'archivedAt': FieldValue.serverTimestamp(),
+          'status': 'archived',
+          'reporterName': reporterName,
+        });
       }
       await batch.commit();
 
       // Step 2
       await Future.delayed(const Duration(milliseconds: 300));
 
-      // Delete the user Firestore profile
+      // Remove the personal profile (the login identity). The reports remain
+      // as LGU records; a server-side trigger writes the deletion to audit_logs.
       await firestore.collection('users').doc(uid).delete();
 
       // Step 3

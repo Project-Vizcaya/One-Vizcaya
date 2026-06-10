@@ -134,12 +134,20 @@ class PrivacyPolicyScreen extends StatelessWidget {
               'within your jurisdiction.',
             ),
 
-            const _SectionTitle('7. Data Retention'),
+            const _SectionTitle('7. Data Retention & Account Deletion'),
             const _SectionBody(
               'Active reports are kept until resolved or archived. Reports older '
-              'than 12 months are auto-archived; reports older than 24 months are '
-              'permanently deleted with their photos. Your profile is kept until '
-              'you request account deletion.',
+              'than 12 months are auto-archived. Your profile is kept until you '
+              'request account deletion.\n\n'
+              'When you delete your account, your personal login and profile are '
+              'removed, but the civic reports you filed are RETAINED as official '
+              'records of the Local Government Unit (including the reporter name, '
+              'location, and report details), so the Provincial Government can '
+              'continue to act on and account for incidents. This retention is '
+              'based on the LGU\'s public-authority function and legal obligation '
+              'to maintain official records, which is an exception to erasure '
+              'under RA 10173. Access to these retained records is limited to '
+              'authorised LGU personnel.',
             ),
 
             const _SectionTitle('8. Your Rights under RA 10173'),
@@ -164,7 +172,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
               'restrict access to authenticated users and authorised admins. '
               'Firebase App Check blocks unauthorised API calls. We use phone-OTP '
               'login, so no passwords are stored. Photo EXIF metadata is stripped '
-              'before upload, and deleting your account also deletes your photos.',
+              'before upload so no hidden location data is stored with the image.',
             ),
 
             const _SectionTitle('10. Children'),

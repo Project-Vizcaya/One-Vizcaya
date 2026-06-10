@@ -7,6 +7,23 @@ const admin = require("firebase-admin");
 
 admin.initializeApp();
 
+// ── Audit trail: record account deletions ────────────────────────────────────
+// When a citizen deletes their account the app removes their profile but
+// ARCHIVES (retains) their reports as official LGU records (PPDO requirement).
+// This trigger records the deletion immutably in audit_logs.
+exports.onUserDeleted = onDocumentDeleted("users/{userId}", async (event) => {
+  const uid = event.params.userId;
+  const data = (event.data && event.data.data()) || {};
+  await admin.firestore().collection("audit_logs").add({
+    action: "account_deleted",
+    targetUid: uid,
+    reporterName: data.name || null,
+    municipality: data.municipality || null,
+    note: "Personal profile removed; reports retained and archived as LGU records.",
+    at: admin.firestore.FieldValue.serverTimestamp(),
+  });
+});
+
 // ── Notify citizen when report status changes ────────────────────────────────
 exports.notifyOnStatusChange = onDocumentUpdated(
   "users/{userId}/reports/{reportId}",
