@@ -109,11 +109,13 @@ class PrivacyPolicyScreen extends StatelessWidget {
               '(GPS, camera serial) before upload.',
             ),
 
-            const _SectionTitle('4. Anonymous Reporting'),
+            const _SectionTitle('4. Verified, Identified Reporting'),
             const _SectionBody(
-              'You may submit reports anonymously. Anonymous reports exclude '
-              'your name, phone number, and user ID. You will not receive status '
-              'update notifications for anonymous reports.',
+              'Every report is tied to your verified account (name, phone '
+              'number, and user ID). Anonymous reporting is not available — this '
+              'keeps civic data accountable and lets the LGU follow up with you '
+              'on your report. Your identity is shared only with the authorised '
+              'LGU staff handling your report, as described below.',
             ),
 
             const _SectionTitle('5. How We Use Your Data'),

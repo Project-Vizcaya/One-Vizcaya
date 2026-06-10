@@ -49,7 +49,6 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
   final _locationController = TextEditingController();
   String? _selectedBarangay;
   bool _isOffline = false;
-  bool _isAnonymous = false;
   bool _isGettingLocation = false;
   bool _isSubmitting = false;
   Position? _currentPosition;
@@ -179,21 +178,16 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
     final municipalityReportingTo = oneVizcayaState.selectedMunicipality.value;
 
     if (_isOffline) {
-      // Queue the report for automatic submission when connectivity returns
+      // Queue the report for automatic submission when connectivity returns.
+      // Every report must be tied to the verified, signed-in user — anonymous
+      // submission has been removed (government data-integrity requirement).
       final user = FirebaseAuth.instance.currentUser;
-      String userId;
-      if (user != null) {
-        userId = user.uid;
-      } else {
-        final p = await SharedPreferences.getInstance();
-        String? anonId = p.getString('anon_device_id');
-        if (anonId == null) {
-          anonId =
-              'anon_${DateTime.now().millisecondsSinceEpoch}_${(1000 + (DateTime.now().microsecond % 9000))}';
-          await p.setString('anon_device_id', anonId);
-        }
-        userId = anonId;
+      if (user == null) {
+        if (mounted) setState(() => _isSubmitting = false);
+        ToastUtils.showError('Please sign in to submit a report.');
+        return;
       }
+      final userId = user.uid;
       final queuePayload = <String, dynamic>{
         'userId': userId,
         'category': _selectedCategory?.displayName ?? '',
@@ -207,9 +201,9 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
         'reportedAt': DateTime.now().toIso8601String(),
         'latitude': _currentPosition?.latitude,
         'longitude': _currentPosition?.longitude,
-        'userId_field': _isAnonymous ? null : userId,
-        'userPhone': _isAnonymous ? null : user?.phoneNumber,
-        'isAnonymous': _isAnonymous,
+        'userId_field': userId,
+        'userPhone': user.phoneNumber,
+        'isAnonymous': false,
         'barangay': _selectedBarangay,
       };
       await OfflineQueueService().enqueue(queuePayload);
@@ -254,21 +248,15 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
 
   Future<void> _sendOnlineReport(String municipality) async {
     try {
+      // Every report must be tied to the verified, signed-in user — anonymous
+      // submission has been removed (government data-integrity requirement).
       final user = FirebaseAuth.instance.currentUser;
-      // FIX 5: Use a persistent anonymous device ID instead of the bare string 'anonymous'
-      String userId;
-      if (user != null) {
-        userId = user.uid;
-      } else {
-        final prefs = await SharedPreferences.getInstance();
-        String? anonId = prefs.getString('anon_device_id');
-        if (anonId == null) {
-          anonId =
-              'anon_${DateTime.now().millisecondsSinceEpoch}_${(1000 + (DateTime.now().microsecond % 9000))}';
-          await prefs.setString('anon_device_id', anonId);
-        }
-        userId = anonId;
+      if (user == null) {
+        if (mounted) setState(() => _isSubmitting = false);
+        ToastUtils.showError('Please sign in to submit a report.');
+        return;
       }
+      final userId = user.uid;
 
       // Upload image if one was selected
       String? imageUrl;
@@ -301,13 +289,13 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
         reportedAt: DateTime.now(),
         latitude: _currentPosition?.latitude,
         longitude: _currentPosition?.longitude,
-        userId: _isAnonymous ? null : userId,
-        userPhone: _isAnonymous ? null : user?.phoneNumber,
+        userId: userId,
+        userPhone: user.phoneNumber,
         imageUrl: imageUrl,
         photoTimestamp: _photoTimestamp,
         photoLatitude: _photoLatitude,
         photoLongitude: _photoLongitude,
-        isAnonymous: _isAnonymous,
+        isAnonymous: false,
         barangay: _selectedBarangay,
       );
 
@@ -328,7 +316,6 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
         _photoTimestamp = null;
         _photoLatitude = null;
         _photoLongitude = null;
-        _isAnonymous = false;
         _isSubmitting = false;
       });
 
@@ -411,10 +398,8 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
                 children: [
                   _SubmissionOptionsCard(
                     isOffline: _isOffline,
-                    isAnonymous: _isAnonymous,
                     primaryColor: primaryLguColor,
                     onOfflineChanged: (v) => setState(() => _isOffline = v),
-                    onAnonymousChanged: (v) => setState(() => _isAnonymous = v),
                   ),
                   const SizedBox(height: 24),
                   _CategoryTreeSelector(
@@ -885,17 +870,13 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
 
 class _SubmissionOptionsCard extends StatelessWidget {
   final bool isOffline;
-  final bool isAnonymous;
   final Color primaryColor;
   final ValueChanged<bool> onOfflineChanged;
-  final ValueChanged<bool> onAnonymousChanged;
 
   const _SubmissionOptionsCard({
     required this.isOffline,
-    required this.isAnonymous,
     required this.primaryColor,
     required this.onOfflineChanged,
-    required this.onAnonymousChanged,
   });
 
   @override
@@ -946,34 +927,36 @@ class _SubmissionOptionsCard extends StatelessWidget {
           const SizedBox(height: 14),
 
           // ── Identity ──────────────────────────────────────────────────
-          _sectionLabel(context, 'Your identity'),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              Expanded(
-                child: _ModeOption(
-                  icon: Icons.person_outlined,
-                  label: 'With my name',
-                  subtitle: 'LGU can follow up',
-                  selected: !isAnonymous,
-                  selectedColor: primaryColor,
-                  onTap: () => onAnonymousChanged(false),
-                  semanticHint: 'Submit with your name visible to LGU',
+          // Every report is tied to the verified submitter for accountability
+          // and follow-up (anonymous reporting has been removed at the LGU's
+          // request — government data-integrity requirement).
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              color: primaryColor.withValues(alpha: 0.06),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: primaryColor.withValues(alpha: 0.2)),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.verified_user_outlined,
+                    size: 18, color: primaryColor),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Submitted under your verified account so the LGU can '
+                    'follow up and keep records accountable.',
+                    style: TextStyle(
+                      fontSize: 12,
+                      height: 1.35,
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? const Color(0xFFA8ADB5)
+                          : const Color(0xFF555555),
+                    ),
+                  ),
                 ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: _ModeOption(
-                  icon: Icons.visibility_off_outlined,
-                  label: 'Anonymous',
-                  subtitle: 'Identity is hidden',
-                  selected: isAnonymous,
-                  selectedColor: Colors.grey.shade700,
-                  onTap: () => onAnonymousChanged(true),
-                  semanticHint: 'Submit anonymously, identity hidden from LGU',
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         ],
       ),

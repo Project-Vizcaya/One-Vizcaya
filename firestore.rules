@@ -67,11 +67,19 @@ service cloud.firestore {
                     || isProvincialAdmin();
       allow delete: if isProvincialAdmin();
 
-      // Per-user reports sub-collection
+      // Per-user reports sub-collection.
+      // Anonymous reporting is NOT allowed: every report must carry the
+      // verified submitter identity (userId == the owning uid + a phone number).
+      // Enforced here at the data layer, not just in the UI.
       match /reports/{reportId} {
-        allow read, write:  if isOwner(userId);
-        allow read, update: if isAdmin();
-        allow delete:       if isProvincialAdmin();
+        allow read:   if isOwner(userId) || isAdmin();
+        allow create: if isOwner(userId)
+                      && request.resource.data.userId == userId
+                      && request.resource.data.userPhone is string
+                      && request.resource.data.userPhone.size() > 0
+                      && request.resource.data.isAnonymous == false;
+        allow update: if isOwner(userId) || isAdmin();
+        allow delete: if isProvincialAdmin();
       }
 
       // Per-user notifications
