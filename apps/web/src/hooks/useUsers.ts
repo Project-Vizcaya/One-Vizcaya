@@ -36,9 +36,17 @@ export function useUsers() {
   return { users, loading };
 }
 
-export async function saveUserRole(uid: string, role: AdminRole | "citizen", municipality?: string) {
+export async function saveUserRole(
+  uid: string,
+  role: AdminRole | "citizen",
+  municipality?: string,
+  barangay?: string,
+) {
   const update: Record<string, unknown> = { role };
   if (municipality !== undefined) update.municipality = municipality;
+  // A Barangay admin is scoped to one barangay; clear it for any other role so
+  // a demoted/re-scoped account never keeps a stale barangay grant.
+  update.barangay = role === "barangay_admin" ? (barangay ?? "") : null;
   await updateDoc(doc(db, "users", uid), update);
 }
 

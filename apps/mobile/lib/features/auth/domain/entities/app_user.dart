@@ -1,10 +1,12 @@
-enum UserRole { citizen, admin, municipalAdmin, provincialAdmin, superAdmin }
+enum UserRole { citizen, barangayAdmin, admin, municipalAdmin, provincialAdmin, superAdmin }
 
 extension UserRoleX on UserRole {
   String get displayName {
     switch (this) {
       case UserRole.citizen:
         return 'Citizen';
+      case UserRole.barangayAdmin:
+        return 'Barangay Admin';
       case UserRole.admin:
         return 'Admin';
       case UserRole.municipalAdmin:
@@ -24,6 +26,8 @@ extension UserRoleX on UserRole {
         return 'provincial_admin';
       case UserRole.municipalAdmin:
         return 'municipal_admin';
+      case UserRole.barangayAdmin:
+        return 'barangay_admin';
       case UserRole.admin:
         return 'admin';
       case UserRole.citizen:
@@ -65,6 +69,8 @@ class AppUser {
         return UserRole.provincialAdmin;
       case 'municipal_admin':
         return UserRole.municipalAdmin;
+      case 'barangay_admin':
+        return UserRole.barangayAdmin;
       case 'admin':
         return UserRole.admin;
       default:
@@ -73,6 +79,7 @@ class AppUser {
   }
 
   bool get isAnyAdmin =>
+      role == UserRole.barangayAdmin ||
       role == UserRole.admin ||
       role == UserRole.municipalAdmin ||
       role == UserRole.provincialAdmin ||

@@ -1,4 +1,33 @@
 rules_version = '2';
+// ═══════════════════════════════════════════════════════════════════════════
+//  One Vizcaya — Governance enforced at the database layer (not just the UI)
+//  ---------------------------------------------------------------------------
+//  This file is the TECHNICAL LAYER of the architecture documented in
+//    docs/Architecture-Governance-Design.md   (committee-facing, four layers)
+//    docs/Governance-Architecture.md           (condensed Barangay→Region II)
+//  It mirrors the real government hierarchy:
+//    Barangay → City/Municipality → Province → Region II
+//
+//  Design rule (from the docs)        →  Enforced here by
+//  ---------------------------------------------------------------------------
+//  Bounded authority per role         →  role() + isMunicipalAdmin()/etc.;
+//                                         barangay scoping uses actorMunicipality()
+//                                         AND actorBarangay()
+//  Single accountable owner           →  reports rules; escalation is a guarded
+//                                         write (approvingEscalation())
+//  Escalation control (no auto-jump)  →  Municipal admin of the OWNING town only,
+//                                         must stamp escalatedBy
+//  Append-only audit trail            →  audit_logs (create by admins, mutate by
+//                                         super_admin only); Cloud Functions write it
+//  Tenant data isolation              →  municipality/barangay equality checks on
+//                                         reads of reports & verificationRequests
+//  Verified-resident reporting        →  residencyStatus gate on report create;
+//                                         'certified' grantable only server-side
+//
+//  Authority is hierarchical and non-overlapping: a higher tier may READ what is
+//  below it, but may not silently override a lower tier's ownership — every
+//  transfer is an explicit, logged action.
+// ═══════════════════════════════════════════════════════════════════════════
 service cloud.firestore {
   match /databases/{database}/documents {
 
@@ -17,11 +46,13 @@ service cloud.firestore {
         : 'citizen';
     }
 
-    // ─── Role hierarchy ─────────────────────────────────────────────────────
+    // ─── Role hierarchy (Barangay → Municipal → Provincial → Region/Super) ───
     //   super_admin        → unrestricted access to everything
     //   provincial_admin   → read/write/delete across all municipalities
     //   admin              → legacy role, same power as provincial_admin
-    //   municipal_admin    → read/update reports; manage announcements & responders
+    //   municipal_admin    → read/update reports; manage announcements & responders;
+    //                        approve Municipal→Provincial escalations & residents
+    //   barangay_admin     → certify residents of their barangay (lowest tier)
     //   citizen            → own data only
 
     function isSuperAdmin() {
@@ -36,13 +67,35 @@ service cloud.firestore {
       return isAuth() && role() in ['municipal_admin', 'provincial_admin', 'admin', 'super_admin'];
     }
 
-    // Any admin level (used for broad read access)
+    // Any admin level (used for broad read access). NOTE: barangay_admin is
+    // intentionally excluded here — it is not a broad-read role.
     function isAdmin() {
       return isAuth() && role() in ['municipal_admin', 'provincial_admin', 'admin', 'super_admin'];
     }
 
     function isOwner(uid) {
       return isAuth() && request.auth.uid == uid;
+    }
+
+    // The acting admin's municipality (from their user profile), used to enforce
+    // that only the OWNING municipality's admin may approve an escalation.
+    function actorMunicipality() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid))
+        .data.get('municipality', '');
+    }
+
+    // The acting admin's barangay (from their user profile). Used to confine a
+    // Barangay admin to certifying ONLY residents of their own barangay.
+    function actorBarangay() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid))
+        .data.get('barangay', '');
+    }
+
+    // True when this report update is flipping escalatedToProvince false → true
+    // (i.e. the Municipal → Provincial approval handoff).
+    function approvingEscalation() {
+      return resource.data.get('escalatedToProvince', false) == false
+        && request.resource.data.get('escalatedToProvince', false) == true;
     }
 
     // ─── Super admin bypass ─────────────────────────────────────────────────
@@ -61,17 +114,52 @@ service cloud.firestore {
       allow create: if (isOwner(userId)
                         && request.resource.data.get('role', 'citizen') == 'citizen')
                     || isProvincialAdmin();
+      // A user may update their OWN profile but must NOT change their 'role'
+      // (privilege guard) nor self-grant a 'certified' residency status — that
+      // is only set server-side after an LGU admin approves a residency request.
       allow update: if (isOwner(userId)
                         && request.resource.data.get('role', 'citizen')
-                           == resource.data.get('role', 'citizen'))
+                           == resource.data.get('role', 'citizen')
+                        && (request.resource.data.get('residencyStatus', 'unverified')
+                              == resource.data.get('residencyStatus', 'unverified')
+                            || request.resource.data.get('residencyStatus', 'unverified')
+                                 in ['unverified', 'gps_verified']))
                     || isProvincialAdmin();
-      allow delete: if isProvincialAdmin();
+      // A user may erase their OWN profile (RA 10173 right to erasure). Their
+      // reports are NOT deletable here (see reports rule) — they are archived
+      // and retained as official LGU records on account deletion.
+      allow delete: if isOwner(userId) || isProvincialAdmin();
 
-      // Per-user reports sub-collection
+      // Per-user reports sub-collection.
+      // Anonymous reporting is NOT allowed: every report must carry the
+      // verified submitter identity (userId == the owning uid + a phone number).
+      // Enforced here at the data layer, not just in the UI.
       match /reports/{reportId} {
-        allow read, write:  if isOwner(userId);
-        allow read, update: if isAdmin();
-        allow delete:       if isProvincialAdmin();
+        allow read:   if isOwner(userId) || isAdmin();
+        // Residency gate (Option 3): only a verified Nueva Vizcaya resident may
+        // file a report. residencyStatus must be gps_verified or certified.
+        // Existing users (created before this feature, with no residencyStatus
+        // field) default to 'grandfathered' so the rollout never blocks them.
+        allow create: if isOwner(userId)
+                      && request.resource.data.userId == userId
+                      && request.resource.data.userPhone is string
+                      && request.resource.data.userPhone.size() > 0
+                      && request.resource.data.isAnonymous == false
+                      && get(/databases/$(database)/documents/users/$(userId))
+                           .data.get('residencyStatus', 'grandfathered')
+                           in ['gps_verified', 'certified', 'grandfathered'];
+        // Approval chain (Municipal → Provincial): an escalation (turning on
+        // escalatedToProvince) may ONLY be approved by a Municipal admin of the
+        // report's own municipality, and must stamp escalatedBy with their uid.
+        // All other updates follow the normal owner/admin permissions. (super
+        // admin is covered by the bypass above.)
+        allow update: if (isAdmin() && !approvingEscalation())
+                      || isOwner(userId)
+                      || (approvingEscalation()
+                          && isMunicipalAdmin()
+                          && actorMunicipality() == resource.data.municipality
+                          && request.resource.data.escalatedBy == request.auth.uid);
+        allow delete: if isProvincialAdmin();
       }
 
       // Per-user notifications
@@ -164,6 +252,38 @@ service cloud.firestore {
     match /demo_meta/{docId} {
       allow read:  if isAdmin();
       allow write: if isProvincialAdmin();
+    }
+
+    // ─── Residency certification requests (Option 3, certified path) ──────────
+    // A citizen files a request to be certified as a Nueva Vizcaya resident;
+    // their Barangay admin (or the Municipal admin of that town, as fallback)
+    // reviews and decides. Approval triggers a server-side function that sets
+    // the citizen's residencyStatus = 'certified'.
+    match /verificationRequests/{reqId} {
+      // Citizen files their own request (must reference their own uid).
+      allow create: if isAuth()
+                    && request.resource.data.uid == request.auth.uid
+                    && request.resource.data.status == 'pending';
+      // Citizen reads their own. Province-wide for provincial+. A Municipal admin
+      // is scoped to their whole town. A Barangay admin is confined to ONLY their
+      // own barangay (single-owner accountability at the base tier).
+      allow read:   if (isAuth() && resource.data.uid == request.auth.uid)
+                    || isProvincialAdmin()
+                    || (isMunicipalAdmin()
+                        && actorMunicipality() == resource.data.municipality)
+                    || (role() == 'barangay_admin'
+                        && actorMunicipality() == resource.data.municipality
+                        && actorBarangay() == resource.data.barangay);
+      // Same scoping for deciding (approve/reject): provincial+ anywhere, a
+      // Municipal admin within their town, a Barangay admin ONLY within their
+      // own barangay. Every decision is stamped + audited server-side.
+      allow update: if isProvincialAdmin()
+                    || (isMunicipalAdmin()
+                        && actorMunicipality() == resource.data.municipality)
+                    || (role() == 'barangay_admin'
+                        && actorMunicipality() == resource.data.municipality
+                        && actorBarangay() == resource.data.barangay);
+      allow delete: if isProvincialAdmin();
     }
   }
 }

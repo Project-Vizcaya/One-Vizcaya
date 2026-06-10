@@ -12,15 +12,16 @@
 1. [Project Overview](#-project-overview)
 2. [Core Aims](#-core-aims)
 3. [Ecosystem Architecture](#%EF%B8%8F-ecosystem-architecture)
-4. [Tech Stack](#-tech-stack)
-5. [Privacy & Data Handling](#-privacy--data-handling)
-6. [UI, Theming & Identity](#-ui-theming--identity)
-7. [Multilingual Support](#-multilingual-support)
-8. [Multi-Tiered Triage & Escalation Workflow](#%EF%B8%8F-multi-tiered-triage--escalation-workflow)
-9. [Geospatial Architecture & Emergency Responders](#-geospatial-architecture--emergency-responders)
-10. [Master Development Roadmap Status](#-master-development-roadmap-status)
-11. [Cost & Sustainability Plan](#-cost--sustainability-plan)
-12. [Service Model, Ownership & Continuity](#-service-model-ownership--continuity)
+4. [Governance & Authority Architecture](#%EF%B8%8F-governance--authority-architecture-government-hierarchy)
+5. [Tech Stack](#-tech-stack)
+6. [Privacy & Data Handling](#-privacy--data-handling)
+7. [UI, Theming & Identity](#-ui-theming--identity)
+8. [Multilingual Support](#-multilingual-support)
+9. [Multi-Tiered Triage & Escalation Workflow](#%EF%B8%8F-multi-tiered-triage--escalation-workflow)
+10. [Geospatial Architecture & Emergency Responders](#-geospatial-architecture--emergency-responders)
+11. [Master Development Roadmap Status](#-master-development-roadmap-status)
+12. [Cost & Sustainability Plan](#-cost--sustainability-plan)
+13. [Service Model, Ownership & Continuity](#-service-model-ownership--continuity)
 
 ---
 
@@ -65,6 +66,62 @@ One Vizcaya is a unified, bidirectional data ecosystem composed of three major r
 1. **The Citizen Mobile Client (Flutter):** An intuitive, high-performance application running natively on citizen devices. Built to handle low-connectivity zones with offline report queuing, biometric login, dark mode, and full trilingual support.
 2. **The LGU Web Command Dashboards (HTML5/JS):** A multi-tenant web console for every municipality. Enables dedicated dispatchers to evaluate reports, assign responders, manage SLA timers, export PDF reports, and broadcast announcements.
 3. **The Provincial Super-Admin Command Hub:** A province-wide view built for the Provincial Administrator and Governor's office. Overlays real-time heatmaps, tracks cross-municipal escalations, and serves as a command center during disaster scenarios.
+
+---
+
+## 🏛️ Governance & Authority Architecture (Government Hierarchy)
+
+One Vizcaya is deliberately modelled on the **real chain of governance** under
+the Local Government Code — **Barangay → City/Municipality → Province → Region II**
+— so that authority, accountability, and data ownership in the software line up
+one-to-one with how the Provincial Government of Nueva Vizcaya actually operates.
+This section is the short answer to the Technical Review Committee's (PA, PDRRMO,
+PPDO, PITD) request for a *structural* design, not just a working app. The full
+treatment lives in **[`docs/Architecture-Governance-Design.md`](docs/Architecture-Governance-Design.md)**
+(committee-facing) and **[`docs/Governance-Architecture.md`](docs/Governance-Architecture.md)**
+(condensed reference).
+
+### The four-tier hierarchy
+
+| Tier | Government Level | Represented In System As |
+| :--- | :--- | :--- |
+| **Tier 1** | Barangay (lowest LGU unit) | Barangay workspace — Punong Barangay / delegate & tanod |
+| **Tier 2** | City / Municipality | Municipal dashboard — MLGU offices (MDRRMO, Engineering, RHU…) |
+| **Tier 3** | Province | Provincial Command Hub — PA, PDRRMO, PPDO, PITD |
+| **Tier 4** *(external)* | National / Regional agencies | Referral targets — DPWH Region II, DILG, NDRRMC… |
+
+### The four-layer model (every tier must satisfy all four)
+
+| Layer | The Question It Answers | How One Vizcaya guarantees it |
+| :--- | :--- | :--- |
+| **Governance** | *Who is in charge here?* | Custom-claim roles (`barangay_admin` → `municipal_admin` → `provincial_admin`/`admin` → `super_admin`) with bounded, non-overlapping scope |
+| **Accountability** | *Who answers for this?* | One accountable owner per report at any moment; ownership transfers only via explicit, audited handoffs |
+| **Data** | *What do we hold, and who owns it?* | Province is RA 10173 data **controller**; each LGU stewards its slice; the dev team is **processor, never owner** |
+| **Technical** | *How does the system guarantee it?* | Enforced in **`firestore.rules` / `storage.rules` / Cloud Functions at the database layer — not just the UI** |
+
+### Authority & accountability principles
+
+- **Bounded authority.** A **Barangay admin** sees and acts **only within their
+  own barangay** (scoped by `municipality` **and** `barangay` in the rules); a
+  **Municipal admin** is scoped to their town; **Provincial/Super** act
+  province-wide. A higher tier can *view* what is below it but **cannot silently
+  override** a lower tier's ownership.
+- **Single accountable owner.** Every report has exactly **one** owner at any
+  moment. On submission → Municipal Dispatcher (or Barangay admin if routed
+  down); on assignment → the responder unit; **on escalation → up a tier only
+  when the Municipal admin formally escalates, never automatically.**
+- **Append-only audit trail.** Every ownership/status transfer and privileged
+  action (escalation approval, residency certification, account-deletion
+  archival) writes an immutable `audit_logs` entry via Cloud Functions, so
+  *"who is answerable right now?"* always has a provable answer.
+- **Bidirectional, traceable flow.** Reports/escalations flow **up**;
+  assignments/advisories/broadcasts flow **down**; routing can also send a report
+  **laterally/down** to the correct tier — every hop logged.
+
+> These boundaries are enforced where they cannot be bypassed: the database
+> security rules. The dashboards and mobile UI merely reflect them. See
+> [`firestore.rules`](firestore.rules) — its header maps each design rule to the
+> exact enforcing clause.
 
 ---
 

@@ -3,6 +3,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../core/constants/app_constants.dart';
 import '../../core/l10n/app_strings.dart';
+import '../../core/services/nv_geofence.dart';
+import '../../data/services/geolocator_service.dart';
 import '../state/municipality_state.dart';
 import '../../features/auth/presentation/screens/privacy_policy_screen.dart';
 
@@ -45,6 +47,14 @@ class _MunicipalitySetupScreenState extends State<MunicipalitySetupScreen> {
         // Check existence so createdAt is never overwritten on re-setup
         final existing = await ref.get();
         final isNew = !existing.exists || existing.data()?['createdAt'] == null;
+
+        // ── Residency check (GPS fast-path, Option 3) ───────────────────────
+        // Verify the registrant is physically inside Nueva Vizcaya. If so they
+        // are auto "gps_verified"; otherwise they remain "unverified" and can
+        // later be certified by their Barangay/Municipal LGU (document path).
+        // A spoofed (mock) location is never auto-verified.
+        final residency = await _checkResidency();
+
         await ref.set({
           'uid': user.uid,
           'name': _nameController.text.trim(),
@@ -54,6 +64,16 @@ class _MunicipalitySetupScreenState extends State<MunicipalitySetupScreen> {
           if (isNew) 'createdAt': FieldValue.serverTimestamp(),
           'consentGiven': true,
           'consentTimestamp': FieldValue.serverTimestamp(),
+          // Only set/upgrade residency on the GPS-verified path; never downgrade
+          // an already-certified account.
+          if (existing.data()?['residencyStatus'] != 'certified') ...{
+            'residencyStatus': residency['status'],
+            'residencyMethod': 'gps',
+            'residencyCheckedAt': FieldValue.serverTimestamp(),
+            'residencyLat': residency['lat'],
+            'residencyLng': residency['lng'],
+            'residencyMocked': residency['mocked'],
+          },
         }, SetOptions(merge: true));
       }
 
@@ -66,6 +86,28 @@ class _MunicipalitySetupScreenState extends State<MunicipalitySetupScreen> {
           SnackBar(content: Text('Failed to save profile: $e')),
         );
       }
+    }
+  }
+
+  // Captures the registrant's GPS once and tests it against the Nueva Vizcaya
+  // boundary. Returns the residency outcome; a missing/denied or spoofed (mock)
+  // location yields 'unverified' (they can be certified by their LGU instead).
+  Future<Map<String, dynamic>> _checkResidency() async {
+    try {
+      final pos = await GeolocatorService().getCurrentLocation();
+      if (pos == null) {
+        return {'status': 'unverified', 'lat': null, 'lng': null, 'mocked': false};
+      }
+      final mocked = pos.isMocked;
+      final inside = NvGeofence.contains(pos.latitude, pos.longitude);
+      return {
+        'status': (inside && !mocked) ? 'gps_verified' : 'unverified',
+        'lat': pos.latitude,
+        'lng': pos.longitude,
+        'mocked': mocked,
+      };
+    } catch (_) {
+      return {'status': 'unverified', 'lat': null, 'lng': null, 'mocked': false};
     }
   }
 

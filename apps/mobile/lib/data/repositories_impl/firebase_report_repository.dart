@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import '../../domain/models/problem_report.dart';
 import '../../domain/enums/handling_level.dart';
@@ -71,8 +72,12 @@ class FirebaseReportRepository implements ReportRepository {
 
   @override
   Stream<List<ProblemReport>> getAllProvincialReports() {
+    // Approval chain: the Provincial dashboard only surfaces reports a Municipal
+    // admin has approved for escalation (escalatedToProvince == true). Reports
+    // pending municipal review are not visible/actionable at the provincial tier.
     return _firestore
         .collectionGroup('reports')
+        .where('escalatedToProvince', isEqualTo: true)
         .orderBy('reportedAt', descending: true)
         .limit(_adminQueryLimit)
         .snapshots()
@@ -206,6 +211,9 @@ class FirebaseReportRepository implements ReportRepository {
   @override
   Future<void> escalateToProvince(String userId, String reportId) async {
     try {
+      // Approval handoff (Municipal → Provincial): record WHO approved the
+      // escalation so it's an auditable transition, not just a status flag.
+      final approverUid = FirebaseAuth.instance.currentUser?.uid;
       await _firestore
           .collection('users')
           .doc(userId)
@@ -214,8 +222,9 @@ class FirebaseReportRepository implements ReportRepository {
           .update({
             'escalatedToProvince': true,
             'escalatedAt': FieldValue.serverTimestamp(),
+            'escalatedBy': approverUid,
           });
-      ToastUtils.showSuccess('Report escalated to Provincial Office');
+      ToastUtils.showSuccess('Report approved & escalated to Provincial Office');
     } catch (e) {
       ToastUtils.showError('Failed to escalate report: $e');
       rethrow;
@@ -236,6 +245,7 @@ class FirebaseReportRepository implements ReportRepository {
       };
       if (escalated) {
         data['escalatedAt'] = FieldValue.serverTimestamp();
+        data['escalatedBy'] = FirebaseAuth.instance.currentUser?.uid;
       }
       await _firestore
           .collection('users')

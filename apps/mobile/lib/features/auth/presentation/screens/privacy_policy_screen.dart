@@ -109,11 +109,13 @@ class PrivacyPolicyScreen extends StatelessWidget {
               '(GPS, camera serial) before upload.',
             ),
 
-            const _SectionTitle('4. Anonymous Reporting'),
+            const _SectionTitle('4. Verified, Identified Reporting'),
             const _SectionBody(
-              'You may submit reports anonymously. Anonymous reports exclude '
-              'your name, phone number, and user ID. You will not receive status '
-              'update notifications for anonymous reports.',
+              'Every report is tied to your verified account (name, phone '
+              'number, and user ID). Anonymous reporting is not available — this '
+              'keeps civic data accountable and lets the LGU follow up with you '
+              'on your report. Your identity is shared only with the authorised '
+              'LGU staff handling your report, as described below.',
             ),
 
             const _SectionTitle('5. How We Use Your Data'),
@@ -132,12 +134,20 @@ class PrivacyPolicyScreen extends StatelessWidget {
               'within your jurisdiction.',
             ),
 
-            const _SectionTitle('7. Data Retention'),
+            const _SectionTitle('7. Data Retention & Account Deletion'),
             const _SectionBody(
               'Active reports are kept until resolved or archived. Reports older '
-              'than 12 months are auto-archived; reports older than 24 months are '
-              'permanently deleted with their photos. Your profile is kept until '
-              'you request account deletion.',
+              'than 12 months are auto-archived. Your profile is kept until you '
+              'request account deletion.\n\n'
+              'When you delete your account, your personal login and profile are '
+              'removed, but the civic reports you filed are RETAINED as official '
+              'records of the Local Government Unit (including the reporter name, '
+              'location, and report details), so the Provincial Government can '
+              'continue to act on and account for incidents. This retention is '
+              'based on the LGU\'s public-authority function and legal obligation '
+              'to maintain official records, which is an exception to erasure '
+              'under RA 10173. Access to these retained records is limited to '
+              'authorised LGU personnel.',
             ),
 
             const _SectionTitle('8. Your Rights under RA 10173'),
@@ -162,7 +172,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
               'restrict access to authenticated users and authorised admins. '
               'Firebase App Check blocks unauthorised API calls. We use phone-OTP '
               'login, so no passwords are stored. Photo EXIF metadata is stripped '
-              'before upload, and deleting your account also deletes your photos.',
+              'before upload so no hidden location data is stored with the image.',
             ),
 
             const _SectionTitle('10. Children'),

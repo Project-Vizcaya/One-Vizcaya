@@ -7,6 +7,81 @@ const admin = require("firebase-admin");
 
 admin.initializeApp();
 
+// ── Audit trail: record account deletions ────────────────────────────────────
+// When a citizen deletes their account the app removes their profile but
+// ARCHIVES (retains) their reports as official LGU records (PPDO requirement).
+// This trigger records the deletion immutably in audit_logs.
+exports.onUserDeleted = onDocumentDeleted("users/{userId}", async (event) => {
+  const uid = event.params.userId;
+  const data = (event.data && event.data.data()) || {};
+  await admin.firestore().collection("audit_logs").add({
+    action: "account_deleted",
+    targetUid: uid,
+    reporterName: data.name || null,
+    municipality: data.municipality || null,
+    note: "Personal profile removed; reports retained and archived as LGU records.",
+    at: admin.firestore.FieldValue.serverTimestamp(),
+  });
+});
+
+// ── Residency certification: apply an admin's decision server-side ───────────
+// When a Barangay/Municipal admin approves (or rejects) a residency request,
+// this trigger sets the citizen's residencyStatus = 'certified' (only the
+// server may grant 'certified') and writes an append-only audit entry.
+exports.onResidencyDecision = onDocumentUpdated(
+  "verificationRequests/{reqId}",
+  async (event) => {
+    const before = event.data.before.data();
+    const after = event.data.after.data();
+    if (!before || !after) return;
+    if (before.status === after.status) return; // only on the decision change
+    if (after.status !== "approved" && after.status !== "rejected") return;
+
+    const db = admin.firestore();
+    if (after.status === "approved" && after.uid) {
+      await db.collection("users").doc(after.uid).set({
+        residencyStatus: "certified",
+        verifiedBy: after.decidedBy || null,
+        verifiedAt: admin.firestore.FieldValue.serverTimestamp(),
+        verifiedBarangay: after.barangay || null,
+      }, { merge: true });
+    }
+    await db.collection("audit_logs").add({
+      action: after.status === "approved" ? "residency_certified" : "residency_rejected",
+      targetUid: after.uid || null,
+      municipality: after.municipality || null,
+      barangay: after.barangay || null,
+      decidedBy: after.decidedBy || null,
+      at: admin.firestore.FieldValue.serverTimestamp(),
+    });
+  }
+);
+
+// ── Audit trail: record Municipal → Provincial escalation approvals ──────────
+// Writes an immutable audit_logs entry whenever a report is approved for
+// escalation (escalatedToProvince flips false → true), capturing who approved
+// it and when — the auditable Municipal → Provincial handoff (gov review #2).
+exports.auditEscalationApproval = onDocumentUpdated(
+  "users/{userId}/reports/{reportId}",
+  async (event) => {
+    const before = event.data.before.data();
+    const after = event.data.after.data();
+    if (!before || !after) return;
+    if (before.escalatedToProvince === true || after.escalatedToProvince !== true) {
+      return; // only on the false → true approval transition
+    }
+    await admin.firestore().collection("audit_logs").add({
+      action: "escalation_approved",
+      reportId: event.params.reportId,
+      reportOwnerUid: event.params.userId,
+      municipality: after.municipality || null,
+      approvedBy: after.escalatedBy || null,
+      category: after.category || null,
+      at: admin.firestore.FieldValue.serverTimestamp(),
+    });
+  }
+);
+
 // ── Notify citizen when report status changes ────────────────────────────────
 exports.notifyOnStatusChange = onDocumentUpdated(
   "users/{userId}/reports/{reportId}",

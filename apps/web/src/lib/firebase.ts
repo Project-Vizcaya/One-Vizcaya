@@ -21,7 +21,7 @@ export const APP_VERSION = "2.0.0";
 export const NV_CENTER = { lat: 16.45, lng: 121.17 };
 export const NV_ZOOM = 10;
 
-export const ADMIN_ROLES = ["admin", "municipal_admin", "provincial_admin", "super_admin"] as const;
+export const ADMIN_ROLES = ["barangay_admin", "admin", "municipal_admin", "provincial_admin", "super_admin"] as const;
 export type AdminRole = (typeof ADMIN_ROLES)[number];
 
 export const SLA_HOURS: Record<string, number> = {

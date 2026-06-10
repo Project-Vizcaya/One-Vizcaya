@@ -49,7 +49,6 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
   final _locationController = TextEditingController();
   String? _selectedBarangay;
   bool _isOffline = false;
-  bool _isAnonymous = false;
   bool _isGettingLocation = false;
   bool _isSubmitting = false;
   Position? _currentPosition;
@@ -65,9 +64,57 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
   double? _photoLatitude;
   double? _photoLongitude;
 
+  // Residency gate (Option 3). Default 'grandfathered' so existing users (no
+  // status field) are never blocked; only a confirmed 'unverified' status gates.
+  String _residencyStatus = 'grandfathered';
+  bool get _residencyBlocked => _residencyStatus == 'unverified';
+
   @override
   void initState() {
     super.initState();
+    _loadResidency();
+  }
+
+  Future<void> _loadResidency() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+    try {
+      final doc =
+          await FirebaseFirestore.instance.collection('users').doc(uid).get();
+      final s = doc.data()?['residencyStatus'] as String?;
+      if (mounted && s != null) setState(() => _residencyStatus = s);
+    } catch (_) {}
+  }
+
+  void _promptVerifyResidency() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        icon: const Icon(Icons.verified_user_outlined,
+            color: Color(0xFF2E7D32), size: 40),
+        title: const Text('Verify your residency first'),
+        content: const Text(
+            'Only verified Nueva Vizcaya residents can submit reports. Verify '
+            'your residency once and you can report from anywhere.'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Later')),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              Navigator.of(context).pushNamed('/verify-residency');
+            },
+            style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF2E7D32),
+                foregroundColor: Colors.white),
+            child: const Text('Verify now'),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _getLocation() async {
@@ -143,6 +190,10 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
   }
 
   Future<void> _submitReport() async {
+    if (_residencyBlocked) {
+      _promptVerifyResidency();
+      return;
+    }
     if (_selectedCategory == null) {
       setState(() => _categoryError = true);
       ToastUtils.showError('Please select a problem category.');
@@ -179,21 +230,16 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
     final municipalityReportingTo = oneVizcayaState.selectedMunicipality.value;
 
     if (_isOffline) {
-      // Queue the report for automatic submission when connectivity returns
+      // Queue the report for automatic submission when connectivity returns.
+      // Every report must be tied to the verified, signed-in user — anonymous
+      // submission has been removed (government data-integrity requirement).
       final user = FirebaseAuth.instance.currentUser;
-      String userId;
-      if (user != null) {
-        userId = user.uid;
-      } else {
-        final p = await SharedPreferences.getInstance();
-        String? anonId = p.getString('anon_device_id');
-        if (anonId == null) {
-          anonId =
-              'anon_${DateTime.now().millisecondsSinceEpoch}_${(1000 + (DateTime.now().microsecond % 9000))}';
-          await p.setString('anon_device_id', anonId);
-        }
-        userId = anonId;
+      if (user == null) {
+        if (mounted) setState(() => _isSubmitting = false);
+        ToastUtils.showError('Please sign in to submit a report.');
+        return;
       }
+      final userId = user.uid;
       final queuePayload = <String, dynamic>{
         'userId': userId,
         'category': _selectedCategory?.displayName ?? '',
@@ -207,9 +253,9 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
         'reportedAt': DateTime.now().toIso8601String(),
         'latitude': _currentPosition?.latitude,
         'longitude': _currentPosition?.longitude,
-        'userId_field': _isAnonymous ? null : userId,
-        'userPhone': _isAnonymous ? null : user?.phoneNumber,
-        'isAnonymous': _isAnonymous,
+        'userId_field': userId,
+        'userPhone': user.phoneNumber,
+        'isAnonymous': false,
         'barangay': _selectedBarangay,
       };
       await OfflineQueueService().enqueue(queuePayload);
@@ -254,21 +300,15 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
 
   Future<void> _sendOnlineReport(String municipality) async {
     try {
+      // Every report must be tied to the verified, signed-in user — anonymous
+      // submission has been removed (government data-integrity requirement).
       final user = FirebaseAuth.instance.currentUser;
-      // FIX 5: Use a persistent anonymous device ID instead of the bare string 'anonymous'
-      String userId;
-      if (user != null) {
-        userId = user.uid;
-      } else {
-        final prefs = await SharedPreferences.getInstance();
-        String? anonId = prefs.getString('anon_device_id');
-        if (anonId == null) {
-          anonId =
-              'anon_${DateTime.now().millisecondsSinceEpoch}_${(1000 + (DateTime.now().microsecond % 9000))}';
-          await prefs.setString('anon_device_id', anonId);
-        }
-        userId = anonId;
+      if (user == null) {
+        if (mounted) setState(() => _isSubmitting = false);
+        ToastUtils.showError('Please sign in to submit a report.');
+        return;
       }
+      final userId = user.uid;
 
       // Upload image if one was selected
       String? imageUrl;
@@ -301,13 +341,13 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
         reportedAt: DateTime.now(),
         latitude: _currentPosition?.latitude,
         longitude: _currentPosition?.longitude,
-        userId: _isAnonymous ? null : userId,
-        userPhone: _isAnonymous ? null : user?.phoneNumber,
+        userId: userId,
+        userPhone: user.phoneNumber,
         imageUrl: imageUrl,
         photoTimestamp: _photoTimestamp,
         photoLatitude: _photoLatitude,
         photoLongitude: _photoLongitude,
-        isAnonymous: _isAnonymous,
+        isAnonymous: false,
         barangay: _selectedBarangay,
       );
 
@@ -328,7 +368,6 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
         _photoTimestamp = null;
         _photoLatitude = null;
         _photoLongitude = null;
-        _isAnonymous = false;
         _isSubmitting = false;
       });
 
@@ -409,12 +448,44 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  if (_residencyBlocked) ...[
+                    Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: Colors.orange.shade50,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.orange.shade300),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.verified_user_outlined,
+                              color: Colors.orange.shade800),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              'Verify your Nueva Vizcaya residency to submit '
+                              'reports. Tap to verify — then you can report '
+                              'from anywhere.',
+                              style: TextStyle(
+                                  fontSize: 12.5,
+                                  height: 1.4,
+                                  color: Colors.orange.shade900),
+                            ),
+                          ),
+                          TextButton(
+                            onPressed: () => Navigator.of(context)
+                                .pushNamed('/verify-residency'),
+                            child: const Text('Verify'),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
                   _SubmissionOptionsCard(
                     isOffline: _isOffline,
-                    isAnonymous: _isAnonymous,
                     primaryColor: primaryLguColor,
                     onOfflineChanged: (v) => setState(() => _isOffline = v),
-                    onAnonymousChanged: (v) => setState(() => _isAnonymous = v),
                   ),
                   const SizedBox(height: 24),
                   _CategoryTreeSelector(
@@ -885,17 +956,13 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
 
 class _SubmissionOptionsCard extends StatelessWidget {
   final bool isOffline;
-  final bool isAnonymous;
   final Color primaryColor;
   final ValueChanged<bool> onOfflineChanged;
-  final ValueChanged<bool> onAnonymousChanged;
 
   const _SubmissionOptionsCard({
     required this.isOffline,
-    required this.isAnonymous,
     required this.primaryColor,
     required this.onOfflineChanged,
-    required this.onAnonymousChanged,
   });
 
   @override
@@ -946,34 +1013,36 @@ class _SubmissionOptionsCard extends StatelessWidget {
           const SizedBox(height: 14),
 
           // ── Identity ──────────────────────────────────────────────────
-          _sectionLabel(context, 'Your identity'),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              Expanded(
-                child: _ModeOption(
-                  icon: Icons.person_outlined,
-                  label: 'With my name',
-                  subtitle: 'LGU can follow up',
-                  selected: !isAnonymous,
-                  selectedColor: primaryColor,
-                  onTap: () => onAnonymousChanged(false),
-                  semanticHint: 'Submit with your name visible to LGU',
+          // Every report is tied to the verified submitter for accountability
+          // and follow-up (anonymous reporting has been removed at the LGU's
+          // request — government data-integrity requirement).
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              color: primaryColor.withValues(alpha: 0.06),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: primaryColor.withValues(alpha: 0.2)),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.verified_user_outlined,
+                    size: 18, color: primaryColor),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Submitted under your verified account so the LGU can '
+                    'follow up and keep records accountable.',
+                    style: TextStyle(
+                      fontSize: 12,
+                      height: 1.35,
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? const Color(0xFFA8ADB5)
+                          : const Color(0xFF555555),
+                    ),
+                  ),
                 ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: _ModeOption(
-                  icon: Icons.visibility_off_outlined,
-                  label: 'Anonymous',
-                  subtitle: 'Identity is hidden',
-                  selected: isAnonymous,
-                  selectedColor: Colors.grey.shade700,
-                  onTap: () => onAnonymousChanged(true),
-                  semanticHint: 'Submit anonymously, identity hidden from LGU',
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         ],
       ),
