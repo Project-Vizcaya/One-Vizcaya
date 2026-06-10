@@ -101,7 +101,10 @@ class _LoginScreenState extends State<LoginScreen>
         verificationFailed: (FirebaseAuthException e) {
           if (mounted) {
             setState(() => _isLoading = false);
-            ToastUtils.showError('Verification failed: ${e.message}');
+            // Surface the error CODE too (e.g. quota-exceeded,
+            // too-many-requests, missing-app-credential) so the cause can be
+            // diagnosed on-device, without a USB cable / adb logcat.
+            ToastUtils.showError('Verification failed [${e.code}]: ${e.message}');
           }
         },
         codeSent: (String verificationId, int? resendToken) {
@@ -756,7 +759,7 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
                       phoneNumber: widget.phoneNumber,
                       verificationCompleted: (_) {},
                       verificationFailed: (e) {
-                        ToastUtils.showError('Resend failed: ${e.message}');
+                        ToastUtils.showError('Resend failed [${e.code}]: ${e.message}');
                       },
                       codeSent: (newVerificationId, _) {
                         _currentVerificationId = newVerificationId;

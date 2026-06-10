@@ -63,11 +63,24 @@ testing over a few days exhausts it → real numbers get refused until it resets
 working. (Blaze is already enabled, so this is the *unverified-request* throttle,
 not the Spark SMS cap.)
 
-**Confirm via logcat** during a real attempt:
-```bash
-adb logcat | grep -iE "FirebaseAuth|quota|too-many|missing-app|Integrity|reCAPTCHA"
-```
-Look for `quota-exceeded`, `too-many-requests`, or `missing-app-credential`.
+**Confirm the exact cause — no cable needed.** The app now prints the error
+**code** right on the login screen, e.g. *"Verification failed
+[too-many-requests]: …"*. Read it off the phone:
+- `too-many-requests` / `quota-exceeded` → the daily throttle (wait for reset).
+- `missing-app-credential` / app-verification → Play Integrity + reCAPTCHA both
+  failed (sideloaded-build attestation).
+
+Cable-free alternatives if you want the full system log:
+- **Wireless debugging (no USB):** Android 11+ → Settings → Developer options →
+  **Wireless debugging** → *Pair device with pairing code*. On the shop PC:
+  `adb pair <ip>:<port>` (enter code) → `adb connect <ip>:<port>` →
+  `adb logcat | grep -iE "FirebaseAuth|quota|too-many|missing-app|Integrity"`.
+  (Phone and PC must be on the same Wi-Fi.)
+- **Firebase Console signals (no PC at all):** Authentication → Usage, and
+  App Check → metrics (the ~100% *unverified* rate is the throttle's fingerprint).
+
+You usually don't even need the log: **test number works + real number fails +
+App Check shows 100% unverified** is already conclusive.
 
 **Permanent fix:** ship through **Play Internal Testing** (§7) so Play Integrity
 attests the app and requests flip to *verified*.
@@ -168,6 +181,19 @@ real-number login works and the throttle disappears. (Blaze already on.)
 ### A. Play Console (one-time)
 1. **play.google.com/console** → pay the one-time **$25** → accept terms.
 2. **Create app** → "One Vizcaya" → App → Free.
+
+> **No $25 yet?** Play Internal Testing is the *only* route to true Play
+> Integrity attestation, so the permanent cure waits until you can register.
+> Until then, this works at **zero cost**:
+> - **Demos → test numbers** (bypass everything; §3).
+> - **Real-number proof → 1–2 sign-ins per day.** Because SHA-1 is registered,
+>   the **reCAPTCHA fallback** still verifies real numbers — you just can't
+>   exceed the small daily unverified allotment, so don't hammer it.
+> - **Distributing builds to teammates → Firebase App Distribution (free):**
+>   `firebase appdistribution:distribute app-release.apk --app <androidAppId> --groups testers`.
+>   Note: it eases *handing out* the APK but is still a sideloaded build — it
+>   does **not** grant Play Integrity, so the throttle math is unchanged.
+> The $25 is one-time and unlocks attestation permanently — worth budgeting.
 
 ### B. Make an uploadable signed build
 Play rejects debug-signed uploads, so create an **upload key** (once):
