@@ -41,14 +41,16 @@ function VerificationsPage() {
   const [busy, setBusy] = useState<string | null>(null);
 
   const scoped = viewAs === "municipal" && viewMunicipality;
+  // A Barangay admin is confined to their own barangay; municipal+ see the town.
+  const barangayScoped =
+    user?.role === "barangay_admin" && user?.barangay ? user.barangay : null;
 
   useEffect(() => {
     const base = collection(db, "verificationRequests");
-    const q = scoped
-      ? query(base, where("status", "==", "pending"),
-          where("municipality", "==", viewMunicipality),
-          orderBy("createdAt", "desc"))
-      : query(base, where("status", "==", "pending"), orderBy("createdAt", "desc"));
+    const filters = [where("status", "==", "pending")];
+    if (scoped) filters.push(where("municipality", "==", viewMunicipality));
+    if (barangayScoped) filters.push(where("barangay", "==", barangayScoped));
+    const q = query(base, ...filters, orderBy("createdAt", "desc"));
     const unsub = onSnapshot(
       q,
       (snap) => {
@@ -66,7 +68,7 @@ function VerificationsPage() {
       (err) => { console.error("verifications:", err); setLoading(false); }
     );
     return unsub;
-  }, [scoped, viewMunicipality]);
+  }, [scoped, viewMunicipality, barangayScoped]);
 
   async function decide(id: string, status: "approved" | "rejected") {
     setBusy(id);
@@ -93,7 +95,11 @@ function VerificationsPage() {
             <h1 className="text-lg font-bold tracking-tight">Residency Verifications</h1>
           </div>
           <p className="text-xs text-muted-foreground">
-            {scoped ? `${viewMunicipality} · ` : "Province-wide · "}
+            {barangayScoped
+              ? `${barangayScoped}, ${viewMunicipality} · `
+              : scoped
+                ? `${viewMunicipality} · `
+                : "Province-wide · "}
             {loading ? "Loading…" : `${requests.length} pending`}
           </p>
         </div>

@@ -38,12 +38,6 @@ service cloud.firestore {
       return isAuth() && role() in ['municipal_admin', 'provincial_admin', 'admin', 'super_admin'];
     }
 
-    // Lowest admin tier: a Barangay admin (plus Municipal+ as fallback). Used to
-    // approve resident certifications; their broader powers are barangay-scoped.
-    function isBarangayAdmin() {
-      return isAuth() && role() in ['barangay_admin', 'municipal_admin', 'provincial_admin', 'admin', 'super_admin'];
-    }
-
     // Any admin level (used for broad read access). NOTE: barangay_admin is
     // intentionally excluded here — it is not a broad-read role.
     function isAdmin() {
@@ -59,6 +53,13 @@ service cloud.firestore {
     function actorMunicipality() {
       return get(/databases/$(database)/documents/users/$(request.auth.uid))
         .data.get('municipality', '');
+    }
+
+    // The acting admin's barangay (from their user profile). Used to confine a
+    // Barangay admin to certifying ONLY residents of their own barangay.
+    function actorBarangay() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid))
+        .data.get('barangay', '');
     }
 
     // True when this report update is flipping escalatedToProvince false → true
@@ -234,17 +235,25 @@ service cloud.firestore {
       allow create: if isAuth()
                     && request.resource.data.uid == request.auth.uid
                     && request.resource.data.status == 'pending';
-      // Citizen reads their own; the owning municipality's Barangay/Municipal
-      // admin (or provincial+) reads to review.
+      // Citizen reads their own. Province-wide for provincial+. A Municipal admin
+      // is scoped to their whole town. A Barangay admin is confined to ONLY their
+      // own barangay (single-owner accountability at the base tier).
       allow read:   if (isAuth() && resource.data.uid == request.auth.uid)
                     || isProvincialAdmin()
-                    || (isBarangayAdmin()
-                        && actorMunicipality() == resource.data.municipality);
-      // Only the owning municipality's Barangay/Municipal admin (or provincial+)
-      // may decide (approve/reject); the decision is stamped + audited.
+                    || (isMunicipalAdmin()
+                        && actorMunicipality() == resource.data.municipality)
+                    || (role() == 'barangay_admin'
+                        && actorMunicipality() == resource.data.municipality
+                        && actorBarangay() == resource.data.barangay);
+      // Same scoping for deciding (approve/reject): provincial+ anywhere, a
+      // Municipal admin within their town, a Barangay admin ONLY within their
+      // own barangay. Every decision is stamped + audited server-side.
       allow update: if isProvincialAdmin()
-                    || (isBarangayAdmin()
-                        && actorMunicipality() == resource.data.municipality);
+                    || (isMunicipalAdmin()
+                        && actorMunicipality() == resource.data.municipality)
+                    || (role() == 'barangay_admin'
+                        && actorMunicipality() == resource.data.municipality
+                        && actorBarangay() == resource.data.barangay);
       allow delete: if isProvincialAdmin();
     }
   }

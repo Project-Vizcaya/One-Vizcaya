@@ -93,4 +93,5 @@ export interface AuthUser {
   name: string;
   role: AdminRole;
   municipality?: string;
+  barangay?: string;
 }

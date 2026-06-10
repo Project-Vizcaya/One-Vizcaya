@@ -52,6 +52,7 @@ export function useAuth() {
           name: data.name || "Admin",
           role: role as AuthUser["role"],
           municipality: data.municipality,
+          barangay: data.barangay,
         };
 
         setUser(authUser);
