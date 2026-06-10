@@ -84,9 +84,16 @@ service cloud.firestore {
       allow create: if (isOwner(userId)
                         && request.resource.data.get('role', 'citizen') == 'citizen')
                     || isProvincialAdmin();
+      // A user may update their OWN profile but must NOT change their 'role'
+      // (privilege guard) nor self-grant a 'certified' residency status — that
+      // is only set server-side after an LGU admin approves a residency request.
       allow update: if (isOwner(userId)
                         && request.resource.data.get('role', 'citizen')
-                           == resource.data.get('role', 'citizen'))
+                           == resource.data.get('role', 'citizen')
+                        && (request.resource.data.get('residencyStatus', 'unverified')
+                              == resource.data.get('residencyStatus', 'unverified')
+                            || request.resource.data.get('residencyStatus', 'unverified')
+                                 in ['unverified', 'gps_verified']))
                     || isProvincialAdmin();
       // A user may erase their OWN profile (RA 10173 right to erasure). Their
       // reports are NOT deletable here (see reports rule) — they are archived
@@ -208,6 +215,30 @@ service cloud.firestore {
     match /demo_meta/{docId} {
       allow read:  if isAdmin();
       allow write: if isProvincialAdmin();
+    }
+
+    // ─── Residency certification requests (Option 3, certified path) ──────────
+    // A citizen files a request to be certified as a Nueva Vizcaya resident;
+    // their Barangay admin (or the Municipal admin of that town, as fallback)
+    // reviews and decides. Approval triggers a server-side function that sets
+    // the citizen's residencyStatus = 'certified'.
+    match /verificationRequests/{reqId} {
+      // Citizen files their own request (must reference their own uid).
+      allow create: if isAuth()
+                    && request.resource.data.uid == request.auth.uid
+                    && request.resource.data.status == 'pending';
+      // Citizen reads their own; the owning municipality's Barangay/Municipal
+      // admin (or provincial+) reads to review.
+      allow read:   if (isAuth() && resource.data.uid == request.auth.uid)
+                    || isProvincialAdmin()
+                    || (isBarangayAdmin()
+                        && actorMunicipality() == resource.data.municipality);
+      // Only the owning municipality's Barangay/Municipal admin (or provincial+)
+      // may decide (approve/reject); the decision is stamped + audited.
+      allow update: if isProvincialAdmin()
+                    || (isBarangayAdmin()
+                        && actorMunicipality() == resource.data.municipality);
+      allow delete: if isProvincialAdmin();
     }
   }
 }

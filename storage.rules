@@ -29,6 +29,17 @@ service firebase.storage {
       allow update, delete: if false;
     }
 
+    // Residency-proof documents for the certification path. Files are named
+    // "<uid>_<timestamp>.jpg". The uploader writes their own; any signed-in
+    // admin/citizen can read (review access is scoped on the Firestore request).
+    match /residency_proofs/{docId} {
+      allow read: if isAuth();
+      allow create: if isAuth()
+        && request.resource.size < 10 * 1024 * 1024
+        && request.resource.contentType.matches('image/(jpeg|png)');
+      allow update, delete: if false;
+    }
+
     // Deny everything else by default.
     match /{allPaths=**} {
       allow read, write: if false;
