@@ -17,11 +17,13 @@ service cloud.firestore {
         : 'citizen';
     }
 
-    // ─── Role hierarchy ─────────────────────────────────────────────────────
+    // ─── Role hierarchy (Barangay → Municipal → Provincial → Region/Super) ───
     //   super_admin        → unrestricted access to everything
     //   provincial_admin   → read/write/delete across all municipalities
     //   admin              → legacy role, same power as provincial_admin
-    //   municipal_admin    → read/update reports; manage announcements & responders
+    //   municipal_admin    → read/update reports; manage announcements & responders;
+    //                        approve Municipal→Provincial escalations & residents
+    //   barangay_admin     → certify residents of their barangay (lowest tier)
     //   citizen            → own data only
 
     function isSuperAdmin() {
@@ -36,7 +38,14 @@ service cloud.firestore {
       return isAuth() && role() in ['municipal_admin', 'provincial_admin', 'admin', 'super_admin'];
     }
 
-    // Any admin level (used for broad read access)
+    // Lowest admin tier: a Barangay admin (plus Municipal+ as fallback). Used to
+    // approve resident certifications; their broader powers are barangay-scoped.
+    function isBarangayAdmin() {
+      return isAuth() && role() in ['barangay_admin', 'municipal_admin', 'provincial_admin', 'admin', 'super_admin'];
+    }
+
+    // Any admin level (used for broad read access). NOTE: barangay_admin is
+    // intentionally excluded here — it is not a broad-read role.
     function isAdmin() {
       return isAuth() && role() in ['municipal_admin', 'provincial_admin', 'admin', 'super_admin'];
     }

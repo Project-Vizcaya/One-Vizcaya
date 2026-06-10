@@ -362,6 +362,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
     switch (role) {
       case UserRole.citizen:
         return const Text('Standard app user', style: TextStyle(fontSize: 11));
+      case UserRole.barangayAdmin:
+        return const Text('Certifies residents & handles reports for their barangay',
+            style: TextStyle(fontSize: 11));
       case UserRole.admin:
         return const Text('Legacy admin (view only)', style: TextStyle(fontSize: 11));
       case UserRole.municipalAdmin:
@@ -4484,6 +4487,9 @@ class _RoleManagementTabState extends State<_RoleManagementTab> {
     switch (role) {
       case UserRole.citizen:
         return const Text('Standard app user', style: TextStyle(fontSize: 11));
+      case UserRole.barangayAdmin:
+        return const Text('Certifies residents & handles reports for their barangay',
+            style: TextStyle(fontSize: 11));
       case UserRole.admin:
         return const Text('Legacy admin (view only)', style: TextStyle(fontSize: 11));
       case UserRole.municipalAdmin:
@@ -4502,6 +4508,8 @@ class _RoleManagementTabState extends State<_RoleManagementTab> {
     switch (role) {
       case UserRole.citizen:
         return Colors.grey;
+      case UserRole.barangayAdmin:
+        return Colors.teal.shade600;
       case UserRole.admin:
         return Colors.blue;
       case UserRole.municipalAdmin:
