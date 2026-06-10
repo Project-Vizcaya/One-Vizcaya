@@ -52,9 +52,13 @@ export function useReports(municipality: string | null) {
 
   useEffect(() => {
     const base = collectionGroup(db, "reports");
+    // Approval chain (full "both"): the province-wide view only shows reports a
+    // Municipal admin has approved for escalation (escalatedToProvince == true).
+    // A specific-municipality view still shows all of that town's reports so the
+    // Municipal admin can triage and approve them.
     const q = municipality
       ? query(base, where("municipality", "==", municipality), orderBy("reportedAt", "desc"), limit(256))
-      : query(base, orderBy("reportedAt", "desc"), limit(256));
+      : query(base, where("escalatedToProvince", "==", true), orderBy("reportedAt", "desc"), limit(256));
 
     const unsub = onSnapshot(
       q,
