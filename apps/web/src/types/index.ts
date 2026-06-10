@@ -53,6 +53,7 @@ export interface AdminUser {
   email?: string;
   role: AdminRole | "citizen";
   municipality?: string;
+  barangay?: string;
   fcmToken?: string;
 }
 

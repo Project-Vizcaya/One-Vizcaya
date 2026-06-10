@@ -1,4 +1,33 @@
 rules_version = '2';
+// ═══════════════════════════════════════════════════════════════════════════
+//  One Vizcaya — Governance enforced at the database layer (not just the UI)
+//  ---------------------------------------------------------------------------
+//  This file is the TECHNICAL LAYER of the architecture documented in
+//    docs/Architecture-Governance-Design.md   (committee-facing, four layers)
+//    docs/Governance-Architecture.md           (condensed Barangay→Region II)
+//  It mirrors the real government hierarchy:
+//    Barangay → City/Municipality → Province → Region II
+//
+//  Design rule (from the docs)        →  Enforced here by
+//  ---------------------------------------------------------------------------
+//  Bounded authority per role         →  role() + isMunicipalAdmin()/etc.;
+//                                         barangay scoping uses actorMunicipality()
+//                                         AND actorBarangay()
+//  Single accountable owner           →  reports rules; escalation is a guarded
+//                                         write (approvingEscalation())
+//  Escalation control (no auto-jump)  →  Municipal admin of the OWNING town only,
+//                                         must stamp escalatedBy
+//  Append-only audit trail            →  audit_logs (create by admins, mutate by
+//                                         super_admin only); Cloud Functions write it
+//  Tenant data isolation              →  municipality/barangay equality checks on
+//                                         reads of reports & verificationRequests
+//  Verified-resident reporting        →  residencyStatus gate on report create;
+//                                         'certified' grantable only server-side
+//
+//  Authority is hierarchical and non-overlapping: a higher tier may READ what is
+//  below it, but may not silently override a lower tier's ownership — every
+//  transfer is an explicit, logged action.
+// ═══════════════════════════════════════════════════════════════════════════
 service cloud.firestore {
   match /databases/{database}/documents {
 
