@@ -25,6 +25,7 @@ import 'presentation/screens/weather_detail_screen.dart';
 import 'presentation/screens/my_data_screen.dart';
 import 'presentation/screens/data_request_screen.dart';
 import 'presentation/screens/developers_screen.dart';
+import 'presentation/screens/residency_verification_screen.dart';
 import 'features/auth/presentation/screens/privacy_policy_screen.dart';
 import 'presentation/widgets/auth_gate.dart';
 import 'presentation/widgets/biometric_lock.dart';
@@ -272,6 +273,8 @@ class _OneVizcayaAppState extends State<OneVizcayaApp> {
             '/my-data': (context) => const MyDataScreen(),
             '/data-request': (context) => const DataRequestScreen(),
             '/developers': (context) => const DevelopersScreen(),
+            '/verify-residency': (context) =>
+                const ResidencyVerificationScreen(),
           },
         );
           },

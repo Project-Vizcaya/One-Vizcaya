@@ -152,6 +152,16 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
                 ),
                 _DividerLine(),
                 _NavigationTile(
+                  icon: Icons.verified_user_outlined,
+                  iconColor: const Color(0xFF2E7D32),
+                  title: 'Verify Residency',
+                  subtitle:
+                      'Certify you are a Nueva Vizcaya resident (use the app anywhere)',
+                  onTap: () =>
+                      Navigator.of(context).pushNamed('/verify-residency'),
+                ),
+                _DividerLine(),
+                _NavigationTile(
                   icon: Icons.privacy_tip_outlined,
                   iconColor: const Color(0xFF2E7D32),
                   title: AppStrings.get('privacyPolicy'),
