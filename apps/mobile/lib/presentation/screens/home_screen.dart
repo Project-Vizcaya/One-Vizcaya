@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
 import '../../core/constants/app_constants.dart';
@@ -25,6 +27,11 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isOffline = false;
   int _queuedReportCount = 0;
   Timer? _connectivityTimer;
+
+  // Residency nudge: shown to users who aren't fully certified yet (dismissible).
+  String _residencyStatus = 'certified'; // default hides the nudge until loaded
+  bool _residencyNudgeDismissed = false;
+  static const String _residencyNudgeKey = 'residency_nudge_dismissed';
 
   // Municipality theme state — updated via listener instead of ValueListenableBuilder
   late String _municipality;
@@ -51,6 +58,7 @@ class _HomeScreenState extends State<HomeScreen> {
     oneVizcayaState.selectedMunicipality.addListener(_onMunicipalityChanged);
     _checkConnectivity();
     _refreshQueueCount();
+    _loadResidencyNudge();
     // Periodically recheck connectivity so the banner auto-dismisses
     _connectivityTimer = Timer.periodic(
       const Duration(seconds: 30),
@@ -85,6 +93,33 @@ class _HomeScreenState extends State<HomeScreen> {
       }
     }
   }
+
+  Future<void> _loadResidencyNudge() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final dismissed = prefs.getBool(_residencyNudgeKey) ?? false;
+      final doc =
+          await FirebaseFirestore.instance.collection('users').doc(uid).get();
+      final s = doc.data()?['residencyStatus'] as String?;
+      if (!mounted) return;
+      setState(() {
+        _residencyNudgeDismissed = dismissed;
+        if (s != null) _residencyStatus = s;
+      });
+    } catch (_) {}
+  }
+
+  Future<void> _dismissResidencyNudge() async {
+    setState(() => _residencyNudgeDismissed = true);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_residencyNudgeKey, true);
+  }
+
+  // Show the nudge to anyone not yet fully certified, unless they dismissed it.
+  bool get _showResidencyNudge =>
+      !_residencyNudgeDismissed && _residencyStatus != 'certified';
 
   @override
   void didChangeDependencies() {
@@ -524,6 +559,66 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
           ),
+
+          // ── Residency verification nudge (dismissible) ──
+          if (_showResidencyNudge) ...[
+            const SizedBox(height: 16),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(14),
+                  onTap: () =>
+                      Navigator.of(context).pushNamed('/verify-residency'),
+                  child: Ink(
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF2E7D32).withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                          color: const Color(0xFF2E7D32)
+                              .withValues(alpha: 0.3)),
+                    ),
+                    padding: const EdgeInsets.fromLTRB(14, 12, 6, 12),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.verified_user_outlined,
+                            color: Color(0xFF2E7D32)),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text('Get certified as a NV resident',
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 13.5,
+                                      color: Color(0xFF1B5E20))),
+                              const SizedBox(height: 2),
+                              Text(
+                                _residencyStatus == 'unverified'
+                                    ? 'Verify your residency to submit reports.'
+                                    : 'Certify once to report from anywhere — even outside the province.',
+                                style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey.shade700),
+                              ),
+                            ],
+                          ),
+                        ),
+                        IconButton(
+                          icon: Icon(Icons.close,
+                              size: 18, color: Colors.grey.shade500),
+                          tooltip: 'Dismiss',
+                          onPressed: _dismissResidencyNudge,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
 
           const SizedBox(height: 20),
 
