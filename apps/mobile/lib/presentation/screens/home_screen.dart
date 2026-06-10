@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:http/http.dart' as http;
+import 'package:url_launcher/url_launcher.dart';
 import '../../core/constants/app_constants.dart';
 import '../../core/l10n/app_strings.dart';
 import '../state/municipality_state.dart';
@@ -62,6 +63,27 @@ class _HomeScreenState extends State<HomeScreen> {
     _connectivityTimer?.cancel();
     oneVizcayaState.selectedMunicipality.removeListener(_onMunicipalityChanged);
     super.dispose();
+  }
+
+  // One-command emergency: opens the dialer pre-filled with the PDRRMO line.
+  Future<void> _callPdrrmo() async {
+    final uri = Uri(scheme: 'tel', path: AppConstants.pdrrmoHotline);
+    try {
+      if (!await launchUrl(uri)) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(
+                'Could not open the dialer. Call ${AppConstants.pdrrmoHotline}.'),
+          ));
+        }
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Call ${AppConstants.pdrrmoHotline} for emergencies.'),
+        ));
+      }
+    }
   }
 
   @override
@@ -426,6 +448,80 @@ class _HomeScreenState extends State<HomeScreen> {
                 ],
               ),
             ),
+            ),
+          ),
+
+          const SizedBox(height: 16),
+
+          // ── One-tap Emergency SOS (PDRRMO) ──
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(16),
+                onTap: _callPdrrmo,
+                child: Ink(
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFFC62828), Color(0xFFE53935)],
+                      begin: Alignment.centerLeft,
+                      end: Alignment.centerRight,
+                    ),
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFFC62828).withValues(alpha: 0.35),
+                        blurRadius: 14,
+                        offset: const Offset(0, 6),
+                      ),
+                    ],
+                  ),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 44,
+                        height: 44,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.2),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.sos_rounded,
+                            color: Colors.white, size: 26),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              AppStrings.get('emergencySosTitle'),
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 0.3,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              '${AppConstants.pdrrmoHotlineLabel} · ${AppConstants.pdrrmoHotline}',
+                              style: TextStyle(
+                                color: Colors.white.withValues(alpha: 0.9),
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const Icon(Icons.phone_in_talk_rounded,
+                          color: Colors.white, size: 26),
+                    ],
+                  ),
+                ),
+              ),
             ),
           ),
 
