@@ -64,9 +64,57 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
   double? _photoLatitude;
   double? _photoLongitude;
 
+  // Residency gate (Option 3). Default 'grandfathered' so existing users (no
+  // status field) are never blocked; only a confirmed 'unverified' status gates.
+  String _residencyStatus = 'grandfathered';
+  bool get _residencyBlocked => _residencyStatus == 'unverified';
+
   @override
   void initState() {
     super.initState();
+    _loadResidency();
+  }
+
+  Future<void> _loadResidency() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+    try {
+      final doc =
+          await FirebaseFirestore.instance.collection('users').doc(uid).get();
+      final s = doc.data()?['residencyStatus'] as String?;
+      if (mounted && s != null) setState(() => _residencyStatus = s);
+    } catch (_) {}
+  }
+
+  void _promptVerifyResidency() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        icon: const Icon(Icons.verified_user_outlined,
+            color: Color(0xFF2E7D32), size: 40),
+        title: const Text('Verify your residency first'),
+        content: const Text(
+            'Only verified Nueva Vizcaya residents can submit reports. Verify '
+            'your residency once and you can report from anywhere.'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Later')),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              Navigator.of(context).pushNamed('/verify-residency');
+            },
+            style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF2E7D32),
+                foregroundColor: Colors.white),
+            child: const Text('Verify now'),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _getLocation() async {
@@ -142,6 +190,10 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
   }
 
   Future<void> _submitReport() async {
+    if (_residencyBlocked) {
+      _promptVerifyResidency();
+      return;
+    }
     if (_selectedCategory == null) {
       setState(() => _categoryError = true);
       ToastUtils.showError('Please select a problem category.');
@@ -396,6 +448,40 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  if (_residencyBlocked) ...[
+                    Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: Colors.orange.shade50,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.orange.shade300),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.verified_user_outlined,
+                              color: Colors.orange.shade800),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              'Verify your Nueva Vizcaya residency to submit '
+                              'reports. Tap to verify — then you can report '
+                              'from anywhere.',
+                              style: TextStyle(
+                                  fontSize: 12.5,
+                                  height: 1.4,
+                                  color: Colors.orange.shade900),
+                            ),
+                          ),
+                          TextButton(
+                            onPressed: () => Navigator.of(context)
+                                .pushNamed('/verify-residency'),
+                            child: const Text('Verify'),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
                   _SubmissionOptionsCard(
                     isOffline: _isOffline,
                     primaryColor: primaryLguColor,
