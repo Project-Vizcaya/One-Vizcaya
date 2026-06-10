@@ -45,6 +45,20 @@ service cloud.firestore {
       return isAuth() && request.auth.uid == uid;
     }
 
+    // The acting admin's municipality (from their user profile), used to enforce
+    // that only the OWNING municipality's admin may approve an escalation.
+    function actorMunicipality() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid))
+        .data.get('municipality', '');
+    }
+
+    // True when this report update is flipping escalatedToProvince false → true
+    // (i.e. the Municipal → Provincial approval handoff).
+    function approvingEscalation() {
+      return resource.data.get('escalatedToProvince', false) == false
+        && request.resource.data.get('escalatedToProvince', false) == true;
+    }
+
     // ─── Super admin bypass ─────────────────────────────────────────────────
     // super_admin has unrestricted read/write access to every document
     match /{document=**} {
@@ -81,7 +95,17 @@ service cloud.firestore {
                       && request.resource.data.userPhone is string
                       && request.resource.data.userPhone.size() > 0
                       && request.resource.data.isAnonymous == false;
-        allow update: if isOwner(userId) || isAdmin();
+        // Approval chain (Municipal → Provincial): an escalation (turning on
+        // escalatedToProvince) may ONLY be approved by a Municipal admin of the
+        // report's own municipality, and must stamp escalatedBy with their uid.
+        // All other updates follow the normal owner/admin permissions. (super
+        // admin is covered by the bypass above.)
+        allow update: if (isAdmin() && !approvingEscalation())
+                      || isOwner(userId)
+                      || (approvingEscalation()
+                          && isMunicipalAdmin()
+                          && actorMunicipality() == resource.data.municipality
+                          && request.resource.data.escalatedBy == request.auth.uid);
         allow delete: if isProvincialAdmin();
       }
 

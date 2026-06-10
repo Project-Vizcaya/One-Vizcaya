@@ -24,6 +24,31 @@ exports.onUserDeleted = onDocumentDeleted("users/{userId}", async (event) => {
   });
 });
 
+// ── Audit trail: record Municipal → Provincial escalation approvals ──────────
+// Writes an immutable audit_logs entry whenever a report is approved for
+// escalation (escalatedToProvince flips false → true), capturing who approved
+// it and when — the auditable Municipal → Provincial handoff (gov review #2).
+exports.auditEscalationApproval = onDocumentUpdated(
+  "users/{userId}/reports/{reportId}",
+  async (event) => {
+    const before = event.data.before.data();
+    const after = event.data.after.data();
+    if (!before || !after) return;
+    if (before.escalatedToProvince === true || after.escalatedToProvince !== true) {
+      return; // only on the false → true approval transition
+    }
+    await admin.firestore().collection("audit_logs").add({
+      action: "escalation_approved",
+      reportId: event.params.reportId,
+      reportOwnerUid: event.params.userId,
+      municipality: after.municipality || null,
+      approvedBy: after.escalatedBy || null,
+      category: after.category || null,
+      at: admin.firestore.FieldValue.serverTimestamp(),
+    });
+  }
+);
+
 // ── Notify citizen when report status changes ────────────────────────────────
 exports.notifyOnStatusChange = onDocumentUpdated(
   "users/{userId}/reports/{reportId}",

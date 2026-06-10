@@ -30,6 +30,7 @@ class ProblemReport {
   // Escalation
   final bool escalatedToProvince;
   final DateTime? escalatedAt;
+  final String? escalatedBy; // uid of the municipal admin who approved escalation
 
   // Administrative tier currently handling this report (Barangay → Region II)
   final HandlingLevel handlingLevel;
@@ -67,6 +68,7 @@ class ProblemReport {
     this.photoLongitude,
     this.escalatedToProvince = false,
     this.escalatedAt,
+    this.escalatedBy,
     this.handlingLevel = HandlingLevel.municipal,
     this.isAnonymous = false,
     this.resolvedAt,
@@ -133,6 +135,7 @@ class ProblemReport {
       photoLongitude: (data['photoLongitude'] as num?)?.toDouble(),
       escalatedToProvince: data['escalatedToProvince'] as bool? ?? false,
       escalatedAt: (data['escalatedAt'] as Timestamp?)?.toDate(),
+      escalatedBy: data['escalatedBy'] as String?,
       handlingLevel: HandlingLevel.fromString(data['handlingLevel'] as String?),
       isAnonymous: data['isAnonymous'] as bool? ?? false,
       resolvedAt: (data['resolvedAt'] as Timestamp?)?.toDate(),
@@ -163,6 +166,7 @@ class ProblemReport {
       'photoLatitude': photoLatitude,
       'photoLongitude': photoLongitude,
       'escalatedToProvince': escalatedToProvince,
+      'escalatedBy': escalatedBy,
       'escalatedAt': escalatedAt != null
           ? Timestamp.fromDate(escalatedAt!)
           : null,
