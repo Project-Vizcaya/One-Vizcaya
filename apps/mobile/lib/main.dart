@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart'; // Added for kIsWeb and kReleaseMode
 import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_app_check/firebase_app_check.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:app_links/app_links.dart';
 import 'firebase_options.dart';
@@ -49,6 +50,21 @@ void main() async {
     FirebaseFirestore.instance.settings = const Settings(
       persistenceEnabled: true,
     );
+    // Sideloaded builds can never pass Play Integrity (only Play-distributed
+    // apps can), so phone sign-in falls back to reCAPTCHA — but the failing
+    // Play Integrity attempt first can poison that flow. Building with
+    //   flutter build apk --release --dart-define=FORCE_RECAPTCHA=true
+    // forces the reCAPTCHA web flow directly, which DOES work on a sideloaded
+    // APK (SHA-1 must be registered). Omit the flag for Play Store builds so
+    // they use the smoother Play Integrity path.
+    if (!kIsWeb &&
+        const bool.fromEnvironment('FORCE_RECAPTCHA', defaultValue: false)) {
+      try {
+        await FirebaseAuth.instance.setSettings(forceRecaptchaFlow: true);
+      } catch (e) {
+        debugPrint('forceRecaptchaFlow setting error: $e');
+      }
+    }
   } catch (e) {
     debugPrint('Firebase core init error: $e');
   }

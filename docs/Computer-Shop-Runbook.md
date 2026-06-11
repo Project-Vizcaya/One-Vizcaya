@@ -103,14 +103,25 @@ From `apps/mobile`:
 ```bash
 flutter pub get
 
-# Debug-signed release APK (sideload for quick tests; output below)
-flutter build apk --release
+# ▶ SIDELOAD APK for real-number testing WITHOUT a Play account.
+#   The --dart-define forces the reCAPTCHA flow (skips the Play Integrity
+#   attempt a sideloaded build can never pass), so real numbers verify via
+#   reCAPTCHA. Requires SHA-1 registered; still bound by the daily quota.
+flutter build apk --release --dart-define=FORCE_RECAPTCHA=true
 #  → build/app/outputs/flutter-apk/   (and one-vizcaya-<versionName>.apk)
 
-# App Bundle for Google Play upload (needed for Internal Testing, §7)
+# App Bundle for Google Play upload (Internal Testing, §7).
+#   DO NOT pass FORCE_RECAPTCHA here — Play builds should use Play Integrity.
 flutter build appbundle --release
 #  → build/app/outputs/bundle/release/app-release.aab
 ```
+
+> **Why the flag matters:** without `FORCE_RECAPTCHA=true`, a sideloaded APK
+> first tries Play Integrity, fails (it isn't Play-distributed), and the failure
+> can break the reCAPTCHA fallback → *"missing a valid app identifier."* The
+> flag goes straight to reCAPTCHA, which works on sideloaded builds. It's the
+> closest you get to reliable real-number login until you have the $25 Play
+> account (§7).
 
 **Signing logic** (`android/app/build.gradle.kts`): the release build signs with
 the **upload keystore IF `key.properties` exists**, otherwise it falls back to
