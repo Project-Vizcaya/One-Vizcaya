@@ -29,6 +29,17 @@ class ReleaseNote {
 /// Newest first.
 const List<ReleaseNote> kReleaseNotes = [
   ReleaseNote(
+    version: '1.8.0',
+    build: 30,
+    date: 'September 2026',
+    changes: [
+      ChangeEntry(ChangeType.improved,
+          'Urgent alerts now stand out — an emergency broadcast or announcement arrives with a distinct sound, a pop-up banner, and a red highlight, so you never miss a critical advisory.'),
+      ChangeEntry(ChangeType.fixed,
+          'Weather, maps, and reliability improvements across the app.'),
+    ],
+  ),
+  ReleaseNote(
     version: '1.7.0',
     build: 29,
     date: 'September 2026',
