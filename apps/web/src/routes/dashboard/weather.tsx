@@ -84,7 +84,9 @@ function WeatherPage() {
   const [uvError, setUvError] = useState(false);
 
   const [lat, lon] = NV_COORDS[place] ?? NV_COORDS["Province-wide"];
-  const zoom = place === "Province-wide" ? 9 : 11;
+  // Windy's forecast tiles are coarse; a tighter zoom looks blank/"wrong", so
+  // keep municipalities at a moderate zoom that reliably frames the town.
+  const zoom = place === "Province-wide" ? 9 : 10;
 
   // UV Index forecast at 4-hour intervals via Open-Meteo (free, no API key).
   // Auto-loads when the selected place changes — independent of the Windy key.
