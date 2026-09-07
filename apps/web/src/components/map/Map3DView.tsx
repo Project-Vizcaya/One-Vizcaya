@@ -7,18 +7,21 @@ import { NV_CENTER } from "@/lib/firebase";
 import { MUNICIPALITIES } from "@/data/municipalities";
 import type { Report, Responder } from "@/types";
 
-// The 3D view is WebGL-based. On remote-desktop / VM / server sessions or
-// browsers with hardware acceleration disabled, WebGL is often unavailable —
-// detect it so we can show a clear message instead of a blank map.
-function hasWebGL(): boolean {
+// The 3D view is WebGL-based. MapLibre GL v5 specifically needs a **WebGL 2**
+// context — a machine with hardware acceleration disabled (or a blocklisted
+// GPU) often exposes only software WebGL 1, which passes a naive check but then
+// leaves MapLibre unable to create its context, producing a silent blank map.
+// So we probe for webgl2 directly and report *why* it's unavailable.
+type WebGLState = "ok" | "webgl1only" | "none";
+function webglSupport(): WebGLState {
   try {
     const canvas = document.createElement("canvas");
-    return (
-      !!window.WebGLRenderingContext &&
-      !!(canvas.getContext("webgl") || canvas.getContext("experimental-webgl"))
-    );
+    if (canvas.getContext("webgl2")) return "ok";
+    if (canvas.getContext("webgl") || canvas.getContext("experimental-webgl"))
+      return "webgl1only";
+    return "none";
   } catch {
-    return false;
+    return "none";
   }
 }
 
@@ -60,8 +63,12 @@ export function Map3DView({ reports, responders }: Props) {
   const mapRef = useRef<maplibregl.Map | null>(null);
   const markersRef = useRef<maplibregl.Marker[]>([]);
   const [ready, setReady] = useState(false);
-  const [webglOk] = useState(hasWebGL);
+  const [webgl] = useState(webglSupport);
+  const webglOk = webgl === "ok";
   const [tileError, setTileError] = useState(false);
+  // Set when MapLibre fails to actually start (context creation throws, or the
+  // map never finishes loading) even though the webgl2 probe passed.
+  const [initError, setInitError] = useState(false);
 
   const reportPins = useMemo(
     () =>
@@ -88,7 +95,9 @@ export function Map3DView({ reports, responders }: Props) {
   // Initialise the map once (skip entirely when WebGL is unavailable).
   useEffect(() => {
     if (!webglOk || !containerRef.current || mapRef.current) return;
-    const map = new maplibregl.Map({
+    let map: maplibregl.Map;
+    try {
+      map = new maplibregl.Map({
       container: containerRef.current,
       attributionControl: { compact: true },
       maxPitch: 80,
@@ -129,9 +138,24 @@ export function Map3DView({ reports, responders }: Props) {
           },
         ],
       },
-    });
+      });
+    } catch (err) {
+      // MapLibre couldn't create its WebGL context even though the probe passed
+      // (e.g. software rendering the driver then refuses). Show the fallback.
+      // eslint-disable-next-line no-console
+      console.error("Map3DView: MapLibre init failed:", err);
+      setInitError(true);
+      return;
+    }
     mapRef.current = map;
     map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), "top-right");
+
+    // Safety net: if the map never finishes loading (context lost, tiles all
+    // blocked, canvas stays 0×0), don't leave a silent blank box forever.
+    const loadTimer = window.setTimeout(() => {
+      if (!mapRef.current) return;
+      setInitError(true);
+    }, 12000);
 
     // Surface tile/source failures (e.g. a network blocking the Esri/AWS hosts)
     // instead of leaving a silent blank map.
@@ -141,6 +165,8 @@ export function Map3DView({ reports, responders }: Props) {
       // eslint-disable-next-line no-console
       console.warn("Map3DView error:", e?.error ?? e);
     });
+    // A lost/failed WebGL context is the classic "blank 3D" cause — surface it.
+    map.on("webglcontextlost", () => setInitError(true));
 
     // MapLibre needs the container's final size; force a resize once it's laid
     // out (fixes a blank canvas when mounted into a freshly-sized container).
@@ -148,6 +174,7 @@ export function Map3DView({ reports, responders }: Props) {
     ro.observe(containerRef.current);
 
     map.on("load", () => {
+      window.clearTimeout(loadTimer);
       map.resize();
       try {
         map.setTerrain({ source: "terrain", exaggeration: 1.6 });
@@ -170,6 +197,7 @@ export function Map3DView({ reports, responders }: Props) {
       setReady(true);
     });
     return () => {
+      window.clearTimeout(loadTimer);
       ro.disconnect();
       map.remove();
       mapRef.current = null;
@@ -235,9 +263,9 @@ export function Map3DView({ reports, responders }: Props) {
     });
   };
 
-  // WebGL not available (common on remote-desktop / VM / server sessions or with
-  // hardware acceleration off): show a clear explanation instead of a blank box.
-  if (!webglOk) {
+  // WebGL 2 unavailable, or MapLibre failed to start even though the probe
+  // passed: show a clear, actionable explanation instead of a blank box.
+  if (!webglOk || initError) {
     return (
       <div
         className="flex flex-col items-center justify-center gap-2 rounded-lg border bg-muted/30 text-center p-6"
@@ -246,10 +274,15 @@ export function Map3DView({ reports, responders }: Props) {
         <MonitorX className="h-8 w-8 text-muted-foreground" />
         <p className="text-sm font-medium">3D view isn't available on this device</p>
         <p className="text-xs text-muted-foreground max-w-md">
-          The 3D terrain view needs WebGL / hardware graphics acceleration, which is
-          often disabled on remote-desktop, virtual-machine, or server sessions. Try a
-          normal laptop or phone browser, or enable hardware acceleration. The <strong>2D</strong>
-          {" "}map has all the same reports and responders.
+          The 3D terrain view needs <strong>WebGL 2</strong> with hardware graphics
+          acceleration. It's the same data as 2D — the <strong>2D</strong> map has every
+          report and responder.
+        </p>
+        <p className="text-xs text-muted-foreground max-w-md">
+          To enable it in Chrome: open <span className="font-mono">chrome://settings/system</span>,
+          turn on <em>“Use graphics acceleration when available”</em>, then relaunch. (On
+          remote-desktop / virtual-machine sessions the GPU is often unavailable and 3D
+          won't work regardless.)
         </p>
       </div>
     );
