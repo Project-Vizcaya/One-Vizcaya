@@ -24,15 +24,18 @@ interface AnnouncementsCardProps {
   loading: boolean;
 }
 
-const PROVINCIAL_ROLES = ["admin", "provincial_admin", "super_admin"];
-
 export function AnnouncementsCard({ announcements, loading }: AnnouncementsCardProps) {
   const { user } = useAuthStore();
 
-  // Mirrors the mobile composer: provincial-level admins choose the audience and
-  // post as the province; a municipal admin is pinned to their own municipality.
-  const isProvincial = PROVINCIAL_ROLES.includes(user?.role ?? "");
-  const homeMunicipality = user?.municipality ?? "";
+  // Follow the dashboard SCOPE (not just the role): a municipal admin — or a
+  // provincial/super admin who set the SCOPE dropdown to a town — posts only for
+  // that municipality (locked). Only province-wide view keeps the audience
+  // picker (All Municipalities / a specific town).
+  const viewAs = useAuthStore((s) => s.viewAs);
+  const viewMunicipality = useAuthStore((s) => s.viewMunicipality);
+  const homeMunicipality =
+    viewAs === "municipal" ? (viewMunicipality ?? user?.municipality ?? "") : "";
+  const isProvincial = viewAs !== "municipal";
   const defaultPostedBy = isProvincial
     ? "Provincial Government of Nueva Vizcaya"
     : homeMunicipality
