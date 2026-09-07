@@ -7,18 +7,22 @@ import { NV_CENTER } from "@/lib/firebase";
 import { MUNICIPALITIES } from "@/data/municipalities";
 import type { Report, Responder } from "@/types";
 
-// The 3D view is WebGL-based. MapLibre GL v5 specifically needs a **WebGL 2**
-// context — a machine with hardware acceleration disabled (or a blocklisted
-// GPU) often exposes only software WebGL 1, which passes a naive check but then
-// leaves MapLibre unable to create its context, producing a silent blank map.
-// So we probe for webgl2 directly and report *why* it's unavailable.
-type WebGLState = "ok" | "webgl1only" | "none";
+// The 3D view is WebGL-based. We pin MapLibre GL v4 (not v5) precisely because
+// v4 runs on **WebGL 1** — v5 requires WebGL 2, which is unavailable on many
+// real deployment machines (e.g. an office/café PC whose GPU driver Chrome has
+// blocklisted for WebGL 2 but still allows WebGL 1). WebGL 1 support is far
+// broader, so more people can see the God's Eye view. We still probe so a
+// machine with NO WebGL at all gets a clear message instead of a blank canvas.
+type WebGLState = "ok" | "none";
 function webglSupport(): WebGLState {
   try {
     const canvas = document.createElement("canvas");
-    if (canvas.getContext("webgl2")) return "ok";
-    if (canvas.getContext("webgl") || canvas.getContext("experimental-webgl"))
-      return "webgl1only";
+    if (
+      canvas.getContext("webgl2") ||
+      canvas.getContext("webgl") ||
+      canvas.getContext("experimental-webgl")
+    )
+      return "ok";
     return "none";
   } catch {
     return "none";
@@ -274,7 +278,7 @@ export function Map3DView({ reports, responders }: Props) {
         <MonitorX className="h-8 w-8 text-muted-foreground" />
         <p className="text-sm font-medium">3D view isn't available on this device</p>
         <p className="text-xs text-muted-foreground max-w-md">
-          The 3D terrain view needs <strong>WebGL 2</strong> with hardware graphics
+          The 3D terrain view needs <strong>WebGL</strong> with hardware graphics
           acceleration. It's the same data as 2D — the <strong>2D</strong> map has every
           report and responder.
         </p>
