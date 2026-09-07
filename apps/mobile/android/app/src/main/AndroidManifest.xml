@@ -43,6 +43,12 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+
+        <!-- Fallback channel for FCM pushes whose channelId isn't matched; the
+             app creates the real channels (incl. one_vizcaya_urgent) at launch. -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="one_vizcaya_broadcasts" />
     </application>
 
     <queries>
