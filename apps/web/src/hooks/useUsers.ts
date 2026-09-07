@@ -10,6 +10,8 @@ import {
   getDocs,
   Timestamp,
   addDoc,
+  deleteDoc,
+  writeBatch,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import type { AdminUser, AuditLog } from "@/types";
@@ -85,4 +87,17 @@ export async function writeAuditLog(userId: string, action: string, details: Rec
     userId,
     timestamp: Timestamp.now(),
   });
+}
+
+// Super-admin only (enforced by Firestore rules: audit_logs delete requires
+// isSuperAdmin). Deletes a single audit entry.
+export async function deleteAuditLog(id: string) {
+  await deleteDoc(doc(db, "audit_logs", id));
+}
+
+// Super-admin only. Clears the currently-loaded audit entries in one batch.
+export async function clearAuditLogs(ids: string[]) {
+  const batch = writeBatch(db);
+  for (const id of ids) batch.delete(doc(db, "audit_logs", id));
+  await batch.commit();
 }

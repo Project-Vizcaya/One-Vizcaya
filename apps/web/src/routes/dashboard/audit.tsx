@@ -1,10 +1,14 @@
+import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useAuditLog } from "@/hooks/useUsers";
+import { Button } from "@/components/ui/button";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { useAuditLog, deleteAuditLog, clearAuditLogs } from "@/hooks/useUsers";
 import { useAuthStore } from "@/stores/authStore";
+import { toast } from "@/hooks/useToast";
 import { timeAgo } from "@/lib/utils";
-import { ClipboardList } from "lucide-react";
+import { ClipboardList, Trash2, Loader2 } from "lucide-react";
 
 export const Route = createFileRoute("/dashboard/audit")({
   component: AuditPage,
@@ -13,6 +17,38 @@ export const Route = createFileRoute("/dashboard/audit")({
 function AuditPage() {
   const { user } = useAuthStore();
   const { logs, loading } = useAuditLog();
+  const isSuperAdmin = user?.role === "super_admin";
+
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [clearOpen, setClearOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  const handleDelete = async () => {
+    if (!deleteId) return;
+    setBusy(true);
+    try {
+      await deleteAuditLog(deleteId);
+      toast({ title: "Audit entry deleted", variant: "success" as never });
+    } catch (e) {
+      toast({ title: "Failed to delete", description: (e as { message?: string })?.message, variant: "destructive" });
+    } finally {
+      setBusy(false);
+      setDeleteId(null);
+    }
+  };
+
+  const handleClear = async () => {
+    setBusy(true);
+    try {
+      await clearAuditLogs(logs.map((l) => l.id));
+      toast({ title: "Audit log cleared", variant: "success" as never });
+    } catch (e) {
+      toast({ title: "Failed to clear", description: (e as { message?: string })?.message, variant: "destructive" });
+    } finally {
+      setBusy(false);
+      setClearOpen(false);
+    }
+  };
 
   return (
     <div className="p-3 sm:p-5 lg:p-6 space-y-5 max-w-[1600px] mx-auto">
@@ -26,9 +62,22 @@ function AuditPage() {
             Province of Nueva Vizcaya · Recent administrative actions
           </p>
         </div>
-        <div className="text-right shrink-0">
-          <p className="text-xs font-semibold text-foreground">{user?.name}</p>
-          <p className="text-[10px] text-muted-foreground">{new Date().toLocaleDateString("en-PH", { weekday: "short", year: "numeric", month: "short", day: "numeric" })}</p>
+        <div className="flex items-center gap-3 shrink-0">
+          {isSuperAdmin && logs.length > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 gap-1.5 text-xs text-destructive hover:text-destructive"
+              onClick={() => setClearOpen(true)}
+              disabled={busy}
+            >
+              <Trash2 className="h-3.5 w-3.5" /> Clear shown
+            </Button>
+          )}
+          <div className="text-right hidden sm:block">
+            <p className="text-xs font-semibold text-foreground">{user?.name}</p>
+            <p className="text-[10px] text-muted-foreground">{new Date().toLocaleDateString("en-PH", { weekday: "short", year: "numeric", month: "short", day: "numeric" })}</p>
+          </div>
         </div>
       </div>
 
@@ -60,6 +109,17 @@ function AuditPage() {
                         </p>
                       )}
                     </div>
+                    {isSuperAdmin && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 shrink-0 text-muted-foreground hover:text-destructive"
+                        onClick={() => setDeleteId(log.id)}
+                        aria-label="Delete audit entry"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    )}
                   </div>
                 ))}
               </div>
@@ -68,6 +128,43 @@ function AuditPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Delete one */}
+      <AlertDialog open={!!deleteId} onOpenChange={(o) => !o && setDeleteId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this audit entry?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This permanently removes one entry from the audit trail. This can't be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={busy}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} disabled={busy} className="bg-destructive hover:bg-destructive/90">
+              {busy ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Clear all shown */}
+      <AlertDialog open={clearOpen} onOpenChange={(o) => !o && setClearOpen(false)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Clear the shown audit entries?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This permanently deletes the {logs.length} entries currently shown. Older entries beyond
+              these aren't affected. This can't be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={busy}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleClear} disabled={busy} className="bg-destructive hover:bg-destructive/90">
+              {busy ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}Clear
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

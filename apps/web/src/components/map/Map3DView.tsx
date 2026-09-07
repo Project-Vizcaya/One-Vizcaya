@@ -1,11 +1,26 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
-import { Loader2, Mountain } from "lucide-react";
+import { Loader2, Mountain, MonitorX } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { NV_CENTER } from "@/lib/firebase";
 import { MUNICIPALITIES } from "@/data/municipalities";
 import type { Report, Responder } from "@/types";
+
+// The 3D view is WebGL-based. On remote-desktop / VM / server sessions or
+// browsers with hardware acceleration disabled, WebGL is often unavailable —
+// detect it so we can show a clear message instead of a blank map.
+function hasWebGL(): boolean {
+  try {
+    const canvas = document.createElement("canvas");
+    return (
+      !!window.WebGLRenderingContext &&
+      !!(canvas.getContext("webgl") || canvas.getContext("experimental-webgl"))
+    );
+  } catch {
+    return false;
+  }
+}
 
 // "Vizcaya's Eye" — a 3D terrain view of the province built on MapLibre GL with
 // FREE, no-API-key data: Esri World Imagery (satellite) draped over Mapzen/AWS
@@ -45,6 +60,8 @@ export function Map3DView({ reports, responders }: Props) {
   const mapRef = useRef<maplibregl.Map | null>(null);
   const markersRef = useRef<maplibregl.Marker[]>([]);
   const [ready, setReady] = useState(false);
+  const [webglOk] = useState(hasWebGL);
+  const [tileError, setTileError] = useState(false);
 
   const reportPins = useMemo(
     () =>
@@ -68,9 +85,9 @@ export function Map3DView({ reports, responders }: Props) {
     [responders],
   );
 
-  // Initialise the map once.
+  // Initialise the map once (skip entirely when WebGL is unavailable).
   useEffect(() => {
-    if (!containerRef.current || mapRef.current) return;
+    if (!webglOk || !containerRef.current || mapRef.current) return;
     const map = new maplibregl.Map({
       container: containerRef.current,
       attributionControl: { compact: true },
@@ -115,7 +132,23 @@ export function Map3DView({ reports, responders }: Props) {
     });
     mapRef.current = map;
     map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), "top-right");
+
+    // Surface tile/source failures (e.g. a network blocking the Esri/AWS hosts)
+    // instead of leaving a silent blank map.
+    map.on("error", (e) => {
+      const status = (e as { error?: { status?: number } }).error?.status;
+      if (status && status >= 400) setTileError(true);
+      // eslint-disable-next-line no-console
+      console.warn("Map3DView error:", e?.error ?? e);
+    });
+
+    // MapLibre needs the container's final size; force a resize once it's laid
+    // out (fixes a blank canvas when mounted into a freshly-sized container).
+    const ro = new ResizeObserver(() => map.resize());
+    ro.observe(containerRef.current);
+
     map.on("load", () => {
+      map.resize();
       try {
         map.setTerrain({ source: "terrain", exaggeration: 1.6 });
       } catch {
@@ -137,10 +170,11 @@ export function Map3DView({ reports, responders }: Props) {
       setReady(true);
     });
     return () => {
+      ro.disconnect();
       map.remove();
       mapRef.current = null;
     };
-  }, []);
+  }, [webglOk]);
 
   // (Re)draw markers when the map is ready or the data changes.
   useEffect(() => {
@@ -201,6 +235,26 @@ export function Map3DView({ reports, responders }: Props) {
     });
   };
 
+  // WebGL not available (common on remote-desktop / VM / server sessions or with
+  // hardware acceleration off): show a clear explanation instead of a blank box.
+  if (!webglOk) {
+    return (
+      <div
+        className="flex flex-col items-center justify-center gap-2 rounded-lg border bg-muted/30 text-center p-6"
+        style={{ height: "clamp(340px, 55vw, 560px)" }}
+      >
+        <MonitorX className="h-8 w-8 text-muted-foreground" />
+        <p className="text-sm font-medium">3D view isn't available on this device</p>
+        <p className="text-xs text-muted-foreground max-w-md">
+          The 3D terrain view needs WebGL / hardware graphics acceleration, which is
+          often disabled on remote-desktop, virtual-machine, or server sessions. Try a
+          normal laptop or phone browser, or enable hardware acceleration. The <strong>2D</strong>
+          {" "}map has all the same reports and responders.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-3">
       <div
@@ -211,6 +265,11 @@ export function Map3DView({ reports, responders }: Props) {
         {!ready && (
           <div className="absolute inset-0 flex items-center justify-center bg-muted/40 z-10">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          </div>
+        )}
+        {tileError && (
+          <div className="absolute inset-x-0 top-0 z-20 bg-amber-500/90 text-white text-[11px] px-3 py-1.5 text-center">
+            Some map tiles couldn't load — check the network connection.
           </div>
         )}
         <Button
