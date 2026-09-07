@@ -876,6 +876,14 @@ exports.onNewBroadcast = onDocumentCreated(
 
     if (tokens.length === 0) return;
 
+    // Distinguish an urgent broadcast in the notification tray: a 🚨 URGENT
+    // title prefix, and routing to the dedicated high-importance "urgent"
+    // channel the app registers (heads-up banner + sound + vibration + red
+    // accent). Routine broadcasts stay on the calm "broadcasts" channel.
+    // The raw title/body are still sent in the data payload so the in-app
+    // presenter can render its own urgent takeover without the prefix.
+    const pushTitle = urgent ? `🚨 URGENT · ${title}` : title;
+
     // Send in batches of 500 (FCM limit)
     for (let i = 0; i < tokens.length; i += 500) {
       const batch = tokens.slice(i, i + 500);
@@ -883,7 +891,7 @@ exports.onNewBroadcast = onDocumentCreated(
         .messaging()
         .sendEachForMulticast({
           tokens: batch,
-          notification: { title, body },
+          notification: { title: pushTitle, body },
           // Data payload lets the app recognise a broadcast: in the foreground it
           // presents the in-app urgent takeover / heads-up banner (and suppresses
           // the generic toast), and a tray tap opens the same presentation.
@@ -894,9 +902,12 @@ exports.onNewBroadcast = onDocumentCreated(
             body: String(body),
           },
           android: {
+            priority: "high",
             notification: {
-              channelId: "one_vizcaya_broadcasts",
-              priority: "high",
+              channelId: urgent ? "one_vizcaya_urgent" : "one_vizcaya_broadcasts",
+              notificationPriority: urgent ? "PRIORITY_MAX" : "PRIORITY_HIGH",
+              visibility: "public",
+              defaultSound: true,
               color: urgent ? "#8B0000" : "#1B5E20",
             },
           },
@@ -940,7 +951,11 @@ exports.onNewAnnouncement = onDocumentCreated(
     if (tokens.length === 0) return;
 
     const isUrgent = data.isUrgent === true;
-    const pushTitle = isUrgent ? `⚠ ${title}` : title;
+    // Urgent announcements get the same tray distinction as urgent broadcasts:
+    // a 🚨 URGENT title prefix and routing to the high-importance "urgent"
+    // channel (heads-up + sound + red accent). Routine announcements land on
+    // the calm "announcements" channel.
+    const pushTitle = isUrgent ? `🚨 URGENT · ${title}` : title;
     const pushBody = (body || "").slice(0, 240);
 
     for (let i = 0; i < tokens.length; i += 500) {
@@ -951,10 +966,13 @@ exports.onNewAnnouncement = onDocumentCreated(
           tokens: batch,
           notification: { title: pushTitle, body: pushBody },
           android: {
+            priority: "high",
             notification: {
-              channelId: "one_vizcaya_broadcasts",
-              priority: "high",
-              color: isUrgent ? "#D32F2F" : "#1B5E20",
+              channelId: isUrgent ? "one_vizcaya_urgent" : "one_vizcaya_announcements",
+              notificationPriority: isUrgent ? "PRIORITY_MAX" : "PRIORITY_DEFAULT",
+              visibility: "public",
+              defaultSound: true,
+              color: isUrgent ? "#8B0000" : "#1B5E20",
             },
           },
           data: {
@@ -1074,9 +1092,12 @@ exports.onSosAlertCreated = onDocumentCreated(
         android: {
           priority: "high",
           notification: {
-            channelId: "one_vizcaya_broadcasts",
-            priority: "max",
-            sound: "default",
+            // An SOS is always time-critical — use the high-importance urgent
+            // channel so responders get a heads-up banner + sound + red accent.
+            channelId: "one_vizcaya_urgent",
+            notificationPriority: "PRIORITY_MAX",
+            visibility: "public",
+            defaultSound: true,
             color: "#C62828",
           },
         },
