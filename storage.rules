@@ -1,10 +1,19 @@
 rules_version = '2';
 
 // Firebase Storage security rules for One Vizcaya.
-// Mirrors the role model in firestore.rules: citizens upload their own report
-// photo evidence; any authenticated user (citizens for the community feed,
-// admins for triage) can read it. Without these rules photo uploads/reads are
-// denied by default — which left report photos missing in the admin view.
+//
+// Read access mirrors the role model in firestore.rules: a citizen may read
+// only their OWN uploads, and only authorised admin tiers may read others'.
+// Previously both paths were `allow read: if isAuth()`, which let any signed-in
+// citizen fetch any report photo — and, more seriously, any resident's uploaded
+// government ID / barangay certificate — if they knew or guessed the path.
+// Scoping the file itself (not just the Firestore metadata around it) is what a
+// data-privacy assessment under RA 10173 expects.
+//
+// Uploads are named "<uid>_<timestamp>.jpg" (report_problem_screen.dart:149,
+// residency_verification_screen.dart:115). Firebase Auth uids are alphanumeric
+// and contain no underscore, so the first "_"-separated segment identifies the
+// owner reliably.
 service firebase.storage {
   match /b/{bucket}/o {
 
@@ -12,11 +21,29 @@ service firebase.storage {
       return request.auth != null;
     }
 
+    // The uid prefix of "<uid>_<timestamp>.jpg" is the uploader.
+    function isOwner(fileName) {
+      return isAuth() && fileName.split('_')[0] == request.auth.uid;
+    }
+
+    // Storage rules cannot read Auth custom claims, so the caller's role comes
+    // from their Firestore profile — the same fallback firestore.rules uses.
+    // Evaluated only after isOwner() fails, so a citizen reading their own file
+    // costs no extra Firestore read.
+    function isAnyAdmin() {
+      return isAuth() && firestore.get(
+        /databases/(default)/documents/users/$(request.auth.uid)
+      ).data.get('role', '') in [
+        'barangay_admin', 'municipal_admin', 'provincial_admin', 'admin', 'super_admin'
+      ];
+    }
+
     // Report photo evidence. Files are named "<uid>_<timestamp>.jpg".
     match /report_images/{imageId} {
-      // Any signed-in user can view evidence (admins triage; citizens see the
-      // community "Recently Resolved" feed and their own report photos).
-      allow read: if isAuth();
+      // The reporter may view their own evidence; admins view it to triage.
+      // The citizen "Recently Resolved" community feed renders no photos
+      // (community_feed.dart), so it is unaffected by this scoping.
+      allow read: if isOwner(imageId) || isAnyAdmin();
 
       // Authenticated users may upload, but only JPEG/PNG images up to 10 MB
       // (client compresses to ~200 KB; this is a safety ceiling).
@@ -29,14 +56,17 @@ service firebase.storage {
       allow update, delete: if false;
     }
 
-    // Residency-proof documents for the certification path. Files are named
-    // "<uid>_<timestamp>.jpg". The uploader writes their own; any signed-in
-    // admin/citizen can read (review access is scoped on the Firestore request).
+    // Residency-proof documents for the certification path — uploaded
+    // government IDs and barangay certificates. Files are "<uid>_<timestamp>.jpg".
     match /residency_proofs/{docId} {
-      allow read: if isAuth();
+      // Only the resident who uploaded it and the admins who review the
+      // certification queue may read it.
+      allow read: if isOwner(docId) || isAnyAdmin();
+
       allow create: if isAuth()
         && request.resource.size < 10 * 1024 * 1024
         && request.resource.contentType.matches('image/(jpeg|png)');
+
       allow update, delete: if false;
     }
 

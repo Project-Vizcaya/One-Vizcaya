@@ -251,9 +251,12 @@ service cloud.firestore {
       allow read:          if isAuth();
       // Provincial+ may post for any scope (incl. province-wide). A Municipal
       // admin may ONLY post announcements tagged with their OWN municipality —
-      // not "all" and not another town.
+      // not "all" and not another town. The actorMunicipality() != '' guard
+      // stops an admin with no municipality on their profile from matching an
+      // empty municipality field, which onNewAnnouncement treats as "All".
       allow create, update: if isProvincialAdmin()
                             || (role() == 'municipal_admin'
+                                && actorMunicipality() != ''
                                 && request.resource.data.get('municipality', '')
                                    == actorMunicipality());
       allow delete:        if isProvincialAdmin();
@@ -269,7 +272,23 @@ service cloud.firestore {
     // ─── FCM broadcast records ───────────────────────────────────────────────
     match /broadcasts/{broadcastId} {
       allow read:   if isAdmin();
-      allow create: if isAdmin();
+      // Provincial+ may broadcast to any scope (incl. province-wide). A
+      // Municipal admin may ONLY broadcast to their OWN municipality. Until now
+      // this was enforced in the composer UI alone, so any admin could write
+      // scope:"all" directly and onNewBroadcast would fan it out province-wide.
+      //
+      // onNewBroadcast resolves the target as: `municipality` if set, else
+      // `scope` when scope is itself a town name, else province-wide. Both
+      // spellings are therefore checked here. The actorMunicipality() != ''
+      // guard stops an admin with no municipality on their profile from
+      // matching an empty municipality field and reaching everyone.
+      allow create: if isProvincialAdmin()
+                    || (role() == 'municipal_admin'
+                        && actorMunicipality() != ''
+                        && (request.resource.data.get('municipality', '')
+                              == actorMunicipality()
+                            || request.resource.data.get('scope', '')
+                              == actorMunicipality()));
       allow delete: if isProvincialAdmin();
     }
 
