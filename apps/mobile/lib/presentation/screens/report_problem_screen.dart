@@ -1097,6 +1097,64 @@ class _SubmissionOptionsCard extends StatelessWidget {
               ],
             ),
           ),
+
+          // ── Supplementary-channel notice (PDRRMO letter §7 and §11) ──────
+          // PDRRMO asked that the app "complement, rather than replace,
+          // established emergency mechanisms such as the Provincial EOC/OpCen,
+          // MDRRMOs, emergency hotlines, radio communications, 911" and that it
+          // "not create an expectation of 24/7 emergency response". It has to
+          // say so at the point of reporting, not only in project docs.
+          const SizedBox(height: 12),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF3A2E12) : const Color(0xFFFFF8E1),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: isDark ? const Color(0xFF6B5420) : const Color(0xFFFFE082),
+              ),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(
+                  Icons.info_outline_rounded,
+                  size: 18,
+                  color: isDark ? const Color(0xFFE0B65C) : const Color(0xFF8D6E00),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        AppStrings.get('notReplacementTitle'),
+                        style: TextStyle(
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w700,
+                          color: isDark
+                              ? const Color(0xFFE0B65C)
+                              : const Color(0xFF8D6E00),
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        AppStrings.get('notReplacementBody'),
+                        style: TextStyle(
+                          fontSize: 12,
+                          height: 1.35,
+                          color: isDark
+                              ? const Color(0xFFCBB683)
+                              : const Color(0xFF6B5420),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );

@@ -1158,6 +1158,55 @@ exports.cleanupReportImageOnDelete = onDocumentDeleted(
   }
 );
 
+// ── Audit trail: record report deletions ─────────────────────────────────────
+// PDRRMO §8 asks for measures to manage false/incomplete/duplicate reports and
+// §3 for accountability over the records. Until now a report could be deleted
+// permanently with NO audit entry at all, so a report could disappear without
+// trace. This records every deletion immutably.
+//
+// It also doubles as the RA 10173 disposal record PDRRMO §9 asks for, by
+// distinguishing an operator deletion from the 24-month retention purge
+// (deleteOldArchivedReports). Age is used to tell them apart because a
+// Firestore trigger carries no auth context.
+//
+// NOTE: for the same reason this cannot record WHO deleted the report. Rules
+// restrict report deletion to provincial admins, so the actor set is small, but
+// full attribution needs deletion routed through a callable that verifies the
+// caller — tracked as follow-up work.
+exports.onReportDeleted = onDocumentDeleted(
+  "users/{userId}/reports/{reportId}",
+  async (event) => {
+    const data = (event.data && event.data.data()) || {};
+    const reportedAt = data.reportedAt?.toDate?.() ?? null;
+    const ageMonths = reportedAt
+      ? (Date.now() - reportedAt.getTime()) / (1000 * 60 * 60 * 24 * 30.44)
+      : null;
+    // The retention job only ever deletes reports past 24 months.
+    const cause =
+      ageMonths !== null && ageMonths >= 24
+        ? "retention_24_months"
+        : "operator_deletion";
+
+    await admin
+      .firestore()
+      .collection("audit_logs")
+      .add({
+        action: "report_deleted",
+        cause,
+        targetUid: event.params.userId,
+        reportId: event.params.reportId,
+        category: data.category || null,
+        municipality: data.municipality || null,
+        barangay: data.barangay || null,
+        status: data.status || null,
+        priority: data.priority || null,
+        reportedAt: data.reportedAt || null,
+        at: admin.firestore.FieldValue.serverTimestamp(),
+      })
+      .catch((e) => console.error("onReportDeleted audit write failed:", e));
+  }
+);
+
 // ── RA 10173 retention: purge reports older than 24 months ───────────────────
 // Runs daily at 3 AM Manila time. The privacy policy commits to deleting
 // archived reports after 24 months; archiveOldReports only marks them at 12
