@@ -115,6 +115,38 @@ service cloud.firestore {
         && request.resource.data.get('escalatedToProvince', false) == true;
     }
 
+    // ─── Report disposition (PDRRMO §8) ───────────────────────────────────────
+    // A report can be closed WITHOUT action as false / duplicate / incomplete /
+    // unverifiable — recorded, never silently deleted. The fields are written
+    // together and only by an in-scope admin, who must stamp their own uid.
+
+    function dispositionFields() {
+      return ['status', 'disposition', 'dispositionReason', 'dispositionBy',
+              'dispositionAt', 'duplicateOf'];
+    }
+
+    // Admin-side check, applied to every admin update of a report:
+    //  - status 'closed' is only valid with a disposition (and vice versa);
+    //  - a disposition needs an allowed value, a real reason (>= 5 chars) and
+    //    dispositionBy == the acting admin;
+    //  - clearing a disposition (re-opening) must also move off 'closed'.
+    //  - checked only when one of those fields CHANGES, so another admin can
+    //    still add notes to a closed report;
+    //  - dispositionAt must be the server's time, not a client-chosen one.
+    function validDisposition() {
+      let d = request.resource.data;
+      let disp = d.get('disposition', null);
+      let changed = d.diff(resource.data).affectedKeys().hasAny(dispositionFields());
+      return !changed
+          || (disp == null && d.get('status', '') != 'closed')
+          || (disp in ['false_report', 'duplicate', 'incomplete', 'unverifiable']
+              && d.get('status', '') == 'closed'
+              && d.get('dispositionReason', '') is string
+              && d.get('dispositionReason', '').size() >= 5
+              && d.get('dispositionBy', '') == request.auth.uid
+              && d.get('dispositionAt', null) == request.time);
+    }
+
     // ─── Super admin bypass ─────────────────────────────────────────────────
     // super_admin has unrestricted read/write access to every document
     match /{document=**} {
@@ -181,13 +213,22 @@ service cloud.firestore {
         // report's own municipality, and must stamp escalatedBy with their uid.
         // All other updates follow the normal owner/admin permissions. (super
         // admin is covered by the bypass above.)
-        allow update: if (isProvincialAdmin() && !approvingEscalation())
-                      || (municipalScoped(resource.data) && !approvingEscalation())
-                      || (barangayScoped(resource.data) && !approvingEscalation())
-                      || isOwner(userId)
-                      || (approvingEscalation()
-                          && municipalScoped(resource.data)
-                          && request.resource.data.escalatedBy == request.auth.uid);
+        //
+        // The owner may update their report but may NOT touch its status or
+        // disposition — previously `isOwner(userId)` allowed any field, so a
+        // reporter could mark their own report solved or clear a "false
+        // report" disposition. (Citizens never write their report document in
+        // the app; ratings go to the feedback subcollection.)
+        allow update: if ((isProvincialAdmin() && !approvingEscalation())
+                         || (municipalScoped(resource.data) && !approvingEscalation())
+                         || (barangayScoped(resource.data) && !approvingEscalation())
+                         || (approvingEscalation()
+                             && municipalScoped(resource.data)
+                             && request.resource.data.escalatedBy == request.auth.uid))
+                         && validDisposition()
+                      || (isOwner(userId)
+                          && !request.resource.data.diff(resource.data)
+                               .affectedKeys().hasAny(dispositionFields()));
         allow delete: if isProvincialAdmin();
       }
 
@@ -237,12 +278,17 @@ service cloud.firestore {
                     || municipalScoped(resource.data)
                     || barangayScoped(resource.data)
                     || (isAuth() && resource.data.status == 'solved');
-      allow update: if (isProvincialAdmin() && !approvingEscalation())
-                    || (municipalScoped(resource.data) && !approvingEscalation())
-                    || (barangayScoped(resource.data) && !approvingEscalation())
-                    || (approvingEscalation()
-                        && municipalScoped(resource.data)
-                        && request.resource.data.escalatedBy == request.auth.uid);
+      // NOTE: this collection-group match ALSO matches users/{uid}/reports/{id},
+      // and Firestore ORs every matching rule. Any constraint on report updates
+      // must therefore appear here as well as in the nested rule, or it is
+      // silently bypassed — validDisposition() was, until rules tests caught it.
+      allow update: if ((isProvincialAdmin() && !approvingEscalation())
+                       || (municipalScoped(resource.data) && !approvingEscalation())
+                       || (barangayScoped(resource.data) && !approvingEscalation())
+                       || (approvingEscalation()
+                           && municipalScoped(resource.data)
+                           && request.resource.data.escalatedBy == request.auth.uid))
+                       && validDisposition();
       allow delete: if isProvincialAdmin();
     }
 

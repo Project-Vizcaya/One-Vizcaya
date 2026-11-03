@@ -1,0 +1,172 @@
+"use strict";
+
+// Firestore security-rule tests, run against the real firestore.rules in the
+// Firestore emulator (npm test — needs Java 11+). Rules are evaluated exactly
+// as in production, including how separate `allow` statements combine: they
+// are OR-ed, so a permissive rule elsewhere (e.g. the super-admin bypass) can
+// grant access that a later `allow write: if false` does not take away.
+
+const { test, before, after, beforeEach } = require("node:test");
+const fs = require("node:fs");
+const path = require("node:path");
+const {
+  initializeTestEnvironment, assertSucceeds, assertFails,
+} = require("@firebase/rules-unit-testing");
+const {
+  doc, getDoc, setDoc, updateDoc, deleteField, serverTimestamp, Timestamp,
+} = require("firebase/firestore");
+
+let env;
+const REPORT = "users/citizen/reports/r1";
+
+const USERS = {
+  super: { role: "super_admin" },
+  prov: { role: "provincial_admin" },
+  muni: { role: "municipal_admin", municipality: "Bambang" },
+  muniOther: { role: "municipal_admin", municipality: "Solano" },
+  muniNoTown: { role: "municipal_admin" },
+  citizen: { role: "citizen", municipality: "Bambang", residencyStatus: "certified" },
+};
+
+before(async () => {
+  env = await initializeTestEnvironment({
+    projectId: "demo-onevizcaya",
+    firestore: { rules: fs.readFileSync(path.join(__dirname, "../../firestore.rules"), "utf8") },
+  });
+});
+after(() => env.cleanup());
+
+beforeEach(async () => {
+  await env.clearFirestore();
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    const db = ctx.firestore();
+    for (const [uid, data] of Object.entries(USERS)) await setDoc(doc(db, "users", uid), data);
+    await setDoc(doc(db, REPORT), {
+      userId: "citizen", userPhone: "+639000000000", isAnonymous: false,
+      municipality: "Bambang", barangay: "Poblacion", category: "Flooding",
+      status: "reported", escalatedToProvince: false,
+    });
+  });
+});
+
+const as = (uid) => env.authenticatedContext(uid).firestore();
+
+/** A complete, valid "close without action" by `uid`. */
+const closeBy = (uid, extra = {}) => ({
+  status: "closed",
+  disposition: "duplicate",
+  dispositionReason: "Same flooding report as r0, filed twice.",
+  dispositionBy: uid,
+  dispositionAt: serverTimestamp(),
+  ...extra,
+});
+
+// ── report disposition ─────────────────────────────────────────────────────
+
+test("in-scope municipal admin can close a report with a valid disposition", async () => {
+  await assertSucceeds(updateDoc(doc(as("muni"), REPORT), closeBy("muni")));
+});
+
+test("provincial admin can close a report anywhere", async () => {
+  await assertSucceeds(updateDoc(doc(as("prov"), REPORT), closeBy("prov", { disposition: "false_report" })));
+});
+
+test("disposition must be stamped with the acting admin's own uid", async () => {
+  await assertFails(updateDoc(doc(as("muni"), REPORT), closeBy("prov")));
+});
+
+test("a reason of at least 5 characters is required", async () => {
+  await assertFails(updateDoc(doc(as("muni"), REPORT), closeBy("muni", { dispositionReason: "dup" })));
+  await assertFails(updateDoc(doc(as("muni"), REPORT), closeBy("muni", { dispositionReason: deleteField() })));
+});
+
+test("only the four disposition values are accepted", async () => {
+  await assertFails(updateDoc(doc(as("muni"), REPORT), closeBy("muni", { disposition: "spam" })));
+});
+
+test("dispositionAt must be the server's time, not a client-chosen one", async () => {
+  await assertFails(updateDoc(doc(as("muni"), REPORT),
+    closeBy("muni", { dispositionAt: Timestamp.fromDate(new Date("2020-01-01")) })));
+});
+
+test("'closed' requires a disposition, and a disposition requires 'closed'", async () => {
+  await assertFails(updateDoc(doc(as("muni"), REPORT), { status: "closed" }));
+  await assertFails(updateDoc(doc(as("muni"), REPORT), closeBy("muni", { status: "acknowledged" })));
+});
+
+test("an admin of another municipality cannot close the report", async () => {
+  await assertFails(updateDoc(doc(as("muniOther"), REPORT), closeBy("muniOther")));
+});
+
+test("the reporting citizen cannot set or clear a disposition", async () => {
+  await assertFails(updateDoc(doc(as("citizen"), REPORT), closeBy("citizen")));
+  await env.withSecurityRulesDisabled((ctx) => updateDoc(doc(ctx.firestore(), REPORT), closeBy("muni")));
+  await assertFails(updateDoc(doc(as("citizen"), REPORT), {
+    status: "reported", disposition: deleteField(), dispositionReason: deleteField(),
+  }));
+});
+
+test("the reporting citizen can no longer change their own report's status", async () => {
+  await assertFails(updateDoc(doc(as("citizen"), REPORT), { status: "solved" }));
+});
+
+test("another admin can still add notes to a closed report", async () => {
+  await env.withSecurityRulesDisabled((ctx) => updateDoc(doc(ctx.firestore(), REPORT), closeBy("muni")));
+  await assertSucceeds(updateDoc(doc(as("prov"), REPORT), { notes: ["Checked again; duplicate confirmed."] }));
+});
+
+test("an admin can re-open a closed report by clearing the disposition", async () => {
+  await env.withSecurityRulesDisabled((ctx) => updateDoc(doc(ctx.firestore(), REPORT), closeBy("muni")));
+  await assertSucceeds(updateDoc(doc(as("muni"), REPORT), {
+    status: "under_review", disposition: deleteField(), dispositionReason: deleteField(),
+    dispositionBy: deleteField(), dispositionAt: deleteField(), duplicateOf: deleteField(),
+  }));
+});
+
+test("ordinary admin status changes still work", async () => {
+  await assertSucceeds(updateDoc(doc(as("muni"), REPORT), { status: "acknowledged" }));
+  await assertSucceeds(updateDoc(doc(as("muni"), REPORT), { status: "solved" }));
+});
+
+test("escalation approval still requires the owning town's admin and their uid", async () => {
+  await assertSucceeds(updateDoc(doc(as("muni"), REPORT), { escalatedToProvince: true, escalatedBy: "muni" }));
+});
+
+// ── PAGASA products (Stage 5 item 10) ──────────────────────────────────────
+
+test("any signed-in user can read the PAGASA document; anonymous cannot", async () => {
+  await env.withSecurityRulesDisabled((ctx) =>
+    setDoc(doc(ctx.firestore(), "pagasa_products/nueva_vizcaya"), { provider: "PAGASA" }));
+  await assertSucceeds(getDoc(doc(as("citizen"), "pagasa_products/nueva_vizcaya")));
+  await assertFails(getDoc(doc(env.unauthenticatedContext().firestore(), "pagasa_products/nueva_vizcaya")));
+});
+
+test("citizens and provincial admins cannot write the PAGASA document", async () => {
+  await assertFails(setDoc(doc(as("citizen"), "pagasa_products/nueva_vizcaya"), { provider: "fake" }));
+  await assertFails(setDoc(doc(as("prov"), "pagasa_products/nueva_vizcaya"), { provider: "fake" }));
+});
+
+test("KNOWN GAP: a super admin CAN write the PAGASA document via the global bypass", async () => {
+  // Documents current effective behaviour: rules are OR-ed, so
+  // `allow write: if false` on pagasa_products does NOT override the
+  // `match /{document=**} { allow read, write: if isSuperAdmin(); }` bypass.
+  // If the bypass is narrowed, flip this to assertFails.
+  await assertSucceeds(setDoc(doc(as("super"), "pagasa_products/nueva_vizcaya"), { provider: "fake" }));
+});
+
+// ── broadcast scope (from #133) ────────────────────────────────────────────
+
+test("a municipal admin may broadcast only to their own town", async () => {
+  await assertSucceeds(setDoc(doc(as("muni"), "broadcasts/b1"), { scope: "municipality", municipality: "Bambang" }));
+  await assertSucceeds(setDoc(doc(as("muni"), "broadcasts/b2"), { scope: "Bambang" }));
+  await assertFails(setDoc(doc(as("muni"), "broadcasts/b3"), { scope: "all" }));
+  await assertFails(setDoc(doc(as("muni"), "broadcasts/b4"), { scope: "municipality", municipality: "Solano" }));
+});
+
+test("an admin with no municipality on their profile cannot reach everyone", async () => {
+  await assertFails(setDoc(doc(as("muniNoTown"), "broadcasts/b5"), { scope: "all", municipality: "" }));
+});
+
+test("a provincial admin may broadcast province-wide", async () => {
+  await assertSucceeds(setDoc(doc(as("prov"), "broadcasts/b6"), { scope: "all" }));
+});
