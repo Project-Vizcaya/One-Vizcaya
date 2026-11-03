@@ -6,6 +6,7 @@ import { functions } from "@/lib/firebase";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { PagasaPanel } from "@/components/weather/PagasaPanel";
 
 export const Route = createFileRoute("/dashboard/weather")({
   component: WeatherPage,
@@ -191,7 +192,7 @@ function WeatherPage() {
             <h1 className="text-lg font-bold tracking-tight">Weather</h1>
           </div>
           <p className="text-xs text-muted-foreground">
-            Province of Nueva Vizcaya · Live conditions via Windy
+            Province of Nueva Vizcaya · Official forecast: PAGASA · Supplementary: Windy, Open-Meteo
           </p>
         </div>
         <div className="w-48 shrink-0">
@@ -208,6 +209,14 @@ function WeatherPage() {
           </Select>
         </div>
       </div>
+
+      {/* Official PAGASA products first (same Firestore document as mobile). */}
+      <PagasaPanel place={place} />
+
+      {/* Everything below is third-party data, labelled as such. */}
+      <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground pt-1">
+        Supplementary · Windy and Open-Meteo (third-party, not PAGASA)
+      </p>
 
       {/* Interactive Windy map */}
       <Card>
