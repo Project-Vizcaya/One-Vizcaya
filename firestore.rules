@@ -299,6 +299,16 @@ service cloud.firestore {
       allow update, delete: if isSuperAdmin();
     }
 
+    // ─── Official PAGASA products (written only by pagasaRegionalWatch) ───────
+    // Public weather information republished from PAGASA with attribution.
+    // Any signed-in user may read it. No client write is granted here — the
+    // Admin SDK in Cloud Functions bypasses rules — though the global
+    // super_admin bypass above still applies, as it does to every collection.
+    match /pagasa_products/{docId} {
+      allow read:  if isAuth();
+      allow write: if false;
+    }
+
     // ─── App config ──────────────────────────────────────────────────────────
     match /config/{docId} {
       allow read:  if isAdmin();

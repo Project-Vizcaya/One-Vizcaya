@@ -1019,6 +1019,59 @@ async function fetchWindyPointForecast(lat, lon, apiKey) {
 // ── Windy forecast (admin, on-demand) ────────────────────────────────────────
 // Powers the web console Weather widget. Admin-only; proxies the Windy Point
 // Forecast API so the key stays server-side. Pass {lat,lon} or {municipality}.
+// ── Official PAGASA products for Nueva Vizcaya (public, no token) ─────────────
+// Reads PAGASA's published Northern Luzon PRSD regional forecast page and stores
+// the Nueva Vizcaya provincial forecast, 5-day extended outlook, regional
+// synopsis (incl. tropical cyclone information), heavy-rainfall warning status
+// and thunderstorm information. Parsing lives in ./pagasa-public/regional.js;
+// see that file for the source, the true geographic coverage of each product,
+// and what is deliberately not inferred.
+//
+// Separate from ./pagasa/ (the authenticated TenDay API), which stays
+// unconnected until a token and its documentation exist.
+//
+// Hourly: forecasts are issued a few times a day, thunderstorm advisories ad
+// hoc. One ~250 KB page per hour from one server is a negligible load. On
+// failure the last good data is KEPT (never overwritten with blanks) and the
+// error is recorded alongside it, so the app can show how stale it is.
+const { parseNlprsd, SOURCE_URL: NLPRSD_URL } = require("./pagasa-public/regional");
+
+exports.pagasaRegionalWatch = onSchedule(
+  { schedule: "every 60 minutes", timeZone: "Asia/Manila", timeoutSeconds: 60 },
+  async () => {
+    const ref = admin.firestore().collection("pagasa_products").doc("nueva_vizcaya");
+    try {
+      const res = await fetch(NLPRSD_URL, {
+        headers: {
+          "User-Agent": "OneVizcaya/1.0 (+https://one-vizcaya-app.web.app)",
+          Accept: "text/html",
+        },
+        signal: AbortSignal.timeout(20000),
+      });
+      if (!res.ok) throw new Error(`PAGASA NLPRSD page returned HTTP ${res.status}`);
+      const product = parseNlprsd(await res.text(), new Date().toISOString());
+      await ref.set({
+        ...product,
+        lastSuccessAt: admin.firestore.FieldValue.serverTimestamp(),
+        lastError: null,
+      });
+      if (product.parseWarnings.length) {
+        console.warn("pagasaRegionalWatch parse warnings:", product.parseWarnings);
+      }
+    } catch (e) {
+      console.error("pagasaRegionalWatch failed:", e);
+      // merge: keep the last good product; record the failure next to it.
+      await ref.set(
+        {
+          lastErrorAt: admin.firestore.FieldValue.serverTimestamp(),
+          lastError: String(e && e.message ? e.message : e).slice(0, 500),
+        },
+        { merge: true },
+      );
+    }
+  }
+);
+
 // ── Citizen weather proxy (OpenWeather) ──────────────────────────────────────
 // The mobile app used to call OpenWeather directly with a key compiled into the
 // APK, where anyone could extract it. This proxies the same four calls
