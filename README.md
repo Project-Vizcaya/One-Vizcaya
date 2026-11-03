@@ -376,24 +376,22 @@ Stated plainly, so that reviewers can assess this build on what it actually
 does today rather than on intent. Each item is tracked for the pre-pilot work.
 
 **Connectivity**
-- The offline path is **selected manually** by the reporter (a "Send via SMS — no internet needed" option); the app does not yet detect loss of connectivity and switch automatically.
-- A queued report is submitted **on the next app launch**, not automatically the moment a connection returns.
-- A report that fails while *online* is reported to the user but is **not** added to the offline queue, and there is no automatic retry.
+- Saved (offline) reports are sent automatically **while the app is running** — on start, sign-in, return to the foreground, and every 60 s. If the app is closed, they are sent the next time it is opened; there is no background delivery.
+- Connectivity is detected by a real reachability probe, not by the OS network state, so detection can lag by up to a minute.
 
 **Report workflow**
 - The status lifecycle (`reported → acknowledged → under_review → ongoing → solved`) is **not enforced**: an admin may move a report straight to `solved`. Validation is operator practice, not a gate. (SOS verification *is* enforced in `firestore.rules`.)
 - Routing targets an administrative **tier** (barangay / municipal / provincial / Region II), not a named office. There is no MDRRMO/BDRRMC referral record or office-level assignment; the nearest field is a free-text assigned-responder name.
-- There is **no disposition for a false, duplicate, incomplete, or unverified report**. The only options today are an unaudited flag or permanent deletion. (SOS alerts, by contrast, have a full disposition model including abuse handling.)
-- Report deletion currently writes **no audit-log entry**.
+- Report deletion is audited, but the audit entry **cannot name who deleted** the report (Firestore triggers carry no caller identity). Closing a report *without action* — the recommended route for false, duplicate, incomplete or unverifiable reports — does record the admin.
 
 **Alerts**
-- Alerts publish **immediately** on submission — there is no second-approver or draft/pending state.
-- The scheduled weather watchers (`rainfallWatch`, `windyWindWatch`) can publish an urgent broadcast **with no human in the loop**, guarded only by a per-municipality cooldown.
+- Alerts composed by an admin publish **immediately** — there is no second approver. (Automated weather alerts are different: they are only drafted, and reach the public after an in-scope admin approves them.)
 - A citizen **cannot re-read a past broadcast**: broadcasts are admin-read-only and are delivered only as a transient push, so a missed urgent alert is not recoverable in-app.
 - Push delivery results are not recorded, so there is no delivered/failed count per alert.
 
 **Positioning**
-- The commitment that One Vizcaya **supplements rather than replaces** hotlines, radio, 911 and the EOC is currently stated in this README and in `docs/PDRRMO-Integration-Brief.md`, but **is not yet surfaced inside the app** at the point of reporting.
+- The "supplements rather than replaces 911 / hotlines / radio" notice is shown on the report screen but **not yet on the SOS screen**.
+- Its Tagalog and Ilocano wording, and several newer citizen messages, **await native-speaker review** — see `docs/translation-review.md`.
 - There is no **proxy / on-behalf-of reporting**, so a barangay official or family member cannot formally file for a resident who has no smartphone.
 
 **Measurement**
@@ -403,7 +401,7 @@ does today rather than on intent. Each item is tracked for the pre-pilot work.
 - There is **no uptime measurement or health endpoint**.
 
 **Testing**
-- The repository contains **no automated tests**, and no load, stress, or failover testing has been performed.
+- Automated tests now cover the security rules and the alert-approval function (`tests/emulator`, against the Firestore emulator), the PAGASA parser and TenDay client (`apps/functions`), and the mobile offline queue and PAGASA model (`apps/mobile/test`). **No load, stress or failover testing** has been performed.
 
 ---
 
