@@ -934,12 +934,143 @@ const NV_MUNICIPALITY_COORDS = {
   Kayapa: [16.35, 120.9167],
 };
 
+// ── Automated alerts need a human (PDRRMO §2) ───────────────────────────────
+// The 29 Sept reply to the PA commits that "no alert or public announcement
+// should go out through One Vizcaya unless it has first been reviewed and
+// approved by an authorized PDRRMO or municipal officer". The weather watchers
+// previously wrote straight to `broadcasts`, which onNewBroadcast pushes to the
+// public immediately — including PRIORITY_MAX urgent alerts. They now write a
+// DRAFT here; nothing reaches the public until an in-scope admin approves it
+// through decideAlertDraft. In-scope admins are pushed an "approval needed"
+// notice (admins only, never the public).
+const ALERT_DRAFT_TTL_MS = 6 * 60 * 60 * 1000; // a stale weather alert must not go out late
+const PROVINCIAL_ROLES = ["admin", "provincial_admin", "super_admin"];
+
+async function draftAutomatedAlert(db, { title, body, municipality, urgent, source, evidence }) {
+  const ref = await db.collection("alert_drafts").add({
+    title,
+    body,
+    municipality,
+    urgent: urgent === true,
+    type: "weather",
+    source,
+    // The readings that triggered it, so the approver can judge it.
+    evidence: evidence || null,
+    status: "pending",
+    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    expiresAt: admin.firestore.Timestamp.fromMillis(Date.now() + ALERT_DRAFT_TTL_MS),
+  });
+  await notifyAdminsOfDraft(db, ref.id, municipality, title, urgent === true)
+    .catch((e) => console.error("draft notification failed:", e));
+  return ref.id;
+}
+
+async function notifyAdminsOfDraft(db, draftId, municipality, title, urgent) {
+  const [provSnap, muniSnap] = await Promise.all([
+    db.collection("users").where("role", "in", PROVINCIAL_ROLES).get(),
+    db.collection("users").where("role", "==", "municipal_admin").get(),
+  ]);
+  const tokens = new Set();
+  provSnap.forEach((d) => { if (d.data().fcmToken) tokens.add(d.data().fcmToken); });
+  muniSnap.forEach((d) => {
+    const u = d.data();
+    if (u.fcmToken && u.municipality === municipality) tokens.add(u.fcmToken);
+  });
+  const list = Array.from(tokens);
+  for (let i = 0; i < list.length; i += 500) {
+    await admin.messaging().sendEachForMulticast({
+      tokens: list.slice(i, i + 500),
+      notification: {
+        title: `Approval needed: automated ${urgent ? "URGENT " : ""}alert`,
+        body: `${title} — not sent to the public until an admin approves it.`,
+      },
+      data: { type: "alert_draft", draftId },
+      android: {
+        priority: "high",
+        notification: { channelId: urgent ? "one_vizcaya_urgent" : "one_vizcaya_broadcasts" },
+      },
+    });
+  }
+}
+
+// Approve or reject a pending automated alert. Approval creates the broadcast
+// (which onNewBroadcast then delivers) with approvedBy set; both outcomes are
+// audited. Runs in a transaction so a draft can be decided exactly once.
+exports.decideAlertDraft = onCall(async (request) => {
+  if (!request.auth) throw new HttpsError("unauthenticated", "Must be signed in.");
+  const { draftId, decision, note } = request.data || {};
+  if (typeof draftId !== "string" || !["approve", "reject"].includes(decision)) {
+    throw new HttpsError("invalid-argument", "draftId and decision (approve|reject) are required.");
+  }
+  const uid = request.auth.uid;
+  const db = admin.firestore();
+  const role = await resolveCallerRole(request);
+  const profile = (await db.collection("users").doc(uid).get()).data() || {};
+  const cleanNote = typeof note === "string" && note.trim() ? note.trim().slice(0, 500) : null;
+
+  return db.runTransaction(async (tx) => {
+    const ref = db.collection("alert_drafts").doc(draftId);
+    const snap = await tx.get(ref);
+    if (!snap.exists) throw new HttpsError("not-found", "Draft not found.");
+    const d = snap.data();
+    if (d.status !== "pending") {
+      throw new HttpsError("failed-precondition", `This alert was already ${d.status}.`);
+    }
+    const inScope = PROVINCIAL_ROLES.includes(role) ||
+      (role === "municipal_admin" && !!profile.municipality && profile.municipality === d.municipality);
+    if (!inScope) {
+      throw new HttpsError("permission-denied", "Only an admin for this municipality can decide this alert.");
+    }
+
+    const now = admin.firestore.FieldValue.serverTimestamp();
+    let broadcastId = null;
+    if (decision === "approve") {
+      if (d.expiresAt && d.expiresAt.toMillis() < Date.now()) {
+        throw new HttpsError("failed-precondition",
+          "This draft has expired; conditions may have changed, so it was not sent.");
+      }
+      const bRef = db.collection("broadcasts").doc();
+      broadcastId = bRef.id;
+      tx.set(bRef, {
+        title: d.title,
+        body: d.body,
+        scope: d.municipality,
+        urgent: d.urgent === true,
+        type: d.type || "weather",
+        source: d.source || null,
+        draftId,
+        approvedBy: uid,
+        timestamp: now,
+      });
+    }
+    tx.update(ref, {
+      status: decision === "approve" ? "approved" : "rejected",
+      decidedBy: uid,
+      decidedAt: now,
+      note: cleanNote,
+      broadcastId,
+    });
+    tx.set(db.collection("audit_logs").doc(), {
+      action: decision === "approve" ? "automated_alert_approved" : "automated_alert_rejected",
+      draftId,
+      broadcastId,
+      municipality: d.municipality || null,
+      urgent: d.urgent === true,
+      source: d.source || null,
+      decidedBy: uid,
+      note: cleanNote,
+      at: now,
+    });
+    return { status: decision === "approve" ? "approved" : "rejected", broadcastId };
+  });
+});
+
 /**
  * Scheduled rainfall watch (PANaHON-style automatic weather alerts). Every 3
  * hours it checks the short-term forecast for each municipality and, when
- * meaningful rain is imminent, sends a push to that town's users via a broadcast
- * (which onNewBroadcast delivers over FCM). A 6-hour per-municipality cooldown
- * prevents spam.
+ * meaningful rain is imminent, DRAFTS an alert for that town; it reaches the
+ * public only after an in-scope admin approves it (see draftAutomatedAlert).
+ * A 6-hour per-municipality cooldown prevents repeated drafts.
  *
  * Requires the OPENWEATHER_API_KEY environment variable on the functions
  * runtime (e.g. `firebase functions:secrets:set OPENWEATHER_API_KEY` or a
@@ -995,20 +1126,20 @@ exports.rainfallWatch = onSchedule(
           `${totalRain.toFixed(1)} mm in the next few hours. ` +
           "Plan ahead and stay safe.";
 
-        await db.collection("broadcasts").add({
+        await draftAutomatedAlert(db, {
           title,
           body,
-          scope: muni,
-          type: "weather",
+          municipality: muni,
+          urgent: false,
           source: "rainfallWatch",
-          timestamp: admin.firestore.FieldValue.serverTimestamp(),
+          evidence: { provider: "OpenWeather", maxPop, totalRainMm: totalRain },
         });
         await alertRef.set(
           { lastAlertMs: now, municipality: muni },
           { merge: true }
         );
         console.log(
-          `rainfallWatch: alerted ${muni} (pop ${maxPop}, rain ${totalRain}).`
+          `rainfallWatch: drafted alert for ${muni} (pop ${maxPop}, rain ${totalRain}).`
         );
       } catch (e) {
         console.error(`rainfallWatch ${muni} error:`, e);
@@ -1289,20 +1420,19 @@ exports.windyWindWatch = onSchedule(
           `Wind gusts up to about ${maxGust} km/h are expected in the next ` +
           "several hours. Secure loose objects and stay indoors when it peaks.";
 
-        await db.collection("broadcasts").add({
+        await draftAutomatedAlert(db, {
           title,
           body,
-          scope: muni,
+          municipality: muni,
           urgent: severe,
-          type: "weather",
           source: "windyWindWatch",
-          timestamp: admin.firestore.FieldValue.serverTimestamp(),
+          evidence: { provider: "Windy", maxGustKmh: maxGust },
         });
         await alertRef.set(
           { lastWindAlertMs: now, municipality: muni },
           { merge: true }
         );
-        console.log(`windyWindWatch: alerted ${muni} (gust ${maxGust} km/h).`);
+        console.log(`windyWindWatch: drafted alert for ${muni} (gust ${maxGust} km/h).`);
       } catch (e) {
         console.error(`windyWindWatch ${muni} error:`, e);
       }

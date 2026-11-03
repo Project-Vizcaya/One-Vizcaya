@@ -13,7 +13,8 @@ const {
   initializeTestEnvironment, assertSucceeds, assertFails,
 } = require("@firebase/rules-unit-testing");
 const {
-  doc, getDoc, setDoc, updateDoc, deleteField, serverTimestamp, Timestamp,
+  doc, getDoc, getDocs, setDoc, updateDoc, deleteField, serverTimestamp, Timestamp,
+  collection, query, where,
 } = require("firebase/firestore");
 
 let env;
@@ -178,4 +179,43 @@ test("an admin with no municipality on their profile cannot reach everyone", asy
 
 test("a provincial admin may broadcast province-wide", async () => {
   await assertSucceeds(setDoc(doc(as("prov"), "broadcasts/b6"), { scope: "all" }));
+});
+
+// ── automated alert drafts (P1, PDRRMO §2) ─────────────────────────────────
+
+async function seedDraft() {
+  await env.withSecurityRulesDisabled((ctx) =>
+    setDoc(doc(ctx.firestore(), "alert_drafts/d1"), {
+      title: "Strong winds", municipality: "Bambang", status: "pending", urgent: true,
+    }));
+}
+
+test("the town's admin and provincial admins can read its alert drafts", async () => {
+  await seedDraft();
+  await assertSucceeds(getDoc(doc(as("muni"), "alert_drafts/d1")));
+  await assertSucceeds(getDoc(doc(as("prov"), "alert_drafts/d1")));
+});
+
+test("other towns' admins and citizens cannot read alert drafts", async () => {
+  await seedDraft();
+  await assertFails(getDoc(doc(as("muniOther"), "alert_drafts/d1")));
+  await assertFails(getDoc(doc(as("citizen"), "alert_drafts/d1")));
+});
+
+test("no client can approve a draft by writing it directly", async () => {
+  await seedDraft();
+  await assertFails(updateDoc(doc(as("muni"), "alert_drafts/d1"), { status: "approved" }));
+  await assertFails(updateDoc(doc(as("prov"), "alert_drafts/d1"), { status: "approved" }));
+});
+
+test("the console's pending-drafts queries are allowed exactly as written", async () => {
+  await seedDraft();
+  const pending = (fs, ...extra) =>
+    getDocs(query(collection(fs, "alert_drafts"), where("status", "==", "pending"), ...extra));
+  // Municipal admin: must filter to their own town (PendingAlertsCard does).
+  await assertSucceeds(pending(as("muni"), where("municipality", "==", "Bambang")));
+  await assertFails(pending(as("muni")));
+  await assertFails(pending(as("muni"), where("municipality", "==", "Solano")));
+  // Provincial admin: province-wide query is allowed.
+  await assertSucceeds(pending(as("prov")));
 });

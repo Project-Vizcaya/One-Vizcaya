@@ -348,6 +348,15 @@ service cloud.firestore {
       allow update, delete: if isSuperAdmin();
     }
 
+    // ─── Automated alert drafts (PDRRMO §2: a human approves every alert) ─────
+    // Written only by the weather watchers and decided only through the
+    // decideAlertDraft callable (Admin SDK). Readable by the admins who may
+    // decide them: provincial+ anywhere, a municipal admin for their own town.
+    match /alert_drafts/{draftId} {
+      allow read:  if isProvincialAdmin() || municipalScoped(resource.data);
+      allow write: if false;
+    }
+
     // ─── Official PAGASA products (written only by pagasaRegionalWatch) ───────
     // Public weather information republished from PAGASA with attribution.
     // Any signed-in user may read it. No client write is granted here — the

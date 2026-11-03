@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Card, CardContent } from "@/components/ui/card";
 import { BroadcastCard } from "@/components/broadcasts/BroadcastCard";
+import { PendingAlertsCard } from "@/components/broadcasts/PendingAlertsCard";
 import { useAuthStore } from "@/stores/authStore";
 
 export const Route = createFileRoute("/dashboard/broadcasts")({
@@ -28,7 +29,9 @@ function BroadcastsPage() {
         </div>
       </div>
 
-      <div className="max-w-xl">
+      <div className="max-w-xl space-y-5">
+        {/* Automated alerts need a human decision before they reach anyone. */}
+        <PendingAlertsCard />
         <Card>
           <CardContent className="pt-5">
             <BroadcastCard />
