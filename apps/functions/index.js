@@ -1019,6 +1019,90 @@ async function fetchWindyPointForecast(lat, lon, apiKey) {
 // ── Windy forecast (admin, on-demand) ────────────────────────────────────────
 // Powers the web console Weather widget. Admin-only; proxies the Windy Point
 // Forecast API so the key stays server-side. Pass {lat,lon} or {municipality}.
+// ── Citizen weather proxy (OpenWeather) ──────────────────────────────────────
+// The mobile app used to call OpenWeather directly with a key compiled into the
+// APK, where anyone could extract it. This proxies the same four calls
+// server-side with the OPENWEATHER_API_KEY secret (already used by
+// rainfallWatch), so no weather credential ships in the app. It is also the
+// pattern a future PAGASA TenDay integration must follow: that API's `token`
+// may only ever live in Secret Manager.
+//
+// Responses are returned RAW so the app's existing parser is unchanged.
+// `current` and `forecast` are required (as they were client-side); `aqi` and
+// `uvi` are optional and come back null on failure. The provider is labelled
+// so the app never presents this data as PAGASA's.
+const WEATHER_CACHE_TTL_MS = 10 * 60 * 1000;
+const weatherCache = new Map(); // per-instance; key = rounded "lat,lon"
+
+exports.getWeather = onCall(
+  { secrets: ["OPENWEATHER_API_KEY"] },
+  async (request) => {
+    // Authenticated users only, so this cannot become an open proxy that
+    // spends the Province's OpenWeather quota.
+    if (!request.auth) {
+      throw new HttpsError("unauthenticated", "Must be signed in.");
+    }
+    const lat = Number(request.data?.lat);
+    const lon = Number(request.data?.lon);
+    // Philippine bounding box — rejects arbitrary-coordinate abuse.
+    if (
+      !Number.isFinite(lat) || !Number.isFinite(lon) ||
+      lat < 4 || lat > 22 || lon < 116 || lon > 127
+    ) {
+      throw new HttpsError("invalid-argument", "Coordinates outside the Philippines.");
+    }
+    const apiKey = process.env.OPENWEATHER_API_KEY;
+    if (!apiKey) {
+      throw new HttpsError("failed-precondition", "Weather service not configured.");
+    }
+
+    // ~1 km cells: nearby users share one upstream call per 10 minutes.
+    const key = `${lat.toFixed(2)},${lon.toFixed(2)}`;
+    const hit = weatherCache.get(key);
+    if (hit && Date.now() - hit.at < WEATHER_CACHE_TTL_MS) return hit.value;
+
+    const base = "https://api.openweathermap.org/data/2.5";
+    // `units=metric` matches what the app requested for weather/forecast;
+    // air_pollution and uvi were requested without it and are unit-free.
+    const get = async (path, required, metric) => {
+      const q = `lat=${lat}&lon=${lon}&appid=${apiKey}${metric ? "&units=metric" : ""}`;
+      try {
+        const res = await fetch(`${base}/${path}?${q}`, {
+          signal: AbortSignal.timeout(12000),
+        });
+        if (!res.ok) {
+          if (required) {
+            throw new HttpsError("unavailable", `Upstream ${path} returned ${res.status}.`);
+          }
+          return null;
+        }
+        return await res.json();
+      } catch (e) {
+        if (required) {
+          if (e instanceof HttpsError) throw e;
+          throw new HttpsError("unavailable", `Upstream ${path} unreachable.`);
+        }
+        return null;
+      }
+    };
+
+    const [current, forecast, aqi, uvi] = await Promise.all([
+      get("weather", true, true),
+      get("forecast", true, true),
+      get("air_pollution", false, false),
+      get("uvi", false, false),
+    ]);
+
+    const value = {
+      provider: "OpenWeather",
+      retrievedAt: new Date().toISOString(),
+      current, forecast, aqi, uvi,
+    };
+    weatherCache.set(key, { at: Date.now(), value });
+    return value;
+  }
+);
+
 exports.getWindyForecast = onCall(
   { secrets: ["WINDY_API_KEY"] },
   async (request) => {

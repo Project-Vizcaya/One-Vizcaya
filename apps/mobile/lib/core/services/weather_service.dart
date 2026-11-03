@@ -1,7 +1,8 @@
 import 'dart:convert';
 import 'dart:math';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:http/http.dart' as http;
-import 'package:one_vizcaya/secrets.dart';
 
 class HourlyForecast {
   final DateTime time;
@@ -122,56 +123,56 @@ class WeatherService {
     final coords = _municipalityCoords[municipality] ?? [16.4833, 121.1500];
     final double useLat = lat ?? coords[0];
     final double useLon = lon ?? coords[1];
-    final apiKey = openWeatherApiKey;
-
-    final currentUrl = Uri.parse(
-      'https://api.openweathermap.org/data/2.5/weather'
-      '?lat=$useLat&lon=$useLon&appid=$apiKey&units=metric',
-    );
-    final forecastUrl = Uri.parse(
-      'https://api.openweathermap.org/data/2.5/forecast'
-      '?lat=$useLat&lon=$useLon&appid=$apiKey&units=metric',
-    );
-    final aqiUrl = Uri.parse(
-      'https://api.openweathermap.org/data/2.5/air_pollution'
-      '?lat=$useLat&lon=$useLon&appid=$apiKey',
-    );
-    final uviUrl = Uri.parse(
-      'https://api.openweathermap.org/data/2.5/uvi'
-      '?lat=$useLat&lon=$useLon&appid=$apiKey',
-    );
-
-    final results = await Future.wait([
-      http.get(currentUrl).timeout(const Duration(seconds: 12)),
-      http.get(forecastUrl).timeout(const Duration(seconds: 12)),
-      http.get(aqiUrl).timeout(const Duration(seconds: 12)),
-      http.get(uviUrl).timeout(const Duration(seconds: 12)),
-    ]);
-
-    final currentResp = results[0];
-    final forecastResp = results[1];
-    final aqiResp = results[2];
-    final uviResp = results[3];
-
-    if (currentResp.statusCode != 200) {
-      throw Exception('Current weather API error ${currentResp.statusCode}');
+    // Weather is fetched through the `getWeather` Cloud Function, never from
+    // OpenWeather directly: a key compiled into the APK can be extracted by
+    // anyone. The function holds OPENWEATHER_API_KEY in Secret Manager and
+    // returns the same four raw responses this parser always consumed.
+    //
+    // Called via Firebase's callable-function HTTP protocol over `http`, so no
+    // new native plugin is needed. Requires a signed-in user; with no user the
+    // caller's existing offline/cached path handles the thrown error.
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      throw Exception('Weather requires a signed-in user');
     }
-    if (forecastResp.statusCode != 200) {
-      throw Exception('Forecast API error ${forecastResp.statusCode}');
-    }
+    final idToken = await user.getIdToken();
+    final projectId = Firebase.app().options.projectId;
+    final resp = await http
+        .post(
+          Uri.parse(
+            'https://us-central1-$projectId.cloudfunctions.net/getWeather',
+          ),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer $idToken',
+          },
+          body: json.encode({
+            'data': {'lat': useLat, 'lon': useLon},
+          }),
+        )
+        .timeout(const Duration(seconds: 20));
 
-    final currentData = json.decode(currentResp.body) as Map<String, dynamic>;
-    final forecastData = json.decode(forecastResp.body) as Map<String, dynamic>;
+    if (resp.statusCode != 200) {
+      throw Exception('Weather service error ${resp.statusCode}');
+    }
+    final result =
+        (json.decode(resp.body) as Map<String, dynamic>)['result']
+            as Map<String, dynamic>;
+
+    // `current` and `forecast` are guaranteed by the function (it fails the
+    // whole call otherwise); `aqi` and `uvi` may be null, as before.
+    final currentData = result['current'] as Map<String, dynamic>;
+    final forecastData = result['forecast'] as Map<String, dynamic>;
+    final uviData = result['uvi'] as Map<String, dynamic>?;
+    final aqiData = result['aqi'] as Map<String, dynamic>?;
 
     double uviValue = 0.0;
-    if (uviResp.statusCode == 200) {
-      final uviData = json.decode(uviResp.body) as Map<String, dynamic>;
+    if (uviData != null) {
       uviValue = (uviData['value'] as num?)?.toDouble() ?? 0.0;
     }
 
     int aqiValue = 1;
-    if (aqiResp.statusCode == 200) {
-      final aqiData = json.decode(aqiResp.body) as Map<String, dynamic>;
+    if (aqiData != null) {
       final list = aqiData['list'] as List<dynamic>?;
       if (list != null && list.isNotEmpty) {
         final mainAqi = list[0]['main'] as Map<String, dynamic>?;
