@@ -121,6 +121,26 @@ exports.auditReportDisposition = onDocumentUpdated(
   }
 );
 
+// ── Response timeline: acknowledgedAt / referredAt / resolvedAt (§14) ────────
+// Stamped server-side for every client; see ./reports/milestones.js for the
+// exact definitions. The time stored is when the change itself happened
+// (event.time), not when this trigger happened to run.
+const { milestoneUpdates } = require("./reports/milestones");
+
+exports.stampReportMilestones = onDocumentUpdated(
+  "users/{userId}/reports/{reportId}",
+  async (event) => {
+    const before = event.data.before.data();
+    const after = event.data.after.data();
+    if (!before || !after) return;
+    const when = admin.firestore.Timestamp.fromDate(new Date(event.time));
+    const u = milestoneUpdates(before, after, when, admin.firestore.FieldValue.delete());
+    // Only writes when a milestone is missing, so its own follow-up update
+    // is a no-op rather than a loop.
+    if (Object.keys(u).length) await event.data.after.ref.update(u);
+  }
+);
+
 // ── Notify citizen when report status changes ────────────────────────────────
 exports.notifyOnStatusChange = onDocumentUpdated(
   "users/{userId}/reports/{reportId}",

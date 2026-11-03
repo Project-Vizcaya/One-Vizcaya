@@ -36,6 +36,8 @@ function toReport(d: {
     description:      (data.description as string) ?? "",
     isAnonymous:      (data.isAnonymous as boolean) ?? false,
     reportedAt:        toDate(data.reportedAt),
+    acknowledgedAt:    data.acknowledgedAt ? toDate(data.acknowledgedAt) : undefined,
+    referredAt:        data.referredAt ? toDate(data.referredAt) : undefined,
     resolvedAt:        data.resolvedAt ? toDate(data.resolvedAt) : undefined,
     notes: ((data.notes as ReportNote[]) ?? []).map((n) => ({
       ...n,

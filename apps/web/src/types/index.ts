@@ -31,6 +31,10 @@ export interface Report {
   description: string;
   isAnonymous: boolean;
   reportedAt: Date;
+  // Response timeline, stamped server-side (stampReportMilestones). Absent on
+  // reports that predate it — those are not back-filled.
+  acknowledgedAt?: Date;
+  referredAt?: Date;
   resolvedAt?: Date;
   notes: ReportNote[];
   assignedResponder?: string;
