@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { ClipboardList, AlertCircle, Wrench, CheckCircle2, UserX, Clock } from "lucide-react";
-import { cn, isOverdue } from "@/lib/utils";
+import { cn, isOverdue, isOpenReport } from "@/lib/utils";
 import { SLA_HOURS } from "@/lib/firebase";
 import type { Report } from "@/types";
 
@@ -60,7 +60,7 @@ interface StatsGridProps {
 
 export function StatsGrid({ reports, onFilterChange }: StatsGridProps) {
   const stats = useMemo(() => {
-    const open = reports.filter((r) => r.status !== "solved");
+    const open = reports.filter(isOpenReport);
     return {
       total: reports.length,
       criticalOpen: open.filter((r) => r.priority === "critical").length,

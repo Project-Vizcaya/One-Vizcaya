@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { MAPS_API_KEY, NV_CENTER, NV_ZOOM } from "@/lib/firebase";
 import { MUNICIPALITIES } from "@/data/municipalities";
 import { useAuthStore } from "@/stores/authStore";
+import { isOpenReport } from "@/lib/utils";
 import type { Report, Responder } from "@/types";
 
 // Satellite view — aerial imagery of where a report actually is, so a responder
@@ -81,7 +82,7 @@ export function SatelliteView({ reports, responders }: Props) {
   const reportPins = useMemo(
     () =>
       reports
-        .filter((r) => r.status !== "solved")
+        .filter(isOpenReport)
         .map((r) => {
           if (r.latitude && r.longitude) {
             return { r, pos: { lat: r.latitude, lng: r.longitude }, exact: true };

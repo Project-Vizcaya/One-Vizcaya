@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { format } from "date-fns";
-import { Save, Trash2, User, MapPin, Clock, Tag, AlertCircle, Loader2, FileImage, Camera, Image as ImageIcon } from "lucide-react";
+import { Save, Trash2, User, MapPin, Clock, Tag, AlertCircle, Loader2, FileImage, Camera, Image as ImageIcon, XCircle, RotateCcw } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -9,12 +9,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { updateReportStatus, assignResponder, addReportNote, deleteReport, transferReportLevel } from "@/hooks/useReports";
+import { updateReportStatus, assignResponder, addReportNote, deleteReport, transferReportLevel, closeReportWithDisposition, reopenReport } from "@/hooks/useReports";
 import { useResponders } from "@/hooks/useResponders";
 import { useAuthStore } from "@/stores/authStore";
 import { toast } from "@/hooks/useToast";
-import { cn, timeAgo, authorColor } from "@/lib/utils";
-import type { Report, ReportStatus, HandlingLevel } from "@/types";
+import { cn, timeAgo, authorColor, DISPOSITION_OPTIONS, dispositionLabel } from "@/lib/utils";
+import type { Report, ReportStatus, HandlingLevel, ReportDisposition } from "@/types";
 
 // Mirrors the mobile HandlingLevel enum — the four administrative tiers a
 // report can be routed through.
@@ -46,12 +46,13 @@ const CANNED_RESPONSES = [
   "Additional information is required. Please contact the MDRRMO office.",
 ];
 
-const STATUS_VARIANT: Record<ReportStatus, "reported" | "acknowledged" | "under_review" | "ongoing" | "solved"> = {
+const STATUS_VARIANT: Record<ReportStatus, "reported" | "acknowledged" | "under_review" | "ongoing" | "solved" | "closed"> = {
   reported:     "reported",
   acknowledged: "acknowledged",
   under_review: "under_review",
   ongoing:      "ongoing",
   solved:       "solved",
+  closed:       "closed",
 };
 
 const PRIORITY_VARIANT: Record<string, "critical" | "high" | "medium" | "low"> = {
@@ -73,6 +74,11 @@ export function ReportDetail({ report, open, onClose }: ReportDetailProps) {
   const [note, setNote] = useState("");
   const [saving, setSaving] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  // Close-without-action dialog (PDRRMO §8 disposition).
+  const [dispOpen, setDispOpen] = useState(false);
+  const [disp, setDisp] = useState<ReportDisposition | "">("");
+  const [dispReason, setDispReason] = useState("");
+  const [dupOf, setDupOf] = useState("");
 
   // Sync status when a different report is opened — fixes stale state bug
   useEffect(() => {
@@ -141,6 +147,33 @@ export function ReportDetail({ report, open, onClose }: ReportDetailProps) {
       toast({ title: "Note added", variant: "success" as never });
     } catch {
       toast({ title: "Failed to save note", variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleClose = async () => {
+    if (!report || !disp || dispReason.trim().length < 5) return;
+    setSaving(true);
+    try {
+      await closeReportWithDisposition(report.userId, report.id, disp, dispReason, dupOf);
+      toast({ title: `Closed: ${dispositionLabel(disp)}`, description: "Recorded with your name and the reason." });
+      setDispOpen(false); setDisp(""); setDispReason(""); setDupOf("");
+    } catch {
+      toast({ title: "Failed to close report", variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleReopen = async () => {
+    if (!report) return;
+    setSaving(true);
+    try {
+      await reopenReport(report.userId, report.id);
+      toast({ title: "Report re-opened", description: "Moved back to Under Review." });
+    } catch {
+      toast({ title: "Failed to re-open report", variant: "destructive" });
     } finally {
       setSaving(false);
     }
@@ -233,7 +266,23 @@ export function ReportDetail({ report, open, onClose }: ReportDetailProps) {
 
               <Separator />
 
-              {/* Status update */}
+              {/* Status update — or, for a report closed without action, its
+                  recorded disposition (PDRRMO §8). */}
+              {report.status === "closed" ? (
+                <div className="rounded-lg border border-slate-300 bg-slate-50 dark:bg-slate-900/40 p-3 space-y-1.5">
+                  <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Closed without action</p>
+                  <p className="text-sm font-semibold">{dispositionLabel(report.disposition)}</p>
+                  {report.dispositionReason && <p className="text-sm whitespace-pre-line">{report.dispositionReason}</p>}
+                  {report.duplicateOf && <p className="text-xs text-muted-foreground">Duplicate of report #{report.duplicateOf.slice(-6).toUpperCase()}</p>}
+                  <p className="text-[11px] text-muted-foreground">
+                    {report.dispositionAt ? `${format(report.dispositionAt, "MMM d, yyyy h:mm a")} · ` : ""}
+                    by admin {report.dispositionBy ? report.dispositionBy.slice(0, 8) : "unknown"} · recorded in the audit log
+                  </p>
+                  <Button size="sm" variant="outline" className="h-7 text-xs gap-1.5" onClick={handleReopen} disabled={saving}>
+                    <RotateCcw className="h-3.5 w-3.5" /> Re-open report
+                  </Button>
+                </div>
+              ) : (
               <div>
                 <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-2">Update Status</p>
                 <div className="flex gap-2">
@@ -258,7 +307,11 @@ export function ReportDetail({ report, open, onClose }: ReportDetailProps) {
                     <span className="ml-1.5 hidden sm:inline">Save</span>
                   </Button>
                 </div>
+                <Button size="sm" variant="outline" className="h-7 text-xs gap-1.5 mt-2" onClick={() => setDispOpen(true)}>
+                  <XCircle className="h-3.5 w-3.5" /> Close without action…
+                </Button>
               </div>
+              )}
 
               {/* Assign responder */}
               <div>
@@ -387,12 +440,61 @@ export function ReportDetail({ report, open, onClose }: ReportDetailProps) {
         </DialogContent>
       </Dialog>
 
+      <AlertDialog open={dispOpen} onOpenChange={setDispOpen}>
+        <AlertDialogContent className="w-[min(30rem,92vw)] max-w-none">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Close without action</AlertDialogTitle>
+            <AlertDialogDescription>
+              The report stays on record, marked with your reason, your account and the time.
+              The reporter is notified of the category, not your reason. It can be re-opened later.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="space-y-3">
+            <Select value={disp} onValueChange={(v) => setDisp(v as ReportDisposition)}>
+              <SelectTrigger className="text-sm"><SelectValue placeholder="Why is it being closed?" /></SelectTrigger>
+              <SelectContent>
+                {DISPOSITION_OPTIONS.map((o) => (
+                  <SelectItem key={o.value} value={o.value} className="text-sm">
+                    {o.label} — <span className="text-muted-foreground">{o.hint}</span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {disp === "duplicate" && (
+              <input
+                value={dupOf}
+                onChange={(e) => setDupOf(e.target.value)}
+                placeholder="Original report ID (optional)"
+                className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+              />
+            )}
+            <Textarea
+              value={dispReason}
+              onChange={(e) => setDispReason(e.target.value)}
+              placeholder="Reason (required, at least 5 characters) — e.g. what was checked"
+              className="text-sm min-h-[80px]"
+            />
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={saving}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); handleClose(); }}
+              disabled={saving || !disp || dispReason.trim().length < 5}
+            >
+              {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}Close report
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
         <AlertDialogContent className="w-[min(28rem,92vw)] max-w-none">
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Report?</AlertDialogTitle>
             <AlertDialogDescription>
               This will permanently delete report #{report.id.slice(-6).toUpperCase()}. This action cannot be undone.
+              To record a false, duplicate, incomplete or unverifiable report, use
+              "Close without action" instead — it keeps a record of why.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

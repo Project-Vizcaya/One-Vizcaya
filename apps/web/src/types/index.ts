@@ -1,6 +1,9 @@
 import type { AdminRole } from "@/lib/firebase";
 
-export type ReportStatus = "reported" | "acknowledged" | "under_review" | "ongoing" | "solved";
+// "closed" = closed WITHOUT action, always with a ReportDisposition (§8).
+// Distinct from "solved" so a false report is never counted as resolved.
+export type ReportStatus = "reported" | "acknowledged" | "under_review" | "ongoing" | "solved" | "closed";
+export type ReportDisposition = "false_report" | "duplicate" | "incomplete" | "unverifiable";
 export type ReportPriority = "critical" | "high" | "medium" | "low";
 // Administrative tier currently handling a report. Mirrors the mobile
 // HandlingLevel enum (Firestore stores these exact string keys).
@@ -40,6 +43,12 @@ export interface Report {
   lastModified: Date;
   handlingLevel: HandlingLevel;
   escalatedToProvince?: boolean;
+  // Set together, only by an in-scope admin (enforced in firestore.rules).
+  disposition?: ReportDisposition;
+  dispositionReason?: string;
+  dispositionBy?: string;
+  dispositionAt?: Date;
+  duplicateOf?: string;
 }
 
 export interface Responder {

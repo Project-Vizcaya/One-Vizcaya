@@ -37,4 +37,13 @@ abstract class ReportRepository {
 
   /// Admin: Flag or unflag a report as suspicious
   Future<void> flagReport(String userId, String reportId, bool isFlagged);
+
+  /// Closes a report WITHOUT action (PDRRMO §8), recording the disposition,
+  /// a reason, the acting admin and the server time. [disposition] is one of
+  /// false_report | duplicate | incomplete | unverifiable.
+  Future<void> closeWithDisposition(String userId, String reportId,
+      String disposition, String reason, {String? duplicateOf});
+
+  /// Re-opens a closed report into the queue, attributed to the acting admin.
+  Future<void> reopenReport(String userId, String reportId);
 }

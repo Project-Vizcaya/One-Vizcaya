@@ -82,6 +82,45 @@ exports.auditEscalationApproval = onDocumentUpdated(
   }
 );
 
+// ── Audit trail: record report dispositions (PDRRMO §8) ──────────────────────
+// A report closed without action (false / duplicate / incomplete /
+// unverifiable) — or re-opened — gets an immutable audit entry. Unlike a
+// Firestore delete, this CAN name the actor: firestore.rules requires
+// dispositionBy to equal the acting admin's own uid.
+const DISPOSITION_LABELS = {
+  false_report: "false report",
+  duplicate: "duplicate",
+  incomplete: "incomplete",
+  unverifiable: "could not be verified",
+};
+
+exports.auditReportDisposition = onDocumentUpdated(
+  "users/{userId}/reports/{reportId}",
+  async (event) => {
+    const before = event.data.before.data();
+    const after = event.data.after.data();
+    if (!before || !after) return;
+    const was = before.disposition || null;
+    const now = after.disposition || null;
+    if (was === now && before.dispositionReason === after.dispositionReason) return;
+
+    await admin.firestore().collection("audit_logs").add({
+      action: now ? "report_disposed" : "report_reopened",
+      reportId: event.params.reportId,
+      reportOwnerUid: event.params.userId,
+      municipality: after.municipality || null,
+      category: after.category || null,
+      disposition: now,
+      previousDisposition: was,
+      reason: now ? after.dispositionReason || null : null,
+      duplicateOf: now === "duplicate" ? after.duplicateOf || null : null,
+      // Both are rule-enforced to be the acting admin's own uid.
+      decidedBy: now ? after.dispositionBy || null : after.reopenedBy || null,
+      at: admin.firestore.FieldValue.serverTimestamp(),
+    });
+  }
+);
+
 // ── Notify citizen when report status changes ────────────────────────────────
 exports.notifyOnStatusChange = onDocumentUpdated(
   "users/{userId}/reports/{reportId}",
@@ -108,16 +147,24 @@ exports.notifyOnStatusChange = onDocumentUpdated(
       under_review: "Under Review",
       ongoing: "In Progress",
       solved: "Resolved",
+      closed: "Closed",
     };
 
     const newLabel = statusLabels[after.status] || after.status;
     const category = after.category || "Your report";
+    // A closed report tells the reporter WHY in plain terms (the category
+    // only — the admin's free-text reason may hold internal notes), and how
+    // to object, rather than implying it was resolved.
+    const body = after.status === "closed"
+      ? `${category} was closed without action (${DISPOSITION_LABELS[after.disposition] || "closed"}). ` +
+        "If you believe this is a mistake, contact your LGU."
+      : `${category} is now marked as "${newLabel}" by the LGU.`;
 
     const message = {
       token: fcmToken,
       notification: {
         title: `Report Status Updated: ${newLabel}`,
-        body: `${category} is now marked as "${newLabel}" by the LGU.`,
+        body,
       },
       data: {
         reportId: event.params.reportId,

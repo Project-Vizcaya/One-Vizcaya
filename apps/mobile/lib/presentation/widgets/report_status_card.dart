@@ -103,6 +103,8 @@ class _ReportStatusCardState extends State<ReportStatusCard>
         return Icons.check_circle;
       case ReportStatus.archived:
         return Icons.archive;
+      case ReportStatus.closed:
+        return Icons.do_not_disturb_on_outlined;
     }
   }
 
@@ -120,6 +122,8 @@ class _ReportStatusCardState extends State<ReportStatusCard>
         return Colors.green.shade700;
       case ReportStatus.archived:
         return Colors.grey.shade600;
+      case ReportStatus.closed:
+        return Colors.blueGrey.shade600;
     }
   }
 
@@ -137,6 +141,8 @@ class _ReportStatusCardState extends State<ReportStatusCard>
         return 'Problem Solved';
       case ReportStatus.archived:
         return 'Archived';
+      case ReportStatus.closed:
+        return 'Closed — no action taken';
     }
   }
 
@@ -154,7 +160,46 @@ class _ReportStatusCardState extends State<ReportStatusCard>
       case ReportStatus.solved:
       case ReportStatus.archived:
         return 4;
+      // Never drawn: a closed report shows _buildClosedNotice instead.
+      case ReportStatus.closed:
+        return 0;
     }
+  }
+
+  // Shown to the reporter when their report was closed without action. It
+  // names the category only: the admin's free-text reason may hold internal
+  // notes, so it is not displayed here.
+  Widget _buildClosedNotice() {
+    final r = widget.report;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.blueGrey.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.blueGrey.withValues(alpha: 0.35)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Closed without action: ${ProblemReport.dispositionLabel(r.disposition)}',
+            style: TextStyle(
+              fontWeight: FontWeight.w700,
+              fontSize: 13,
+              color: Colors.blueGrey.shade700,
+            ),
+          ),
+          const SizedBox(height: 4),
+          const Text(
+            'The LGU reviewed this report and closed it without action. If you '
+            'believe this is a mistake, contact your LGU or file a new report '
+            'with more detail.',
+            style: TextStyle(fontSize: 12, height: 1.35),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildStepTracker() {
@@ -781,7 +826,11 @@ class _ReportStatusCardState extends State<ReportStatusCard>
                 ),
                 const SizedBox(height: 10),
                 // POLISH 1: Animated step tracker
-                _buildStepTracker(),
+                // A report closed without action is never walked through the
+                // stepper (which ends at "Resolved"); say plainly what happened.
+                widget.report.status == ReportStatus.closed
+                    ? _buildClosedNotice()
+                    : _buildStepTracker(),
                 const SizedBox(height: 8),
                 const Divider(),
                 const SizedBox(height: 8),

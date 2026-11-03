@@ -137,8 +137,11 @@ service cloud.firestore {
       let d = request.resource.data;
       let disp = d.get('disposition', null);
       let changed = d.diff(resource.data).affectedKeys().hasAny(dispositionFields());
+      // Re-opening (clearing an existing disposition) must be attributed too.
+      let reopening = resource.data.get('disposition', null) != null;
       return !changed
-          || (disp == null && d.get('status', '') != 'closed')
+          || (disp == null && d.get('status', '') != 'closed'
+              && (!reopening || d.get('reopenedBy', '') == request.auth.uid))
           || (disp in ['false_report', 'duplicate', 'incomplete', 'unverifiable']
               && d.get('status', '') == 'closed'
               && d.get('dispositionReason', '') is string

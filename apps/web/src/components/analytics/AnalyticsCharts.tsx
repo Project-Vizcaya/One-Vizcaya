@@ -16,6 +16,7 @@ const STATUS_COLORS: Record<string, string> = {
   under_review: "#A855F7",
   ongoing: "#F97316",
   solved: "#22C55E",
+  closed: "#64748B",
 };
 
 interface AnalyticsChartsProps {

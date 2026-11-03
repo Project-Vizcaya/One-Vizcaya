@@ -227,6 +227,65 @@ class FirebaseReportRepository implements ReportRepository {
     }
   }
 
+  // PDRRMO §8: a bad report is recorded, never silently deleted.
+  // firestore.rules requires every field below: an allowed disposition, a
+  // reason of 5+ characters, dispositionBy == this admin, and the server time.
+  @override
+  Future<void> closeWithDisposition(String userId, String reportId,
+      String disposition, String reason, {String? duplicateOf}) async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) throw StateError('Not signed in');
+    final dup = duplicateOf?.trim();
+    try {
+      await _firestore
+          .collection('users')
+          .doc(userId)
+          .collection('reports')
+          .doc(reportId)
+          .update({
+        'status': 'closed',
+        'disposition': disposition,
+        'dispositionReason': reason.trim(),
+        'dispositionBy': uid,
+        'dispositionAt': FieldValue.serverTimestamp(),
+        'duplicateOf': disposition == 'duplicate' && dup != null && dup.isNotEmpty
+            ? dup
+            : FieldValue.delete(),
+      });
+      ToastUtils.showSuccess(
+          'Closed: ${ProblemReport.dispositionLabel(disposition)}');
+    } catch (e) {
+      ToastUtils.showError('Failed to close report: $e');
+      rethrow;
+    }
+  }
+
+  @override
+  Future<void> reopenReport(String userId, String reportId) async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) throw StateError('Not signed in');
+    try {
+      await _firestore
+          .collection('users')
+          .doc(userId)
+          .collection('reports')
+          .doc(reportId)
+          .update({
+        'status': 'under_review',
+        'disposition': FieldValue.delete(),
+        'dispositionReason': FieldValue.delete(),
+        'dispositionBy': FieldValue.delete(),
+        'dispositionAt': FieldValue.delete(),
+        'duplicateOf': FieldValue.delete(),
+        'reopenedBy': uid,
+      });
+      ToastUtils.showSuccess('Report re-opened');
+    } catch (e) {
+      ToastUtils.showError('Failed to re-open report: $e');
+      rethrow;
+    }
+  }
+
   @override
   Future<void> escalateToProvince(String userId, String reportId) async {
     try {

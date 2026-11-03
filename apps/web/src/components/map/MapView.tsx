@@ -7,7 +7,7 @@ import { MUNICIPALITIES } from "@/data/municipalities";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Layers, MapPin, Shield, Hexagon } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, isOpenReport } from "@/lib/utils";
 import { useAuthStore } from "@/stores/authStore";
 import { barangayShapesOf, barangayNamesOf } from "@/lib/barangayGeo";
 import type { Report, Responder } from "@/types";
@@ -132,7 +132,7 @@ export function MapView({ reports, responders }: MapViewProps) {
   // Weighted intensity per municipality (critical counts 4×, etc.)
   const intensityByMuni = useMemo(() =>
     timeFilteredReports.reduce<Record<string, number>>((acc, r) => {
-      if (r.status === "solved") return acc;
+      if (!isOpenReport(r)) return acc;
       acc[r.municipality] = (acc[r.municipality] ?? 0) + (PRIORITY_WEIGHT[r.priority] ?? 1);
       return acc;
     }, {}),
@@ -173,7 +173,7 @@ export function MapView({ reports, responders }: MapViewProps) {
   // Report pin positions — use exact GPS if available, otherwise municipality centre + jitter
   const reportPins = useMemo(() =>
     filteredReports
-      .filter((r) => r.status !== "solved")
+      .filter(isOpenReport)
       .map((r) => {
         if (r.latitude && r.longitude) {
           return { report: r, pos: { lat: r.latitude, lng: r.longitude } };
@@ -186,7 +186,7 @@ export function MapView({ reports, responders }: MapViewProps) {
       .filter(Boolean) as { report: Report; pos: { lat: number; lng: number } }[],
   [filteredReports]);
 
-  const activeCount = filteredReports.filter((r) => r.status !== "solved").length;
+  const activeCount = filteredReports.filter(isOpenReport).length;
   const gpsCount    = filteredReports.filter((r) => r.latitude && r.longitude).length;
 
   return (

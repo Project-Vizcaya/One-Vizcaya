@@ -2,10 +2,11 @@ import { useEffect, useState } from "react";
 import {
   collectionGroup, query, orderBy, limit, where,
   onSnapshot, doc, updateDoc, Timestamp, arrayUnion, deleteDoc,
+  deleteField, serverTimestamp,
 } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { auth, db } from "@/lib/firebase";
 import { useAuthStore } from "@/stores/authStore";
-import type { Report, ReportNote, ReportStatus, HandlingLevel } from "@/types";
+import type { Report, ReportNote, ReportStatus, HandlingLevel, ReportDisposition } from "@/types";
 
 function toDate(val: unknown): Date {
   if (val instanceof Timestamp) return val.toDate();
@@ -50,6 +51,11 @@ function toReport(d: {
     lastModified:      toDate(data.lastModified),
     handlingLevel:     (data.handlingLevel as HandlingLevel) ?? "municipal",
     escalatedToProvince: (data.escalatedToProvince as boolean) ?? false,
+    disposition:       data.disposition as ReportDisposition | undefined,
+    dispositionReason: data.dispositionReason as string | undefined,
+    dispositionBy:     data.dispositionBy as string | undefined,
+    dispositionAt:     data.dispositionAt ? toDate(data.dispositionAt) : undefined,
+    duplicateOf:       data.duplicateOf as string | undefined,
   };
 }
 
@@ -88,6 +94,45 @@ export function useReports(municipality: string | null) {
   }, [municipality, scopedBarangay]);
 
   return { reports, loading };
+}
+
+// Close a report WITHOUT action (PDRRMO §8): recorded with a reason, the acting
+// admin and the server time — never a silent deletion. firestore.rules requires
+// all of this, and the auditReportDisposition Cloud Function audits it.
+export async function closeReportWithDisposition(
+  userId: string,
+  reportId: string,
+  disposition: ReportDisposition,
+  reason: string,
+  duplicateOf?: string,
+) {
+  const uid = auth.currentUser?.uid;
+  if (!uid) throw new Error("Not signed in.");
+  await updateDoc(doc(db, "users", userId, "reports", reportId), {
+    status: "closed",
+    disposition,
+    dispositionReason: reason.trim(),
+    dispositionBy: uid,
+    dispositionAt: serverTimestamp(),
+    duplicateOf: disposition === "duplicate" && duplicateOf?.trim() ? duplicateOf.trim() : deleteField(),
+    lastModified: Timestamp.now(),
+  });
+}
+
+// Re-open a closed report back into the queue, attributed to the acting admin.
+export async function reopenReport(userId: string, reportId: string) {
+  const uid = auth.currentUser?.uid;
+  if (!uid) throw new Error("Not signed in.");
+  await updateDoc(doc(db, "users", userId, "reports", reportId), {
+    status: "under_review",
+    disposition: deleteField(),
+    dispositionReason: deleteField(),
+    dispositionBy: deleteField(),
+    dispositionAt: deleteField(),
+    duplicateOf: deleteField(),
+    reopenedBy: uid,
+    lastModified: Timestamp.now(),
+  });
 }
 
 export async function updateReportStatus(userId: string, reportId: string, status: ReportStatus) {

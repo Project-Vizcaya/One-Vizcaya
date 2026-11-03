@@ -69,8 +69,24 @@ export function truncate(str: string, length: number): string {
   return str.slice(0, length) + "…";
 }
 
+/** Still needs action: neither resolved nor closed without action. */
+export function isOpenReport(r: { status: string }): boolean {
+  return r.status !== "solved" && r.status !== "closed";
+}
+
+export const DISPOSITION_OPTIONS = [
+  { value: "false_report", label: "False report", hint: "The reported situation did not happen." },
+  { value: "duplicate", label: "Duplicate", hint: "Already reported in another report." },
+  { value: "incomplete", label: "Incomplete", hint: "Not enough information to act on." },
+  { value: "unverifiable", label: "Could not be verified", hint: "Checked, but could not be confirmed." },
+] as const;
+
+export function dispositionLabel(d?: string): string {
+  return DISPOSITION_OPTIONS.find((o) => o.value === d)?.label ?? "Closed";
+}
+
 export function isOverdue(reportedAt: Date, status: string, slaHours: number): boolean {
-  if (status === "solved") return false;
+  if (status === "solved" || status === "closed") return false;
   const now = new Date();
   const diffHours = (now.getTime() - reportedAt.getTime()) / (1000 * 60 * 60);
   return diffHours > slaHours;

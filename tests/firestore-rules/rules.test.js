@@ -115,12 +115,21 @@ test("another admin can still add notes to a closed report", async () => {
   await assertSucceeds(updateDoc(doc(as("prov"), REPORT), { notes: ["Checked again; duplicate confirmed."] }));
 });
 
-test("an admin can re-open a closed report by clearing the disposition", async () => {
+const reopenBy = (uid) => ({
+  status: "under_review", disposition: deleteField(), dispositionReason: deleteField(),
+  dispositionBy: deleteField(), dispositionAt: deleteField(), duplicateOf: deleteField(),
+  reopenedBy: uid,
+});
+
+test("an admin can re-open a closed report, stamped with their own uid", async () => {
   await env.withSecurityRulesDisabled((ctx) => updateDoc(doc(ctx.firestore(), REPORT), closeBy("muni")));
-  await assertSucceeds(updateDoc(doc(as("muni"), REPORT), {
-    status: "under_review", disposition: deleteField(), dispositionReason: deleteField(),
-    dispositionBy: deleteField(), dispositionAt: deleteField(), duplicateOf: deleteField(),
-  }));
+  await assertSucceeds(updateDoc(doc(as("prov"), REPORT), reopenBy("prov")));
+});
+
+test("re-opening without (or with someone else's) reopenedBy is refused", async () => {
+  await env.withSecurityRulesDisabled((ctx) => updateDoc(doc(ctx.firestore(), REPORT), closeBy("muni")));
+  await assertFails(updateDoc(doc(as("muni"), REPORT), { ...reopenBy("muni"), reopenedBy: deleteField() }));
+  await assertFails(updateDoc(doc(as("muni"), REPORT), reopenBy("prov")));
 });
 
 test("ordinary admin status changes still work", async () => {
