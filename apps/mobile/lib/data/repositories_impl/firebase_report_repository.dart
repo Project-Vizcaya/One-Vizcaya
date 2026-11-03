@@ -7,6 +7,7 @@ import '../../domain/models/problem_report.dart';
 import '../../domain/enums/handling_level.dart';
 import '../../domain/repositories/report_repository.dart';
 import '../../core/utils/toast_utils.dart';
+import '../../core/utils/callable.dart';
 
 class FirebaseReportRepository implements ReportRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -348,14 +349,10 @@ class FirebaseReportRepository implements ReportRepository {
   }
 
   @override
-  Future<void> deleteReport(String userId, String reportId) async {
+  Future<void> deleteReport(String userId, String reportId, String reason) async {
     try {
-      await _firestore
-          .collection('users')
-          .doc(userId)
-          .collection('reports')
-          .doc(reportId)
-          .delete();
+      await callFunction('deleteReportWithReason',
+          {'userId': userId, 'reportId': reportId, 'reason': reason});
       ToastUtils.showSuccess('Report deleted');
     } catch (e) {
       ToastUtils.showError('Failed to delete report: $e');

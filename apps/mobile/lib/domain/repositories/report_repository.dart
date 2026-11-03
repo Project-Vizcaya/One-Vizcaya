@@ -40,7 +40,10 @@ abstract class ReportRepository {
       String userId, String reportId, HandlingLevel level);
 
   /// Provincial Admin: Permanently delete a report
-  Future<void> deleteReport(String userId, String reportId);
+  /// Deletes a report through the deleteReportWithReason Cloud Function,
+  /// which checks the caller, requires [reason] (5+ characters) and records
+  /// who deleted it. Direct client deletes are refused by firestore.rules.
+  Future<void> deleteReport(String userId, String reportId, String reason);
 
   /// Admin: Flag or unflag a report as suspicious
   Future<void> flagReport(String userId, String reportId, bool isFlagged);

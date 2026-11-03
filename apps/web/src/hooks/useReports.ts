@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 import {
   collectionGroup, query, orderBy, limit, where,
-  onSnapshot, doc, updateDoc, Timestamp, arrayUnion, deleteDoc,
+  onSnapshot, doc, updateDoc, Timestamp, arrayUnion,
   deleteField, serverTimestamp,
 } from "firebase/firestore";
-import { auth, db } from "@/lib/firebase";
+import { auth, db, functions } from "@/lib/firebase";
+import { httpsCallable } from "firebase/functions";
 import { useAuthStore } from "@/stores/authStore";
 import type { Report, ReportNote, ReportStatus, HandlingLevel, ReportDisposition } from "@/types";
 
@@ -183,6 +184,9 @@ export async function addReportNote(
   });
 }
 
-export async function deleteReport(userId: string, reportId: string) {
-  await deleteDoc(doc(db, "users", userId, "reports", reportId));
+// Deletion runs server-side (deleteReportWithReason): it checks the caller,
+// requires a reason and records who deleted the report. Client deletes are
+// refused by firestore.rules, because they could not be attributed.
+export async function deleteReport(userId: string, reportId: string, reason: string) {
+  await httpsCallable(functions, "deleteReportWithReason")({ userId, reportId, reason });
 }

@@ -1507,19 +1507,15 @@ exports.cleanupReportImageOnDelete = onDocumentDeleted(
 // restrict report deletion to provincial admins, so the actor set is small, but
 // full attribution needs deletion routed through a callable that verifies the
 // caller — tracked as follow-up work.
+const { deletionAudit } = require("./reports/deletion");
+
 exports.onReportDeleted = onDocumentDeleted(
   "users/{userId}/reports/{reportId}",
   async (event) => {
     const data = (event.data && event.data.data()) || {};
-    const reportedAt = data.reportedAt?.toDate?.() ?? null;
-    const ageMonths = reportedAt
-      ? (Date.now() - reportedAt.getTime()) / (1000 * 60 * 60 * 24 * 30.44)
-      : null;
-    // The retention job only ever deletes reports past 24 months.
-    const cause =
-      ageMonths !== null && ageMonths >= 24
-        ? "retention_24_months"
-        : "operator_deletion";
+    // Who and why come from the stamp deleteReportWithReason writes just
+    // before deleting; see ./reports/deletion.js for what is (not) inferred.
+    const { cause, deletedBy, reason } = deletionAudit(data, Date.now());
 
     await admin
       .firestore()
@@ -1527,6 +1523,8 @@ exports.onReportDeleted = onDocumentDeleted(
       .add({
         action: "report_deleted",
         cause,
+        deletedBy,
+        reason,
         targetUid: event.params.userId,
         reportId: event.params.reportId,
         category: data.category || null,
@@ -1540,6 +1538,42 @@ exports.onReportDeleted = onDocumentDeleted(
       .catch((e) => console.error("onReportDeleted audit write failed:", e));
   }
 );
+
+// ── Attributed report deletion (PDRRMO §8, §3) ───────────────────────────────
+// The only route by which an app user can delete a report (firestore.rules
+// forbids client deletes). Same authority as before — provincial admins — but
+// a reason is required and the caller is recorded. For a false, duplicate,
+// incomplete or unverifiable report, closing it without action is preferred:
+// that keeps the report on record.
+exports.deleteReportWithReason = onCall(async (request) => {
+  if (!request.auth) throw new HttpsError("unauthenticated", "Must be signed in.");
+  const { userId, reportId, reason } = request.data || {};
+  if (typeof userId !== "string" || !userId || typeof reportId !== "string" || !reportId) {
+    throw new HttpsError("invalid-argument", "userId and reportId are required.");
+  }
+  const why = typeof reason === "string" ? reason.trim() : "";
+  if (why.length < 5) {
+    throw new HttpsError("invalid-argument", "A reason of at least 5 characters is required.");
+  }
+  const role = await resolveCallerRole(request);
+  if (!PROVINCIAL_ROLES.includes(role)) {
+    throw new HttpsError("permission-denied",
+      "Only provincial administrators can delete reports. To record a false or duplicate report, close it without action instead.");
+  }
+  const ref = admin.firestore().collection("users").doc(userId).collection("reports").doc(reportId);
+  const snap = await ref.get();
+  if (!snap.exists) throw new HttpsError("not-found", "Report not found.");
+
+  // Stamp who and why, then delete: onReportDeleted reads these from the
+  // deleted document's final snapshot to write a single attributed entry.
+  await ref.update({
+    deletionRequestedBy: request.auth.uid,
+    deletionReason: why.slice(0, 500),
+    deletionRequestedAt: admin.firestore.FieldValue.serverTimestamp(),
+  });
+  await ref.delete();
+  return { deleted: true };
+});
 
 // ── RA 10173 retention: purge reports older than 24 months ───────────────────
 // Runs daily at 3 AM Manila time. The privacy policy commits to deleting

@@ -13,7 +13,7 @@ const {
   initializeTestEnvironment, assertSucceeds, assertFails,
 } = require("@firebase/rules-unit-testing");
 const {
-  doc, getDoc, getDocs, setDoc, updateDoc, deleteField, serverTimestamp, Timestamp,
+  doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, deleteField, serverTimestamp, Timestamp,
   collection, query, where,
 } = require("firebase/firestore");
 
@@ -233,4 +233,18 @@ test("the console's pending-drafts queries are allowed exactly as written", asyn
   await assertFails(pending(as("muni"), where("municipality", "==", "Solano")));
   // Provincial admin: province-wide query is allowed.
   await assertSucceeds(pending(as("prov")));
+});
+
+// ── attributed deletion (P2, PDRRMO §8) ────────────────────────────────────
+
+test("no client can delete a report directly — not even a super admin", async () => {
+  // Deletion goes only through deleteReportWithReason, which records who.
+  await assertFails(deleteDoc(doc(as("prov"), REPORT)));
+  await assertFails(deleteDoc(doc(as("super"), REPORT)));
+  await assertFails(deleteDoc(doc(as("citizen"), REPORT)));
+});
+
+test("the report-delete exclusion does not stop super admins deleting other things", async () => {
+  await env.withSecurityRulesDisabled((ctx) => setDoc(doc(ctx.firestore(), "zz_bypass_only/y"), { a: 1 }));
+  await assertSucceeds(deleteDoc(doc(as("super"), "zz_bypass_only/y")));
 });

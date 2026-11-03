@@ -163,7 +163,13 @@ service cloud.firestore {
       // [3] is the top-level collection. (Indexing the `document` wildcard
       // itself is an evaluation error — which denies EVERY write and would
       // silently remove the bypass; tests/emulator guards against that.)
-      allow write: if isSuperAdmin() && !(request.path[3] in serverOnlyCollections());
+      allow write: if isSuperAdmin() && !(request.path[3] in serverOnlyCollections())
+                    && !(request.method == 'delete' && isReportPath());
+    }
+
+    // users/{uid}/reports/{id} — deleted only via deleteReportWithReason.
+    function isReportPath() {
+      return string(request.path).matches('.*/users/[^/]+/reports/[^/]+$');
     }
 
     function serverOnlyCollections() {
@@ -246,7 +252,10 @@ service cloud.firestore {
                       || (isOwner(userId)
                           && !request.resource.data.diff(resource.data)
                                .affectedKeys().hasAny(dispositionFields()));
-        allow delete: if isProvincialAdmin();
+        // Deletion goes ONLY through the deleteReportWithReason callable,
+        // which checks the caller, requires a reason and records who did it.
+        // (A client delete could not be attributed.)
+        allow delete: if false;
       }
 
       // Per-user notifications
@@ -306,7 +315,7 @@ service cloud.firestore {
                            && municipalScoped(resource.data)
                            && request.resource.data.escalatedBy == request.auth.uid))
                        && validDisposition();
-      allow delete: if isProvincialAdmin();
+      allow delete: if false; // see the nested reports rule
     }
 
     // ─── Announcements ───────────────────────────────────────────────────────

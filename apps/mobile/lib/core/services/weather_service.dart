@@ -1,8 +1,5 @@
-import 'dart:convert';
 import 'dart:math';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'package:http/http.dart' as http;
+import 'package:one_vizcaya/core/utils/callable.dart';
 
 class HourlyForecast {
   final DateTime time;
@@ -131,33 +128,10 @@ class WeatherService {
     // Called via Firebase's callable-function HTTP protocol over `http`, so no
     // new native plugin is needed. Requires a signed-in user; with no user the
     // caller's existing offline/cached path handles the thrown error.
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) {
-      throw Exception('Weather requires a signed-in user');
-    }
-    final idToken = await user.getIdToken();
-    final projectId = Firebase.app().options.projectId;
-    final resp = await http
-        .post(
-          Uri.parse(
-            'https://us-central1-$projectId.cloudfunctions.net/getWeather',
-          ),
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer $idToken',
-          },
-          body: json.encode({
-            'data': {'lat': useLat, 'lon': useLon},
-          }),
-        )
-        .timeout(const Duration(seconds: 20));
-
-    if (resp.statusCode != 200) {
-      throw Exception('Weather service error ${resp.statusCode}');
-    }
-    final result =
-        (json.decode(resp.body) as Map<String, dynamic>)['result']
-            as Map<String, dynamic>;
+    final result = await callFunction(
+      'getWeather',
+      {'lat': useLat, 'lon': useLon},
+    ) as Map<String, dynamic>;
 
     // `current` and `forecast` are guaranteed by the function (it fails the
     // whole call otherwise); `aqi` and `uvi` may be null, as before.

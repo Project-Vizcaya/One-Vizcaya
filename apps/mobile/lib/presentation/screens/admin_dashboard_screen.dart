@@ -508,8 +508,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
             _reportRepository.escalateToProvince(userId, reportId),
         onTransfer: (reportId, userId, level) =>
             _reportRepository.transferToLevel(userId, reportId, level),
-        onDelete: (reportId, userId) =>
-            _reportRepository.deleteReport(userId, reportId),
+        onDelete: (reportId, userId, reason) =>
+            _reportRepository.deleteReport(userId, reportId, reason),
         onFlagUpdate: (reportId, userId, isFlagged) =>
             _reportRepository.flagReport(userId, reportId, isFlagged),
         onCloseWithDisposition: (reportId, userId, disposition, reason, duplicateOf) =>
@@ -1396,7 +1396,7 @@ class _ReportDetailSheet extends StatelessWidget {
   final Future<void> Function(String reportId, String userId) onEscalate;
   final Future<void> Function(
       String reportId, String userId, HandlingLevel level) onTransfer;
-  final Future<void> Function(String reportId, String userId) onDelete;
+  final Future<void> Function(String reportId, String userId, String reason) onDelete;
   final Future<void> Function(String reportId, String userId, bool isFlagged)
       onFlagUpdate;
   final Future<void> Function(String reportId, String userId,
@@ -1618,24 +1618,43 @@ class _ReportDetailSheet extends StatelessWidget {
   }
 
   void _confirmDelete(BuildContext context) {
+    final reason = TextEditingController();
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setState) => AlertDialog(
         shape:
             RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text('Delete Report'),
-        content: const Text(
-            'Permanently delete this report? This cannot be undone.'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+                'Permanently delete this report? This cannot be undone. To record '
+                'a false or duplicate report, use "Close without action" instead.'),
+            TextField(
+              controller: reason,
+              minLines: 2,
+              maxLines: 3,
+              onChanged: (_) => setState(() {}),
+              decoration: const InputDecoration(
+                  labelText: 'Reason (required, recorded in the audit log)'),
+            ),
+          ],
+        ),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx),
               child: const Text('Cancel')),
           ElevatedButton(
-            onPressed: () async {
+            onPressed: reason.text.trim().length < 5
+                ? null
+                : () async {
               Navigator.pop(ctx);
               Navigator.pop(context);
               if (report.userId != null) {
-                await onDelete(report.id, report.userId!);
+                await onDelete(report.id, report.userId!, reason.text.trim());
               }
             },
             style: ElevatedButton.styleFrom(
@@ -1645,7 +1664,8 @@ class _ReportDetailSheet extends StatelessWidget {
           ),
         ],
       ),
-    );
+      ),
+    ).then((_) => reason.dispose());
   }
 
   @override

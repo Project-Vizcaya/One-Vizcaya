@@ -74,6 +74,7 @@ export function ReportDetail({ report, open, onClose }: ReportDetailProps) {
   const [note, setNote] = useState("");
   const [saving, setSaving] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleteReason, setDeleteReason] = useState("");
   // Close-without-action dialog (PDRRMO §8 disposition).
   const [dispOpen, setDispOpen] = useState(false);
   const [disp, setDisp] = useState<ReportDisposition | "">("");
@@ -182,11 +183,12 @@ export function ReportDetail({ report, open, onClose }: ReportDetailProps) {
   const handleDelete = async () => {
     if (!report) return;
     try {
-      await deleteReport(report.userId, report.id);
-      toast({ title: "Report deleted" });
+      await deleteReport(report.userId, report.id, deleteReason);
+      toast({ title: "Report deleted", description: "Recorded in the audit log with your name and reason." });
+      setDeleteReason("");
       onClose();
-    } catch {
-      toast({ title: "Failed to delete", variant: "destructive" });
+    } catch (e) {
+      toast({ title: "Failed to delete", description: (e as { message?: string })?.message, variant: "destructive" });
     }
   };
 
@@ -497,9 +499,19 @@ export function ReportDetail({ report, open, onClose }: ReportDetailProps) {
               "Close without action" instead — it keeps a record of why.
             </AlertDialogDescription>
           </AlertDialogHeader>
+          <Textarea
+            value={deleteReason}
+            onChange={(e) => setDeleteReason(e.target.value)}
+            placeholder="Reason for deleting (required, recorded in the audit log)"
+            className="text-sm min-h-[70px]"
+          />
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90">
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); handleDelete(); }}
+              disabled={deleteReason.trim().length < 5}
+              className="bg-destructive hover:bg-destructive/90"
+            >
               Delete Permanently
             </AlertDialogAction>
           </AlertDialogFooter>
