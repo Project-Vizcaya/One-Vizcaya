@@ -8,7 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/utils/toast_utils.dart';
 import '../../presentation/state/municipality_state.dart';
 import '../../presentation/widgets/broadcast_presenter.dart';
-import 'offline_queue_service.dart';
+import 'report_submitter.dart';
 
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -120,9 +120,9 @@ class NotificationService {
       _listenersActive = true;
     }
 
-    // Process any offline queued reports now that we're initialised (online check
-    // happens lazily — if Firebase is reachable the submissions will succeed)
-    _processOfflineQueue();
+    // Deliver queued reports now and whenever connectivity returns (app start,
+    // sign-in, return to foreground, and every 60 s while anything is queued).
+    QueueFlusher.instance.start();
   }
 
   /// Called after the widget tree is built (via WidgetsBinding.addPostFrameCallback).
@@ -159,37 +159,6 @@ class NotificationService {
         arguments: {'reportId': reportId},
       );
     }
-  }
-
-  Future<void> _processOfflineQueue() async {
-    final queue = await OfflineQueueService().getQueue();
-    if (queue.isEmpty) return;
-    try {
-      for (final data in queue) {
-        final userId = data['userId'] as String? ?? '';
-        if (userId.isEmpty) continue;
-        final report = _reportFromMap(data);
-        await _firestore
-            .collection('users')
-            .doc(userId)
-            .collection('reports')
-            .add(report);
-      }
-      await OfflineQueueService().clearQueue();
-      debugPrint('NotificationService: offline queue flushed (${queue.length} reports)');
-    } catch (e) {
-      debugPrint('NotificationService._processOfflineQueue error: $e');
-    }
-  }
-
-  Map<String, dynamic> _reportFromMap(Map<String, dynamic> data) {
-    // Re-build the Firestore payload from stored map.
-    // We pass through as-is but convert the ISO-8601 reportedAt string back to
-    // a server timestamp placeholder for consistency.
-    final out = Map<String, dynamic>.from(data);
-    out.remove('userId'); // userId is part of the document path, not the payload
-    out['reportedAt'] = FieldValue.serverTimestamp();
-    return out;
   }
 
   // Listens to users/{uid}/notifications for documents where read == false

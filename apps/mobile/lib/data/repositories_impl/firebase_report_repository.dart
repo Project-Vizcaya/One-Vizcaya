@@ -12,33 +12,42 @@ class FirebaseReportRepository implements ReportRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   @override
-  Future<void> submitReport(ProblemReport report, String userId) async {
-    try {
-      final docRef = await _firestore
-          .collection('users')
-          .doc(userId)
-          .collection('reports')
-          .add(report.toMap());
-
-      await _firestore
-          .collection('users')
-          .doc(userId)
-          .collection('notifications')
-          .add({
-            'type': 'report_submitted',
-            'title': 'Report Submitted',
-            'body':
-                'Your report about "${report.category.displayName}" has been received. '
-                'We will review it shortly.',
-            'status': 'info',
-            'reportId': docRef.id,
-            'timestamp': FieldValue.serverTimestamp(),
-            'read': false,
-          });
-    } catch (e) {
-      ToastUtils.showError('Error submitting report. Please try again.');
-      rethrow;
+  Future<String> submitReport(ProblemReport report, String userId,
+      {String? docId, DateTime? originalReportedAt}) async {
+    // Errors propagate: the caller decides whether a failure means "queue it
+    // for later" or "tell the user", so no toast is shown here.
+    final reports =
+        _firestore.collection('users').doc(userId).collection('reports');
+    final docRef = docId != null ? reports.doc(docId) : reports.doc();
+    final data = report.toMap();
+    if (originalReportedAt != null) {
+      // Filed offline: keep the citizen's real filing time (response-time
+      // metrics depend on it) and record when it actually arrived.
+      data['reportedAt'] = Timestamp.fromDate(originalReportedAt);
+      data['submittedAt'] = FieldValue.serverTimestamp();
+      data['queuedOffline'] = true;
     }
+    await docRef.set(data);
+
+    // Fixed receipt id: a retry overwrites the same receipt instead of
+    // sending the citizen a second "Report Submitted" notice.
+    await _firestore
+        .collection('users')
+        .doc(userId)
+        .collection('notifications')
+        .doc('receipt_${docRef.id}')
+        .set({
+          'type': 'report_submitted',
+          'title': 'Report Submitted',
+          'body':
+              'Your report about "${report.category.displayName}" has been received. '
+              'We will review it shortly.',
+          'status': 'info',
+          'reportId': docRef.id,
+          'timestamp': FieldValue.serverTimestamp(),
+          'read': false,
+        });
+    return docRef.id;
   }
 
   @override
