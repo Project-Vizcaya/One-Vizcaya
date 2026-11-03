@@ -203,23 +203,46 @@ function parseExtendedOutlookHeader(html) {
   return { issuedAt, labels };
 }
 
+// PAGASA's own product names. The kind is read ONLY from the item's title as
+// published; anything unrecognised is "other" and is shown verbatim, unranked.
+function thunderstormKind(title) {
+  if (/^Thunderstorm Advisory/i.test(title)) return "advisory";
+  if (/^Thunderstorm Watch/i.test(title)) return "watch";
+  if (/^Thunderstorm Information/i.test(title)) return "information";
+  return "other";
+}
+
 function parseThunderstorms(html) {
   const inner = innerOfDivById(html, "thunderstorms");
   if (inner === null) return null;
+  const seen = new Set();
   return childDivs(inner)
     .map((frag) => {
       const text = toText(frag);
       const lines = text.split("\n");
       const issuedIdx = lines.findIndex((l) => /^Issued at/i.test(l));
+      const title = lines[0] || null;
+      const issuedAt = utc(parseIssuedAt(text));
+      const body = (issuedIdx >= 0 ? lines.slice(issuedIdx + 1) : lines.slice(1)).join("\n").trim();
+      // Validity only when the publication states it ("... within 12 hours").
+      // No stated window -> null; the app then says so instead of assuming one.
+      const hrs = /within\s+(\d{1,2})\s+hours?/i.exec(body);
+      const validUntil = hrs && issuedAt
+        ? new Date(Date.parse(issuedAt) + Number(hrs[1]) * 3600 * 1000).toISOString()
+        : null;
       return {
-        title: lines[0] || null,
-        issuedAt: utc(parseIssuedAt(text)),
-        body: (issuedIdx >= 0 ? lines.slice(issuedIdx + 1) : lines.slice(1)).join("\n").trim(),
+        kind: thunderstormKind(title || ""),
+        title,
+        issuedAt,
+        validUntil,
+        body,
         text, // verbatim, for display exactly as PAGASA published it
         mentionsNuevaVizcaya: /#?\bNueva\s*Vizcaya\b/i.test(text),
       };
     })
-    .filter((x) => x.text);
+    .filter((x) => x.text)
+    // PAGASA occasionally repeats an item; show each distinct text once.
+    .filter((x) => (seen.has(x.text) ? false : (seen.add(x.text), true)));
 }
 
 function parseRainfall(html) {
@@ -302,6 +325,11 @@ function parseNlprsd(html, retrievedAt) {
           issuedAt: iso(regional.weather.issued_date),
           validUntil: iso(regional.weather.valid_date),
           text: regional.weather.condition ?? null, // verbatim
+          // True when the published synopsis contains tropical cyclone
+          // information. It does NOT mean the cyclone affects Nueva Vizcaya:
+          // the text (e.g. "OUTSIDE PAR") is shown verbatim for that.
+          mentionsTropicalCyclone:
+            /TROPICAL (CYCLONE|DEPRESSION|STORM)|\bTYPHOON\b/i.test(regional.weather.condition ?? ""),
         }
       : null,
     rainfallWarning: rainfallWarning && {

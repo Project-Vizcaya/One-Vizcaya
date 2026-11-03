@@ -150,3 +150,36 @@ test("weekday dates use the local issue date (an early-morning issue is not shif
 test("toText treats raw newlines as spaces and only <br> as a break", () => {
   assert.equal(toText("A<br />\n  B&amp;C &deg;"), "A\nB&C °");
 });
+
+// ── stage 4 derivations (time-independent; clients compare against the clock) ──
+
+test("thunderstorm kind comes from PAGASA's own title wording", () => {
+  const items = parseNlprsd(REAL, AT).thunderstorms.items;
+  assert.deepEqual(items.map((i) => i.kind), ["information", "watch"]);
+  const adv = REAL.replace("Thunderstorm Watch #NLPRSD", "Thunderstorm Advisory #NLPRSD");
+  assert.equal(parseNlprsd(adv, AT).thunderstorms.items[1].kind, "advisory");
+  const odd = REAL.replace("Thunderstorm Watch #NLPRSD", "Lightning Notice #NLPRSD");
+  assert.equal(parseNlprsd(odd, AT).thunderstorms.items[1].kind, "other");
+});
+
+test("validity is derived only from a stated 'within N hours'", () => {
+  const items = parseNlprsd(REAL, AT).thunderstorms.items;
+  assert.equal(items[0].validUntil, "2026-11-03T13:37:00.000Z"); // 01:37Z + 12h
+  const none = REAL.replace("develop over #Aurora within 12 hours.", "develop over #Aurora.");
+  assert.equal(parseNlprsd(none, AT).thunderstorms.items[0].validUntil, null);
+});
+
+test("duplicate thunderstorm items are shown once", () => {
+  const i = REAL.indexOf('<div id="thunderstorms"');
+  const open = REAL.indexOf(">", i) + 1;
+  const firstEnd = REAL.indexOf("</div>", open) + "</div>".length;
+  const dup = REAL.slice(0, firstEnd) + REAL.slice(open, firstEnd) + REAL.slice(firstEnd);
+  assert.equal(parseNlprsd(dup, AT).thunderstorms.items.length, 2);
+});
+
+test("synopsis flags tropical cyclone content without classifying its threat", () => {
+  const s = parseNlprsd(REAL, AT).synopsis;
+  assert.equal(s.mentionsTropicalCyclone, true);
+  const calm = withRegional(REAL, (o) => { o.weather.condition = "Easterlies affecting Northern Luzon."; });
+  assert.equal(parseNlprsd(calm, AT).synopsis.mentionsTropicalCyclone, false);
+});

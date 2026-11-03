@@ -4,6 +4,7 @@ import 'package:intl/intl.dart' hide TextDirection;
 import 'package:url_launcher/url_launcher.dart';
 import 'package:one_vizcaya/core/services/weather_service.dart';
 import 'package:one_vizcaya/core/services/weather_advisory.dart';
+import 'package:one_vizcaya/presentation/widgets/pagasa_weather_panel.dart';
 
 class WeatherDetailScreen extends StatefulWidget {
   final String municipality;
@@ -268,6 +269,21 @@ class _WeatherDetailScreenState extends State<WeatherDetailScreen> {
       ),
     );
   }
+
+  // Separates official PAGASA products from the third-party OpenWeather data
+  // shown below them, so the two can never be mistaken for each other.
+  Widget _supplementaryLabel() => Padding(
+        padding: const EdgeInsets.fromLTRB(20, 14, 20, 2),
+        child: Text(
+          'SUPPLEMENTARY · OPENWEATHER (THIRD-PARTY, NOT PAGASA)',
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: 0.55),
+            fontSize: 11,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 1.0,
+          ),
+        ),
+      );
 
   Widget _buildHourly(WeatherData d) {
     final slots = d.hourly.take(16).toList();
@@ -1428,6 +1444,16 @@ class _WeatherDetailScreenState extends State<WeatherDetailScreen> {
                               ),
                             ),
                           ),
+                          const SizedBox(height: 4),
+                          // The header's figures are OpenWeather's, not
+                          // PAGASA's; the official forecast is below.
+                          Text(
+                            'Current conditions: OpenWeather (third-party)',
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.5),
+                              fontSize: 11,
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -1443,6 +1469,15 @@ class _WeatherDetailScreenState extends State<WeatherDetailScreen> {
                 child: Column(
                   children: [
                     const SizedBox(height: 8),
+                    // Official PAGASA products come first (provincial
+                    // forecast, outlook, warnings, synopsis).
+                    PagasaWeatherPanel(
+                      municipality: widget.municipality,
+                      card: _frostedCard,
+                      title: _sectionTitle,
+                    ),
+                    // Everything below is third-party data, labelled as such.
+                    _supplementaryLabel(),
                     _buildAdvisories(advisories),
                     _buildHourly(d),
                     _buildRainChart(d),
