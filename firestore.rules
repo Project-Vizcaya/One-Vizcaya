@@ -151,9 +151,23 @@ service cloud.firestore {
     }
 
     // ─── Super admin bypass ─────────────────────────────────────────────────
-    // super_admin has unrestricted read/write access to every document
+    // super_admin can read everything and write almost everything — EXCEPT the
+    // collections only the server may write. Rules are OR-ed, so an
+    // `allow write: if false` on those collections could not stop this bypass;
+    // the exclusion has to live here. Without it a super admin client could
+    // falsify official PAGASA data, or approve an automated alert by editing
+    // its draft directly and skip decideAlertDraft's checks.
     match /{document=**} {
-      allow read, write: if isSuperAdmin();
+      allow read:  if isSuperAdmin();
+      // request.path is /databases/(default)/documents/<collection>/..., so
+      // [3] is the top-level collection. (Indexing the `document` wildcard
+      // itself is an evaluation error — which denies EVERY write and would
+      // silently remove the bypass; tests/emulator guards against that.)
+      allow write: if isSuperAdmin() && !(request.path[3] in serverOnlyCollections());
+    }
+
+    function serverOnlyCollections() {
+      return ['pagasa_products', 'alert_drafts'];
     }
 
     // ─── User profiles ──────────────────────────────────────────────────────

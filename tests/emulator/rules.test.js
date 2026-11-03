@@ -156,12 +156,27 @@ test("citizens and provincial admins cannot write the PAGASA document", async ()
   await assertFails(setDoc(doc(as("prov"), "pagasa_products/nueva_vizcaya"), { provider: "fake" }));
 });
 
-test("KNOWN GAP: a super admin CAN write the PAGASA document via the global bypass", async () => {
-  // Documents current effective behaviour: rules are OR-ed, so
-  // `allow write: if false` on pagasa_products does NOT override the
-  // `match /{document=**} { allow read, write: if isSuperAdmin(); }` bypass.
-  // If the bypass is narrowed, flip this to assertFails.
-  await assertSucceeds(setDoc(doc(as("super"), "pagasa_products/nueva_vizcaya"), { provider: "fake" }));
+test("a super admin can no longer write the PAGASA document or alert drafts", async () => {
+  // Previously the global bypass let them (rules are OR-ed, so the
+  // collections' own `allow write: if false` could not stop it).
+  await assertFails(setDoc(doc(as("super"), "pagasa_products/nueva_vizcaya"), { provider: "fake" }));
+  await assertFails(setDoc(doc(as("super"), "alert_drafts/d1"), { status: "approved" }));
+});
+
+test("a super admin can still read them, and still write everything else", async () => {
+  await env.withSecurityRulesDisabled((ctx) =>
+    setDoc(doc(ctx.firestore(), "pagasa_products/nueva_vizcaya"), { provider: "PAGASA" }));
+  await assertSucceeds(getDoc(doc(as("super"), "pagasa_products/nueva_vizcaya")));
+  await assertSucceeds(updateDoc(doc(as("super"), REPORT), { notes: ["super admin note"] }));
+  await assertSucceeds(setDoc(doc(as("super"), "config/sla"), { provisional: true }));
+  await assertSucceeds(setDoc(doc(as("super"), "users/someone"), { role: "citizen" }));
+});
+
+test("the super-admin bypass itself still grants writes (a collection no other rule covers)", async () => {
+  // Guards against the bypass silently erroring: the collections above all
+  // have their own rules granting super admins, so they cannot detect it.
+  await assertSucceeds(setDoc(doc(as("super"), "zz_bypass_only/x"), { a: 1 }));
+  await assertFails(setDoc(doc(as("prov"), "zz_bypass_only/x"), { a: 1 }));
 });
 
 // ── broadcast scope (from #133) ────────────────────────────────────────────
