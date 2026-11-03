@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:http/http.dart' as http;
 import '../../core/constants/app_constants.dart';
 import '../../core/l10n/app_strings.dart';
 import '../state/municipality_state.dart';
@@ -12,6 +11,8 @@ import '../../features/announcements/presentation/widgets/announcements_carousel
 import '../../features/reports/presentation/widgets/community_feed.dart';
 import '../../core/widgets/weather_widget.dart';
 import '../../data/services/offline_queue_service.dart';
+import '../../data/services/report_submitter.dart';
+import '../../core/utils/connectivity_probe.dart';
 import '../../data/services/sos_service.dart';
 import '../../core/utils/toast_utils.dart';
 import 'sos_active_screen.dart';
@@ -62,6 +63,8 @@ class _HomeScreenState extends State<HomeScreen> {
     oneVizcayaState.selectedMunicipality.addListener(_onMunicipalityChanged);
     _checkConnectivity();
     _refreshQueueCount();
+    // Live count: the banner updates as queued reports are delivered.
+    OfflineQueueService.count.addListener(_onQueueCount);
     _loadResidencyNudge();
     // If the user opted into location-based municipality, snap to the nearest
     // one on load (no-op when the toggle is off or location is unavailable).
@@ -81,6 +84,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void dispose() {
     _connectivityTimer?.cancel();
+    OfflineQueueService.count.removeListener(_onQueueCount);
     oneVizcayaState.selectedMunicipality.removeListener(_onMunicipalityChanged);
     super.dispose();
   }
@@ -160,37 +164,18 @@ class _HomeScreenState extends State<HomeScreen> {
     _refreshQueueCount();
   }
 
-  /// Checks real internet connectivity using an HTTP request.
-  /// Uses Google's generate_204 endpoint which is ultra-fast and reliable.
-  /// Falls back gracefully — any successful HTTP response means we're online.
+  /// Checks real internet connectivity (shared ConnectivityProbe). When the
+  /// connection comes back, queued reports are sent straight away rather than
+  /// waiting for the flusher's next tick.
   Future<void> _checkConnectivity() async {
-    bool online = false;
-
-    // Primary check: lightweight HTTP request to a reliable endpoint
-    try {
-      final response = await http
-          .head(Uri.parse('https://clients3.google.com/generate_204'))
-          .timeout(const Duration(seconds: 10));
-      online = response.statusCode == 204 || response.statusCode == 200;
-    } catch (_) {
-      // HTTP check failed — try Firestore as fallback
-      try {
-        await FirebaseFirestore.instance
-            .collection('_ping')
-            .doc('ping')
-            .get(const GetOptions(source: Source.server))
-            .timeout(const Duration(seconds: 10));
-        online = true;
-      } on FirebaseException catch (_) {
-        // Firebase responded (e.g. permission-denied) — server is reachable
-        online = true;
-      } catch (_) {
-        // Both checks failed — genuinely offline
-        online = false;
-      }
-    }
-
+    final online = await ConnectivityProbe.isOnline();
+    final wasOffline = _isOffline;
     if (mounted) setState(() => _isOffline = !online);
+    if (online && wasOffline) QueueFlusher.instance.flush();
+  }
+
+  void _onQueueCount() {
+    if (mounted) setState(() => _queuedReportCount = OfflineQueueService.count.value);
   }
 
   Future<void> _refreshQueueCount() async {
@@ -289,7 +274,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          '$_queuedReportCount ${_queuedReportCount == 1 ? 'report' : 'reports'} queued — will submit when you\'re back online',
+                          '$_queuedReportCount ${_queuedReportCount == 1 ? 'report' : 'reports'} saved — will be sent automatically when online',
                           style: const TextStyle(
                             color: Color(0xFFE65100),
                             fontSize: 12,

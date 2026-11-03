@@ -16,6 +16,7 @@ const badgeVariants = cva(
         under_review: "border-transparent bg-purple-100 text-purple-800",
         ongoing: "border-transparent bg-orange-100 text-orange-800",
         solved: "border-transparent bg-green-100 text-green-800",
+        closed: "border-transparent bg-slate-200 text-slate-700",
         critical: "border-transparent bg-red-100 text-red-800",
         high: "border-transparent bg-orange-100 text-orange-800",
         medium: "border-transparent bg-yellow-100 text-yellow-800",

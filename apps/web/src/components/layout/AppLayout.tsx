@@ -17,7 +17,7 @@ import { useAuthStore } from "@/stores/authStore";
 import { useAuth } from "@/hooks/useAuth";
 import { useReports } from "@/hooks/useReports";
 import { useSosAlerts } from "@/hooks/useSosAlerts";
-import { cn, getMunicipalityVars, getMunicipalityColor } from "@/lib/utils";
+import { cn, getMunicipalityVars, getMunicipalityColor, isOpenReport } from "@/lib/utils";
 import type { AuthUser } from "@/types";
 import { MUNICIPALITIES } from "@/data/municipalities";
 import type { AdminRole } from "@/lib/firebase";
@@ -89,7 +89,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   );
   const municipality = viewAs === "municipal" ? viewMunicipality : null;
   const { reports } = useReports(municipality);
-  const criticalOpen = reports.filter((r) => r.priority === "critical" && r.status !== "solved").length;
+  const criticalOpen = reports.filter((r) => r.priority === "critical" && isOpenReport(r)).length;
   const { alerts: sosAlerts } = useSosAlerts();
   const sosCount = sosAlerts.length;
 

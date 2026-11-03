@@ -27,9 +27,10 @@
 16. [Getting Started (Local Development)](#-getting-started-local-development)
 17. [Deployment](#-deployment)
 18. [Development Roadmap](#-development-roadmap)
-19. [Future Features](#-future-features)
-20. [Cost & Sustainability Plan](#-cost--sustainability-plan)
-21. [Service Model, Ownership & Continuity](#-service-model-ownership--continuity)
+19. [Current Limitations](#-current-limitations)
+20. [Future Features](#-future-features)
+21. [Cost & Sustainability Plan](#-cost--sustainability-plan)
+22. [Service Model, Ownership & Continuity](#-service-model-ownership--continuity)
 
 ---
 
@@ -39,9 +40,9 @@ One Vizcaya provides a centralized, multi-tenant hub where residents can report 
 Importantly, the platform is built to **feed and support existing LGU offices, hotlines, and disaster-management workflows — not to replace them.** It is a structured, mapped, trackable intake layer in front of the systems the province already operates.
 
 ## 🌟 Core Aims
-* **Civilian Empowerment:** Lower the technical barrier for rural communities to report problems and call for help via an offline-first, media-optimized app — in English, Tagalog, and Ilocano.
+* **Civilian Empowerment:** Lower the technical barrier for rural communities to report problems and call for help via an offline-tolerant, media-optimized app — in English, Tagalog, and Ilocano.
 * **Faster Emergency Response:** When a resident presses SOS, responders receive the person's **live location** instantly — so an ambulance can reach the exact spot even if the caller can't speak.
-* **Operational Integrity:** Reduce fraudulent reporting with **GPS-stamped camera evidence**, a **camera-vs-gallery trust signal**, and **human review of every report and SOS** before any dispatch.
+* **Operational Integrity:** Reduce fraudulent reporting with **GPS-stamped camera evidence**, a **camera-vs-gallery trust signal**, and **rules-enforced human verification of every SOS** before any dispatch. *(Report review is operator practice rather than an enforced gate — see [Current Limitations](#-current-limitations).)*
 * **Administrative Load-Balancing:** Hierarchical, tenant-isolated roles so barangay/municipal offices handle local issues while the Capitol monitors high-impact escalations.
 * **Provincial Resource Strategy:** Give the Governor and Provincial Administrator empirical data on where problems concentrate and how efficiently each town resolves them.
 
@@ -178,7 +179,7 @@ Five roles, mapped to the government hierarchy. The legacy `admin` role has been
 ### Citizen Mobile App
 - **Problem reporting** with category, priority, GPS, barangay, and **GPS-stamped photo evidence** (see below).
 - **Emergency SOS with live location** (see [SOS section](#-emergency-sos--live-location)).
-- **Offline report queue** — reports drafted offline are queued locally and auto-submitted on reconnect, with a live queue-count banner; **SMS fallback** for zero-data areas.
+- **Offline report queue** — a report can be saved on the phone when there is no connection and is submitted on the next app launch, with a live queue-count banner; **SMS fallback** for zero-data areas. *See [Current Limitations](#-current-limitations) — the offline path is selected manually and the queue is not yet flushed automatically on reconnect.*
 - **Residency verification** — certify as a Nueva Vizcaya resident (Barangay Certificate / gov ID) so you can report from anywhere; GPS-verified or admin-certified.
 - **Announcements** — municipal + province-wide, with **bookmarks**, sort (newest/oldest), and filter by posting agency.
 - **Weather** — current conditions + forecast per municipality, backed by a scheduled provincial **rainfall watch** that raises advisories.
@@ -221,7 +222,7 @@ To make photo evidence trustworthy and instantly actionable:
 
 ## 🏛️ Multi-Tiered Triage & Routing
 
-**No report is ever auto-dispatched — a human reviews every submission.** Beyond upward escalation, admins can **route a report to the correct administrative tier** in one tap, with on-screen criteria for each tier:
+**No report is ever auto-dispatched or auto-escalated — every routing decision is made by an admin.** Note that the workflow does not yet *require* a verification step before a report can be closed (see [Current Limitations](#-current-limitations)). Beyond upward escalation, admins can **route a report to the correct administrative tier** in one tap, with on-screen criteria for each tier:
 
 | Tier | When it applies |
 | :--- | :--- |
@@ -349,7 +350,7 @@ Some administrative one-shots run as callable functions by a super admin (e.g. `
 ### 🟠 Reporting & Dashboards — *Implemented*
 - [x] **4-level report routing** (Barangay/Municipal/Provincial/Region II) with criteria, on both mobile and web.
 - [x] **GPS-stamped camera evidence** + camera/gallery trust badge; EXIF stripping.
-- [x] **Offline report queue** + SMS fallback; residency gate.
+- [x] **Offline report queue** (manually selected; flushes on next app start) + SMS fallback; residency gate.
 - [x] **Incident map** — municipality choropleth, **barangay boundary polygons**, zone bubbles, report/responder pins, scope-aware centring, barangay filter.
 - [x] **Analytics** (Recharts web / fl_chart mobile), **PDF export**, notes history, canned responses, responder assignment.
 - [x] **Announcements** (agency attribution, link import) + **broadcasts**; **weather** + scheduled **rainfall watch**.
@@ -366,6 +367,41 @@ Some administrative one-shots run as callable functions by a super admin (e.g. `
 - [ ] **iOS build & App Store** (TestFlight + listing); **Google Play** production release.
 - [ ] **Real LGU content** — official FAQ, hotlines, and responder data from the province.
 - [ ] **Staff training & support onboarding** for dispatchers and admins.
+
+---
+
+## ⚠️ Current Limitations
+
+Stated plainly, so that reviewers can assess this build on what it actually
+does today rather than on intent. Each item is tracked for the pre-pilot work.
+
+**Connectivity**
+- Saved (offline) reports are sent automatically **while the app is running** — on start, sign-in, return to the foreground, and every 60 s. If the app is closed, they are sent the next time it is opened; there is no background delivery.
+- Connectivity is detected by a real reachability probe, not by the OS network state, so detection can lag by up to a minute.
+
+**Report workflow**
+- The status lifecycle (`reported → acknowledged → under_review → ongoing → solved`) is **not enforced**: an admin may move a report straight to `solved`. Validation is operator practice, not a gate. (SOS verification *is* enforced in `firestore.rules`.)
+- Routing targets an administrative **tier** (barangay / municipal / provincial / Region II), not a named office. There is no MDRRMO/BDRRMC referral record or office-level assignment; the nearest field is a free-text assigned-responder name.
+- Report deletion is audited, but the audit entry **cannot name who deleted** the report (Firestore triggers carry no caller identity). Closing a report *without action* — the recommended route for false, duplicate, incomplete or unverifiable reports — does record the admin.
+
+**Alerts**
+- Alerts composed by an admin publish **immediately** — there is no second approver. (Automated weather alerts are different: they are only drafted, and reach the public after an in-scope admin approves them.)
+- A citizen **cannot re-read a past broadcast**: broadcasts are admin-read-only and are delivered only as a transient push, so a missed urgent alert is not recoverable in-app.
+- Push delivery results are not recorded, so there is no delivered/failed count per alert.
+
+**Positioning**
+- The "supplements rather than replaces 911 / hotlines / radio" notice is shown on the report screen but **not yet on the SOS screen**.
+- Its Tagalog and Ilocano wording, and several newer citizen messages, **await native-speaker review** — see `docs/translation-review.md`.
+- There is no **proxy / on-behalf-of reporting**, so a barangay official or family member cannot formally file for a resident who has no smartphone.
+
+**Measurement**
+- No timestamps exist for acknowledgement or referral, so **response and referral time cannot be computed**. Resolution time is recorded only when a report is closed from the mobile admin app — the web console does not write `resolvedAt`.
+- The console's "Overdue / past SLA" figure is **not meaningful**: the SLA table's category keys do not match the app's real category names, so every report falls back to a flat 72 hours.
+- Dashboard analytics read at most the **256 most recent reports**, so figures understate at scale.
+- There is **no uptime measurement or health endpoint**.
+
+**Testing**
+- Automated tests now cover the security rules and the alert-approval function (`tests/emulator`, against the Firestore emulator), the PAGASA parser and TenDay client (`apps/functions`), and the mobile offline queue and PAGASA model (`apps/mobile/test`). **No load, stress or failover testing** has been performed.
 
 ---
 

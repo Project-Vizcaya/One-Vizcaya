@@ -512,6 +512,11 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
             _reportRepository.deleteReport(userId, reportId),
         onFlagUpdate: (reportId, userId, isFlagged) =>
             _reportRepository.flagReport(userId, reportId, isFlagged),
+        onCloseWithDisposition: (reportId, userId, disposition, reason, duplicateOf) =>
+            _reportRepository.closeWithDisposition(
+                userId, reportId, disposition, reason, duplicateOf: duplicateOf),
+        onReopenClosed: (reportId, userId) =>
+            _reportRepository.reopenReport(userId, reportId),
       ),
     );
   }
@@ -1394,6 +1399,9 @@ class _ReportDetailSheet extends StatelessWidget {
   final Future<void> Function(String reportId, String userId) onDelete;
   final Future<void> Function(String reportId, String userId, bool isFlagged)
       onFlagUpdate;
+  final Future<void> Function(String reportId, String userId,
+      String disposition, String reason, String? duplicateOf) onCloseWithDisposition;
+  final Future<void> Function(String reportId, String userId) onReopenClosed;
 
   const _ReportDetailSheet({
     required this.report,
@@ -1405,6 +1413,8 @@ class _ReportDetailSheet extends StatelessWidget {
     required this.onTransfer,
     required this.onDelete,
     required this.onFlagUpdate,
+    required this.onCloseWithDisposition,
+    required this.onReopenClosed,
   });
 
   String _formatFullTimestamp(DateTime dt) {
@@ -2039,6 +2049,20 @@ class _ReportDetailSheet extends StatelessWidget {
                   const Divider(),
                   const SizedBox(height: 12),
 
+                  // Closed without action (PDRRMO §8): show the recorded
+                  // disposition instead of status buttons — the rules reject
+                  // a status change on a closed report until it is re-opened.
+                  if (report.status == ReportStatus.closed)
+                    _ClosedDispositionPanel(
+                      report: report,
+                      onReopen: report.userId == null
+                          ? null
+                          : () async {
+                              await onReopenClosed(report.id, report.userId!);
+                              if (context.mounted) Navigator.pop(context);
+                            },
+                    )
+                  else ...[
                   Text(
                     'Update Status',
                     style: TextStyle(
@@ -2131,8 +2155,24 @@ class _ReportDetailSheet extends StatelessWidget {
                             Navigator.pop(context);
                           },
                         ),
+                      if (report.userId != null)
+                        _ActionButton(
+                          label: 'Close without action',
+                          color: Colors.blueGrey,
+                          icon: Icons.do_not_disturb_on_outlined,
+                          onTap: () async {
+                            final closed = await showCloseWithoutActionDialog(
+                              context,
+                              onConfirm: (disposition, reason, duplicateOf) =>
+                                  onCloseWithDisposition(report.id,
+                                      report.userId!, disposition, reason, duplicateOf),
+                            );
+                            if (closed && context.mounted) Navigator.pop(context);
+                          },
+                        ),
                     ],
                   ),
+                  ],
 
                   if (!isProvincialView && report.userId != null) ...[
                     const SizedBox(height: 16),
@@ -2236,6 +2276,8 @@ class _ReportDetailSheet extends StatelessWidget {
         return Colors.green.shade700;
       case ReportStatus.archived:
         return Colors.grey.shade600;
+      case ReportStatus.closed:
+        return Colors.blueGrey.shade600;
     }
   }
 
@@ -2253,6 +2295,8 @@ class _ReportDetailSheet extends StatelessWidget {
         return 'Solved';
       case ReportStatus.archived:
         return 'Archived';
+      case ReportStatus.closed:
+        return 'Closed (no action)';
     }
   }
 }
@@ -2542,6 +2586,8 @@ class _AdminReportCard extends StatelessWidget {
         return Colors.green.shade700;
       case ReportStatus.archived:
         return Colors.grey.shade600;
+      case ReportStatus.closed:
+        return Colors.blueGrey.shade600;
     }
   }
 
@@ -2559,6 +2605,8 @@ class _AdminReportCard extends StatelessWidget {
         return 'Solved';
       case ReportStatus.archived:
         return 'Archived';
+      case ReportStatus.closed:
+        return 'Closed (no action)';
     }
   }
 
@@ -2576,6 +2624,8 @@ class _AdminReportCard extends StatelessWidget {
         return Icons.check_circle;
       case ReportStatus.archived:
         return Icons.archive;
+      case ReportStatus.closed:
+        return Icons.do_not_disturb_on_outlined;
     }
   }
 
@@ -4984,4 +5034,160 @@ class _RoleAssignDialogState extends State<_RoleAssignDialog> {
       ],
     );
   }
+}
+
+// ── Close without action (PDRRMO §8) ────────────────────────────────────────
+
+class _ClosedDispositionPanel extends StatelessWidget {
+  final ProblemReport report;
+  final Future<void> Function()? onReopen;
+  const _ClosedDispositionPanel({required this.report, required this.onReopen});
+
+  @override
+  Widget build(BuildContext context) {
+    final at = report.dispositionAt;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.blueGrey.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.blueGrey.withValues(alpha: 0.35)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('CLOSED WITHOUT ACTION',
+              style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.8,
+                  color: Colors.blueGrey.shade700)),
+          const SizedBox(height: 4),
+          Text(ProblemReport.dispositionLabel(report.disposition),
+              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
+          if (report.dispositionReason != null) ...[
+            const SizedBox(height: 4),
+            Text(report.dispositionReason!, style: const TextStyle(fontSize: 13)),
+          ],
+          if (report.duplicateOf != null)
+            Text('Duplicate of report #${report.duplicateOf!.length > 6 ? report.duplicateOf!.substring(report.duplicateOf!.length - 6).toUpperCase() : report.duplicateOf}',
+                style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+          const SizedBox(height: 4),
+          Text(
+            '${at != null ? '${at.month}/${at.day}/${at.year} · ' : ''}'
+            'by admin ${report.dispositionBy != null && report.dispositionBy!.length >= 8 ? report.dispositionBy!.substring(0, 8) : (report.dispositionBy ?? 'unknown')}'
+            ' · recorded in the audit log',
+            style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+          ),
+          if (onReopen != null) ...[
+            const SizedBox(height: 8),
+            OutlinedButton.icon(
+              onPressed: onReopen,
+              icon: const Icon(Icons.refresh, size: 16),
+              label: const Text('Re-open report'),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// Asks for a disposition and a reason, then calls [onConfirm]. Returns true
+/// if the report was closed. The reason is required (5+ characters), matching
+/// firestore.rules; the reporter later sees the category, not this reason.
+Future<bool> showCloseWithoutActionDialog(
+  BuildContext context, {
+  required Future<void> Function(String disposition, String reason, String? duplicateOf)
+      onConfirm,
+}) async {
+  String? disposition;
+  final reason = TextEditingController();
+  final dupOf = TextEditingController();
+  bool busy = false;
+  final result = await showDialog<bool>(
+    context: context,
+    builder: (ctx) => StatefulBuilder(
+      builder: (ctx, setState) {
+        final valid = disposition != null && reason.text.trim().length >= 5;
+        return AlertDialog(
+          title: const Text('Close without action'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'The report stays on record with your reason, your account and '
+                  'the time. The reporter is told the category only.',
+                  style: TextStyle(fontSize: 12.5),
+                ),
+                const SizedBox(height: 8),
+                RadioGroup<String>(
+                  groupValue: disposition,
+                  onChanged: (v) {
+                    if (!busy) setState(() => disposition = v);
+                  },
+                  child: Column(
+                    children: ProblemReport.dispositionLabels.entries
+                        .map((e) => RadioListTile<String>(
+                              dense: true,
+                              contentPadding: EdgeInsets.zero,
+                              value: e.key,
+                              title: Text(e.value),
+                            ))
+                        .toList(),
+                  ),
+                ),
+                if (disposition == 'duplicate')
+                  TextField(
+                    controller: dupOf,
+                    decoration: const InputDecoration(
+                        labelText: 'Original report ID (optional)'),
+                  ),
+                TextField(
+                  controller: reason,
+                  minLines: 2,
+                  maxLines: 4,
+                  onChanged: (_) => setState(() {}),
+                  decoration: const InputDecoration(
+                    labelText: 'Reason (required)',
+                    hintText: 'What was checked, and why it is being closed',
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: busy ? null : () => Navigator.pop(ctx, false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: !valid || busy
+                  ? null
+                  : () async {
+                      setState(() => busy = true);
+                      try {
+                        await onConfirm(disposition!, reason.text,
+                            dupOf.text.trim().isEmpty ? null : dupOf.text);
+                        if (ctx.mounted) Navigator.pop(ctx, true);
+                      } catch (_) {
+                        if (ctx.mounted) setState(() => busy = false);
+                      }
+                    },
+              child: busy
+                  ? const SizedBox(
+                      width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                  : const Text('Close report'),
+            ),
+          ],
+        );
+      },
+    ),
+  );
+  reason.dispose();
+  dupOf.dispose();
+  return result == true;
 }

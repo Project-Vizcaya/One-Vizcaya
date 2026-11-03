@@ -2,7 +2,14 @@ import '../models/problem_report.dart';
 import '../enums/handling_level.dart';
 
 abstract class ReportRepository {
-  Future<void> submitReport(ProblemReport report, String userId);
+  /// Writes a report and its acknowledgement receipt.
+  ///
+  /// [docId]: a document id chosen before the first attempt, so a retry (or
+  /// Firestore's own offline sync) writes the SAME report instead of a second
+  /// one. [originalReportedAt]: for a report filed while offline, the time the
+  /// citizen actually filed it (otherwise the server time is used).
+  Future<String> submitReport(ProblemReport report, String userId,
+      {String? docId, DateTime? originalReportedAt});
   Stream<List<ProblemReport>> getUserReports(
     String userId,
     String municipality,
@@ -37,4 +44,13 @@ abstract class ReportRepository {
 
   /// Admin: Flag or unflag a report as suspicious
   Future<void> flagReport(String userId, String reportId, bool isFlagged);
+
+  /// Closes a report WITHOUT action (PDRRMO §8), recording the disposition,
+  /// a reason, the acting admin and the server time. [disposition] is one of
+  /// false_report | duplicate | incomplete | unverifiable.
+  Future<void> closeWithDisposition(String userId, String reportId,
+      String disposition, String reason, {String? duplicateOf});
+
+  /// Re-opens a closed report into the queue, attributed to the acting admin.
+  Future<void> reopenReport(String userId, String reportId);
 }

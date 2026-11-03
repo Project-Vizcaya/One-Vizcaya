@@ -20,9 +20,9 @@ const PRIORITY_DOT: Record<string, string> = {
   low:      "bg-gray-400",
 };
 
-const STATUS_VARIANT: Record<string, "reported" | "acknowledged" | "under_review" | "ongoing" | "solved"> = {
+const STATUS_VARIANT: Record<string, "reported" | "acknowledged" | "under_review" | "ongoing" | "solved" | "closed"> = {
   reported: "reported", acknowledged: "acknowledged", under_review: "under_review",
-  ongoing: "ongoing", solved: "solved",
+  ongoing: "ongoing", solved: "solved", closed: "closed",
 };
 
 function DashboardOverview() {

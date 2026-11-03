@@ -12,33 +12,42 @@ class FirebaseReportRepository implements ReportRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   @override
-  Future<void> submitReport(ProblemReport report, String userId) async {
-    try {
-      final docRef = await _firestore
-          .collection('users')
-          .doc(userId)
-          .collection('reports')
-          .add(report.toMap());
-
-      await _firestore
-          .collection('users')
-          .doc(userId)
-          .collection('notifications')
-          .add({
-            'type': 'report_submitted',
-            'title': 'Report Submitted',
-            'body':
-                'Your report about "${report.category.displayName}" has been received. '
-                'We will review it shortly.',
-            'status': 'info',
-            'reportId': docRef.id,
-            'timestamp': FieldValue.serverTimestamp(),
-            'read': false,
-          });
-    } catch (e) {
-      ToastUtils.showError('Error submitting report. Please try again.');
-      rethrow;
+  Future<String> submitReport(ProblemReport report, String userId,
+      {String? docId, DateTime? originalReportedAt}) async {
+    // Errors propagate: the caller decides whether a failure means "queue it
+    // for later" or "tell the user", so no toast is shown here.
+    final reports =
+        _firestore.collection('users').doc(userId).collection('reports');
+    final docRef = docId != null ? reports.doc(docId) : reports.doc();
+    final data = report.toMap();
+    if (originalReportedAt != null) {
+      // Filed offline: keep the citizen's real filing time (response-time
+      // metrics depend on it) and record when it actually arrived.
+      data['reportedAt'] = Timestamp.fromDate(originalReportedAt);
+      data['submittedAt'] = FieldValue.serverTimestamp();
+      data['queuedOffline'] = true;
     }
+    await docRef.set(data);
+
+    // Fixed receipt id: a retry overwrites the same receipt instead of
+    // sending the citizen a second "Report Submitted" notice.
+    await _firestore
+        .collection('users')
+        .doc(userId)
+        .collection('notifications')
+        .doc('receipt_${docRef.id}')
+        .set({
+          'type': 'report_submitted',
+          'title': 'Report Submitted',
+          'body':
+              'Your report about "${report.category.displayName}" has been received. '
+              'We will review it shortly.',
+          'status': 'info',
+          'reportId': docRef.id,
+          'timestamp': FieldValue.serverTimestamp(),
+          'read': false,
+        });
+    return docRef.id;
   }
 
   @override
@@ -223,6 +232,65 @@ class FirebaseReportRepository implements ReportRepository {
           isFlagged ? 'Report flagged as suspicious' : 'Flag removed');
     } catch (e) {
       ToastUtils.showError('Failed to update flag: $e');
+      rethrow;
+    }
+  }
+
+  // PDRRMO §8: a bad report is recorded, never silently deleted.
+  // firestore.rules requires every field below: an allowed disposition, a
+  // reason of 5+ characters, dispositionBy == this admin, and the server time.
+  @override
+  Future<void> closeWithDisposition(String userId, String reportId,
+      String disposition, String reason, {String? duplicateOf}) async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) throw StateError('Not signed in');
+    final dup = duplicateOf?.trim();
+    try {
+      await _firestore
+          .collection('users')
+          .doc(userId)
+          .collection('reports')
+          .doc(reportId)
+          .update({
+        'status': 'closed',
+        'disposition': disposition,
+        'dispositionReason': reason.trim(),
+        'dispositionBy': uid,
+        'dispositionAt': FieldValue.serverTimestamp(),
+        'duplicateOf': disposition == 'duplicate' && dup != null && dup.isNotEmpty
+            ? dup
+            : FieldValue.delete(),
+      });
+      ToastUtils.showSuccess(
+          'Closed: ${ProblemReport.dispositionLabel(disposition)}');
+    } catch (e) {
+      ToastUtils.showError('Failed to close report: $e');
+      rethrow;
+    }
+  }
+
+  @override
+  Future<void> reopenReport(String userId, String reportId) async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) throw StateError('Not signed in');
+    try {
+      await _firestore
+          .collection('users')
+          .doc(userId)
+          .collection('reports')
+          .doc(reportId)
+          .update({
+        'status': 'under_review',
+        'disposition': FieldValue.delete(),
+        'dispositionReason': FieldValue.delete(),
+        'dispositionBy': FieldValue.delete(),
+        'dispositionAt': FieldValue.delete(),
+        'duplicateOf': FieldValue.delete(),
+        'reopenedBy': uid,
+      });
+      ToastUtils.showSuccess('Report re-opened');
+    } catch (e) {
+      ToastUtils.showError('Failed to re-open report: $e');
       rethrow;
     }
   }

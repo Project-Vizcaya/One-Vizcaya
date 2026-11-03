@@ -49,6 +49,24 @@ class ProblemReport {
   // Moderation
   final bool isFlagged;
 
+  // Closed without action (PDRRMO §8). Read-only here: set only by an
+  // in-scope admin via FirebaseReportRepository.closeWithDisposition, and
+  // deliberately absent from toMap() so a new report can never carry one.
+  final String? disposition; // false_report | duplicate | incomplete | unverifiable
+  final String? dispositionReason;
+  final String? dispositionBy;
+  final DateTime? dispositionAt;
+  final String? duplicateOf;
+
+  static const dispositionLabels = {
+    'false_report': 'False report',
+    'duplicate': 'Duplicate',
+    'incomplete': 'Incomplete',
+    'unverifiable': 'Could not be verified',
+  };
+
+  static String dispositionLabel(String? d) => dispositionLabels[d] ?? 'Closed';
+
   ProblemReport({
     required this.id,
     required this.category,
@@ -77,6 +95,11 @@ class ProblemReport {
     this.resolvedAt,
     this.barangay,
     this.isFlagged = false,
+    this.disposition,
+    this.dispositionReason,
+    this.dispositionBy,
+    this.dispositionAt,
+    this.duplicateOf,
   });
 
   factory ProblemReport.fromFirestore(DocumentSnapshot doc) {
@@ -145,6 +168,11 @@ class ProblemReport {
       resolvedAt: (data['resolvedAt'] as Timestamp?)?.toDate(),
       barangay: (data['barangay'] as String?)?.isEmpty == true ? null : data['barangay'] as String?,
       isFlagged: data['isFlagged'] as bool? ?? false,
+      disposition: data['disposition'] as String?,
+      dispositionReason: data['dispositionReason'] as String?,
+      dispositionBy: data['dispositionBy'] as String?,
+      dispositionAt: (data['dispositionAt'] as Timestamp?)?.toDate(),
+      duplicateOf: data['duplicateOf'] as String?,
     );
   }
 

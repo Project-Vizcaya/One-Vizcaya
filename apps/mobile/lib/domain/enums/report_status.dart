@@ -5,6 +5,11 @@ enum ReportStatus {
   ongoing,
   solved,
   archived,
+
+  /// Closed WITHOUT action (false / duplicate / incomplete / unverifiable),
+  /// always with a disposition — PDRRMO §8. Distinct from [solved] so a false
+  /// report is never counted or shown as resolved.
+  closed,
 }
 
 extension ReportStatusExtension on ReportStatus {
@@ -20,6 +25,8 @@ extension ReportStatusExtension on ReportStatus {
         return ReportStatus.solved;
       case 'archived':
         return ReportStatus.archived;
+      case 'closed':
+        return ReportStatus.closed;
       default:
         return ReportStatus.reported;
     }

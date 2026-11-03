@@ -104,6 +104,9 @@ class AppStrings {
       'liveLabel': 'Live',
       'selectMunicipality': 'Select Municipality',
       'offlineBanner': "You're offline. Showing cached data...",
+      // ── Supplementary-channel notice (PDRRMO §7/§11) ──
+      'notReplacementTitle': 'This is an additional channel',
+      'notReplacementBody': 'One Vizcaya does not replace 911, the PDRRMO hotline, radio, or your barangay officials. In a real emergency, still call them — a report here does not guarantee an immediate response.',
       'reportProblemLabel': 'Report\nProblem',
       'myReportsLabel': 'My\nReports',
       'emergencyContactsLabel': 'Emergency\nContacts',
@@ -375,6 +378,9 @@ class AppStrings {
       'liveLabel': 'Live',
       'selectMunicipality': 'Pumili ng Munisipalidad',
       'offlineBanner': 'Offline ka. Nagpapakita ng naka-cache na datos...',
+      // ── Supplementary-channel notice (PDRRMO §7/§11) ──
+      'notReplacementTitle': 'Karagdagang paraan lamang ito',
+      'notReplacementBody': 'Hindi kapalit ang One Vizcaya ng 911, ng PDRRMO hotline, ng radyo, o ng mga opisyal ng barangay. Sa tunay na emergency, tumawag pa rin sa kanila — hindi garantisado ang agarang tugon sa ulat dito.',
       'reportProblemLabel': 'Mag-ulat\nng Problema',
       'myReportsLabel': 'Aking\nMga Ulat',
       'emergencyContactsLabel': 'Mga Emergency\nna Contact',
@@ -646,6 +652,9 @@ class AppStrings {
       'liveLabel': 'Live',
       'selectMunicipality': 'Pilien ti Munisipalidad',
       'offlineBanner': 'Offline ka. Ipakita dagiti naipun-it a datos...',
+      // ── Supplementary-channel notice (PDRRMO §7/§11) ──
+      'notReplacementTitle': 'Kanayonan a pamay-an laeng daytoy',
+      'notReplacementBody': 'Saan a kasukat ti One Vizcaya ti 911, ti PDRRMO hotline, ti radio wenno dagiti opisyal ti barangay. Iti pudno nga emergency, awagan latta ida — saan a garantisado ti dagus a sungbat ti report ditoy.',
       'reportProblemLabel': 'Ireport\nti Problema',
       'myReportsLabel': 'Dagiti\nReport Ko',
       'emergencyContactsLabel': 'Dagiti Emergency\nnga Contact',

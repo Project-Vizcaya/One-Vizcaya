@@ -115,6 +115,41 @@ service cloud.firestore {
         && request.resource.data.get('escalatedToProvince', false) == true;
     }
 
+    // ─── Report disposition (PDRRMO §8) ───────────────────────────────────────
+    // A report can be closed WITHOUT action as false / duplicate / incomplete /
+    // unverifiable — recorded, never silently deleted. The fields are written
+    // together and only by an in-scope admin, who must stamp their own uid.
+
+    function dispositionFields() {
+      return ['status', 'disposition', 'dispositionReason', 'dispositionBy',
+              'dispositionAt', 'duplicateOf'];
+    }
+
+    // Admin-side check, applied to every admin update of a report:
+    //  - status 'closed' is only valid with a disposition (and vice versa);
+    //  - a disposition needs an allowed value, a real reason (>= 5 chars) and
+    //    dispositionBy == the acting admin;
+    //  - clearing a disposition (re-opening) must also move off 'closed'.
+    //  - checked only when one of those fields CHANGES, so another admin can
+    //    still add notes to a closed report;
+    //  - dispositionAt must be the server's time, not a client-chosen one.
+    function validDisposition() {
+      let d = request.resource.data;
+      let disp = d.get('disposition', null);
+      let changed = d.diff(resource.data).affectedKeys().hasAny(dispositionFields());
+      // Re-opening (clearing an existing disposition) must be attributed too.
+      let reopening = resource.data.get('disposition', null) != null;
+      return !changed
+          || (disp == null && d.get('status', '') != 'closed'
+              && (!reopening || d.get('reopenedBy', '') == request.auth.uid))
+          || (disp in ['false_report', 'duplicate', 'incomplete', 'unverifiable']
+              && d.get('status', '') == 'closed'
+              && d.get('dispositionReason', '') is string
+              && d.get('dispositionReason', '').size() >= 5
+              && d.get('dispositionBy', '') == request.auth.uid
+              && d.get('dispositionAt', null) == request.time);
+    }
+
     // ─── Super admin bypass ─────────────────────────────────────────────────
     // super_admin has unrestricted read/write access to every document
     match /{document=**} {
@@ -181,13 +216,22 @@ service cloud.firestore {
         // report's own municipality, and must stamp escalatedBy with their uid.
         // All other updates follow the normal owner/admin permissions. (super
         // admin is covered by the bypass above.)
-        allow update: if (isProvincialAdmin() && !approvingEscalation())
-                      || (municipalScoped(resource.data) && !approvingEscalation())
-                      || (barangayScoped(resource.data) && !approvingEscalation())
-                      || isOwner(userId)
-                      || (approvingEscalation()
-                          && municipalScoped(resource.data)
-                          && request.resource.data.escalatedBy == request.auth.uid);
+        //
+        // The owner may update their report but may NOT touch its status or
+        // disposition — previously `isOwner(userId)` allowed any field, so a
+        // reporter could mark their own report solved or clear a "false
+        // report" disposition. (Citizens never write their report document in
+        // the app; ratings go to the feedback subcollection.)
+        allow update: if ((isProvincialAdmin() && !approvingEscalation())
+                         || (municipalScoped(resource.data) && !approvingEscalation())
+                         || (barangayScoped(resource.data) && !approvingEscalation())
+                         || (approvingEscalation()
+                             && municipalScoped(resource.data)
+                             && request.resource.data.escalatedBy == request.auth.uid))
+                         && validDisposition()
+                      || (isOwner(userId)
+                          && !request.resource.data.diff(resource.data)
+                               .affectedKeys().hasAny(dispositionFields()));
         allow delete: if isProvincialAdmin();
       }
 
@@ -237,12 +281,17 @@ service cloud.firestore {
                     || municipalScoped(resource.data)
                     || barangayScoped(resource.data)
                     || (isAuth() && resource.data.status == 'solved');
-      allow update: if (isProvincialAdmin() && !approvingEscalation())
-                    || (municipalScoped(resource.data) && !approvingEscalation())
-                    || (barangayScoped(resource.data) && !approvingEscalation())
-                    || (approvingEscalation()
-                        && municipalScoped(resource.data)
-                        && request.resource.data.escalatedBy == request.auth.uid);
+      // NOTE: this collection-group match ALSO matches users/{uid}/reports/{id},
+      // and Firestore ORs every matching rule. Any constraint on report updates
+      // must therefore appear here as well as in the nested rule, or it is
+      // silently bypassed — validDisposition() was, until rules tests caught it.
+      allow update: if ((isProvincialAdmin() && !approvingEscalation())
+                       || (municipalScoped(resource.data) && !approvingEscalation())
+                       || (barangayScoped(resource.data) && !approvingEscalation())
+                       || (approvingEscalation()
+                           && municipalScoped(resource.data)
+                           && request.resource.data.escalatedBy == request.auth.uid))
+                       && validDisposition();
       allow delete: if isProvincialAdmin();
     }
 
@@ -251,9 +300,12 @@ service cloud.firestore {
       allow read:          if isAuth();
       // Provincial+ may post for any scope (incl. province-wide). A Municipal
       // admin may ONLY post announcements tagged with their OWN municipality —
-      // not "all" and not another town.
+      // not "all" and not another town. The actorMunicipality() != '' guard
+      // stops an admin with no municipality on their profile from matching an
+      // empty municipality field, which onNewAnnouncement treats as "All".
       allow create, update: if isProvincialAdmin()
                             || (role() == 'municipal_admin'
+                                && actorMunicipality() != ''
                                 && request.resource.data.get('municipality', '')
                                    == actorMunicipality());
       allow delete:        if isProvincialAdmin();
@@ -269,7 +321,23 @@ service cloud.firestore {
     // ─── FCM broadcast records ───────────────────────────────────────────────
     match /broadcasts/{broadcastId} {
       allow read:   if isAdmin();
-      allow create: if isAdmin();
+      // Provincial+ may broadcast to any scope (incl. province-wide). A
+      // Municipal admin may ONLY broadcast to their OWN municipality. Until now
+      // this was enforced in the composer UI alone, so any admin could write
+      // scope:"all" directly and onNewBroadcast would fan it out province-wide.
+      //
+      // onNewBroadcast resolves the target as: `municipality` if set, else
+      // `scope` when scope is itself a town name, else province-wide. Both
+      // spellings are therefore checked here. The actorMunicipality() != ''
+      // guard stops an admin with no municipality on their profile from
+      // matching an empty municipality field and reaching everyone.
+      allow create: if isProvincialAdmin()
+                    || (role() == 'municipal_admin'
+                        && actorMunicipality() != ''
+                        && (request.resource.data.get('municipality', '')
+                              == actorMunicipality()
+                            || request.resource.data.get('scope', '')
+                              == actorMunicipality()));
       allow delete: if isProvincialAdmin();
     }
 
@@ -278,6 +346,25 @@ service cloud.firestore {
       allow read:   if isAdmin();
       allow create: if isAdmin();
       allow update, delete: if isSuperAdmin();
+    }
+
+    // ─── Automated alert drafts (PDRRMO §2: a human approves every alert) ─────
+    // Written only by the weather watchers and decided only through the
+    // decideAlertDraft callable (Admin SDK). Readable by the admins who may
+    // decide them: provincial+ anywhere, a municipal admin for their own town.
+    match /alert_drafts/{draftId} {
+      allow read:  if isProvincialAdmin() || municipalScoped(resource.data);
+      allow write: if false;
+    }
+
+    // ─── Official PAGASA products (written only by pagasaRegionalWatch) ───────
+    // Public weather information republished from PAGASA with attribution.
+    // Any signed-in user may read it. No client write is granted here — the
+    // Admin SDK in Cloud Functions bypasses rules — though the global
+    // super_admin bypass above still applies, as it does to every collection.
+    match /pagasa_products/{docId} {
+      allow read:  if isAuth();
+      allow write: if false;
     }
 
     // ─── App config ──────────────────────────────────────────────────────────

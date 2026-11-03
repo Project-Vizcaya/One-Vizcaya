@@ -82,6 +82,45 @@ exports.auditEscalationApproval = onDocumentUpdated(
   }
 );
 
+// ── Audit trail: record report dispositions (PDRRMO §8) ──────────────────────
+// A report closed without action (false / duplicate / incomplete /
+// unverifiable) — or re-opened — gets an immutable audit entry. Unlike a
+// Firestore delete, this CAN name the actor: firestore.rules requires
+// dispositionBy to equal the acting admin's own uid.
+const DISPOSITION_LABELS = {
+  false_report: "false report",
+  duplicate: "duplicate",
+  incomplete: "incomplete",
+  unverifiable: "could not be verified",
+};
+
+exports.auditReportDisposition = onDocumentUpdated(
+  "users/{userId}/reports/{reportId}",
+  async (event) => {
+    const before = event.data.before.data();
+    const after = event.data.after.data();
+    if (!before || !after) return;
+    const was = before.disposition || null;
+    const now = after.disposition || null;
+    if (was === now && before.dispositionReason === after.dispositionReason) return;
+
+    await admin.firestore().collection("audit_logs").add({
+      action: now ? "report_disposed" : "report_reopened",
+      reportId: event.params.reportId,
+      reportOwnerUid: event.params.userId,
+      municipality: after.municipality || null,
+      category: after.category || null,
+      disposition: now,
+      previousDisposition: was,
+      reason: now ? after.dispositionReason || null : null,
+      duplicateOf: now === "duplicate" ? after.duplicateOf || null : null,
+      // Both are rule-enforced to be the acting admin's own uid.
+      decidedBy: now ? after.dispositionBy || null : after.reopenedBy || null,
+      at: admin.firestore.FieldValue.serverTimestamp(),
+    });
+  }
+);
+
 // ── Notify citizen when report status changes ────────────────────────────────
 exports.notifyOnStatusChange = onDocumentUpdated(
   "users/{userId}/reports/{reportId}",
@@ -108,16 +147,24 @@ exports.notifyOnStatusChange = onDocumentUpdated(
       under_review: "Under Review",
       ongoing: "In Progress",
       solved: "Resolved",
+      closed: "Closed",
     };
 
     const newLabel = statusLabels[after.status] || after.status;
     const category = after.category || "Your report";
+    // A closed report tells the reporter WHY in plain terms (the category
+    // only — the admin's free-text reason may hold internal notes), and how
+    // to object, rather than implying it was resolved.
+    const body = after.status === "closed"
+      ? `${category} was closed without action (${DISPOSITION_LABELS[after.disposition] || "closed"}). ` +
+        "If you believe this is a mistake, contact your LGU."
+      : `${category} is now marked as "${newLabel}" by the LGU.`;
 
     const message = {
       token: fcmToken,
       notification: {
         title: `Report Status Updated: ${newLabel}`,
-        body: `${category} is now marked as "${newLabel}" by the LGU.`,
+        body,
       },
       data: {
         reportId: event.params.reportId,
@@ -337,381 +384,6 @@ exports.migrateLegacyAdmins = onCall(async (request) => {
   return { migrated };
 });
 
-// ── Seed Demo Data ───────────────────────────────────────────────────────────
-// Call this once from the Firebase Console or with the Admin SDK.
-// Creates realistic demo reports across Bambang, Bayombong, and Solano.
-exports.seedDemoData = onCall(async (request) => {
-  const db = admin.firestore();
-
-  // ── Demo user profiles ──────────────────────────────────────────────────
-  // These represent the municipal admin and provincial admin demo accounts.
-  // Phone logins must be created separately in Firebase Auth Console:
-  //   admin_bambang  → phone: use your designated demo number
-  //   pa_office      → phone: use provincial admin demo number
-  const demoUsers = [
-    {
-      uid: "demo_bambang_admin",
-      data: {
-        name: "Municipal Admin — Bambang",
-        phoneNumber: "+639000000001",
-        municipality: "Bambang",
-        role: "municipal_admin",
-        createdAt: admin.firestore.FieldValue.serverTimestamp(),
-      },
-    },
-    {
-      uid: "demo_bayombong_admin",
-      data: {
-        name: "Municipal Admin — Bayombong",
-        phoneNumber: "+639000000002",
-        municipality: "Bayombong",
-        role: "municipal_admin",
-        createdAt: admin.firestore.FieldValue.serverTimestamp(),
-      },
-    },
-    {
-      uid: "demo_solano_admin",
-      data: {
-        name: "Municipal Admin — Solano",
-        phoneNumber: "+639000000003",
-        municipality: "Solano",
-        role: "municipal_admin",
-        createdAt: admin.firestore.FieldValue.serverTimestamp(),
-      },
-    },
-    {
-      uid: "demo_provincial_admin",
-      data: {
-        name: "Provincial Administrator's Office — Nueva Vizcaya",
-        phoneNumber: "+639000000010",
-        municipality: "All",
-        role: "provincial_admin",
-        createdAt: admin.firestore.FieldValue.serverTimestamp(),
-      },
-    },
-  ];
-
-  // ── Demo reports ────────────────────────────────────────────────────────
-  const now = new Date();
-  const daysAgo = (d) => new Date(now.getTime() - d * 24 * 60 * 60 * 1000);
-
-  const demoReports = [
-    // ── Bambang ─────────────────────────────────────────────────────────
-    {
-      userId: "demo_bambang_admin",
-      report: {
-        category: "Provincial Road Damage",
-        description: "Large section of pavement has collapsed near the Bambang market entrance. Vehicles have to swerve dangerously. Estimated 3m x 4m sinkhole.",
-        location: "Maharlika Highway, Brgy. Poblacion, Bambang",
-        municipality: "Bambang",
-        status: "reported",
-        priority: "critical",
-        priorityScore: 95,
-        duplicateCount: 4,
-        latitude: 16.3839,
-        longitude: 121.1003,
-        userPhone: "+639065630944",
-        imageUrl: "",
-        escalatedToProvince: true,
-        escalatedAt: admin.firestore.Timestamp.fromDate(daysAgo(0)),
-        reportedAt: admin.firestore.Timestamp.fromDate(daysAgo(1)),
-      },
-    },
-    {
-      userId: "demo_bambang_admin",
-      report: {
-        category: "Flooding / Severe Drainage Issue",
-        description: "Cagayan River overflow has submerged portions of Brgy. Wangal. At least 20 families need evacuation assistance. Water level rising.",
-        location: "Brgy. Wangal, Bambang — near irrigation channel",
-        municipality: "Bambang",
-        status: "ongoing",
-        priority: "critical",
-        priorityScore: 100,
-        duplicateCount: 7,
-        latitude: 16.3891,
-        longitude: 121.1045,
-        userPhone: "+639175861838",
-        imageUrl: "",
-        escalatedToProvince: true,
-        escalatedAt: admin.firestore.Timestamp.fromDate(daysAgo(0)),
-        reportedAt: admin.firestore.Timestamp.fromDate(daysAgo(2)),
-      },
-    },
-    {
-      userId: "demo_bambang_admin",
-      report: {
-        category: "Infrastructure & Roads",
-        description: "Multiple deep potholes on the access road to Brgy. Banggot causing accidents especially at night. Two motorcycles have already overturned.",
-        location: "Brgy. Banggot Junction, Bambang",
-        municipality: "Bambang",
-        status: "ongoing",
-        priority: "high",
-        priorityScore: 72,
-        duplicateCount: 2,
-        latitude: 16.3750,
-        longitude: 121.0988,
-        userPhone: "+639065630944",
-        imageUrl: "",
-        escalatedToProvince: false,
-        reportedAt: admin.firestore.Timestamp.fromDate(daysAgo(3)),
-      },
-    },
-    {
-      userId: "demo_bambang_admin",
-      report: {
-        category: "Public Lighting & Utilities",
-        description: "Street lights along the main road near Bambang National High School have been out for 5 days. Students walking home at night are at risk.",
-        location: "National Highway near BNHS, Bambang",
-        municipality: "Bambang",
-        status: "reported",
-        priority: "medium",
-        priorityScore: 50,
-        duplicateCount: 1,
-        latitude: 16.3822,
-        longitude: 121.1012,
-        userPhone: "+639175444946",
-        imageUrl: "",
-        escalatedToProvince: false,
-        reportedAt: admin.firestore.Timestamp.fromDate(daysAgo(5)),
-      },
-    },
-
-    // ── Bayombong ────────────────────────────────────────────────────────
-    {
-      userId: "demo_bayombong_admin",
-      report: {
-        category: "Bridge Damage / Blockage",
-        description: "Concrete guardrail on the Bayombong bridge has completely collapsed on the downstream side. Span shows visible cracking. Urgent structural inspection needed.",
-        location: "Magat River Bridge, Bayombong — near Capitol",
-        municipality: "Bayombong",
-        status: "reported",
-        priority: "critical",
-        priorityScore: 98,
-        duplicateCount: 3,
-        latitude: 16.4845,
-        longitude: 121.1499,
-        userPhone: "+639153116455",
-        imageUrl: "",
-        escalatedToProvince: true,
-        escalatedAt: admin.firestore.Timestamp.fromDate(daysAgo(0)),
-        reportedAt: admin.firestore.Timestamp.fromDate(daysAgo(1)),
-      },
-    },
-    {
-      userId: "demo_bayombong_admin",
-      report: {
-        category: "Landslide / Soil Erosion",
-        description: "Soil erosion along the mountain slope in Brgy. Sto. Domingo is threatening to block the road. Cracks visible on the road surface — possible sinkhole forming.",
-        location: "Brgy. Sto. Domingo, Bayombong — mountain access road",
-        municipality: "Bayombong",
-        status: "reported",
-        priority: "critical",
-        priorityScore: 90,
-        duplicateCount: 2,
-        latitude: 16.4920,
-        longitude: 121.1560,
-        userPhone: "+639187654321",
-        imageUrl: "",
-        escalatedToProvince: false,
-        reportedAt: admin.firestore.Timestamp.fromDate(daysAgo(2)),
-      },
-    },
-    {
-      userId: "demo_bayombong_admin",
-      report: {
-        category: "Water & Sewage Systems",
-        description: "Burst water main at the Bayombong public market area. Water has been out for 2 days in 3 barangays. Market vendors and residents severely affected.",
-        location: "Public Market Area, Bayombong Centro",
-        municipality: "Bayombong",
-        status: "ongoing",
-        priority: "high",
-        priorityScore: 68,
-        duplicateCount: 5,
-        latitude: 16.4801,
-        longitude: 121.1482,
-        userPhone: "+639153116455",
-        imageUrl: "",
-        escalatedToProvince: false,
-        reportedAt: admin.firestore.Timestamp.fromDate(daysAgo(4)),
-      },
-    },
-
-    // ── Solano ───────────────────────────────────────────────────────────
-    {
-      userId: "demo_solano_admin",
-      report: {
-        category: "Provincial Road Damage",
-        description: "Major section of the Solano–Bayombong highway has developed serious cracks after recent rains. Road base visibly eroding. Heavy trucks are worsening the damage.",
-        location: "Maharlika Highway km 243, Solano",
-        municipality: "Solano",
-        status: "reported",
-        priority: "high",
-        priorityScore: 80,
-        duplicateCount: 3,
-        latitude: 16.5209,
-        longitude: 121.1806,
-        userPhone: "+639274008033",
-        imageUrl: "",
-        escalatedToProvince: true,
-        escalatedAt: admin.firestore.Timestamp.fromDate(daysAgo(1)),
-        reportedAt: admin.firestore.Timestamp.fromDate(daysAgo(3)),
-      },
-    },
-    {
-      userId: "demo_solano_admin",
-      report: {
-        category: "Environmental & Sanitation",
-        description: "Illegal dumping site discovered behind the Solano commercial district. Waste is leaching into the drainage canal. Foul smell reported by residents.",
-        location: "Behind Solano Wet Market, near drainage canal",
-        municipality: "Solano",
-        status: "reported",
-        priority: "medium",
-        priorityScore: 45,
-        duplicateCount: 1,
-        latitude: 16.5240,
-        longitude: 121.1820,
-        userPhone: "+639360620305",
-        imageUrl: "",
-        escalatedToProvince: false,
-        reportedAt: admin.firestore.Timestamp.fromDate(daysAgo(6)),
-      },
-    },
-    {
-      userId: "demo_solano_admin",
-      report: {
-        category: "Peace & Order Disturbance",
-        description: "Illegal road obstruction by vendors blocking the school zone in front of Solano West Central School. Parents and school buses cannot pass during dismissal.",
-        location: "Solano West Central School, Brgy. 8, Solano",
-        municipality: "Solano",
-        status: "solved",
-        priority: "medium",
-        priorityScore: 40,
-        duplicateCount: 0,
-        latitude: 16.5190,
-        longitude: 121.1798,
-        userPhone: "+639274008033",
-        imageUrl: "",
-        escalatedToProvince: false,
-        reportedAt: admin.firestore.Timestamp.fromDate(daysAgo(10)),
-      },
-    },
-  ];
-
-  // Write all seeded documents using rolling batches (max 490 ops each) to
-  // stay safely under Firestore's 500-write-per-batch limit.
-  let batch = db.batch();
-  let opCount = 0;
-
-  // Write user profiles
-  for (const { uid, data } of demoUsers) {
-    const ref = db.collection("users").doc(uid);
-    batch.set(ref, data, { merge: true });
-    opCount++;
-    if (opCount >= 490) {
-      await batch.commit();
-      batch = db.batch();
-      opCount = 0;
-    }
-  }
-
-  // Write reports as sub-documents
-  for (const { userId, report } of demoReports) {
-    const ref = db.collection("users").doc(userId).collection("reports").doc();
-    batch.set(ref, report);
-    opCount++;
-    if (opCount >= 490) {
-      await batch.commit();
-      batch = db.batch();
-      opCount = 0;
-    }
-  }
-
-  if (opCount > 0) {
-    await batch.commit();
-    batch = db.batch();
-    opCount = 0;
-  }
-
-  // ── Seed demo announcements ──────────────────────────────────────────────
-  const announcements = [
-    {
-      title: "DPWH Road Assessment: Bambang–Solano Highway",
-      body: "The Department of Public Works and Highways (DPWH) Region II will conduct a road condition assessment along the Bambang–Solano segment of Maharlika Highway on May 20–21. Expect lane closures from 8 AM to 5 PM.",
-      municipality: "All",
-      isUrgent: false,
-      postedBy: "DPWH – Nueva Vizcaya DEO",
-      sourceUrl: "",
-      sourceLabel: "",
-      imageUrl: "",
-      timestamp: admin.firestore.Timestamp.fromDate(daysAgo(1)),
-    },
-    {
-      title: "URGENT: Evacuation Advisory — Cagayan River Flood Warning",
-      body: "PDRRMO Nueva Vizcaya issues a YELLOW alert for communities along the Cagayan River in Bambang and Bayombong. Residents in flood-prone zones are advised to prepare go-bags and await evacuation instructions.",
-      municipality: "All",
-      isUrgent: true,
-      postedBy: "PDRRMO Nueva Vizcaya",
-      sourceUrl: "",
-      sourceLabel: "",
-      imageUrl: "",
-      timestamp: admin.firestore.Timestamp.fromDate(daysAgo(0)),
-    },
-    {
-      title: "Provincial Road Rehabilitation: Phase 2 Update",
-      body: "The Provincial Government of Nueva Vizcaya announces the completion of Phase 2 road rehabilitation covering Bayombong–Bagabag section. Phase 3 (Solano–Bambang) is scheduled to begin June 2025.",
-      municipality: "All",
-      isUrgent: false,
-      postedBy: "Office of the Provincial Governor — Nueva Vizcaya",
-      sourceUrl: "",
-      sourceLabel: "",
-      imageUrl: "",
-      timestamp: admin.firestore.Timestamp.fromDate(daysAgo(3)),
-    },
-    {
-      title: "Free Medical Mission — Bambang Poblacion",
-      body: "The Municipal Health Office of Bambang, in coordination with the Provincial Hospital, will conduct a Free Medical Mission at Bambang Gymnasium on May 18, 8 AM – 4 PM. Services include general check-up, dental, and eye care.",
-      municipality: "Bambang",
-      isUrgent: false,
-      postedBy: "MHO Bambang",
-      sourceUrl: "",
-      sourceLabel: "",
-      imageUrl: "",
-      timestamp: admin.firestore.Timestamp.fromDate(daysAgo(2)),
-    },
-    {
-      title: "Notice of Water Service Interruption — Bayombong",
-      body: "The Bayombong Water District will conduct emergency repairs on a burst main affecting Brgy. Centro and Brgy. Magapuy. Water service will be interrupted on May 16 from 8 AM to 6 PM.",
-      municipality: "Bayombong",
-      isUrgent: true,
-      postedBy: "Bayombong Water District",
-      sourceUrl: "",
-      sourceLabel: "",
-      imageUrl: "",
-      timestamp: admin.firestore.Timestamp.fromDate(daysAgo(1)),
-    },
-  ];
-
-  for (const ann of announcements) {
-    const ref = db.collection("announcements").doc();
-    batch.set(ref, ann);
-    opCount++;
-    if (opCount >= 490) {
-      await batch.commit();
-      batch = db.batch();
-      opCount = 0;
-    }
-  }
-
-  if (opCount > 0) await batch.commit();
-
-  return {
-    message: "Demo data seeded successfully.",
-    usersCreated: demoUsers.length,
-    reportsCreated: demoReports.length,
-    announcementsCreated: announcements.length,
-  };
-});
-
 // ── Auto-archive reports older than 12 months ───────────────────────────────
 // Runs daily at 2 AM Manila time. Marks reports with reportedAt > 12 months
 // as 'archived' so they no longer appear in active admin views.
@@ -758,32 +430,6 @@ exports.archiveOldReports = onSchedule(
     console.log(`archiveOldReports: archived ${toArchive.length} reports`);
   }
 );
-
-// ── Setup demo admin claims ──────────────────────────────────────────────────
-// Call this with the UID of your real Firebase Auth users to grant admin roles.
-// Example: { uid: "REAL_UID_FROM_FIREBASE_AUTH", role: "municipal_admin" }
-// TODO: REMOVE THIS FUNCTION BEFORE PRODUCTION LAUNCH
-exports.grantDemoAdminRole = onCall(async (request) => {
-  // SECURITY: restrict to known admin UIDs only; remove before public launch
-  const ALLOWED_DEMO_UIDS = []; // add your UID here to enable
-  if (!ALLOWED_DEMO_UIDS.includes(request.auth?.uid)) {
-    throw new HttpsError('permission-denied', 'Not authorized');
-  }
-
-  const { uid, role } = request.data;
-  if (!uid) throw new HttpsError("invalid-argument", "UID is required.");
-
-  const validRoles = ["municipal_admin", "provincial_admin", "admin"];
-  const targetRole = validRoles.includes(role) ? role : "municipal_admin";
-
-  await admin.auth().setCustomUserClaims(uid, { role: targetRole });
-  await admin.firestore().collection("users").doc(uid).set(
-    { role: targetRole },
-    { merge: true }
-  );
-
-  return { message: `Granted ${targetRole} to ${uid}` };
-});
 
 /**
  * Sends a push notification via FCM when a new notification document
@@ -1288,12 +934,143 @@ const NV_MUNICIPALITY_COORDS = {
   Kayapa: [16.35, 120.9167],
 };
 
+// ── Automated alerts need a human (PDRRMO §2) ───────────────────────────────
+// The 29 Sept reply to the PA commits that "no alert or public announcement
+// should go out through One Vizcaya unless it has first been reviewed and
+// approved by an authorized PDRRMO or municipal officer". The weather watchers
+// previously wrote straight to `broadcasts`, which onNewBroadcast pushes to the
+// public immediately — including PRIORITY_MAX urgent alerts. They now write a
+// DRAFT here; nothing reaches the public until an in-scope admin approves it
+// through decideAlertDraft. In-scope admins are pushed an "approval needed"
+// notice (admins only, never the public).
+const ALERT_DRAFT_TTL_MS = 6 * 60 * 60 * 1000; // a stale weather alert must not go out late
+const PROVINCIAL_ROLES = ["admin", "provincial_admin", "super_admin"];
+
+async function draftAutomatedAlert(db, { title, body, municipality, urgent, source, evidence }) {
+  const ref = await db.collection("alert_drafts").add({
+    title,
+    body,
+    municipality,
+    urgent: urgent === true,
+    type: "weather",
+    source,
+    // The readings that triggered it, so the approver can judge it.
+    evidence: evidence || null,
+    status: "pending",
+    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    expiresAt: admin.firestore.Timestamp.fromMillis(Date.now() + ALERT_DRAFT_TTL_MS),
+  });
+  await notifyAdminsOfDraft(db, ref.id, municipality, title, urgent === true)
+    .catch((e) => console.error("draft notification failed:", e));
+  return ref.id;
+}
+
+async function notifyAdminsOfDraft(db, draftId, municipality, title, urgent) {
+  const [provSnap, muniSnap] = await Promise.all([
+    db.collection("users").where("role", "in", PROVINCIAL_ROLES).get(),
+    db.collection("users").where("role", "==", "municipal_admin").get(),
+  ]);
+  const tokens = new Set();
+  provSnap.forEach((d) => { if (d.data().fcmToken) tokens.add(d.data().fcmToken); });
+  muniSnap.forEach((d) => {
+    const u = d.data();
+    if (u.fcmToken && u.municipality === municipality) tokens.add(u.fcmToken);
+  });
+  const list = Array.from(tokens);
+  for (let i = 0; i < list.length; i += 500) {
+    await admin.messaging().sendEachForMulticast({
+      tokens: list.slice(i, i + 500),
+      notification: {
+        title: `Approval needed: automated ${urgent ? "URGENT " : ""}alert`,
+        body: `${title} — not sent to the public until an admin approves it.`,
+      },
+      data: { type: "alert_draft", draftId },
+      android: {
+        priority: "high",
+        notification: { channelId: urgent ? "one_vizcaya_urgent" : "one_vizcaya_broadcasts" },
+      },
+    });
+  }
+}
+
+// Approve or reject a pending automated alert. Approval creates the broadcast
+// (which onNewBroadcast then delivers) with approvedBy set; both outcomes are
+// audited. Runs in a transaction so a draft can be decided exactly once.
+exports.decideAlertDraft = onCall(async (request) => {
+  if (!request.auth) throw new HttpsError("unauthenticated", "Must be signed in.");
+  const { draftId, decision, note } = request.data || {};
+  if (typeof draftId !== "string" || !["approve", "reject"].includes(decision)) {
+    throw new HttpsError("invalid-argument", "draftId and decision (approve|reject) are required.");
+  }
+  const uid = request.auth.uid;
+  const db = admin.firestore();
+  const role = await resolveCallerRole(request);
+  const profile = (await db.collection("users").doc(uid).get()).data() || {};
+  const cleanNote = typeof note === "string" && note.trim() ? note.trim().slice(0, 500) : null;
+
+  return db.runTransaction(async (tx) => {
+    const ref = db.collection("alert_drafts").doc(draftId);
+    const snap = await tx.get(ref);
+    if (!snap.exists) throw new HttpsError("not-found", "Draft not found.");
+    const d = snap.data();
+    if (d.status !== "pending") {
+      throw new HttpsError("failed-precondition", `This alert was already ${d.status}.`);
+    }
+    const inScope = PROVINCIAL_ROLES.includes(role) ||
+      (role === "municipal_admin" && !!profile.municipality && profile.municipality === d.municipality);
+    if (!inScope) {
+      throw new HttpsError("permission-denied", "Only an admin for this municipality can decide this alert.");
+    }
+
+    const now = admin.firestore.FieldValue.serverTimestamp();
+    let broadcastId = null;
+    if (decision === "approve") {
+      if (d.expiresAt && d.expiresAt.toMillis() < Date.now()) {
+        throw new HttpsError("failed-precondition",
+          "This draft has expired; conditions may have changed, so it was not sent.");
+      }
+      const bRef = db.collection("broadcasts").doc();
+      broadcastId = bRef.id;
+      tx.set(bRef, {
+        title: d.title,
+        body: d.body,
+        scope: d.municipality,
+        urgent: d.urgent === true,
+        type: d.type || "weather",
+        source: d.source || null,
+        draftId,
+        approvedBy: uid,
+        timestamp: now,
+      });
+    }
+    tx.update(ref, {
+      status: decision === "approve" ? "approved" : "rejected",
+      decidedBy: uid,
+      decidedAt: now,
+      note: cleanNote,
+      broadcastId,
+    });
+    tx.set(db.collection("audit_logs").doc(), {
+      action: decision === "approve" ? "automated_alert_approved" : "automated_alert_rejected",
+      draftId,
+      broadcastId,
+      municipality: d.municipality || null,
+      urgent: d.urgent === true,
+      source: d.source || null,
+      decidedBy: uid,
+      note: cleanNote,
+      at: now,
+    });
+    return { status: decision === "approve" ? "approved" : "rejected", broadcastId };
+  });
+});
+
 /**
  * Scheduled rainfall watch (PANaHON-style automatic weather alerts). Every 3
  * hours it checks the short-term forecast for each municipality and, when
- * meaningful rain is imminent, sends a push to that town's users via a broadcast
- * (which onNewBroadcast delivers over FCM). A 6-hour per-municipality cooldown
- * prevents spam.
+ * meaningful rain is imminent, DRAFTS an alert for that town; it reaches the
+ * public only after an in-scope admin approves it (see draftAutomatedAlert).
+ * A 6-hour per-municipality cooldown prevents repeated drafts.
  *
  * Requires the OPENWEATHER_API_KEY environment variable on the functions
  * runtime (e.g. `firebase functions:secrets:set OPENWEATHER_API_KEY` or a
@@ -1349,20 +1126,20 @@ exports.rainfallWatch = onSchedule(
           `${totalRain.toFixed(1)} mm in the next few hours. ` +
           "Plan ahead and stay safe.";
 
-        await db.collection("broadcasts").add({
+        await draftAutomatedAlert(db, {
           title,
           body,
-          scope: muni,
-          type: "weather",
+          municipality: muni,
+          urgent: false,
           source: "rainfallWatch",
-          timestamp: admin.firestore.FieldValue.serverTimestamp(),
+          evidence: { provider: "OpenWeather", maxPop, totalRainMm: totalRain },
         });
         await alertRef.set(
           { lastAlertMs: now, municipality: muni },
           { merge: true }
         );
         console.log(
-          `rainfallWatch: alerted ${muni} (pop ${maxPop}, rain ${totalRain}).`
+          `rainfallWatch: drafted alert for ${muni} (pop ${maxPop}, rain ${totalRain}).`
         );
       } catch (e) {
         console.error(`rainfallWatch ${muni} error:`, e);
@@ -1420,6 +1197,143 @@ async function fetchWindyPointForecast(lat, lon, apiKey) {
 // ── Windy forecast (admin, on-demand) ────────────────────────────────────────
 // Powers the web console Weather widget. Admin-only; proxies the Windy Point
 // Forecast API so the key stays server-side. Pass {lat,lon} or {municipality}.
+// ── Official PAGASA products for Nueva Vizcaya (public, no token) ─────────────
+// Reads PAGASA's published Northern Luzon PRSD regional forecast page and stores
+// the Nueva Vizcaya provincial forecast, 5-day extended outlook, regional
+// synopsis (incl. tropical cyclone information), heavy-rainfall warning status
+// and thunderstorm information. Parsing lives in ./pagasa-public/regional.js;
+// see that file for the source, the true geographic coverage of each product,
+// and what is deliberately not inferred.
+//
+// Separate from ./pagasa/ (the authenticated TenDay API), which stays
+// unconnected until a token and its documentation exist.
+//
+// Hourly: forecasts are issued a few times a day, thunderstorm advisories ad
+// hoc. One ~250 KB page per hour from one server is a negligible load. On
+// failure the last good data is KEPT (never overwritten with blanks) and the
+// error is recorded alongside it, so the app can show how stale it is.
+const { parseNlprsd, SOURCE_URL: NLPRSD_URL } = require("./pagasa-public/regional");
+
+exports.pagasaRegionalWatch = onSchedule(
+  { schedule: "every 60 minutes", timeZone: "Asia/Manila", timeoutSeconds: 60 },
+  async () => {
+    const ref = admin.firestore().collection("pagasa_products").doc("nueva_vizcaya");
+    try {
+      const res = await fetch(NLPRSD_URL, {
+        headers: {
+          "User-Agent": "OneVizcaya/1.0 (+https://one-vizcaya-app.web.app)",
+          Accept: "text/html",
+        },
+        signal: AbortSignal.timeout(20000),
+      });
+      if (!res.ok) throw new Error(`PAGASA NLPRSD page returned HTTP ${res.status}`);
+      const product = parseNlprsd(await res.text(), new Date().toISOString());
+      await ref.set({
+        ...product,
+        lastSuccessAt: admin.firestore.FieldValue.serverTimestamp(),
+        lastError: null,
+      });
+      if (product.parseWarnings.length) {
+        console.warn("pagasaRegionalWatch parse warnings:", product.parseWarnings);
+      }
+    } catch (e) {
+      console.error("pagasaRegionalWatch failed:", e);
+      // merge: keep the last good product; record the failure next to it.
+      await ref.set(
+        {
+          lastErrorAt: admin.firestore.FieldValue.serverTimestamp(),
+          lastError: String(e && e.message ? e.message : e).slice(0, 500),
+        },
+        { merge: true },
+      );
+    }
+  }
+);
+
+// ── Citizen weather proxy (OpenWeather) ──────────────────────────────────────
+// The mobile app used to call OpenWeather directly with a key compiled into the
+// APK, where anyone could extract it. This proxies the same four calls
+// server-side with the OPENWEATHER_API_KEY secret (already used by
+// rainfallWatch), so no weather credential ships in the app. It is also the
+// pattern a future PAGASA TenDay integration must follow: that API's `token`
+// may only ever live in Secret Manager.
+//
+// Responses are returned RAW so the app's existing parser is unchanged.
+// `current` and `forecast` are required (as they were client-side); `aqi` and
+// `uvi` are optional and come back null on failure. The provider is labelled
+// so the app never presents this data as PAGASA's.
+const WEATHER_CACHE_TTL_MS = 10 * 60 * 1000;
+const weatherCache = new Map(); // per-instance; key = rounded "lat,lon"
+
+exports.getWeather = onCall(
+  { secrets: ["OPENWEATHER_API_KEY"] },
+  async (request) => {
+    // Authenticated users only, so this cannot become an open proxy that
+    // spends the Province's OpenWeather quota.
+    if (!request.auth) {
+      throw new HttpsError("unauthenticated", "Must be signed in.");
+    }
+    const lat = Number(request.data?.lat);
+    const lon = Number(request.data?.lon);
+    // Philippine bounding box — rejects arbitrary-coordinate abuse.
+    if (
+      !Number.isFinite(lat) || !Number.isFinite(lon) ||
+      lat < 4 || lat > 22 || lon < 116 || lon > 127
+    ) {
+      throw new HttpsError("invalid-argument", "Coordinates outside the Philippines.");
+    }
+    const apiKey = process.env.OPENWEATHER_API_KEY;
+    if (!apiKey) {
+      throw new HttpsError("failed-precondition", "Weather service not configured.");
+    }
+
+    // ~1 km cells: nearby users share one upstream call per 10 minutes.
+    const key = `${lat.toFixed(2)},${lon.toFixed(2)}`;
+    const hit = weatherCache.get(key);
+    if (hit && Date.now() - hit.at < WEATHER_CACHE_TTL_MS) return hit.value;
+
+    const base = "https://api.openweathermap.org/data/2.5";
+    // `units=metric` matches what the app requested for weather/forecast;
+    // air_pollution and uvi were requested without it and are unit-free.
+    const get = async (path, required, metric) => {
+      const q = `lat=${lat}&lon=${lon}&appid=${apiKey}${metric ? "&units=metric" : ""}`;
+      try {
+        const res = await fetch(`${base}/${path}?${q}`, {
+          signal: AbortSignal.timeout(12000),
+        });
+        if (!res.ok) {
+          if (required) {
+            throw new HttpsError("unavailable", `Upstream ${path} returned ${res.status}.`);
+          }
+          return null;
+        }
+        return await res.json();
+      } catch (e) {
+        if (required) {
+          if (e instanceof HttpsError) throw e;
+          throw new HttpsError("unavailable", `Upstream ${path} unreachable.`);
+        }
+        return null;
+      }
+    };
+
+    const [current, forecast, aqi, uvi] = await Promise.all([
+      get("weather", true, true),
+      get("forecast", true, true),
+      get("air_pollution", false, false),
+      get("uvi", false, false),
+    ]);
+
+    const value = {
+      provider: "OpenWeather",
+      retrievedAt: new Date().toISOString(),
+      current, forecast, aqi, uvi,
+    };
+    weatherCache.set(key, { at: Date.now(), value });
+    return value;
+  }
+);
+
 exports.getWindyForecast = onCall(
   { secrets: ["WINDY_API_KEY"] },
   async (request) => {
@@ -1506,20 +1420,19 @@ exports.windyWindWatch = onSchedule(
           `Wind gusts up to about ${maxGust} km/h are expected in the next ` +
           "several hours. Secure loose objects and stay indoors when it peaks.";
 
-        await db.collection("broadcasts").add({
+        await draftAutomatedAlert(db, {
           title,
           body,
-          scope: muni,
+          municipality: muni,
           urgent: severe,
-          type: "weather",
           source: "windyWindWatch",
-          timestamp: admin.firestore.FieldValue.serverTimestamp(),
+          evidence: { provider: "Windy", maxGustKmh: maxGust },
         });
         await alertRef.set(
           { lastWindAlertMs: now, municipality: muni },
           { merge: true }
         );
-        console.log(`windyWindWatch: alerted ${muni} (gust ${maxGust} km/h).`);
+        console.log(`windyWindWatch: drafted alert for ${muni} (gust ${maxGust} km/h).`);
       } catch (e) {
         console.error(`windyWindWatch ${muni} error:`, e);
       }
@@ -1556,6 +1469,55 @@ exports.cleanupReportImageOnDelete = onDocumentDeleted(
     const data = event.data?.data();
     if (!data) return;
     await deleteImageByUrl(data.imageUrl);
+  }
+);
+
+// ── Audit trail: record report deletions ─────────────────────────────────────
+// PDRRMO §8 asks for measures to manage false/incomplete/duplicate reports and
+// §3 for accountability over the records. Until now a report could be deleted
+// permanently with NO audit entry at all, so a report could disappear without
+// trace. This records every deletion immutably.
+//
+// It also doubles as the RA 10173 disposal record PDRRMO §9 asks for, by
+// distinguishing an operator deletion from the 24-month retention purge
+// (deleteOldArchivedReports). Age is used to tell them apart because a
+// Firestore trigger carries no auth context.
+//
+// NOTE: for the same reason this cannot record WHO deleted the report. Rules
+// restrict report deletion to provincial admins, so the actor set is small, but
+// full attribution needs deletion routed through a callable that verifies the
+// caller — tracked as follow-up work.
+exports.onReportDeleted = onDocumentDeleted(
+  "users/{userId}/reports/{reportId}",
+  async (event) => {
+    const data = (event.data && event.data.data()) || {};
+    const reportedAt = data.reportedAt?.toDate?.() ?? null;
+    const ageMonths = reportedAt
+      ? (Date.now() - reportedAt.getTime()) / (1000 * 60 * 60 * 24 * 30.44)
+      : null;
+    // The retention job only ever deletes reports past 24 months.
+    const cause =
+      ageMonths !== null && ageMonths >= 24
+        ? "retention_24_months"
+        : "operator_deletion";
+
+    await admin
+      .firestore()
+      .collection("audit_logs")
+      .add({
+        action: "report_deleted",
+        cause,
+        targetUid: event.params.userId,
+        reportId: event.params.reportId,
+        category: data.category || null,
+        municipality: data.municipality || null,
+        barangay: data.barangay || null,
+        status: data.status || null,
+        priority: data.priority || null,
+        reportedAt: data.reportedAt || null,
+        at: admin.firestore.FieldValue.serverTimestamp(),
+      })
+      .catch((e) => console.error("onReportDeleted audit write failed:", e));
   }
 );
 

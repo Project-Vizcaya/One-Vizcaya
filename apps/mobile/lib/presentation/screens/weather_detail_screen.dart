@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart' hide TextDirection;
 import 'package:url_launcher/url_launcher.dart';
 import 'package:one_vizcaya/core/services/weather_service.dart';
+import 'package:one_vizcaya/core/services/weather_advisory.dart';
+import 'package:one_vizcaya/presentation/widgets/pagasa_weather_panel.dart';
 
 class WeatherDetailScreen extends StatefulWidget {
   final String municipality;
@@ -197,6 +199,92 @@ class _WeatherDetailScreenState extends State<WeatherDetailScreen> {
   }
 
   // ─── Section 1: Hourly Forecast ─────────────────────────────────────────
+  // Plain-language guidance derived from the forecast numbers. Explicitly
+  // labelled as app guidance, NOT an official warning — PDRRMO §2 requires the
+  // source of emergency information to be unambiguous, so nothing here may be
+  // mistaken for a PAGASA bulletin or wind signal.
+  Widget _buildAdvisories(List<WeatherAdvisory> advisories) {
+    if (advisories.isEmpty) return const SizedBox.shrink();
+    return _frostedCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _sectionTitle('What this means', icon: Icons.lightbulb_outline),
+          ...advisories.map((a) {
+            final accent = switch (a.severity) {
+              AdvisorySeverity.warning => const Color(0xFFFF8A80),
+              AdvisorySeverity.caution => const Color(0xFFFFD180),
+              AdvisorySeverity.info => Colors.white70,
+            };
+            final icon = switch (a.severity) {
+              AdvisorySeverity.warning => Icons.warning_amber_rounded,
+              AdvisorySeverity.caution => Icons.error_outline_rounded,
+              AdvisorySeverity.info => Icons.info_outline_rounded,
+            };
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(icon, size: 18, color: accent),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          a.headline,
+                          style: TextStyle(
+                            color: accent,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          a.body,
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 12.5,
+                            height: 1.35,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }),
+          Text(
+            'General guidance based on forecast data, not an official warning. '
+            'Official advisories come from PAGASA and PDRRMO.',
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.45),
+              fontSize: 10.5,
+              height: 1.3,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Separates official PAGASA products from the third-party OpenWeather data
+  // shown below them, so the two can never be mistaken for each other.
+  Widget _supplementaryLabel() => Padding(
+        padding: const EdgeInsets.fromLTRB(20, 14, 20, 2),
+        child: Text(
+          'SUPPLEMENTARY · OPENWEATHER (THIRD-PARTY, NOT PAGASA)',
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: 0.55),
+            fontSize: 11,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 1.0,
+          ),
+        ),
+      );
+
   Widget _buildHourly(WeatherData d) {
     final slots = d.hourly.take(16).toList();
     return _frostedCard(
@@ -1277,17 +1365,10 @@ class _WeatherDetailScreenState extends State<WeatherDetailScreen> {
               'L:${d.daily.map((x) => x.tempMin).reduce(min).round()}°'
         : 'H:${d.tempMax.round()}° L:${d.tempMin.round()}°';
 
-    final summaryHi = d.daily.isNotEmpty
-        ? '${d.daily.map((x) => x.tempMax).reduce(min).round()} to '
-              '${d.daily.map((x) => x.tempMax).reduce(max).round()}'
-        : '${d.tempMax.round()}';
-    final summaryLo = d.daily.isNotEmpty
-        ? '${d.daily.map((x) => x.tempMin).reduce(min).round()} to '
-              '${d.daily.map((x) => x.tempMin).reduce(max).round()}'
-        : '${d.tempMin.round()}';
-
-    final summaryLine =
-        '${_capitalize(d.condition)}. Highs $summaryHi°C and lows $summaryLo°C.';
+    // Condition-driven summary. Previously this was a single fixed template,
+    // so the same sentence appeared almost every day regardless of the weather.
+    final summaryLine = WeatherAdvisor.summaryLine(d);
+    final advisories = WeatherAdvisor.advise(d);
 
     final rainAlert = _buildRainAlert(d);
 
@@ -1363,6 +1444,16 @@ class _WeatherDetailScreenState extends State<WeatherDetailScreen> {
                               ),
                             ),
                           ),
+                          const SizedBox(height: 4),
+                          // The header's figures are OpenWeather's, not
+                          // PAGASA's; the official forecast is below.
+                          Text(
+                            'Current conditions: OpenWeather (third-party)',
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.5),
+                              fontSize: 11,
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -1378,6 +1469,16 @@ class _WeatherDetailScreenState extends State<WeatherDetailScreen> {
                 child: Column(
                   children: [
                     const SizedBox(height: 8),
+                    // Official PAGASA products come first (provincial
+                    // forecast, outlook, warnings, synopsis).
+                    PagasaWeatherPanel(
+                      municipality: widget.municipality,
+                      card: _frostedCard,
+                      title: _sectionTitle,
+                    ),
+                    // Everything below is third-party data, labelled as such.
+                    _supplementaryLabel(),
+                    _buildAdvisories(advisories),
                     _buildHourly(d),
                     _buildRainChart(d),
                     if (rainAlert != null) rainAlert,

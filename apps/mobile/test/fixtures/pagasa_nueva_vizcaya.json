@@ -1,0 +1,151 @@
+{
+ "provider": "PAGASA",
+ "office": "PAGASA Northern Luzon PRSD (NLPRSD)",
+ "sourceUrl": "https://www.pagasa.dost.gov.ph/regional-forecast/nlprsd",
+ "retrievedAt": "2026-11-03T03:00:00.000Z",
+ "provincialForecast": {
+  "coverage": {
+   "level": "province",
+   "name": "Nueva Vizcaya",
+   "psgc": "0205000000"
+  },
+  "issuedAt": "2026-11-03T01:00:00.000Z",
+  "validUntil": "2026-11-04T01:00:00.000Z",
+  "day": {
+   "description": "Partly cloudy skies with isolated rainshowers",
+   "pagasaIcon": 3,
+   "high": 32,
+   "low": 24,
+   "heatIndex": null,
+   "windSpeed": "Light to Moderate",
+   "windDirection": "Northeast",
+   "coastalCondition": null
+  },
+  "night": {
+   "description": "Partly cloudy skies with isolated rainshowers",
+   "pagasaIcon": 3,
+   "high": 30,
+   "low": 23,
+   "heatIndex": null,
+   "windSpeed": "Light to Moderate",
+   "windDirection": "Northeast",
+   "coastalCondition": null
+  }
+ },
+ "extendedOutlook": {
+  "coverage": {
+   "level": "province",
+   "name": "Nueva Vizcaya",
+   "psgc": "0205000000"
+  },
+  "issuedAt": "2026-11-03T01:00:00.000Z",
+  "days": [
+   {
+    "label": "Tuesday",
+    "date": "2026-11-03",
+    "description": "Partly cloudy skies with isolated rainshowers",
+    "pagasaIcon": 3,
+    "high": 32,
+    "low": 24,
+    "heatIndex": null,
+    "windSpeed": "Light to Moderate",
+    "windDirection": "Northeast",
+    "coastalCondition": null
+   },
+   {
+    "label": "Wednesday",
+    "date": "2026-11-04",
+    "description": "Partly cloudy skies with isolated rainshowers",
+    "pagasaIcon": 3,
+    "high": 32,
+    "low": 24,
+    "heatIndex": null,
+    "windSpeed": "Light to Moderate",
+    "windDirection": "Northeast to East",
+    "coastalCondition": null
+   },
+   {
+    "label": "Thursday",
+    "date": "2026-11-05",
+    "description": "Partly cloudy skies to at times cloudy with rainshowers or thunderstorm",
+    "pagasaIcon": 4,
+    "high": 32,
+    "low": 23,
+    "heatIndex": null,
+    "windSpeed": "Light to Moderate",
+    "windDirection": "Northeast to East",
+    "coastalCondition": null
+   },
+   {
+    "label": "Friday",
+    "date": "2026-11-06",
+    "description": "Partly cloudy skies to at times cloudy with rainshowers or thunderstorm",
+    "pagasaIcon": 4,
+    "high": 32,
+    "low": 24,
+    "heatIndex": null,
+    "windSpeed": "Light to Moderate",
+    "windDirection": "Northeast to East",
+    "coastalCondition": null
+   },
+   {
+    "label": "Saturday",
+    "date": "2026-11-07",
+    "description": "Partly cloudy skies with isolated rainshowers",
+    "pagasaIcon": 3,
+    "high": 31,
+    "low": 24,
+    "heatIndex": null,
+    "windSpeed": "Moderate",
+    "windDirection": "Northeast",
+    "coastalCondition": null
+   }
+  ]
+ },
+ "synopsis": {
+  "coverage": {
+   "level": "region",
+   "name": "Northern Luzon"
+  },
+  "issuedAt": "2026-11-02T21:00:00.000Z",
+  "validUntil": "2026-11-03T21:00:00.000Z",
+  "text": "Northeast Monsoon affecting Northern Luzon.\n\nTROPICAL CYCLONE OUTSIDE PAR AS OF 3:00 AM TODAY\nSEVERE TROPICAL STORM IN-FA (2631)\nLOCATION: 1,870 KM EAST OF EXTREME NORTHERN LUZON (23.1°N, 139.8°E)\nMAXIMUM SUSTAINED WINDS: 110 KM/H NEAR THE CENTER\nGUSTINESS: UP TO 135 KM/H\nMOVEMENT: WEST NORTHWESTWARD AT 10 KM/H",
+  "mentionsTropicalCyclone": true
+ },
+ "rainfallWarning": {
+  "coverage": {
+   "level": "region",
+   "name": "Northern Luzon"
+  },
+  "text": "As of today, there is no Heavy Rainfall Warning Issued.",
+  "issuedAt": null,
+  "noneIssued": true
+ },
+ "thunderstorms": {
+  "coverage": {
+   "level": "region",
+   "name": "Northern Luzon"
+  },
+  "items": [
+   {
+    "kind": "information",
+    "title": "Thunderstorm Information #NLPRSD",
+    "issuedAt": "2026-11-03T01:37:00.000Z",
+    "validUntil": "2026-11-03T13:37:00.000Z",
+    "body": "Thunderstorm is LESS LIKELY to develop over #Aurora within 12 hours.",
+    "text": "Thunderstorm Information #NLPRSD\nIssued at 09:37 AM 03 November 2026\n\nThunderstorm is LESS LIKELY to develop over #Aurora within 12 hours.",
+    "mentionsNuevaVizcaya": false
+   },
+   {
+    "kind": "watch",
+    "title": "Thunderstorm Watch #NLPRSD",
+    "issuedAt": "2026-11-03T02:00:00.000Z",
+    "validUntil": "2026-11-03T14:00:00.000Z",
+    "body": "Thunderstorm is MORE LIKELY to develop over #IlocosNorte and #Cagayan within 12 hours.",
+    "text": "Thunderstorm Watch #NLPRSD\nIssued at 10:00 AM 03 November 2026\n\nThunderstorm is MORE LIKELY to develop over #IlocosNorte and #Cagayan within 12 hours.",
+    "mentionsNuevaVizcaya": false
+   }
+  ]
+ },
+ "parseWarnings": []
+}

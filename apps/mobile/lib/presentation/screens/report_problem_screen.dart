@@ -2,28 +2,22 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'dart:io';
-import 'dart:typed_data';
 
 import '../../core/constants/app_constants.dart';
 import '../../core/l10n/app_strings.dart';
 import '../../core/utils/toast_utils.dart';
 import '../../domain/enums/report_category.dart';
 import '../../domain/enums/report_priority.dart';
-import '../../domain/enums/report_status.dart';
-import '../../domain/models/problem_report.dart';
-import '../../domain/repositories/report_repository.dart';
-import '../../data/repositories_impl/firebase_report_repository.dart';
 import '../../data/services/geolocator_service.dart';
 import '../../data/services/geo_stamp_service.dart';
 import '../../data/services/offline_queue_service.dart';
-import '../../data/services/priority_service.dart';
+import '../../data/services/report_submitter.dart';
+import '../../core/utils/connectivity_probe.dart';
 import '../state/municipality_state.dart';
 import '../../core/utils/color_utils.dart';
 
@@ -55,9 +49,7 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
   bool _isSubmitting = false;
   Position? _currentPosition;
 
-  final ReportRepository _reportRepository = FirebaseReportRepository();
   final GeolocatorService _geolocatorService = GeolocatorService();
-  final PriorityService _priorityService = PriorityService();
   final ImagePicker _imagePicker = ImagePicker();
 
   File? _selectedImage;
@@ -78,6 +70,11 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
   void initState() {
     super.initState();
     _loadResidency();
+    // Start in offline mode when there is genuinely no connection, instead of
+    // letting the reporter submit "online" into a dead network.
+    ConnectivityProbe.isOnline().then((online) {
+      if (mounted && !online) setState(() => _isOffline = true);
+    });
   }
 
   Future<void> _loadResidency() async {
@@ -144,56 +141,6 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
     }
   }
 
-  Future<String?> _uploadImage(File image, String userId) async {
-    try {
-      final fileName = '${userId}_${DateTime.now().millisecondsSinceEpoch}.jpg';
-      final ref = FirebaseStorage.instance
-          .ref()
-          .child('report_images')
-          .child(fileName);
-
-      // Compress and re-encode the image before upload (target ~200 KB).
-      // keepExif:false strips EXIF metadata (GPS, camera serial, timestamp) so
-      // no hidden personal data is uploaded to Storage — RA 10173 data
-      // minimization. The verified GPS/timestamp we *do* keep is stored
-      // explicitly on the report document instead.
-      final Uint8List? compressed = await FlutterImageCompress.compressWithFile(
-        image.absolute.path,
-        minWidth: 1024,
-        minHeight: 1024,
-        quality: 75,
-        format: CompressFormat.jpeg,
-        keepExif: false,
-      );
-
-      // If re-encoding failed we deliberately do NOT fall back to uploading the
-      // original file, which would carry its raw EXIF (including GPS) into
-      // Storage. The report still submits, just without the photo.
-      if (compressed == null) {
-        assert(() {
-          debugPrint('Image compression returned null; skipping photo upload to avoid EXIF leak.');
-          return true;
-        }());
-        return null;
-      }
-
-      final uploadTask = ref.putData(
-        compressed,
-        SettableMetadata(contentType: 'image/jpeg'),
-      );
-
-      final snapshot = await uploadTask;
-      return await snapshot.ref.getDownloadURL();
-    } catch (e) {
-      // FIX 6: Only log in debug builds to avoid leaking file paths in release
-      assert(() {
-        debugPrint('Image upload failed: $e');
-        return true;
-      }());
-      return null;
-    }
-  }
-
   Future<void> _submitReport() async {
     if (_residencyBlocked) {
       _promptVerifyResidency();
@@ -234,43 +181,29 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
 
     final municipalityReportingTo = oneVizcayaState.selectedMunicipality.value;
 
+    // Every report must be tied to the verified, signed-in user — anonymous
+    // submission has been removed (government data-integrity requirement).
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      if (mounted) setState(() => _isSubmitting = false);
+      ToastUtils.showError('Please sign in to submit a report.');
+      return;
+    }
+
+    // One item for both paths. Its reportId is fixed BEFORE the first attempt,
+    // so a retry — or Firestore's own offline sync — can never create the
+    // report twice.
+    final item = await _buildQueueItem(user, municipalityReportingTo);
+
     if (_isOffline) {
-      // Queue the report for automatic submission when connectivity returns.
-      // Every report must be tied to the verified, signed-in user — anonymous
-      // submission has been removed (government data-integrity requirement).
-      final user = FirebaseAuth.instance.currentUser;
-      if (user == null) {
-        if (mounted) setState(() => _isSubmitting = false);
-        ToastUtils.showError('Please sign in to submit a report.');
-        return;
-      }
-      final userId = user.uid;
-      final queuePayload = <String, dynamic>{
-        'userId': userId,
-        'category': _selectedCategory?.displayName ?? '',
-        'description': _descriptionController.text,
-        'location': _locationController.text,
-        'municipality': municipalityReportingTo,
-        'status': 'reported',
-        'priority': 'normal',
-        'priorityScore': 0,
-        'duplicateCount': 0,
-        'reportedAt': DateTime.now().toIso8601String(),
-        'latitude': _currentPosition?.latitude,
-        'longitude': _currentPosition?.longitude,
-        'userId_field': userId,
-        'userPhone': user.phoneNumber,
-        'isAnonymous': false,
-        'barangay': _selectedBarangay,
-        'photoSource': _photoSource,
-        'photoLatitude': _photoLatitude,
-        'photoLongitude': _photoLongitude,
-        'photoTimestamp': _photoTimestamp?.toIso8601String(),
-      };
-      await OfflineQueueService().enqueue(queuePayload);
+      await OfflineQueueService().enqueue(item);
       ToastUtils.showInfo(
-        'Report saved. Will submit automatically when you\'re back online.',
+        'Report saved. It will be sent automatically when you\'re back online.',
       );
+      // In case the connection is actually back already.
+      QueueFlusher.instance.flush();
+      // The cooldown counts only reports actually sent or saved.
+      await prefs.setInt('last_report_time', currentTime);
 
       // Also offer SMS as secondary option
       final reportDetails =
@@ -283,10 +216,43 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
       if (!mounted) return;
       setState(() => _isSubmitting = false);
     } else {
-      await _sendOnlineReport(municipalityReportingTo);
+      final filed = await _sendOnlineReport(municipalityReportingTo, item);
+      if (filed) await prefs.setInt('last_report_time', currentTime);
     }
+  }
 
-    await prefs.setInt('last_report_time', currentTime);
+  /// Builds the report as a queue item. A photo is compressed (EXIF stripped)
+  /// into the app's own storage now, so a report that ends up queued keeps it.
+  Future<Map<String, dynamic>> _buildQueueItem(
+      User user, String municipality) async {
+    final queueId = OfflineQueueService.newId();
+    String? photoPath;
+    if (_selectedImage != null) {
+      photoPath = await ReportSubmitter.persistPhoto(_selectedImage!, queueId);
+      if (photoPath == null) {
+        ToastUtils.showError(
+            'Photo could not be processed — submitting report without it.');
+      }
+    }
+    return <String, dynamic>{
+      'queueId': queueId,
+      'reportId': ReportSubmitter.newReportId(user.uid),
+      'userId': user.uid,
+      'userPhone': user.phoneNumber,
+      'category': _selectedCategory?.displayName ?? '',
+      'description': _descriptionController.text,
+      'location': _locationController.text,
+      'municipality': municipality,
+      'barangay': _selectedBarangay,
+      'latitude': _currentPosition?.latitude,
+      'longitude': _currentPosition?.longitude,
+      'photoPath': photoPath,
+      'photoSource': _photoSource,
+      'photoLatitude': _photoLatitude,
+      'photoLongitude': _photoLongitude,
+      'photoTimestamp': _photoTimestamp?.toIso8601String(),
+      'reportedAt': DateTime.now().toIso8601String(),
+    };
   }
 
   Future<void> _sendSmsReport(String municipality, String details) async {
@@ -307,87 +273,26 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
     }
   }
 
-  Future<void> _sendOnlineReport(String municipality) async {
+  /// Returns true when the report was sent OR safely queued.
+  Future<bool> _sendOnlineReport(
+      String municipality, Map<String, dynamic> item) async {
     try {
-      // Every report must be tied to the verified, signed-in user — anonymous
-      // submission has been removed (government data-integrity requirement).
-      final user = FirebaseAuth.instance.currentUser;
-      if (user == null) {
-        if (mounted) setState(() => _isSubmitting = false);
-        ToastUtils.showError('Please sign in to submit a report.');
-        return;
-      }
-      final userId = user.uid;
-
-      // Upload image if one was selected
-      String? imageUrl;
-      if (_selectedImage != null) {
+      if (item['photoPath'] != null) {
         ToastUtils.showSuccess('Uploading photo evidence…');
-        imageUrl = await _uploadImage(_selectedImage!, userId);
-        // Don't fail silently: if a photo was attached but the upload didn't
-        // succeed, tell the reporter the report will save without it.
-        if (imageUrl == null || imageUrl.isEmpty) {
-          ToastUtils.showError(
-              'Photo could not be uploaded — submitting report without it.');
-        }
       }
-
-      final priorityResult = await _priorityService.calculatePriority(
-        category: _selectedCategory!,
-        municipality: municipality,
-      );
-
-      final report = ProblemReport(
-        id: '',
-        category: _selectedCategory!,
-        description: _descriptionController.text,
-        location: _locationController.text,
-        municipality: municipality,
-        status: ReportStatus.reported,
-        priority: priorityResult.priority,
-        priorityScore: priorityResult.score,
-        duplicateCount: priorityResult.duplicateCount,
-        reportedAt: DateTime.now(),
-        latitude: _currentPosition?.latitude,
-        longitude: _currentPosition?.longitude,
-        userId: userId,
-        userPhone: user.phoneNumber,
-        imageUrl: imageUrl,
-        photoTimestamp: _photoTimestamp,
-        photoLatitude: _photoLatitude,
-        photoLongitude: _photoLongitude,
-        photoSource: _photoSource,
-        isAnonymous: false,
-        barangay: _selectedBarangay,
-      );
-
-      await _reportRepository.submitReport(report, userId);
+      // Same pipeline a queued report uses: photo, triage, receipt.
+      final result = await ReportSubmitter.deliver(item, queued: false);
 
       HapticFeedback.mediumImpact();
+      _clearForm();
+      if (!mounted) return true;
 
-      _locationController.clear();
-      _descriptionController.clear();
-      if (!mounted) return;
-      setState(() {
-        _selectedCategory = null;
-        _selectedPriority = null;
-        _selectedBarangay = null;
-        _categoryError = false;
-        _currentPosition = null;
-        _selectedImage = null;
-        _photoTimestamp = null;
-        _photoLatitude = null;
-        _photoLongitude = null;
-        _photoSource = null;
-        _isSubmitting = false;
-      });
-
-      if (!mounted) return;
-
-      String priorityMsg = priorityResult.duplicateCount > 0
-          ? '\n\n${priorityResult.duplicateCount} similar report(s) found in the last 48 hours. '
-                'Priority auto-escalated to ${priorityResult.priority.displayName}.'
-          : '\n\nPriority level: ${priorityResult.priority.displayName}.';
+      final priorityMsg = result == null
+          ? ''
+          : result.duplicateCount > 0
+              ? '\n\n${result.duplicateCount} similar report(s) found in the last 48 hours. '
+                  'Priority auto-escalated to ${result.priority.displayName}.'
+              : '\n\nPriority level: ${result.priority.displayName}.';
 
       _showConfirmationDialog(
         title: 'Report Submitted',
@@ -395,19 +300,49 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
             'Your report has been successfully routed to the $municipality '
             'municipal engineering database.$priorityMsg',
       );
-    } on FirebaseException catch (e) {
-      if (mounted) setState(() => _isSubmitting = false);
-      if (e.code == 'unavailable') {
-        ToastUtils.showError(
-          'No internet connection. Please try again when online, or use SMS mode.',
-        );
-      } else {
-        ToastUtils.showError('Submission failed: ${e.message}');
-      }
+      return true;
     } catch (e) {
+      if (ReportSubmitter.isNetworkError(e)) {
+        // Not lost: keep it and send it automatically when the connection
+        // returns. The fixed reportId means that if this attempt did reach
+        // the server (or syncs later on its own), nothing is duplicated.
+        await OfflineQueueService().enqueue(item);
+        _clearForm();
+        if (!mounted) return true;
+        _showConfirmationDialog(
+          title: 'Saved — will send automatically',
+          content:
+              'The connection dropped before your report could be sent. It is '
+              'saved on this phone and will be sent automatically when you are '
+              'back online. In an emergency, call 911 or the PDRRMO hotline.',
+        );
+        return true;
+      }
       if (mounted) setState(() => _isSubmitting = false);
-      ToastUtils.showError('An error occurred. Please try again.');
+      ToastUtils.showError(e is FirebaseException
+          ? 'Submission failed: ${e.message}'
+          : 'An error occurred. Please try again.');
+      return false;
     }
+  }
+
+  void _clearForm() {
+    _locationController.clear();
+    _descriptionController.clear();
+    if (!mounted) return;
+    setState(() {
+      _selectedCategory = null;
+      _selectedPriority = null;
+      _selectedBarangay = null;
+      _categoryError = false;
+      _currentPosition = null;
+      _selectedImage = null;
+      _photoTimestamp = null;
+      _photoLatitude = null;
+      _photoLongitude = null;
+      _photoSource = null;
+      _isSubmitting = false;
+    });
   }
 
   void _showConfirmationDialog({
@@ -1092,6 +1027,64 @@ class _SubmissionOptionsCard extends StatelessWidget {
                           ? const Color(0xFFA8ADB5)
                           : const Color(0xFF555555),
                     ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // ── Supplementary-channel notice (PDRRMO letter §7 and §11) ──────
+          // PDRRMO asked that the app "complement, rather than replace,
+          // established emergency mechanisms such as the Provincial EOC/OpCen,
+          // MDRRMOs, emergency hotlines, radio communications, 911" and that it
+          // "not create an expectation of 24/7 emergency response". It has to
+          // say so at the point of reporting, not only in project docs.
+          const SizedBox(height: 12),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF3A2E12) : const Color(0xFFFFF8E1),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: isDark ? const Color(0xFF6B5420) : const Color(0xFFFFE082),
+              ),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(
+                  Icons.info_outline_rounded,
+                  size: 18,
+                  color: isDark ? const Color(0xFFE0B65C) : const Color(0xFF8D6E00),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        AppStrings.get('notReplacementTitle'),
+                        style: TextStyle(
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w700,
+                          color: isDark
+                              ? const Color(0xFFE0B65C)
+                              : const Color(0xFF8D6E00),
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        AppStrings.get('notReplacementBody'),
+                        style: TextStyle(
+                          fontSize: 12,
+                          height: 1.35,
+                          color: isDark
+                              ? const Color(0xFFCBB683)
+                              : const Color(0xFF6B5420),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
