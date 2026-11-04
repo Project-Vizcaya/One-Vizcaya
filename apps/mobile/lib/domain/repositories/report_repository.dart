@@ -56,4 +56,13 @@ abstract class ReportRepository {
 
   /// Re-opens a closed report into the queue, attributed to the acting admin.
   Future<void> reopenReport(String userId, String reportId);
+
+  /// Records that a report was referred to a named office (P2), stamped with
+  /// the acting admin and the server time; audited by auditReportReferral.
+  /// [officeType] is a key of ReportReferral.officeTypes.
+  Future<void> referToOffice(String userId, String reportId,
+      {required String officeType,
+      required String officeName,
+      String contact = '',
+      String note = ''});
 }

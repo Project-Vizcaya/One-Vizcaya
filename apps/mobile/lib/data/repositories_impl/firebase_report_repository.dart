@@ -241,6 +241,39 @@ class FirebaseReportRepository implements ReportRepository {
   // firestore.rules requires every field below: an allowed disposition, a
   // reason of 5+ characters, dispositionBy == this admin, and the server time.
   @override
+  Future<void> referToOffice(String userId, String reportId,
+      {required String officeType,
+      required String officeName,
+      String contact = '',
+      String note = ''}) async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) throw StateError('Not signed in');
+    try {
+      await _firestore
+          .collection('users')
+          .doc(userId)
+          .collection('reports')
+          .doc(reportId)
+          .update({
+        // firestore.rules require by == the acting admin and at == the
+        // server time, and refuse removal of a referral.
+        'referral': {
+          'officeType': officeType,
+          'officeName': officeName.trim(),
+          'contact': contact.trim(),
+          'note': note.trim(),
+          'by': uid,
+          'at': FieldValue.serverTimestamp(),
+        },
+      });
+      ToastUtils.showSuccess('Referred to ${officeName.trim()}');
+    } catch (e) {
+      ToastUtils.showError('Failed to record referral: $e');
+      rethrow;
+    }
+  }
+
+  @override
   Future<void> closeWithDisposition(String userId, String reportId,
       String disposition, String reason, {String? duplicateOf}) async {
     final uid = FirebaseAuth.instance.currentUser?.uid;

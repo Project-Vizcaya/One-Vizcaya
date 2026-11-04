@@ -5,6 +5,52 @@ import '../enums/report_status.dart';
 import '../enums/report_priority.dart';
 import '../enums/handling_level.dart';
 
+/// The office a report was handed to (P2). Must match firestore.rules
+/// validReferral() and the web console's REFERRAL_OFFICE_TYPES.
+class ReportReferral {
+  static const officeTypes = <String, String>{
+    'MDRRMO': 'MDRRMO — Municipal DRRM Office',
+    'BDRRMC': 'BDRRMC — Barangay DRRM Committee',
+    'PDRRMO': 'PDRRMO — Provincial DRRM Office',
+    'BFP': 'BFP — Bureau of Fire Protection',
+    'PNP': 'PNP — Philippine National Police',
+    'MHO': 'MHO / RHU — Municipal Health Office',
+    'MSWDO': 'MSWDO — Social Welfare & Development',
+    'MEO': 'MEO — Municipal Engineering Office',
+    'DPWH': 'DPWH — Public Works & Highways',
+    'Other': 'Other office',
+  };
+
+  final String officeType;
+  final String officeName;
+  final String? contact;
+  final String? note;
+  final String by;
+  final DateTime? at;
+
+  const ReportReferral({
+    required this.officeType,
+    required this.officeName,
+    this.contact,
+    this.note,
+    required this.by,
+    this.at,
+  });
+
+  static ReportReferral? fromMap(dynamic v) {
+    if (v is! Map) return null;
+    String? opt(dynamic x) => x is String && x.isNotEmpty ? x : null;
+    return ReportReferral(
+      officeType: (v['officeType'] as String?) ?? 'Other',
+      officeName: (v['officeName'] as String?) ?? '',
+      contact: opt(v['contact']),
+      note: opt(v['note']),
+      by: (v['by'] as String?) ?? '',
+      at: (v['at'] as Timestamp?)?.toDate(),
+    );
+  }
+}
+
 class ProblemReport {
   final String id;
   final ReportCategory category;
@@ -58,6 +104,10 @@ class ProblemReport {
   final DateTime? dispositionAt;
   final String? duplicateOf;
 
+  // Referral to a named office (P2). Read-only here, like the disposition:
+  // set by FirebaseReportRepository.referToOffice, absent from toMap().
+  final ReportReferral? referral;
+
   static const dispositionLabels = {
     'false_report': 'False report',
     'duplicate': 'Duplicate',
@@ -100,6 +150,7 @@ class ProblemReport {
     this.dispositionBy,
     this.dispositionAt,
     this.duplicateOf,
+    this.referral,
   });
 
   factory ProblemReport.fromFirestore(DocumentSnapshot doc) {
@@ -173,6 +224,7 @@ class ProblemReport {
       dispositionBy: data['dispositionBy'] as String?,
       dispositionAt: (data['dispositionAt'] as Timestamp?)?.toDate(),
       duplicateOf: data['duplicateOf'] as String?,
+      referral: ReportReferral.fromMap(data['referral']),
     );
   }
 

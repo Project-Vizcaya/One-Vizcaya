@@ -192,7 +192,6 @@ cd apps/mobile && flutter test
 ## 7. Known limits
 
 - Recording a referral does not notify the office.
-- The mobile admin app does not show or set referrals yet. Use the web console.
 - Load testing has been done on the local emulator only, not in production
   ([`tests/emulator/load/README.md`](../tests/emulator/load/README.md)).
 - The Tagalog and Ilocano safety wording still awaits a native speaker's review

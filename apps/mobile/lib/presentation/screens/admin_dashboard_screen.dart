@@ -517,6 +517,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                 userId, reportId, disposition, reason, duplicateOf: duplicateOf),
         onReopenClosed: (reportId, userId) =>
             _reportRepository.reopenReport(userId, reportId),
+        onRefer: (reportId, userId, type, name, contact, note) =>
+            _reportRepository.referToOffice(userId, reportId,
+                officeType: type, officeName: name, contact: contact, note: note),
       ),
     );
   }
@@ -1402,6 +1405,8 @@ class _ReportDetailSheet extends StatelessWidget {
   final Future<void> Function(String reportId, String userId,
       String disposition, String reason, String? duplicateOf) onCloseWithDisposition;
   final Future<void> Function(String reportId, String userId) onReopenClosed;
+  final Future<void> Function(String reportId, String userId, String officeType,
+      String officeName, String contact, String note) onRefer;
 
   const _ReportDetailSheet({
     required this.report,
@@ -1415,6 +1420,7 @@ class _ReportDetailSheet extends StatelessWidget {
     required this.onFlagUpdate,
     required this.onCloseWithDisposition,
     required this.onReopenClosed,
+    required this.onRefer,
   });
 
   String _formatFullTimestamp(DateTime dt) {
@@ -2063,6 +2069,17 @@ class _ReportDetailSheet extends StatelessWidget {
                   if (report.status == ReportStatus.solved) ...[
                     const SizedBox(height: 12),
                     _CitizenFeedbackSection(report: report, lguColor: lguColor),
+                  ],
+
+                  // Referral to a named office (P2)
+                  if (report.userId != null) ...[
+                    const SizedBox(height: 12),
+                    _ReferralPanel(
+                      report: report,
+                      lguColor: lguColor,
+                      onRefer: (type, name, contact, note) =>
+                          onRefer(report.id, report.userId!, type, name, contact, note),
+                    ),
                   ],
 
                   const SizedBox(height: 24),
@@ -5057,6 +5074,213 @@ class _RoleAssignDialogState extends State<_RoleAssignDialog> {
 }
 
 // ── Close without action (PDRRMO §8) ────────────────────────────────────────
+
+/// Referral to a named office (P2), mirroring the web console's "Refer to
+/// Office". Recording a referral does not notify the office.
+class _ReferralPanel extends StatefulWidget {
+  final ProblemReport report;
+  final Color lguColor;
+  final Future<void> Function(
+      String officeType, String officeName, String contact, String note) onRefer;
+  const _ReferralPanel(
+      {required this.report, required this.lguColor, required this.onRefer});
+
+  @override
+  State<_ReferralPanel> createState() => _ReferralPanelState();
+}
+
+class _ReferralPanelState extends State<_ReferralPanel> {
+  // Shown immediately after a save; the sheet's report is a snapshot.
+  late ReportReferral? _current = widget.report.referral;
+
+  Future<void> _openForm() async {
+    final saved = await showModalBottomSheet<ReportReferral>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      builder: (_) => _ReferralForm(
+        initial: _current,
+        municipality: widget.report.municipality,
+        onRefer: widget.onRefer,
+      ),
+    );
+    if (saved != null && mounted) setState(() => _current = saved);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final r = _current;
+    final muted = Theme.of(context).colorScheme.onSurfaceVariant;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Refer to Office',
+            style: TextStyle(
+                fontWeight: FontWeight.bold, color: widget.lguColor, fontSize: 13)),
+        const SizedBox(height: 8),
+        if (r != null)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Theme.of(context).dividerColor),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('${r.officeType} · ${r.officeName}',
+                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
+                if (r.contact != null)
+                  Text('Contact: ${r.contact}', style: const TextStyle(fontSize: 13)),
+                if (r.note != null) Text(r.note!, style: const TextStyle(fontSize: 13)),
+                const SizedBox(height: 4),
+                Text(
+                  '${r.at != null ? '${r.at!.month}/${r.at!.day}/${r.at!.year} · ' : ''}'
+                  'by admin ${r.by.length >= 8 ? r.by.substring(0, 8) : r.by}'
+                  ' · recorded in the audit log',
+                  style: TextStyle(fontSize: 12, color: muted),
+                ),
+              ],
+            ),
+          ),
+        const SizedBox(height: 8),
+        OutlinedButton.icon(
+          onPressed: _openForm,
+          icon: const Icon(Icons.apartment_rounded, size: 18),
+          label: Text(r == null ? 'Refer to an office…' : 'Refer to a different office…'),
+          style: OutlinedButton.styleFrom(minimumSize: const Size(0, 48)),
+        ),
+      ],
+    );
+  }
+}
+
+class _ReferralForm extends StatefulWidget {
+  final ReportReferral? initial;
+  final String municipality;
+  final Future<void> Function(
+      String officeType, String officeName, String contact, String note) onRefer;
+  const _ReferralForm(
+      {required this.initial, required this.municipality, required this.onRefer});
+
+  @override
+  State<_ReferralForm> createState() => _ReferralFormState();
+}
+
+class _ReferralFormState extends State<_ReferralForm> {
+  late String? _type = widget.initial?.officeType;
+  late final _name = TextEditingController(text: widget.initial?.officeName ?? '');
+  late final _contact = TextEditingController(text: widget.initial?.contact ?? '');
+  final _note = TextEditingController();
+  bool _saving = false;
+
+  @override
+  void dispose() {
+    _name.dispose();
+    _contact.dispose();
+    _note.dispose();
+    super.dispose();
+  }
+
+  bool get _valid {
+    final n = _name.text.trim().length;
+    return _type != null && n >= 2 && n <= 120;
+  }
+
+  Future<void> _save() async {
+    if (!_valid || _saving) return;
+    setState(() => _saving = true);
+    try {
+      await widget.onRefer(_type!, _name.text, _contact.text, _note.text);
+      if (!mounted) return;
+      Navigator.pop(
+        context,
+        ReportReferral(
+          officeType: _type!,
+          officeName: _name.text.trim(),
+          contact: _contact.text.trim().isEmpty ? null : _contact.text.trim(),
+          note: _note.text.trim().isEmpty ? null : _note.text.trim(),
+          by: FirebaseAuth.instance.currentUser?.uid ?? '',
+          at: DateTime.now(),
+        ),
+      );
+    } catch (_) {
+      // The repository already showed the error.
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final muted = Theme.of(context).colorScheme.onSurfaceVariant;
+    return Padding(
+      padding: EdgeInsets.fromLTRB(
+          16, 16, 16, 16 + MediaQuery.of(context).viewInsets.bottom),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Text('Refer to Office',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+            const SizedBox(height: 12),
+            DropdownButtonFormField<String>(
+              initialValue: _type,
+              isExpanded: true,
+              decoration: const InputDecoration(labelText: 'Office type'),
+              items: ReportReferral.officeTypes.entries
+                  .map((e) => DropdownMenuItem(
+                      value: e.key,
+                      child: Text(e.value, overflow: TextOverflow.ellipsis)))
+                  .toList(),
+              onChanged: (v) => setState(() => _type = v),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _name,
+              maxLength: 120,
+              decoration: InputDecoration(
+                  labelText: 'Office name',
+                  hintText: 'e.g. MDRRMO ${widget.municipality}'),
+              onChanged: (_) => setState(() {}),
+            ),
+            TextField(
+              controller: _contact,
+              maxLength: 80,
+              decoration: const InputDecoration(
+                  labelText: 'Contact person or number (optional)'),
+            ),
+            TextField(
+              controller: _note,
+              maxLength: 500,
+              maxLines: 3,
+              decoration: const InputDecoration(
+                  labelText: 'What was asked of them (optional)'),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'This records the hand-off; it does not notify the office. '
+              'Contact them through your usual channel.',
+              style: TextStyle(fontSize: 12, color: muted),
+            ),
+            const SizedBox(height: 12),
+            FilledButton.icon(
+              onPressed: _valid && !_saving ? _save : null,
+              style: FilledButton.styleFrom(minimumSize: const Size(0, 48)),
+              icon: _saving
+                  ? const SizedBox(
+                      width: 18, height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2))
+                  : const Icon(Icons.send_rounded),
+              label: const Text('Record referral'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
 
 class _ClosedDispositionPanel extends StatelessWidget {
   final ProblemReport report;
