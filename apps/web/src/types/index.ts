@@ -76,6 +76,7 @@ export interface Report {
   statusBeforeArchive?: string;
   resolutionNote?: string;
   resolutionBy?: string;
+  onBehalfOf?: { name: string; contact?: string; relationship?: string };
 }
 
 export interface Responder {

@@ -108,6 +108,11 @@ class ProblemReport {
   // set by FirebaseReportRepository.referToOffice, absent from toMap().
   final ReportReferral? referral;
 
+  // Proxy reporting (P3): the resident this report was filed for, when the
+  // filer is an official or a certified family member. Keys: name, contact,
+  // relationship. firestore.rules check who may set it and its shape.
+  final Map<String, String>? onBehalfOf;
+
   static const dispositionLabels = {
     'false_report': 'False report',
     'duplicate': 'Duplicate',
@@ -151,6 +156,7 @@ class ProblemReport {
     this.dispositionAt,
     this.duplicateOf,
     this.referral,
+    this.onBehalfOf,
   });
 
   factory ProblemReport.fromFirestore(DocumentSnapshot doc) {
@@ -225,6 +231,9 @@ class ProblemReport {
       dispositionAt: (data['dispositionAt'] as Timestamp?)?.toDate(),
       duplicateOf: data['duplicateOf'] as String?,
       referral: ReportReferral.fromMap(data['referral']),
+      onBehalfOf: data['onBehalfOf'] is Map
+          ? (data['onBehalfOf'] as Map).map((k, v) => MapEntry('$k', '${v ?? ''}'))
+          : null,
     );
   }
 
@@ -262,6 +271,7 @@ class ProblemReport {
           : null,
       'barangay': (barangay?.isEmpty ?? true) ? null : barangay,
       'isFlagged': isFlagged,
+      if (onBehalfOf != null) 'onBehalfOf': onBehalfOf,
     };
   }
 }

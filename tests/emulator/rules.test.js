@@ -432,3 +432,46 @@ test("moving back out of 'solved' is allowed, and the reporter cannot write a re
   await assertSucceeds(updateDoc(doc(as("muni"), REPORT), { status: "ongoing" }));
   await assertFails(updateDoc(doc(as("citizen"), REPORT), { resolutionNote: "I fixed it myself, thanks." }));
 });
+
+// ── proxy / on-behalf-of reporting (P3) ────────────────────────────────────
+
+const proxyReport = (uid, extra = {}) => ({
+  userId: uid, userPhone: "+639111111111", isAnonymous: false,
+  municipality: "Bambang", barangay: "Poblacion", category: "Flooding", status: "reported",
+  onBehalfOf: { name: "Lola Maria Santos", contact: "Purok 2, near the chapel", relationship: "" },
+  ...extra,
+});
+
+test("officials can file for a resident in their own area; provincial anywhere", async () => {
+  await env.withSecurityRulesDisabled((ctx) => setDoc(doc(ctx.firestore(), "users/brgyP"),
+    { role: "barangay_admin", municipality: "Bambang", barangay: "Poblacion" }));
+  await assertSucceeds(setDoc(doc(as("brgyP"), "users/brgyP/reports/p1"), proxyReport("brgyP")));
+  await assertFails(setDoc(doc(as("brgyP"), "users/brgyP/reports/p2"), proxyReport("brgyP", { barangay: "Salvacion" })));
+  await assertSucceeds(setDoc(doc(as("muni"), "users/muni/reports/p3"), proxyReport("muni", { barangay: "Salvacion" })));
+  await assertFails(setDoc(doc(as("muni"), "users/muni/reports/p4"), proxyReport("muni", { municipality: "Solano" })));
+  await assertSucceeds(setDoc(doc(as("prov"), "users/prov/reports/p5"), proxyReport("prov", { municipality: "Kayapa" })));
+});
+
+test("a certified resident can file for a family member; an uncertified one cannot", async () => {
+  await assertSucceeds(setDoc(doc(as("citizen"), "users/citizen/reports/f1"),
+    proxyReport("citizen", { onBehalfOf: { name: "Juan Dela Cruz", contact: "", relationship: "Father" } })));
+  await env.withSecurityRulesDisabled((ctx) => setDoc(doc(ctx.firestore(), "users/newbie"),
+    { role: "citizen", municipality: "Bambang", residencyStatus: "gps_verified" }));
+  await assertFails(setDoc(doc(as("newbie"), "users/newbie/reports/f2"), proxyReport("newbie")));
+  // Their own reports still work as before.
+  const own = proxyReport("newbie"); delete own.onBehalfOf;
+  await assertSucceeds(setDoc(doc(as("newbie"), "users/newbie/reports/f3"), own));
+});
+
+test("onBehalfOf must name the resident and carry nothing else", async () => {
+  await assertFails(setDoc(doc(as("muni"), "users/muni/reports/v1"), proxyReport("muni", { onBehalfOf: { name: "J" } })));
+  await assertFails(setDoc(doc(as("muni"), "users/muni/reports/v2"),
+    proxyReport("muni", { onBehalfOf: { name: "Juan", contact: "", relationship: "", phoneId: "x" } })));
+  await assertFails(setDoc(doc(as("muni"), "users/muni/reports/v3"), proxyReport("muni", { onBehalfOf: "Juan" })));
+});
+
+test("the filer cannot change who a report was filed for afterwards", async () => {
+  await assertSucceeds(setDoc(doc(as("citizen"), "users/citizen/reports/f9"), proxyReport("citizen")));
+  await assertFails(updateDoc(doc(as("citizen"), "users/citizen/reports/f9"),
+    { onBehalfOf: { name: "Someone Else", contact: "", relationship: "" } }));
+});

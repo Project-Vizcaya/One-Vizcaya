@@ -53,6 +53,19 @@ Shown when a resident taps an alert in their notifications inbox. Keep it short.
 
 > Both "urgent" translations were written by the developers and are uncertain.
 
+### A6. Proxy reporting (Report screen — filing for someone else)
+
+Shown when a resident or official files a report for a person without a phone.
+
+| Key | English (source) | Tagalog | Ilocano | OK | Correction |
+|---|---|---|---|:-:|---|
+| `proxyToggle` | I'm filing this for someone else | Iniuulat ko ito para sa ibang tao | Ireportko daytoy para iti sabali a tao | ☐ | |
+| `proxyHint` | For a resident without a phone. Ask their permission first. Updates on this report will come to you. | Para sa residenteng walang telepono. Humingi muna ng pahintulot sa kanila. Sa iyo darating ang mga update sa ulat na ito. | Para iti residente nga awan ti teleponona. Dumawat pay ti pammalubos kadakuada. Kenka umay dagiti update daytoy a report. | ☐ | |
+| `proxyName` | Their full name | Buong pangalan nila | Naan-anay a naganda | ☐ | |
+| `proxyContact` | How to reach them (optional) | Paano sila makakausap (opsyonal) | Kasano a makontak ida (saan a nasken) | ☐ | |
+| `proxyRelationship` | Your relationship to them (optional) | Kaugnayan mo sa kanila (opsyonal) | Relasionmo kadakuada (saan a nasken) | ☐ | |
+| `proxyNotAllowed` | Only officials and residents with certified residency can file for someone else. | Ang mga opisyal at residenteng may sertipikadong paninirahan lamang ang maaaring mag-ulat para sa iba. | Dagiti opisyal ken residente nga addaan sertipikado a panagnaed laeng ti mabalin nga agreport para iti sabali. | ☐ | |
+
 ---
 
 ## B. English only — needs translating

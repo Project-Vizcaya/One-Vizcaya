@@ -1917,6 +1917,24 @@ class _ReportDetailSheet extends StatelessWidget {
                       lguColor: lguColor,
                     ),
 
+                  // Proxy reporting (P3): the filer above is an official or a
+                  // family member; this is the resident it was filed for.
+                  if (report.onBehalfOf != null) ...[
+                    const SizedBox(height: 12),
+                    _DetailSection(
+                      icon: Icons.person_outline_rounded,
+                      label: 'Filed on behalf of',
+                      content: [
+                        report.onBehalfOf!['name'] ?? '',
+                        if ((report.onBehalfOf!['relationship'] ?? '').isNotEmpty)
+                          '(${report.onBehalfOf!['relationship']})',
+                        if ((report.onBehalfOf!['contact'] ?? '').isNotEmpty)
+                          report.onBehalfOf!['contact']!,
+                      ].join(' · '),
+                      lguColor: lguColor,
+                    ),
+                  ],
+
                   if (report.status == ReportStatus.solved &&
                       report.resolvedAt != null) ...[
                     const SizedBox(height: 12),

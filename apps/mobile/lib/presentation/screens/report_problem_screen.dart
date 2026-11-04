@@ -43,6 +43,11 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
   final _descriptionController =
       _LimitHighlightTextEditingController(limit: _descMax);
   final _locationController = TextEditingController();
+  // Proxy reporting (P3): filing for a resident without a smartphone.
+  bool _forSomeoneElse = false;
+  final _proxyName = TextEditingController();
+  final _proxyContact = TextEditingController();
+  final _proxyRelationship = TextEditingController();
   String? _selectedBarangay;
   bool _isOffline = false;
   bool _isGettingLocation = false;
@@ -252,7 +257,76 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
       'photoLongitude': _photoLongitude,
       'photoTimestamp': _photoTimestamp?.toIso8601String(),
       'reportedAt': DateTime.now().toIso8601String(),
+      if (_forSomeoneElse)
+        'onBehalfOf': {
+          'name': _proxyName.text.trim(),
+          'contact': _proxyContact.text.trim(),
+          'relationship': _proxyRelationship.text.trim(),
+        },
     };
+  }
+
+  // Officials and CERTIFIED residents may file for someone else; the rules
+  // enforce it, this only explains a refusal before the user fills it in.
+  Future<void> _toggleForSomeoneElse(bool on) async {
+    if (!on) {
+      setState(() => _forSomeoneElse = false);
+      return;
+    }
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+    try {
+      final p = (await FirebaseFirestore.instance.collection('users').doc(uid).get()).data() ?? {};
+      final role = p['role'] as String? ?? 'citizen';
+      final isAdmin = role != 'citizen' && role.isNotEmpty;
+      if (!isAdmin && p['residencyStatus'] != 'certified') {
+        ToastUtils.showError(AppStrings.get('proxyNotAllowed'));
+        return;
+      }
+    } catch (_) {
+      // Offline: let them fill it in; the rules decide on delivery.
+    }
+    if (mounted) setState(() => _forSomeoneElse = true);
+  }
+
+  Widget _proxySection() {
+    final muted = Theme.of(context).colorScheme.onSurfaceVariant;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 12),
+        SwitchListTile(
+          contentPadding: EdgeInsets.zero,
+          value: _forSomeoneElse,
+          onChanged: _isSubmitting ? null : _toggleForSomeoneElse,
+          title: Text(AppStrings.get('proxyToggle'),
+              style: const TextStyle(fontWeight: FontWeight.w600)),
+          subtitle: Text(AppStrings.get('proxyHint'),
+              style: TextStyle(fontSize: 12, color: muted)),
+        ),
+        if (_forSomeoneElse) ...[
+          TextFormField(
+            controller: _proxyName,
+            maxLength: 80,
+            textCapitalization: TextCapitalization.words,
+            decoration: InputDecoration(labelText: AppStrings.get('proxyName')),
+            validator: (v) => _forSomeoneElse && (v ?? '').trim().length < 2
+                ? AppStrings.get('proxyName')
+                : null,
+          ),
+          TextFormField(
+            controller: _proxyContact,
+            maxLength: 40,
+            decoration: InputDecoration(labelText: AppStrings.get('proxyContact')),
+          ),
+          TextFormField(
+            controller: _proxyRelationship,
+            maxLength: 40,
+            decoration: InputDecoration(labelText: AppStrings.get('proxyRelationship')),
+          ),
+        ],
+      ],
+    );
   }
 
   Future<void> _sendSmsReport(String municipality, String details) async {
@@ -433,6 +507,9 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
                     ),
                     const SizedBox(height: 16),
                   ],
+                  // Proxy reporting (P3)
+                  _proxySection(),
+                  const SizedBox(height: 8),
                   _SubmissionOptionsCard(
                     isOffline: _isOffline,
                     primaryColor: primaryLguColor,
@@ -736,6 +813,9 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
   void dispose() {
     _descriptionController.dispose();
     _locationController.dispose();
+    _proxyName.dispose();
+    _proxyContact.dispose();
+    _proxyRelationship.dispose();
     super.dispose();
   }
 

@@ -233,6 +233,10 @@ export function ReportDetail({ report, open, onClose }: ReportDetailProps) {
                 <InfoRow icon={<MapPin className="h-3.5 w-3.5" />}  label="Location"    value={report.location || "—"} />
                 <InfoRow icon={<Clock className="h-3.5 w-3.5" />}   label="Reported"    value={format(report.reportedAt, "MMM d, yyyy · h:mm a")} />
                 <InfoRow icon={<User className="h-3.5 w-3.5" />}    label="Reporter"    value={report.isAnonymous ? "Anonymous" : report.userId.slice(0, 10) + "…"} />
+                {report.onBehalfOf && (
+                  <InfoRow icon={<User className="h-3.5 w-3.5" />} label="Filed on behalf of"
+                    value={[report.onBehalfOf.name, report.onBehalfOf.relationship && `(${report.onBehalfOf.relationship})`, report.onBehalfOf.contact].filter(Boolean).join(" · ")} />
+                )}
                 <InfoRow icon={<AlertCircle className="h-3.5 w-3.5" />} label="Assigned To" value={assigned || "Unassigned"} />
               </div>
 

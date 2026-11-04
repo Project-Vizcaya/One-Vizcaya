@@ -191,6 +191,31 @@ service cloud.firestore {
               && d.get('resolutionBy', '') == request.auth.uid);
     }
 
+    // Proxy reporting (P3, PDRRMO §11): a report filed for a resident without
+    // a smartphone. It is filed under the FILER's own account (so status
+    // updates reach the filer, who relays them) with `onBehalfOf` naming the
+    // resident. Who may file for someone else:
+    //   - a Barangay admin, for their own barangay;
+    //   - a Municipal admin, for their own municipality;
+    //   - a Provincial / Super admin, anywhere;
+    //   - a resident whose residency is CERTIFIED, e.g. for a family member.
+    function validOnBehalf() {
+      let d = request.resource.data;
+      let p = d.get('onBehalfOf', null);
+      return p == null
+          || (p is map
+              && p.keys().hasOnly(['name', 'contact', 'relationship'])
+              && p.get('name', '') is string
+              && p.get('name', '').size() >= 2 && p.get('name', '').size() <= 80
+              && p.get('contact', '') is string && p.get('contact', '').size() <= 40
+              && p.get('relationship', '') is string && p.get('relationship', '').size() <= 40
+              && (isProvincialAdmin()
+                  || (municipalScoped(d) && actorMunicipality() != '')
+                  || (barangayScoped(d) && actorBarangay() != '')
+                  || get(/databases/$(database)/documents/users/$(request.auth.uid))
+                       .data.get('residencyStatus', '') == 'certified'));
+    }
+
     // ─── Super admin bypass ─────────────────────────────────────────────────
     // super_admin can read everything and write almost everything — EXCEPT the
     // collections only the server may write. Rules are OR-ed, so an
@@ -274,7 +299,8 @@ service cloud.firestore {
                       && request.resource.data.isAnonymous == false
                       && get(/databases/$(database)/documents/users/$(userId))
                            .data.get('residencyStatus', 'grandfathered')
-                           in ['gps_verified', 'certified', 'grandfathered'];
+                           in ['gps_verified', 'certified', 'grandfathered']
+                      && validOnBehalf();
         // Approval chain (Municipal → Provincial): an escalation (turning on
         // escalatedToProvince) may ONLY be approved by a Municipal admin of the
         // report's own municipality, and must stamp escalatedBy with their uid.
@@ -297,7 +323,7 @@ service cloud.firestore {
                          && validLifecycle()
                       || (isOwner(userId)
                           && !request.resource.data.diff(resource.data)
-                               .affectedKeys().hasAny(dispositionFields().concat(['referral', 'resolutionNote', 'resolutionBy'])));
+                               .affectedKeys().hasAny(dispositionFields().concat(['referral', 'resolutionNote', 'resolutionBy', 'onBehalfOf'])));
         // Deletion goes ONLY through the deleteReportWithReason callable,
         // which checks the caller, requires a reason and records who did it.
         // (A client delete could not be attributed.)

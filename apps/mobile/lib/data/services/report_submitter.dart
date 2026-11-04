@@ -140,6 +140,9 @@ class ReportSubmitter {
       photoSource: item['photoSource'] as String?,
       isAnonymous: false,
       barangay: item['barangay'] as String?,
+      onBehalfOf: item['onBehalfOf'] is Map
+          ? (item['onBehalfOf'] as Map).map((k, v) => MapEntry('$k', '${v ?? ''}'))
+          : null,
     );
 
     await FirebaseReportRepository()

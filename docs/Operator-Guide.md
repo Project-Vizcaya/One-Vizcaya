@@ -49,6 +49,12 @@ Open **Reports**, then click a report.
    unverifiable reports. A reason is required, and the resident sees the
    category. A closed report can be re-opened.
 
+**Filing for a resident without a phone.** On **Reports**, click **File for a
+resident**. Enter their name and how to reach them, and ask their permission
+first. The report is filed under your account, so status updates come to you
+to pass on. Barangay and municipal admins can file only in their own area. In
+the mobile app, use *Report a Problem → I'm filing this for someone else*.
+
 **Deleting** a report is rare, and only for data that must not be kept. It asks
 for a reason, and the audit log records who deleted it and why. Prefer *Close
 without action*.

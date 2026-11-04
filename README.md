@@ -392,7 +392,7 @@ does today rather than on intent. Each item is tracked for the pre-pilot work.
 **Positioning**
 - The "supplements rather than replaces 911 / hotlines / radio" notice is shown on the report screen but **not yet on the SOS screen**.
 - Its Tagalog and Ilocano wording, and several newer citizen messages, **await native-speaker review** — see `docs/translation-review.md`.
-- There is no **proxy / on-behalf-of reporting**, so a barangay official or family member cannot formally file for a resident who has no smartphone.
+- **Proxy reporting** exists: barangay and municipal officials (in their own area), provincial admins (anywhere) and residents with **certified** residency (for example for a family member) can file for a resident without a smartphone. The report is filed under the filer's account, so status updates go to the filer to pass on; the resident gets no notification of their own.
 
 **Measurement**
 - Acknowledgement, referral and resolution times are stamped server-side from this release on, so **reports filed before it have no response timings**.

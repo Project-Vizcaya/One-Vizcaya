@@ -63,6 +63,8 @@ function toReport(d: {
     statusBeforeArchive: data.statusBeforeArchive as string | undefined,
     resolutionNote:    data.resolutionNote as string | undefined,
     resolutionBy:      data.resolutionBy as string | undefined,
+    onBehalfOf:        data.onBehalfOf && typeof data.onBehalfOf === "object"
+      ? (data.onBehalfOf as Report["onBehalfOf"]) : undefined,
   };
 }
 
