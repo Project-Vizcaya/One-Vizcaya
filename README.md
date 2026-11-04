@@ -332,7 +332,7 @@ firebase deploy --only functions   # from the repo root
 | Web console (build + hosting) | `npm run build:web && firebase deploy --only hosting` |
 | Mobile | `cd apps/mobile && flutter build apk --release` (then distribute / Play) |
 
-Some administrative one-shots run as callable functions by a super admin (e.g. `seedResponders`, `migrateLegacyAdmins`). Full build/deploy/phone-auth steps — including the Google Play Internal Testing route that fixes real-number login — are in [`docs/Computer-Shop-Runbook.md`](docs/Computer-Shop-Runbook.md).
+Some administrative one-shots run as callable functions by a super admin (e.g. `seedResponders`, `migrateLegacyAdmins`). Full build/deploy/phone-auth steps — including the Google Play Internal Testing route that fixes real-number login — are in [`docs/Computer-Shop-Runbook.md`](docs/Computer-Shop-Runbook.md). Day-to-day use of the admin console (alerts and approvals, referrals, SLA targets, the health check) is in [`docs/Operator-Guide.md`](docs/Operator-Guide.md).
 
 ---
 
