@@ -214,5 +214,7 @@ cd apps/mobile && flutter test
   ([`tests/emulator/load/README.md`](../tests/emulator/load/README.md)). A staging
   load test is ready but has not been run: create a staging Firebase project,
   deploy to it, and follow [`tests/staging-load/README.md`](../tests/staging-load/README.md).
+- Several BFP and office numbers are still placeholders, shown as unverified and
+  not dialable. Confirm them using [`hotline-verification.md`](hotline-verification.md).
 - The Tagalog and Ilocano safety wording still awaits a native speaker's review
   ([`translation-review.md`](translation-review.md)).
