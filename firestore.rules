@@ -346,7 +346,16 @@ service cloud.firestore {
 
     // ─── FCM broadcast records ───────────────────────────────────────────────
     match /broadcasts/{broadcastId} {
-      allow read:   if isAdmin();
+      // Residents may re-read the alerts addressed to them (P2 inbox), using
+      // the same targeting as onNewBroadcast: province-wide (scope "all" /
+      // legacy "All Province"), or their profile town in `scope` (approved
+      // automated alerts, legacy) or in `municipality` (admin composer).
+      allow read:   if isAdmin()
+                    || (isAuth()
+                        && (resource.data.get('scope', '') in ['all', 'All Province']
+                            || (actorMunicipality() != ''
+                                && (resource.data.get('scope', '') == actorMunicipality()
+                                    || resource.data.get('municipality', '') == actorMunicipality()))));
       // Provincial+ may broadcast to any scope (incl. province-wide). A
       // Municipal admin may ONLY broadcast to their OWN municipality. Until now
       // this was enforced in the composer UI alone, so any admin could write

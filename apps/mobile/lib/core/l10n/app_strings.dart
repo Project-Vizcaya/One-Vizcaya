@@ -131,6 +131,8 @@ class AppStrings {
       'optional': 'optional',
       'noneOption': '— None —',
       'ok': 'OK',
+      'broadcastAlert': 'Alert',
+      'broadcastAlertUrgent': 'Urgent alert',
       // Report status screen
       'myReportsTitle': 'My Reports',
       'prepositionTo': 'to',
@@ -405,6 +407,8 @@ class AppStrings {
       'optional': 'opsyonal',
       'noneOption': '— Wala —',
       'ok': 'OK',
+      'broadcastAlert': 'Alerto',
+      'broadcastAlertUrgent': 'Apurahang alerto',
       // Report status screen
       'myReportsTitle': 'Aking mga Ulat',
       'prepositionTo': 'sa',
@@ -679,6 +683,8 @@ class AppStrings {
       'optional': 'opsyonal',
       'noneOption': '— Awan —',
       'ok': 'OK',
+      'broadcastAlert': 'Alerto',
+      'broadcastAlertUrgent': 'Apuraen nga alerto',
       // Report status screen
       'myReportsTitle': 'Dagiti Report Ko',
       'prepositionTo': 'iti',

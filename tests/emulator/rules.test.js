@@ -7,6 +7,7 @@
 // grant access that a later `allow write: if false` does not take away.
 
 const { test, before, after, beforeEach } = require("node:test");
+const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const {
@@ -300,4 +301,43 @@ test("system_health is server-only, even for super admins", async () => {
   await assertFails(setDoc(doc(as("super"), "system_health/escalateOverdueReports"), { lastSuccessAt: Timestamp.now() }));
   await assertFails(getDoc(doc(as("prov"), "system_health/escalateOverdueReports")));
   await assertFails(getDoc(doc(as("citizen"), "system_health/escalateOverdueReports")));
+});
+
+// ── citizen broadcast inbox (P2) ───────────────────────────────────────────
+
+test("residents can re-read the broadcasts addressed to them, with the app's queries", async () => {
+  const { orderBy, limit } = require("firebase/firestore");
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    const db = ctx.firestore();
+    const t = Timestamp.now();
+    await setDoc(doc(db, "broadcasts/prov"), { title: "p", scope: "all", timestamp: t });
+    await setDoc(doc(db, "broadcasts/legacy"), { title: "l", scope: "All Province", timestamp: t });
+    await setDoc(doc(db, "broadcasts/draft"), { title: "d", scope: "Bambang", timestamp: t });
+    await setDoc(doc(db, "broadcasts/town"), { title: "t", scope: "municipality", municipality: "Bambang", timestamp: t });
+    await setDoc(doc(db, "broadcasts/other"), { title: "o", scope: "municipality", municipality: "Solano", timestamp: t });
+    await setDoc(doc(db, "users/noTown"), { role: "citizen" });
+  });
+  const c = as("citizen"); // profile town: Bambang
+  const byScope = (fs, towns) => getDocs(query(collection(fs, "broadcasts"),
+    where("scope", "in", ["all", "All Province", ...towns]), orderBy("timestamp", "desc"), limit(20)));
+  const byMuni = (fs, town) => getDocs(query(collection(fs, "broadcasts"),
+    where("municipality", "==", town), orderBy("timestamp", "desc"), limit(20)));
+
+  const a = await assertSucceeds(byScope(c, ["Bambang"]));
+  assert.deepEqual(a.docs.map((d) => d.id).sort(), ["draft", "legacy", "prov"]);
+  const b = await assertSucceeds(byMuni(c, "Bambang"));
+  assert.deepEqual(b.docs.map((d) => d.id), ["town"]);
+
+  // Another town's alerts stay closed, by query or by direct read.
+  await assertFails(byMuni(c, "Solano"));
+  await assertFails(byScope(c, ["Solano"]));
+  await assertFails(getDoc(doc(c, "broadcasts/other")));
+  await assertFails(getDocs(collection(c, "broadcasts"))); // unscoped
+  await assertSucceeds(getDoc(doc(c, "broadcasts/town")));
+
+  // No town on the profile: province-wide only.
+  await assertSucceeds(byScope(as("noTown"), []));
+  await assertFails(byMuni(as("noTown"), ""));
+  // Signed-out: nothing.
+  await assertFails(getDoc(doc(env.unauthenticatedContext().firestore(), "broadcasts/prov")));
 });

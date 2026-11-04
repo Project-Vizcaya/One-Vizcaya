@@ -41,6 +41,18 @@ Submit button. Source: `apps/mobile/lib/core/l10n/app_strings.dart`.
 
 > The Ilocano was the least certain of all. Please check it closely.
 
+### A5. `broadcastAlert` / `broadcastAlertUrgent` (inbox — label above a re-opened alert)
+
+Shown when a resident taps an alert in their notifications inbox. Keep it short.
+
+| Language | Current text | OK | Correction |
+|---|---|:-:|---|
+| English (source) | Alert · Urgent alert | — | — |
+| Tagalog | Alerto · Apurahang alerto | ☐ | |
+| Ilocano | Alerto · Apuraen nga alerto | ☐ | |
+
+> Both "urgent" translations were written by the developers and are uncertain.
+
 ---
 
 ## B. English only — needs translating

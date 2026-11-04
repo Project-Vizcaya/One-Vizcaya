@@ -6,9 +6,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:in_app_review/in_app_review.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/utils/toast_utils.dart';
-import '../../presentation/state/municipality_state.dart';
 import '../../presentation/widgets/broadcast_presenter.dart';
 import 'report_submitter.dart';
+import 'citizen_broadcasts.dart';
 
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -30,7 +30,7 @@ class NotificationService {
 
   // FIX 3: Store subscriptions so they can be cancelled on logout
   StreamSubscription? _statusSub;
-  StreamSubscription? _broadcastSub;
+  final List<StreamSubscription> _broadcastSubs = [];
 
   Future<void> initialize() async {
     FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
@@ -56,15 +56,17 @@ class NotificationService {
         // FIX 2: Only register listeners if not already active
         if (!_listenersActive) {
           _listenForStatusNotifications(user.uid);
-          _listenForBroadcasts(user.uid, oneVizcayaState.selectedMunicipality.value);
+          _listenForBroadcasts(user.uid);
           _listenersActive = true;
         }
       } else {
         // FIX 3: Cancel subscriptions and reset flag on logout
         _statusSub?.cancel();
         _statusSub = null;
-        _broadcastSub?.cancel();
-        _broadcastSub = null;
+        for (final sub in _broadcastSubs) {
+          sub.cancel();
+        }
+        _broadcastSubs.clear();
         _listenersActive = false;
       }
     });
@@ -116,7 +118,7 @@ class NotificationService {
     final user = FirebaseAuth.instance.currentUser;
     if (user != null && !_listenersActive) {
       _listenForStatusNotifications(user.uid);
-      _listenForBroadcasts(user.uid, oneVizcayaState.selectedMunicipality.value);
+      _listenForBroadcasts(user.uid);
       _listenersActive = true;
     }
 
@@ -220,71 +222,48 @@ class NotificationService {
     });
   }
 
-  void _listenForBroadcasts(String uid, String municipality) {
-    final startTime = Timestamp.now();
-    // FIX 3: Store subscription for later cancellation
-    _broadcastSub = _firestore
-        .collection('broadcasts')
-        .where('timestamp', isGreaterThan: startTime)
-        .snapshots()
-        .listen((snap) async {
-      for (final doc in snap.docChanges.where((c) => c.type == DocumentChangeType.added)) {
-        final rawData = doc.doc.data();
-        if (rawData == null) continue;
-        final data = rawData;
-        // Resolve the target municipality the same way the onNewBroadcast Cloud
-        // Function does, so in-app presentation matches who actually gets the push:
-        //   • admin composer: scope="all" (everyone) or scope="municipality" + municipality field
-        //   • rainfallWatch:  scope=<municipality name>
-        //   • legacy:         scope="All Province"
-        final scope = data['scope'] as String?;
-        final muniField = data['municipality'] as String?;
-        String? targetMuni;
-        if (muniField != null && muniField.isNotEmpty) {
-          targetMuni = muniField;
-        } else if (scope != null &&
-            !const ['all', 'All Province', 'municipality'].contains(scope)) {
-          targetMuni = scope; // scope is itself a municipality name
-        }
-        // null target = province-wide (everyone); otherwise must match this user.
-        if (targetMuni != null && targetMuni != municipality) continue;
+  // Presents a new broadcast in-app while the app is open. Uses the same scoped
+  // queries as the inbox (citizen_broadcasts.dart): firestore.rules refuse an
+  // unscoped read of `broadcasts` to residents, so the old unscoped listener
+  // only ever worked for admins. Broadcasts are no longer copied into
+  // users/{uid}/notifications: the inbox reads them directly.
+  Future<void> _listenForBroadcasts(String uid) async {
+    final startTime = DateTime.now();
+    final town = await profileMunicipality(_firestore, uid);
+    // Signed out (or switched account) while the profile was loading.
+    if (FirebaseAuth.instance.currentUser?.uid != uid) return;
+    final presented = <String>{};
+    for (final q in citizenBroadcastQueries(_firestore, town, limit: 5)) {
+      _broadcastSubs.add(q.snapshots().listen((snap) {
+        for (final c in snap.docChanges.where((c) => c.type == DocumentChangeType.added)) {
+          final data = c.doc.data();
+          if (data == null) continue;
+          final ts = (data['timestamp'] as Timestamp?)?.toDate();
+          // The first snapshot lists recent alerts; only present new ones.
+          if (ts == null || !ts.isAfter(startTime)) continue;
+          if (!presented.add(c.doc.id)) continue;
 
-        final title = data['title'] as String? ?? 'Announcement';
-        final body = data['body'] as String? ?? '';
-        final urgent = data['urgent'] as bool? ?? false;
-        final ts = (data['timestamp'] as Timestamp?)?.toDate();
-
-        final navKey = navigatorKey;
-        if (navKey != null) {
-          BroadcastPresenter.present(
-            navigatorKey: navKey,
-            urgent: urgent,
-            title: title,
-            body: body,
-            timestamp: ts,
-          );
-        } else {
-          // Fallback if the navigator isn't ready yet (very early startup).
-          ToastUtils.showInfo('📢 $title: $body');
+          final title = data['title'] as String? ?? 'Announcement';
+          final body = data['body'] as String? ?? '';
+          final urgent = data['urgent'] as bool? ?? false;
+          final navKey = navigatorKey;
+          if (navKey != null) {
+            BroadcastPresenter.present(
+              navigatorKey: navKey,
+              urgent: urgent,
+              title: title,
+              body: body,
+              timestamp: ts,
+            );
+          } else {
+            // Fallback if the navigator isn't ready yet (very early startup).
+            ToastUtils.showInfo('📢 $title: $body');
+          }
         }
-        try {
-          await _firestore.collection('users').doc(uid).collection('notifications').add({
-            'type': 'broadcast',
-            'title': title,
-            'body': body,
-            'status': urgent ? 'urgent' : 'info',
-            'timestamp': FieldValue.serverTimestamp(),
-            'read': false,
-          });
-        } catch (e) {
-          // FIX 1: Log errors instead of swallowing them silently
-          debugPrint('NotificationService._listenForBroadcasts: failed to save notification: $e');
-        }
-      }
-    }, onError: (e) {
-      // FIX 1: Log errors instead of swallowing them silently
-      debugPrint('NotificationService._listenForBroadcasts error: $e');
-    });
+      }, onError: (e) {
+        debugPrint('NotificationService._listenForBroadcasts error: $e');
+      }));
+    }
   }
 
   // Maps a report/notification status to a label, icon, and accent colour for
