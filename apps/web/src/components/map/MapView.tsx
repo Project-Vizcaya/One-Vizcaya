@@ -345,7 +345,7 @@ export function MapView({ reports, responders }: MapViewProps) {
                 onClick={() => { setSelectedResponder(r); setSelectedReport(null); }}
               >
                 <div
-                  className="bg-blue-700 text-white text-[10px] px-1.5 py-0.5 rounded shadow-md font-semibold cursor-pointer hover:bg-blue-800 transition-colors whitespace-nowrap border border-white/20"
+                  className="bg-blue-700 text-white text-xs px-1.5 py-0.5 rounded shadow-md font-semibold cursor-pointer hover:bg-blue-800 transition-colors whitespace-nowrap border border-white/20"
                   aria-label={`Responder: ${r.name}`}
                 >
                   {r.name.split(" ")[0]}
@@ -364,8 +364,8 @@ export function MapView({ reports, responders }: MapViewProps) {
                     <p className="font-bold">{selectedReport.category}</p>
                     <p className="text-muted-foreground text-xs">{selectedReport.municipality}</p>
                     <div className="flex gap-1 flex-wrap">
-                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 font-medium uppercase">{selectedReport.status.replace(/_/g, " ")}</span>
-                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-red-100 text-red-700 font-medium uppercase">{selectedReport.priority}</span>
+                      <span className="text-xs px-1.5 py-0.5 rounded bg-gray-100 font-medium uppercase">{selectedReport.status.replace(/_/g, " ")}</span>
+                      <span className="text-xs px-1.5 py-0.5 rounded bg-red-100 text-red-700 font-medium uppercase">{selectedReport.priority}</span>
                     </div>
                     <p className="text-xs text-muted-foreground line-clamp-2">{selectedReport.description}</p>
                   </div>

@@ -41,8 +41,8 @@ function StatCard({ id, label, value, icon, sub, onClick }: StatCardProps) {
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
             <p className="text-2xl sm:text-3xl font-bold tabular-nums leading-tight">{value}</p>
-            <p className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-foreground/80 mt-1 leading-tight">{label}</p>
-            <p className="text-[10px] sm:text-[11px] text-muted-foreground mt-0.5 leading-tight hidden sm:block">{sub}</p>
+            <p className="text-xs font-bold uppercase tracking-wider text-foreground/80 mt-1 leading-tight">{label}</p>
+            <p className="text-xs text-muted-foreground mt-0.5 leading-tight hidden sm:block">{sub}</p>
           </div>
           <div className={cn("p-2 rounded-md shrink-0", c.bg)}>
             <span className={c.icon}>{icon}</span>

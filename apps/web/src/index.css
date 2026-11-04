@@ -41,13 +41,40 @@
   }
 
   html {
-    font-size: 15px;
+    /* 16px base: Tailwind sizes are rem-based, so at 15px text-xs rendered at
+       11.25px — below the 12px readability floor for a public-service tool. */
+    font-size: 16px;
     -webkit-text-size-adjust: 100%;
   }
 
   body {
     @apply bg-background text-foreground antialiased;
-    font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-family: 'Atkinson Hyperlegible Next', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+
+  /* Visible keyboard focus for elements the component library does not style
+     (plain links, role=button). shadcn controls already ship focus-visible. */
+  a:focus-visible,
+  [role="button"]:focus-visible,
+  summary:focus-visible {
+    outline: 3px solid hsl(var(--ring));
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  /* Respect the OS "reduce motion" setting: pulses, pings and transitions are
+     near-instant; spinners keep turning (they signal loading) but slower. */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+    .animate-spin {
+      animation-duration: 1.5s !important;
+      animation-iteration-count: infinite !important;
+    }
   }
 
   /* Government-style headings */

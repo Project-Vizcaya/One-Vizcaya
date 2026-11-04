@@ -53,11 +53,11 @@ export function RoleRequestsCard() {
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <p className="text-sm font-medium truncate">{r.targetName}</p>
-              <Badge variant="outline" className="text-[10px]">{ROLE_LABEL[r.requestedRole] ?? r.requestedRole}</Badge>
-              {r.municipality && <Badge variant="outline" className="text-[10px]">{r.municipality}</Badge>}
-              {r.barangay && <Badge variant="outline" className="text-[10px]">Brgy. {r.barangay}</Badge>}
+              <Badge variant="outline" className="text-xs">{ROLE_LABEL[r.requestedRole] ?? r.requestedRole}</Badge>
+              {r.municipality && <Badge variant="outline" className="text-xs">{r.municipality}</Badge>}
+              {r.barangay && <Badge variant="outline" className="text-xs">Brgy. {r.barangay}</Badge>}
             </div>
-            <p className="text-[11px] text-muted-foreground mt-1 truncate">
+            <p className="text-xs text-muted-foreground mt-1 truncate">
               {r.targetPhone ? `${r.targetPhone} · ` : ""}nominated by {r.nominatedByName || "an admin"} · {timeAgo(r.createdAt)}
             </p>
           </div>

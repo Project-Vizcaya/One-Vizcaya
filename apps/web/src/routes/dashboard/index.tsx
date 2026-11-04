@@ -49,7 +49,7 @@ function DashboardOverview() {
         </div>
         <div className="text-right shrink-0">
           <p className="text-xs font-semibold text-foreground">{user?.name}</p>
-          <p className="text-[10px] text-muted-foreground">{new Date().toLocaleDateString("en-PH", { weekday: "short", year: "numeric", month: "short", day: "numeric" })}</p>
+          <p className="text-xs text-muted-foreground">{new Date().toLocaleDateString("en-PH", { weekday: "short", year: "numeric", month: "short", day: "numeric" })}</p>
         </div>
       </div>
 
@@ -91,7 +91,7 @@ function DashboardOverview() {
                   <CardTitle className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Recent Reports</CardTitle>
                 </div>
                 {recent.length > 0 && (
-                  <span className="text-[10px] text-muted-foreground">{recent.length} shown</span>
+                  <span className="text-xs text-muted-foreground">{recent.length} shown</span>
                 )}
               </div>
             </CardHeader>
@@ -112,9 +112,9 @@ function DashboardOverview() {
                       <div className={`h-2 w-2 rounded-full shrink-0 ${PRIORITY_DOT[r.priority] ?? "bg-gray-400"}`} aria-hidden />
                       <div className="min-w-0 flex-1">
                         <p className="text-xs font-semibold truncate">{r.category}</p>
-                        <p className="text-[10px] text-muted-foreground truncate">{r.municipality} · {timeAgo(r.reportedAt)}</p>
+                        <p className="text-xs text-muted-foreground truncate">{r.municipality} · {timeAgo(r.reportedAt)}</p>
                       </div>
-                      <Badge variant={STATUS_VARIANT[r.status]} className="text-[9px] uppercase tracking-wide shrink-0">
+                      <Badge variant={STATUS_VARIANT[r.status]} className="text-xs uppercase tracking-wide shrink-0">
                         {r.status.replace("_", " ")}
                       </Badge>
                     </div>

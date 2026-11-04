@@ -76,7 +76,7 @@ function AuditPage() {
           )}
           <div className="text-right hidden sm:block">
             <p className="text-xs font-semibold text-foreground">{user?.name}</p>
-            <p className="text-[10px] text-muted-foreground">{new Date().toLocaleDateString("en-PH", { weekday: "short", year: "numeric", month: "short", day: "numeric" })}</p>
+            <p className="text-xs text-muted-foreground">{new Date().toLocaleDateString("en-PH", { weekday: "short", year: "numeric", month: "short", day: "numeric" })}</p>
           </div>
         </div>
       </div>
@@ -101,7 +101,7 @@ function AuditPage() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-semibold capitalize">{log.action.replace(/_/g, " ")}</span>
-                        <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">{timeAgo(log.timestamp)}</span>
+                        <span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded">{timeAgo(log.timestamp)}</span>
                       </div>
                       {Object.keys(log.details).length > 0 && (
                         <p className="text-xs text-muted-foreground mt-0.5 truncate">

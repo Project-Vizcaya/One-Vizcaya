@@ -214,7 +214,7 @@ function WeatherPage() {
       <PagasaPanel place={place} />
 
       {/* Everything below is third-party data, labelled as such. */}
-      <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground pt-1">
+      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground pt-1">
         Supplementary · Windy and Open-Meteo (third-party, not PAGASA)
       </p>
 
@@ -246,7 +246,7 @@ function WeatherPage() {
               frameBorder="0"
             />
           </div>
-          <p className="mt-2 text-[11px] text-muted-foreground">
+          <p className="mt-2 text-xs text-muted-foreground">
             Interactive forecast map from Windy.com. Use the buttons to switch overlays; drag and zoom the map freely.
           </p>
         </CardContent>
@@ -285,11 +285,11 @@ function WeatherPage() {
               <div className="flex gap-2 min-w-max pb-1">
                 {forecast.series.map((s) => (
                   <div key={s.ts} className="w-24 shrink-0 rounded-lg border p-2.5 text-center">
-                    <p className="text-[11px] font-medium text-muted-foreground">
+                    <p className="text-xs font-medium text-muted-foreground">
                       {new Date(s.ts).toLocaleTimeString("en-PH", { hour: "numeric", hour12: true })}
                     </p>
                     <p className="mt-1 text-lg font-bold">{s.tempC ?? "–"}°</p>
-                    <div className="mt-1.5 space-y-0.5 text-[11px]">
+                    <div className="mt-1.5 space-y-0.5 text-xs">
                       <p className={`flex items-center justify-center gap-1 ${s.gustKmh >= 60 ? "text-red-600 font-semibold" : "text-muted-foreground"}`}>
                         <Wind className="h-3 w-3" /> {s.windKmh}
                         <span className="opacity-60">/{s.gustKmh}</span>
@@ -301,7 +301,7 @@ function WeatherPage() {
                   </div>
                 ))}
               </div>
-              <p className="mt-2 text-[11px] text-muted-foreground">
+              <p className="mt-2 text-xs text-muted-foreground">
                 Wind (sustained/gust) in km/h · rain in mm per 3h. Red = gusts ≥ 60 km/h; blue = heavy rain. Source: Windy Point Forecast.
               </p>
             </div>
@@ -329,17 +329,17 @@ function WeatherPage() {
                   const lvl = uvLevel(s.uv);
                   return (
                     <div key={s.key} className="w-24 shrink-0 rounded-lg border p-2.5 text-center">
-                      <p className="text-[11px] font-medium text-muted-foreground">{s.dateLabel}</p>
-                      <p className="text-[11px] text-muted-foreground">{s.timeLabel}</p>
+                      <p className="text-xs font-medium text-muted-foreground">{s.dateLabel}</p>
+                      <p className="text-xs text-muted-foreground">{s.timeLabel}</p>
                       <p className="mt-1 text-2xl font-bold" style={{ color: lvl.color }}>{s.uv}</p>
-                      <p className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: lvl.color }}>
+                      <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: lvl.color }}>
                         {lvl.label}
                       </p>
                     </div>
                   );
                 })}
               </div>
-              <p className="mt-2 text-[11px] text-muted-foreground">
+              <p className="mt-2 text-xs text-muted-foreground">
                 UV Index at 4-hour intervals (Manila time). Low 0–2 · Moderate 3–5 · High 6–7 · Very High 8–10 · Extreme 11+. Source: Open-Meteo.
               </p>
             </div>

@@ -160,7 +160,7 @@ export function SatelliteView({ reports, responders }: Props) {
                   setSelectedReport(null);
                 }}
               >
-                <div className="bg-blue-700 text-white text-[10px] px-1.5 py-0.5 rounded shadow-md font-semibold cursor-pointer hover:bg-blue-800 transition-colors whitespace-nowrap border border-white/20">
+                <div className="bg-blue-700 text-white text-xs px-1.5 py-0.5 rounded shadow-md font-semibold cursor-pointer hover:bg-blue-800 transition-colors whitespace-nowrap border border-white/20">
                   {resp.name.split(" ")[0]}
                 </div>
               </AdvancedMarker>
@@ -177,15 +177,15 @@ export function SatelliteView({ reports, responders }: Props) {
                       {selectedReport.barangay ? ` · ${selectedReport.barangay}` : ""}
                     </p>
                     <div className="flex gap-1 flex-wrap">
-                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 font-medium uppercase">
+                      <span className="text-xs px-1.5 py-0.5 rounded bg-gray-100 font-medium uppercase">
                         {selectedReport.status.replace(/_/g, " ")}
                       </span>
-                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-red-100 text-red-700 font-medium uppercase">
+                      <span className="text-xs px-1.5 py-0.5 rounded bg-red-100 text-red-700 font-medium uppercase">
                         {selectedReport.priority}
                       </span>
                     </div>
                     {!hit.exact && (
-                      <p className="text-[11px] text-amber-700">
+                      <p className="text-xs text-amber-700">
                         Approximate location — no GPS on this report.
                       </p>
                     )}

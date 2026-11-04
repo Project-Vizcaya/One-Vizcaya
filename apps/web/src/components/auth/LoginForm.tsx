@@ -84,7 +84,7 @@ export function LoginForm() {
           />
           <div>
             <p className="text-white text-xs font-semibold leading-tight">Republic of the Philippines</p>
-            <p className="text-white/70 text-[10px] leading-tight">Provincial Government of Nueva Vizcaya</p>
+            <p className="text-white/70 text-xs leading-tight">Provincial Government of Nueva Vizcaya</p>
           </div>
         </div>
       </div>
@@ -150,7 +150,7 @@ export function LoginForm() {
                         aria-invalid={!!error}
                       />
                     </div>
-                    <p className="text-[11px] text-muted-foreground">Format: 9XXXXXXXXX (10 digits)</p>
+                    <p className="text-xs text-muted-foreground">Format: 9XXXXXXXXX (10 digits)</p>
                   </div>
 
                   {error && (
@@ -220,7 +220,7 @@ export function LoginForm() {
             </div>
           </div>
 
-          <p className="text-center text-green-400/70 text-[11px] mt-5">
+          <p className="text-center text-green-400/70 text-xs mt-5">
             Authorized personnel only · One Vizcaya Admin v2.0
           </p>
         </div>

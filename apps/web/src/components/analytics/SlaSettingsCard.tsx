@@ -58,8 +58,8 @@ export function SlaSettingsCard() {
           <div className="h-1 w-4 rounded bg-[hsl(var(--gov-green-800))]" />
           <CardTitle className="text-sm font-bold uppercase tracking-widest text-muted-foreground">SLA targets</CardTitle>
           {sla.provisional
-            ? <Badge variant="outline" className="text-[10px] border-amber-400 text-amber-700">Provisional — pending PDRRMO approval</Badge>
-            : <Badge variant="secondary" className="text-[10px]">Confirmed</Badge>}
+            ? <Badge variant="outline" className="text-xs border-amber-400 text-amber-700">Provisional — pending PDRRMO approval</Badge>
+            : <Badge variant="secondary" className="text-xs">Confirmed</Badge>}
         </div>
       </CardHeader>
       <CardContent className="pt-4 space-y-3">
@@ -95,7 +95,7 @@ export function SlaSettingsCard() {
             {!valid && <span className="text-xs text-destructive">Each target must be a positive number of hours.</span>}
           </div>
         ) : (
-          <p className="text-[11px] text-muted-foreground">Only provincial administrators can change SLA targets.</p>
+          <p className="text-xs text-muted-foreground">Only provincial administrators can change SLA targets.</p>
         )}
       </CardContent>
     </Card>

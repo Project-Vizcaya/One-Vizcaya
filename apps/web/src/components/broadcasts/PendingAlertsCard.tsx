@@ -115,14 +115,14 @@ export function PendingAlertsCard() {
           return (
             <div key={d.id} className={`rounded-lg border p-3 space-y-2 ${d.urgent ? "border-red-300" : ""} ${expired ? "opacity-60" : ""}`}>
               <div className="flex flex-wrap items-center gap-1.5">
-                {d.urgent && <Badge variant="destructive" className="text-[10px]">URGENT</Badge>}
-                <Badge variant="outline" className="text-[10px]">{d.municipality}</Badge>
-                {d.source && <Badge variant="secondary" className="text-[10px]">{d.source}</Badge>}
-                {expired && <Badge variant="outline" className="text-[10px]">Expired — can no longer be sent</Badge>}
+                {d.urgent && <Badge variant="destructive" className="text-xs">URGENT</Badge>}
+                <Badge variant="outline" className="text-xs">{d.municipality}</Badge>
+                {d.source && <Badge variant="secondary" className="text-xs">{d.source}</Badge>}
+                {expired && <Badge variant="outline" className="text-xs">Expired — can no longer be sent</Badge>}
               </div>
               <p className="text-sm font-semibold">{d.title}</p>
               <p className="text-xs">{d.body}</p>
-              <p className="text-[11px] text-muted-foreground">
+              <p className="text-xs text-muted-foreground">
                 {provider ? `Based on ${provider} forecast data (third-party, not PAGASA). ` : ""}
                 {d.createdAt ? `Drafted ${d.createdAt.toLocaleString("en-PH", { timeZone: "Asia/Manila" })}` : ""}
                 {d.expiresAt && !expired ? ` · expires ${d.expiresAt.toLocaleString("en-PH", { timeZone: "Asia/Manila" })}` : ""}

@@ -183,7 +183,7 @@ export function UsersCard({ users, loading }: UsersCardProps) {
       </div>
 
       {!isSuper && (
-        <p className="text-[11px] text-muted-foreground flex items-center gap-1.5">
+        <p className="text-xs text-muted-foreground flex items-center gap-1.5">
           <UserPlus className="h-3.5 w-3.5" />
           You can nominate users for a role — a super admin approves each change.
         </p>
@@ -211,7 +211,7 @@ export function UsersCard({ users, loading }: UsersCardProps) {
                     {user.municipality ? ` · ${user.municipality}` : ""}
                   </p>
                 </div>
-                <Badge variant="outline" className="text-[10px] shrink-0 hidden md:inline-flex">
+                <Badge variant="outline" className="text-xs shrink-0 hidden md:inline-flex">
                   {ROLE_LABEL[user.role] ?? user.role}
                 </Badge>
               </div>
