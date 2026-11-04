@@ -1081,19 +1081,22 @@ class _HomeScreenState extends State<HomeScreen> {
                       children: [
                         _BottomNavItem(
                           icon: Icons.home_rounded,
+                          label: AppStrings.get('home'),
                           isSelected: _selectedNavIndex == 0,
                           onTap: () => setState(() => _selectedNavIndex = 0),
                           selectedColor: appBarColor,
                         ),
                         _BottomNavItem(
                           icon: Icons.camera_alt_rounded,
+                          label: AppStrings.get('navReport'),
                           isSelected: false,
                           onTap: () =>
                               Navigator.of(context).pushNamed('/report'),
                           selectedColor: appBarColor,
                         ),
                         _BottomNavItem(
-                          icon: Icons.grid_view_rounded,
+                          icon: Icons.person_rounded,
+                          label: AppStrings.get('profile'),
                           isSelected: _selectedNavIndex == 2,
                           onTap: () => setState(() => _selectedNavIndex = 2),
                           selectedColor: appBarColor,
@@ -1295,9 +1298,16 @@ class _ServiceGridItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: ConstrainedBox(
+    // Ripple feedback and button semantics (the visible label is read as
+    // its name); previously a bare GestureDetector with neither.
+    return Semantics(
+      button: true,
+      child: Material(
+        type: MaterialType.transparency,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(16),
+          child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 92),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -1340,37 +1350,69 @@ class _ServiceGridItem extends StatelessWidget {
           ],
         ),
       ),
+        ),
+      ),
     );
   }
 }
 
 class _BottomNavItem extends StatelessWidget {
   final IconData icon;
+  final String label;
   final bool isSelected;
   final VoidCallback onTap;
   final Color selectedColor;
 
   const _BottomNavItem({
     required this.icon,
+    required this.label,
     required this.isSelected,
     required this.onTap,
     required this.selectedColor,
   });
 
+  // Labelled navigation: an icon-only bar asks residents to guess what a
+  // glyph means, which is hardest for exactly the people One Vizcaya serves.
+  // Each item shows its name, is announced as a (selected) button, gives
+  // ripple feedback, and keeps at least a 48 dp tap target.
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(
-          color: isSelected ? selectedColor : Colors.transparent,
+    final fg = isSelected ? Colors.white : Colors.grey.shade400;
+    return Semantics(
+      button: true,
+      selected: isSelected,
+      label: label,
+      excludeSemantics: true,
+      child: Material(
+        type: MaterialType.transparency,
+        child: InkWell(
+          onTap: onTap,
           borderRadius: BorderRadius.circular(14),
-        ),
-        child: Icon(
-          icon,
-          color: isSelected ? Colors.white : Colors.grey.shade500,
-          size: 24,
+          child: Container(
+            constraints: const BoxConstraints(minWidth: 64, minHeight: 48),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: isSelected ? selectedColor : Colors.transparent,
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(icon, color: fg, size: 22),
+                const SizedBox(height: 2),
+                Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: fg,
+                    fontSize: 12,
+                    fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );

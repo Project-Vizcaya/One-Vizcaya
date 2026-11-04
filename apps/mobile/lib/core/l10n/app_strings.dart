@@ -4,6 +4,7 @@ class AppStrings {
     'English': {
       'appTitle': 'One Vizcaya',
       'home': 'Home',
+      'navReport': 'Report',
       // ── Data Privacy (RA 10173) ──
       'downloadMyData': 'Download My Data',
       'downloadMyDataSubtitle': 'Get a copy of the personal data we hold about you',
@@ -278,6 +279,7 @@ class AppStrings {
     'Tagalog': {
       'appTitle': 'One Vizcaya',
       'home': 'Tahanan',
+      'navReport': 'Mag-ulat',
       // ── Pagkapribado ng Datos (RA 10173) ──
       'downloadMyData': 'I-download ang Aking Datos',
       'downloadMyDataSubtitle': 'Kumuha ng kopya ng personal na datos na hawak namin tungkol sa iyo',
@@ -552,6 +554,7 @@ class AppStrings {
     'Ilocano': {
       'appTitle': 'One Vizcaya',
       'home': 'Abong',
+      'navReport': 'Ireport',
       // ── Kinasipnget ti Datos (RA 10173) ──
       'downloadMyData': 'I-download ti Datosko',
       'downloadMyDataSubtitle': 'Mangala iti kopia ti personal a datos nga iggem mi maipapan kenka',

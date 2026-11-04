@@ -41,6 +41,17 @@ Submit button. Source: `apps/mobile/lib/core/l10n/app_strings.dart`.
 
 > The Ilocano was the least certain of all. Please check it closely.
 
+### A3. `navReport` (bottom navigation tab label — keep it to one short word)
+
+Added on the experimental UI branch. Shown under the camera icon in the
+home screen's bottom bar; it opens Report a Problem.
+
+| Language | Current text | OK | Correction |
+|---|---|:-:|---|
+| English (source) | Report | — | — |
+| Tagalog | Mag-ulat | ☐ | |
+| Ilocano | Ireport | ☐ | |
+
 ---
 
 ## B. English only — needs translating
