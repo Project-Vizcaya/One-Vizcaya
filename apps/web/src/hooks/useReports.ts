@@ -61,6 +61,8 @@ function toReport(d: {
     duplicateOf:       data.duplicateOf as string | undefined,
     referral:          toReferral(data.referral),
     statusBeforeArchive: data.statusBeforeArchive as string | undefined,
+    resolutionNote:    data.resolutionNote as string | undefined,
+    resolutionBy:      data.resolutionBy as string | undefined,
   };
 }
 
@@ -155,9 +157,13 @@ export async function reopenReport(userId: string, reportId: string) {
   });
 }
 
-export async function updateReportStatus(userId: string, reportId: string, status: ReportStatus) {
+// Lifecycle (P3): firestore.rules allow 'solved' only from 'ongoing', with a
+// resolution note (10-1000 chars) attributed to the acting admin.
+export async function updateReportStatus(userId: string, reportId: string, status: ReportStatus, resolutionNote?: string) {
+  const uid = auth.currentUser?.uid;
   await updateDoc(doc(db, "users", userId, "reports", reportId), {
     status,
+    ...(status === "solved" ? { resolutionNote: (resolutionNote ?? "").trim(), resolutionBy: uid ?? null } : {}),
     lastModified: Timestamp.now(),
   });
 }

@@ -502,8 +502,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
         isProvincialView: _isProvincialView,
         canDelete: _currentUserRole == UserRole.provincialAdmin ||
             _currentUserRole == UserRole.superAdmin,
-        onStatusUpdate: (reportId, userId, newStatus) =>
-            _reportRepository.updateReportStatus(userId, reportId, newStatus),
+        onStatusUpdate: (reportId, userId, newStatus, {resolutionNote}) =>
+            _reportRepository.updateReportStatus(userId, reportId, newStatus,
+                resolutionNote: resolutionNote),
         onEscalate: (reportId, userId) =>
             _reportRepository.escalateToProvince(userId, reportId),
         onTransfer: (reportId, userId, level) =>
@@ -814,9 +815,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                             lguColor: lguColor,
                             showMunicipality: _isProvincialView,
                             onStatusUpdate:
-                                (reportId, userId, newStatus) =>
+                                (reportId, userId, newStatus, {resolutionNote}) =>
                                     _reportRepository.updateReportStatus(
-                                        userId, reportId, newStatus),
+                                        userId, reportId, newStatus,
+                                        resolutionNote: resolutionNote),
                           ),
                         );
                       },
@@ -1389,13 +1391,49 @@ class _ClickableStatBadge extends StatelessWidget {
 // REPORT DETAIL BOTTOM SHEET
 // ─────────────────────────────────────────────────────────────────────────────
 
+/// Asks what was done to resolve a report (lifecycle, P3). Returns the note,
+/// or null if cancelled. firestore.rules require 10-1000 characters.
+Future<String?> askResolutionNote(BuildContext context) {
+  final controller = TextEditingController();
+  return showDialog<String>(
+    context: context,
+    builder: (ctx) => StatefulBuilder(
+      builder: (ctx, setState) {
+        final ok = controller.text.trim().length >= 10;
+        return AlertDialog(
+          title: const Text('Mark as solved'),
+          content: TextField(
+            controller: controller,
+            autofocus: true,
+            maxLength: 1000,
+            maxLines: 4,
+            onChanged: (_) => setState(() {}),
+            decoration: const InputDecoration(
+              labelText: 'What was done to resolve it?',
+              helperText: 'At least 10 characters. Recorded with your name.',
+            ),
+          ),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+            FilledButton(
+              onPressed: ok ? () => Navigator.pop(ctx, controller.text.trim()) : null,
+              child: const Text('Mark solved'),
+            ),
+          ],
+        );
+      },
+    ),
+  ).whenComplete(controller.dispose);
+}
+
 class _ReportDetailSheet extends StatelessWidget {
   final ProblemReport report;
   final Color lguColor;
   final bool isProvincialView;
   final bool canDelete;
-  final void Function(String reportId, String userId, String newStatus)
-      onStatusUpdate;
+  final void Function(String reportId, String userId, String newStatus,
+      {String? resolutionNote}) onStatusUpdate;
   final Future<void> Function(String reportId, String userId) onEscalate;
   final Future<void> Function(
       String reportId, String userId, HandlingLevel level) onTransfer;
@@ -2151,17 +2189,19 @@ class _ReportDetailSheet extends StatelessWidget {
                             }
                           },
                         ),
-                      if (report.status != ReportStatus.solved)
+                      // Lifecycle (P3): Solved only from Ongoing, with a note.
+                      if (report.status == ReportStatus.ongoing)
                         _ActionButton(
                           label: 'Mark Solved',
                           color: Colors.green,
                           icon: Icons.check_circle,
-                          onTap: () {
-                            if (report.userId != null) {
-                              onStatusUpdate(
-                                  report.id, report.userId!, 'solved');
-                              Navigator.pop(context);
-                            }
+                          onTap: () async {
+                            if (report.userId == null) return;
+                            final note = await askResolutionNote(context);
+                            if (note == null || !context.mounted) return;
+                            onStatusUpdate(report.id, report.userId!, 'solved',
+                                resolutionNote: note);
+                            Navigator.pop(context);
                           },
                         ),
                       if (report.status == ReportStatus.solved)
@@ -2588,8 +2628,8 @@ class _AdminReportCard extends StatelessWidget {
   final ProblemReport report;
   final Color lguColor;
   final bool showMunicipality;
-  final void Function(String reportId, String userId, String newStatus)
-      onStatusUpdate;
+  final void Function(String reportId, String userId, String newStatus,
+      {String? resolutionNote}) onStatusUpdate;
 
   const _AdminReportCard({
     required this.report,
@@ -2916,14 +2956,16 @@ class _AdminReportCard extends StatelessWidget {
                         },
                       ),
                     const SizedBox(width: 4),
-                    if (report.status != ReportStatus.solved)
+                    if (report.status == ReportStatus.ongoing)
                       _SmallStatusButton(
                         label: 'Solved',
                         color: Colors.green,
-                        onTap: () {
+                        onTap: () async {
                           if (report.userId != null) {
-                            onStatusUpdate(
-                                report.id, report.userId!, 'solved');
+                            final note = await askResolutionNote(context);
+                            if (note == null) return;
+                            onStatusUpdate(report.id, report.userId!, 'solved',
+                                resolutionNote: note);
                           } else {
                             ToastUtils.showError(
                                 'Cannot update: missing user info');

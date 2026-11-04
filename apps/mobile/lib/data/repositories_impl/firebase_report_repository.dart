@@ -145,12 +145,15 @@ class FirebaseReportRepository implements ReportRepository {
   Future<void> updateReportStatus(
     String userId,
     String reportId,
-    String newStatus,
-  ) async {
+    String newStatus, {
+    String? resolutionNote,
+  }) async {
     try {
       final update = <String, dynamic>{'status': newStatus};
       if (newStatus == 'solved') {
         update['resolvedAt'] = FieldValue.serverTimestamp();
+        update['resolutionNote'] = (resolutionNote ?? '').trim();
+        update['resolutionBy'] = FirebaseAuth.instance.currentUser?.uid;
       } else {
         update['resolvedAt'] = FieldValue.delete();
       }

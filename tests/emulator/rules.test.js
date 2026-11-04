@@ -136,7 +136,10 @@ test("re-opening without (or with someone else's) reopenedBy is refused", async 
 
 test("ordinary admin status changes still work", async () => {
   await assertSucceeds(updateDoc(doc(as("muni"), REPORT), { status: "acknowledged" }));
-  await assertSucceeds(updateDoc(doc(as("muni"), REPORT), { status: "solved" }));
+  // Skipping steps is allowed, except into 'solved' (lifecycle, below).
+  await assertSucceeds(updateDoc(doc(as("muni"), REPORT), { status: "ongoing" }));
+  await assertSucceeds(updateDoc(doc(as("muni"), REPORT),
+    { status: "solved", resolutionNote: "Cleared the blocked drainage.", resolutionBy: "muni" }));
 });
 
 test("escalation approval still requires the owning town's admin and their uid", async () => {
@@ -399,4 +402,33 @@ test("a referral cannot be removed, and other edits still work once referred", a
 test("outsiders and the reporter cannot set a referral", async () => {
   await assertFails(updateDoc(doc(as("muniOther"), REPORT), referBy("muniOther")));
   await assertFails(updateDoc(doc(as("citizen"), REPORT), referBy("citizen")));
+});
+
+// ── status lifecycle (P3) ──────────────────────────────────────────────────
+
+const solveBy = (uid, extra = {}) =>
+  ({ status: "solved", resolutionNote: "Road cleared by the MEO crew.", resolutionBy: uid, ...extra });
+
+test("a report can be solved only from 'ongoing'", async () => {
+  // REPORT starts as 'reported'.
+  await assertFails(updateDoc(doc(as("muni"), REPORT), solveBy("muni")));
+  await assertSucceeds(updateDoc(doc(as("muni"), REPORT), { status: "under_review" }));
+  await assertFails(updateDoc(doc(as("muni"), REPORT), solveBy("muni")));
+  await assertSucceeds(updateDoc(doc(as("muni"), REPORT), { status: "ongoing" }));
+  await assertSucceeds(updateDoc(doc(as("muni"), REPORT), solveBy("muni")));
+});
+
+test("solving needs a real resolution note from the acting admin", async () => {
+  await env.withSecurityRulesDisabled((ctx) => updateDoc(doc(ctx.firestore(), REPORT), { status: "ongoing" }));
+  await assertFails(updateDoc(doc(as("muni"), REPORT), { status: "solved" }));
+  await assertFails(updateDoc(doc(as("muni"), REPORT), solveBy("muni", { resolutionNote: "done" })));
+  await assertFails(updateDoc(doc(as("muni"), REPORT), solveBy("muni", { resolutionNote: "x".repeat(1001) })));
+  await assertFails(updateDoc(doc(as("muni"), REPORT), solveBy("prov")));
+  await assertSucceeds(updateDoc(doc(as("prov"), REPORT), solveBy("prov")));
+});
+
+test("moving back out of 'solved' is allowed, and the reporter cannot write a resolution", async () => {
+  await env.withSecurityRulesDisabled((ctx) => updateDoc(doc(ctx.firestore(), REPORT), solveBy("muni")));
+  await assertSucceeds(updateDoc(doc(as("muni"), REPORT), { status: "ongoing" }));
+  await assertFails(updateDoc(doc(as("citizen"), REPORT), { resolutionNote: "I fixed it myself, thanks." }));
 });

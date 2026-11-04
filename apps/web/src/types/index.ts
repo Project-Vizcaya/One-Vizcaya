@@ -74,6 +74,8 @@ export interface Report {
   duplicateOf?: string;
   referral?: Referral;
   statusBeforeArchive?: string;
+  resolutionNote?: string;
+  resolutionBy?: string;
 }
 
 export interface Responder {

@@ -71,6 +71,7 @@ export function ReportDetail({ report, open, onClose }: ReportDetailProps) {
   const { user } = useAuthStore();
   const { responders } = useResponders();
   const [status, setStatus] = useState<ReportStatus | "">(report?.status ?? "");
+  const [resolution, setResolution] = useState("");
   const [assigned, setAssigned] = useState<string>(report?.assignedResponder ?? "");
   const [level, setLevel] = useState<HandlingLevel>(report?.handlingLevel ?? "municipal");
   const [note, setNote] = useState("");
@@ -123,12 +124,18 @@ export function ReportDetail({ report, open, onClose }: ReportDetailProps) {
     setNote((prev) => (prev.trim() ? `${prev.trim()} ${text}` : text));
   }, []);
 
+  // Lifecycle (P3): Solved only from Ongoing, with a note of what was done.
+  const canSolve = report?.status === "ongoing";
+  const resolutionOk = resolution.trim().length >= 10 && resolution.trim().length <= 1000;
+
   const handleStatusSave = async () => {
     if (!report || !status || status === report.status) return;
+    if (status === "solved" && !resolutionOk) return;
     setSaving(true);
     try {
-      await updateReportStatus(report.userId, report.id, status as ReportStatus);
+      await updateReportStatus(report.userId, report.id, status as ReportStatus, resolution);
       toast({ title: "Status updated", variant: "success" as never });
+      setResolution("");
     } catch {
       toast({ title: "Failed to update status", variant: "destructive" });
     } finally {
@@ -235,6 +242,14 @@ export function ReportDetail({ report, open, onClose }: ReportDetailProps) {
                 <p className="whitespace-pre-wrap leading-relaxed">{report.description}</p>
               </div>
 
+              {report.status === "solved" && report.resolutionNote && (
+                <div className="rounded-lg p-3 text-sm border border-green-200 bg-green-50/60 dark:bg-green-950/20">
+                  <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-1">How it was resolved</p>
+                  <p className="whitespace-pre-wrap break-words">{report.resolutionNote}</p>
+                  {report.resolutionBy && <p className="text-xs text-muted-foreground mt-1">by admin {report.resolutionBy.slice(0, 8)}</p>}
+                </div>
+              )}
+
               {/* Photo */}
               {report.imageUrl && (
                 <div>
@@ -298,13 +313,16 @@ export function ReportDetail({ report, open, onClose }: ReportDetailProps) {
                     </SelectTrigger>
                     <SelectContent>
                       {STATUS_OPTIONS.map((opt) => (
-                        <SelectItem key={opt.value} value={opt.value} className="text-sm">{opt.label}</SelectItem>
+                        <SelectItem key={opt.value} value={opt.value} className="text-sm"
+                          disabled={opt.value === "solved" && !canSolve && report.status !== "solved"}>
+                          {opt.label}{opt.value === "solved" && !canSolve && report.status !== "solved" ? " (from Ongoing only)" : ""}
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                   <Button
                     onClick={handleStatusSave}
-                    disabled={saving || !status || status === report.status}
+                    disabled={saving || !status || status === report.status || (status === "solved" && !resolutionOk)}
                     size="sm"
                     className="shrink-0"
                     aria-label="Save status"
@@ -313,6 +331,19 @@ export function ReportDetail({ report, open, onClose }: ReportDetailProps) {
                     <span className="ml-1.5 hidden sm:inline">Save</span>
                   </Button>
                 </div>
+                {status === "solved" && status !== report.status && (
+                  <div className="mt-2 space-y-1">
+                    <Textarea
+                      aria-label="Resolution note" maxLength={1000} rows={2}
+                      value={resolution} onChange={(e) => setResolution(e.target.value)}
+                      placeholder="What was done to resolve it (required)…"
+                      className="text-sm resize-none"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      At least 10 characters. Recorded with your name; the resident is told the report is resolved.
+                    </p>
+                  </div>
+                )}
                 <Button size="sm" variant="outline" className="h-7 text-xs gap-1.5 mt-2" onClick={() => setDispOpen(true)}>
                   <XCircle className="h-3.5 w-3.5" /> Close without action…
                 </Button>

@@ -260,7 +260,8 @@ export function ReportsTable({ reports, loading, initialFilter = "all" }: Report
                   <SelectValue placeholder="Mark as…" />
                 </SelectTrigger>
                 <SelectContent>
-                  {(["reported","acknowledged","under_review","ongoing","solved"] as ReportStatus[]).map((s) => (
+                  {/* No bulk "solved": each needs its own resolution note (lifecycle, P3). */}
+                  {(["reported","acknowledged","under_review","ongoing"] as ReportStatus[]).map((s) => (
                     <SelectItem key={s} value={s} className="text-xs capitalize">{s.replace("_", " ")}</SelectItem>
                   ))}
                 </SelectContent>

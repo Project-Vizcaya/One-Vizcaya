@@ -175,6 +175,22 @@ service cloud.firestore {
               && r.get('at', null) == request.time);
     }
 
+    // Status lifecycle (P3, PDRRMO §8): a report may become 'solved' only
+    // from 'ongoing', with a resolution note (what was done, 10-1000 chars)
+    // and resolutionBy == the acting admin. Other steps may be skipped and
+    // moving back is allowed. Closing without action is validDisposition().
+    function validLifecycle() {
+      let d = request.resource.data;
+      let toSolved = d.get('status', '') == 'solved'
+                     && resource.data.get('status', '') != 'solved';
+      return !toSolved
+          || (resource.data.get('status', '') == 'ongoing'
+              && d.get('resolutionNote', '') is string
+              && d.get('resolutionNote', '').size() >= 10
+              && d.get('resolutionNote', '').size() <= 1000
+              && d.get('resolutionBy', '') == request.auth.uid);
+    }
+
     // ─── Super admin bypass ─────────────────────────────────────────────────
     // super_admin can read everything and write almost everything — EXCEPT the
     // collections only the server may write. Rules are OR-ed, so an
@@ -278,9 +294,10 @@ service cloud.firestore {
                              && request.resource.data.escalatedBy == request.auth.uid))
                          && validDisposition()
                          && validReferral()
+                         && validLifecycle()
                       || (isOwner(userId)
                           && !request.resource.data.diff(resource.data)
-                               .affectedKeys().hasAny(dispositionFields().concat(['referral'])));
+                               .affectedKeys().hasAny(dispositionFields().concat(['referral', 'resolutionNote', 'resolutionBy'])));
         // Deletion goes ONLY through the deleteReportWithReason callable,
         // which checks the caller, requires a reason and records who did it.
         // (A client delete could not be attributed.)
@@ -344,7 +361,8 @@ service cloud.firestore {
                            && municipalScoped(resource.data)
                            && request.resource.data.escalatedBy == request.auth.uid))
                        && validDisposition()
-                       && validReferral();
+                       && validReferral()
+                       && validLifecycle();
       allow delete: if false; // see the nested reports rule
     }
 

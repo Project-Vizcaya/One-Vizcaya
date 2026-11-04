@@ -32,7 +32,9 @@ admin to approve its urgent alerts.
 Open **Reports**, then click a report.
 
 1. **Update the status** as work progresses: *Acknowledged → Under Review →
-   Ongoing → Solved*. The resident is notified at each step.
+   Ongoing → Solved*. The resident is notified at each step. A report can be
+   marked **Solved only from Ongoing**, and you must write what was done (at
+   least 10 characters). Solved cannot be applied in bulk.
 2. **Route** it to another tier (barangay / municipal / provincial / Region II)
    if it is beyond your office. Escalating to the province needs the
    municipal admin's approval.

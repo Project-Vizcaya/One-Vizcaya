@@ -29,7 +29,10 @@ abstract class ReportRepository {
   Stream<List<ProblemReport>> getAllProvincialReports();
 
   /// Admin: Update the status of a report (requires the userId who owns it)
-  Future<void> updateReportStatus(String userId, String reportId, String newStatus);
+  /// 'solved' needs [resolutionNote] (10-1000 chars) and is accepted by
+  /// firestore.rules only from 'ongoing' (lifecycle, P3).
+  Future<void> updateReportStatus(String userId, String reportId, String newStatus,
+      {String? resolutionNote});
 
   /// Admin: Escalate a report to provincial level
   Future<void> escalateToProvince(String userId, String reportId);
