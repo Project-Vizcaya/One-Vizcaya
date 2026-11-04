@@ -67,6 +67,20 @@ flutter:
     - assets/images/Seal_of_Nueva_Vizcaya.svg.png
     - assets/images/seals/
 
+  # Atkinson Hyperlegible Next (SIL OFL 1.1, see assets/fonts/OFL.txt):
+  # designed for low-vision readers; matches the web console.
+  fonts:
+    - family: AtkinsonHyperlegibleNext
+      fonts:
+        - asset: assets/fonts/AtkinsonHyperlegibleNext-400.ttf
+          weight: 400
+        - asset: assets/fonts/AtkinsonHyperlegibleNext-500.ttf
+          weight: 500
+        - asset: assets/fonts/AtkinsonHyperlegibleNext-600.ttf
+          weight: 600
+        - asset: assets/fonts/AtkinsonHyperlegibleNext-700.ttf
+          weight: 700
+
 flutter_launcher_icons:
   android: true
   ios: true

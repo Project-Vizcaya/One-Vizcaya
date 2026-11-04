@@ -199,13 +199,14 @@ class _OneVizcayaAppState extends State<OneVizcayaApp> {
             brightness: Brightness.light,
             primarySwatch: Colors.green,
             scaffoldBackgroundColor: const Color(0xFFF5F5F5),
-            fontFamily: 'Roboto',
+            fontFamily: kAppFontFamily,
             iconTheme: const IconThemeData(color: Color(0xFF333333)),
             appBarTheme: const AppBarTheme(
               elevation: 0,
               backgroundColor: Color(0xFFF5F5F5),
               foregroundColor: Color(0xFF333333),
               titleTextStyle: TextStyle(
+                fontFamily: kAppFontFamily,
                 color: Color(0xFF333333),
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
@@ -308,6 +309,10 @@ class _OneVizcayaAppState extends State<OneVizcayaApp> {
 // theme's rounded, low-elevation style. Defines surfaces, cards, inputs, text,
 // dialogs and bottom sheets so every Theme-driven widget reads consistently.
 // ─────────────────────────────────────────────────────────────────────────────
+/// Bundled in pubspec.yaml. Glyphs it lacks (₱, ✓, ⚠) fall back to the
+/// system font.
+const kAppFontFamily = 'AtkinsonHyperlegibleNext';
+
 ThemeData _buildDarkTheme() {
   const bg = Color(0xFF121316); // scaffold background
   const surface = Color(0xFF1C1E22); // cards / sheets
@@ -317,7 +322,10 @@ ThemeData _buildDarkTheme() {
   const accent = Color(0xFF66BB6A); // green, lifted for dark contrast
   const divider = Color(0x1FFFFFFF);
 
-  final base = ThemeData.dark(useMaterial3: true);
+  final base = ThemeData(
+      brightness: Brightness.dark,
+      useMaterial3: true,
+      fontFamily: kAppFontFamily);
 
   return base.copyWith(
     scaffoldBackgroundColor: bg,
@@ -344,13 +352,15 @@ ThemeData _buildDarkTheme() {
               fontWeight: FontWeight.bold, fontSize: 16, color: textPrimary),
           bodyLarge: const TextStyle(fontSize: 16, color: textPrimary),
           bodyMedium: const TextStyle(fontSize: 14, color: textSecondary),
-        ),
+        )
+        .apply(fontFamily: kAppFontFamily),
     iconTheme: const IconThemeData(color: textPrimary),
     appBarTheme: const AppBarTheme(
       elevation: 0,
       backgroundColor: surface,
       foregroundColor: textPrimary,
       titleTextStyle: TextStyle(
+          fontFamily: kAppFontFamily,
           color: textPrimary, fontSize: 20, fontWeight: FontWeight.bold),
       iconTheme: IconThemeData(color: textPrimary),
     ),
@@ -365,8 +375,10 @@ ThemeData _buildDarkTheme() {
       surfaceTintColor: Colors.transparent,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.0)),
       titleTextStyle: const TextStyle(
+          fontFamily: kAppFontFamily,
           color: textPrimary, fontSize: 20, fontWeight: FontWeight.bold),
-      contentTextStyle: const TextStyle(color: textSecondary, fontSize: 14),
+      contentTextStyle: const TextStyle(
+          fontFamily: kAppFontFamily, color: textSecondary, fontSize: 14),
     ),
     bottomSheetTheme: const BottomSheetThemeData(
       backgroundColor: surface,
