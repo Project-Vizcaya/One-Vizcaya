@@ -398,7 +398,7 @@ does today rather than on intent. Each item is tracked for the pre-pilot work.
 - Acknowledgement, referral and resolution times are stamped server-side from this release on, so **reports filed before it have no response timings**.
 - SLA targets are set by priority and overdue reports alert the responsible admins, but the targets stay labelled **provisional** until the PDRRMO confirms them.
 - The Analytics page counts every report in scope. The dashboard home, report table and map still show the **256 most recent** reports, so the home-screen totals understate at scale.
-- There is **no uptime measurement or health endpoint**.
+- A public `health` endpoint reports whether Firestore is reachable and every scheduled job is still running (200 when healthy, 503 otherwise), but **no uptime monitor is pointed at it yet**. Once deployed, add a Google Cloud Monitoring uptime check on `https://us-central1-one-vizcaya-app.cloudfunctions.net/health` with an alert to the operators; until then nobody is told when the service is down.
 
 **Testing**
 - Automated tests now cover the security rules and the alert-approval function (`tests/emulator`, against the Firestore emulator), the PAGASA parser and TenDay client (`apps/functions`), and the mobile offline queue and PAGASA model (`apps/mobile/test`). **No load, stress or failover testing** has been performed.

@@ -2,10 +2,33 @@
 // Run: cd functions && npm install && firebase deploy --only functions
 const { onDocumentCreated, onDocumentUpdated, onDocumentDeleted } = require("firebase-functions/v2/firestore");
 const { onSchedule } = require("firebase-functions/v2/scheduler");
-const { onCall, HttpsError } = require("firebase-functions/v2/https");
+const { onCall, onRequest, HttpsError } = require("firebase-functions/v2/https");
 const admin = require("firebase-admin");
 
 admin.initializeApp();
+
+// ── Scheduled-job heartbeats (P2, uptime) ────────────────────────────────────
+// Every scheduled job is declared through scheduled(), which records when it
+// last succeeded or threw in system_health/{job}. The public `health` endpoint
+// reads these to tell whether a job has stopped running.
+const { assessHealth, JOB_INTERVAL_MIN } = require("./health/health");
+
+function scheduled(name, opts, handler) {
+  return onSchedule(opts, async (event) => {
+    const ref = admin.firestore().collection("system_health").doc(name);
+    const now = () => admin.firestore.FieldValue.serverTimestamp();
+    try {
+      const out = await handler(event);
+      await ref.set({ lastSuccessAt: now() }, { merge: true })
+        .catch((e) => console.error(`heartbeat ${name}:`, e));
+      return out;
+    } catch (e) {
+      await ref.set({ lastErrorAt: now(), lastError: String(e?.message ?? e).slice(0, 300) }, { merge: true })
+        .catch((e2) => console.error(`heartbeat ${name}:`, e2));
+      throw e;
+    }
+  });
+}
 
 // ── Audit trail: record account deletions ────────────────────────────────────
 // When a citizen deletes their account the app removes their profile but
@@ -151,7 +174,7 @@ exports.stampReportMilestones = onDocumentUpdated(
 const { resolveSla, slaBreach, OPEN_STATUSES } = require("./reports/sla");
 const ESCALATIONS_PER_RUN = 200; // bounds a backlog's first run
 
-exports.escalateOverdueReports = onSchedule(
+exports.escalateOverdueReports = scheduled("escalateOverdueReports", 
   { schedule: "every 15 minutes", timeZone: "Asia/Manila", timeoutSeconds: 120 },
   async () => {
     const db = admin.firestore();
@@ -310,7 +333,7 @@ exports.trackSubReportRate = onDocumentCreated(
 );
 
 // ── Reset rate limits daily at midnight Manila time ──────────────────────────
-exports.resetRateLimits = onSchedule(
+exports.resetRateLimits = scheduled("resetRateLimits", 
   { schedule: "0 0 * * *", timeZone: "Asia/Manila" },
   async () => {
     const db = admin.firestore();
@@ -479,7 +502,7 @@ exports.migrateLegacyAdmins = onCall(async (request) => {
 // ── Auto-archive reports older than 12 months ───────────────────────────────
 // Runs daily at 2 AM Manila time. Marks reports with reportedAt > 12 months
 // as 'archived' so they no longer appear in active admin views.
-exports.archiveOldReports = onSchedule(
+exports.archiveOldReports = scheduled("archiveOldReports", 
   { schedule: "0 2 * * *", timeZone: "Asia/Manila" },
   async () => {
     const db = admin.firestore();
@@ -1184,7 +1207,7 @@ exports.decideAlertDraft = onCall(async (request) => {
  * runtime (e.g. `firebase functions:secrets:set OPENWEATHER_API_KEY` or a
  * .env entry). Without it the job logs a warning and no-ops — nothing breaks.
  */
-exports.rainfallWatch = onSchedule(
+exports.rainfallWatch = scheduled("rainfallWatch", 
   // The `secrets` binding makes the OPENWEATHER_API_KEY set via
   // `firebase functions:secrets:set` available as process.env at runtime.
   { schedule: "0 */3 * * *", timeZone: "Asia/Manila", secrets: ["OPENWEATHER_API_KEY"] },
@@ -1322,7 +1345,7 @@ async function fetchWindyPointForecast(lat, lon, apiKey) {
 // error is recorded alongside it, so the app can show how stale it is.
 const { parseNlprsd, SOURCE_URL: NLPRSD_URL } = require("./pagasa-public/regional");
 
-exports.pagasaRegionalWatch = onSchedule(
+exports.pagasaRegionalWatch = scheduled("pagasaRegionalWatch", 
   { schedule: "every 60 minutes", timeZone: "Asia/Manila", timeoutSeconds: 60 },
   async () => {
     const ref = admin.firestore().collection("pagasa_products").doc("nueva_vizcaya");
@@ -1489,7 +1512,7 @@ exports.getWindyForecast = onCall(
 // Runs every 3h for fresher advisories: 8 runs/day × 15 municipalities
 // ≈ 120 Point-Forecast calls/day. Watch Windy's free-tier quota; if it's tight,
 // raise this back to "0 */6 * * *" or reduce the municipality set.
-exports.windyWindWatch = onSchedule(
+exports.windyWindWatch = scheduled("windyWindWatch", 
   { schedule: "0 */3 * * *", timeZone: "Asia/Manila", secrets: ["WINDY_API_KEY"] },
   async () => {
     const apiKey = process.env.WINDY_API_KEY;
@@ -1668,7 +1691,7 @@ exports.deleteReportWithReason = onCall(async (request) => {
 // archived reports after 24 months; archiveOldReports only marks them at 12
 // months. This job deletes report documents (and their photos) past 24 months,
 // which also triggers cleanupReportImageOnDelete for Storage cleanup.
-exports.deleteOldArchivedReports = onSchedule(
+exports.deleteOldArchivedReports = scheduled("deleteOldArchivedReports", 
   { schedule: "0 3 * * *", timeZone: "Asia/Manila" },
   async () => {
     const db = admin.firestore();
@@ -1857,4 +1880,36 @@ exports.seedResponders = onCall(async (request) => {
     total: written,
     note: "BFP numbers marked verified:false are placeholder values — confirm with each municipal BFP station.",
   };
+});
+
+// ── Health endpoint (P2, uptime) ─────────────────────────────────────────────
+// Public, unauthenticated GET for an uptime monitor (e.g. a Google Cloud
+// Monitoring uptime check). 200 only when everything is healthy; 503 when
+// Firestore is unreachable or a scheduled job has stopped or is failing, so
+// the monitor alerts. The body names checks and states only; no error text.
+exports.health = onRequest({ timeoutSeconds: 15, cors: false, invoker: "public" }, async (req, res) => {
+  res.set("Cache-Control", "no-store");
+  if (req.method !== "GET" && req.method !== "HEAD") {
+    res.status(405).send("Method Not Allowed");
+    return;
+  }
+  const heartbeats = {};
+  let firestoreOk = true;
+  try {
+    const snap = await Promise.race([
+      admin.firestore().collection("system_health").get(),
+      new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), 5000)),
+    ]);
+    const ms = (v) => (v && typeof v.toMillis === "function" ? v.toMillis() : null);
+    snap.forEach((d) => {
+      if (!(d.id in JOB_INTERVAL_MIN)) return;
+      heartbeats[d.id] = { lastSuccessMs: ms(d.data().lastSuccessAt), lastErrorMs: ms(d.data().lastErrorAt) };
+    });
+  } catch (e) {
+    console.error("health: Firestore check failed:", e);
+    firestoreOk = false;
+  }
+  const result = assessHealth({ firestoreOk, heartbeats, nowMs: Date.now() });
+  res.status(result.status === "ok" ? 200 : 503)
+    .json({ ...result, checkedAt: new Date().toISOString() });
 });

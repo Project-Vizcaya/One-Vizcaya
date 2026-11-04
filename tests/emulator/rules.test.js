@@ -293,3 +293,11 @@ test("admins cannot write an alert's delivery counts themselves", async () => {
   await assertSucceeds(updateDoc(doc(as("muni"), "announcements/y1"), { body: "edited" }));
   await assertFails(updateDoc(doc(as("prov"), "announcements/y1"), { delivery: { delivered: 9999 } }));
 });
+
+test("system_health is server-only, even for super admins", async () => {
+  await env.withSecurityRulesDisabled((ctx) =>
+    setDoc(doc(ctx.firestore(), "system_health/escalateOverdueReports"), { lastSuccessAt: Timestamp.now() }));
+  await assertFails(setDoc(doc(as("super"), "system_health/escalateOverdueReports"), { lastSuccessAt: Timestamp.now() }));
+  await assertFails(getDoc(doc(as("prov"), "system_health/escalateOverdueReports")));
+  await assertFails(getDoc(doc(as("citizen"), "system_health/escalateOverdueReports")));
+});
