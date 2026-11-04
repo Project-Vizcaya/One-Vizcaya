@@ -684,6 +684,7 @@ class _ReportStatusCardState extends State<ReportStatusCard>
                     child: CircleAvatar(
                       backgroundColor: Colors.white24,
                       child: IconButton(
+                        tooltip: 'Close',
                         icon: const Icon(Icons.close,
                             color: Colors.white, size: 20),
                         onPressed: () => Navigator.of(sCtx).pop(),

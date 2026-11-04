@@ -627,7 +627,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                 CheckedPopupMenuItem<String>(
                   value: '__ALL__',
                   checked: _isProvincialView,
-                  child: const Text('🌍 All Municipalities (Province-Wide)'),
+                  child: const Text('All Municipalities (Province-Wide)'),
                 ),
                 const PopupMenuDivider(),
                 ...AppConstants.municipalities.map(
@@ -1442,6 +1442,7 @@ class _ReportDetailSheet extends StatelessWidget {
             elevation: 0,
             foregroundColor: Colors.white,
             leading: IconButton(
+              tooltip: 'Close',
               icon: const Icon(Icons.close),
               onPressed: () => Navigator.of(ctx).pop(),
             ),
@@ -1778,6 +1779,7 @@ class _ReportDetailSheet extends StatelessWidget {
                       iconSize: 22,
                     ),
                   IconButton(
+                    tooltip: 'Close',
                     icon: const Icon(Icons.close),
                     onPressed: () => Navigator.pop(context),
                     padding: EdgeInsets.zero,
@@ -3219,7 +3221,7 @@ class _AnnouncementsTab extends StatelessWidget {
                                 ),
                                 child: Text(
                                   isProvinceWide
-                                      ? '🌍 Province-Wide'
+                                      ? 'Province-Wide'
                                       : muni,
                                   style: TextStyle(
                                       fontSize: 12,
@@ -3546,7 +3548,7 @@ class _AddAnnouncementSheetState
                   items: [
                     const DropdownMenuItem(
                       value: 'All',
-                      child: Text('🌍 All Municipalities (Province-Wide)'),
+                      child: Text('All Municipalities (Province-Wide)'),
                     ),
                     ...AppConstants.municipalities.map((m) =>
                         DropdownMenuItem(
@@ -3896,6 +3898,7 @@ class _AddAnnouncementSheetState
                               color: accentColor)),
                       const Spacer(),
                       IconButton(
+                        tooltip: 'Close',
                         icon: const Icon(Icons.close),
                         onPressed: () => Navigator.pop(ctx),
                         padding: EdgeInsets.zero,

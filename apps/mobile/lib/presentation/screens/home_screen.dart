@@ -259,7 +259,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
             // ── Queued reports banner ──
             if (_queuedReportCount > 0)
-              GestureDetector(
+              // Announced as a button (it opens the saved-reports sheet).
+              Semantics(
+                button: true,
+                hint: 'Shows your saved reports',
+                child: GestureDetector(
                 onTap: () => _showQueueBottomSheet(context),
                 child: Container(
                   width: double.infinity,
@@ -270,7 +274,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   child: Row(
                     children: [
-                      const Text('📤', style: TextStyle(fontSize: 14)),
+                      const Icon(Icons.outbox_rounded,
+                          size: 18, color: Color(0xFFE65100)),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
@@ -290,6 +295,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ],
                   ),
                 ),
+              ),
               ),
 
             Expanded(
@@ -1154,7 +1160,7 @@ class _QueueBottomSheet extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Row(
               children: [
-                const Text('📤', style: TextStyle(fontSize: 18)),
+                const Icon(Icons.outbox_rounded, size: 22),
                 const SizedBox(width: 8),
                 Text(
                   'Queued Reports (${queue.length})',

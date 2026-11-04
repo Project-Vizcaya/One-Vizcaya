@@ -588,7 +588,9 @@ class EmergencyContactsScreen extends StatelessWidget {
           maxLines: 1,
         ),
         trailing: Tooltip(
-          message: isPlaceholder ? 'Being verified' : 'Call',
+          // Names the contact, so a screen reader announces 'Call BFP Bambang'
+          // rather than an identical 'Call' on every row of the directory.
+          message: isPlaceholder ? '$name — number being verified' : 'Call $name',
           child: Container(
             decoration: BoxDecoration(
               color: (isPlaceholder ? Colors.grey : Colors.green)

@@ -265,7 +265,7 @@ class NotificationService {
           );
         } else {
           // Fallback if the navigator isn't ready yet (very early startup).
-          ToastUtils.showInfo('📢 $title: $body');
+          ToastUtils.showInfo('$title: $body');
         }
         try {
           await _firestore.collection('users').doc(uid).collection('notifications').add({

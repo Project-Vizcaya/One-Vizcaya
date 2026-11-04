@@ -229,7 +229,7 @@ class _SosCard extends StatelessWidget {
             const SizedBox(height: 6),
             if (hasFix)
               Text(
-                '📍 ${alert.lat!.toStringAsFixed(6)}, ${alert.lng!.toStringAsFixed(6)}'
+                '${alert.lat!.toStringAsFixed(6)}, ${alert.lng!.toStringAsFixed(6)}'
                 '${alert.accuracy != null ? '  ·  ±${alert.accuracy!.round()} m' : ''}',
                 style: TextStyle(
                     fontSize: 12,

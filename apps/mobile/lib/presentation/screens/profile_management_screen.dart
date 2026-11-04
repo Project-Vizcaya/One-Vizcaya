@@ -442,6 +442,7 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
                   pinned: true,
                   centerTitle: true,
                   leading: IconButton(
+                    tooltip: 'Back',
                     icon: const Icon(Icons.arrow_back_ios_new, size: 20),
                     onPressed: () => Navigator.of(context).pop(),
                   ),
