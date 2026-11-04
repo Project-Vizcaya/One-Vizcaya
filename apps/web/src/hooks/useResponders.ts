@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import {
   collection, query, orderBy, onSnapshot,
-  addDoc, updateDoc, deleteDoc, doc, Timestamp,
+  addDoc, updateDoc, deleteDoc, doc,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import type { Responder } from "@/types";
@@ -41,11 +41,3 @@ export async function deleteResponder(id: string) {
   await deleteDoc(doc(db, "responders", id));
 }
 
-export async function writeAuditLog(userId: string, action: string, details: Record<string, unknown>) {
-  await addDoc(collection(db, "audit_logs"), {
-    action,
-    details,
-    userId,
-    timestamp: Timestamp.now(),
-  });
-}
