@@ -401,7 +401,7 @@ does today rather than on intent. Each item is tracked for the pre-pilot work.
 - A public `health` endpoint reports whether Firestore is reachable and every scheduled job is still running (200 when healthy, 503 otherwise), but **no uptime monitor is pointed at it yet**. Once deployed, add a Google Cloud Monitoring uptime check on `https://us-central1-one-vizcaya-app.cloudfunctions.net/health` with an alert to the operators; until then nobody is told when the service is down.
 
 **Testing**
-- Automated tests now cover the security rules and the alert-approval function (`tests/emulator`, against the Firestore emulator), the PAGASA parser and TenDay client (`apps/functions`), and the mobile offline queue and PAGASA model (`apps/mobile/test`). Load and failover tests run against the **local emulator only** (`npm run test:load` in `tests/emulator`; see [`tests/emulator/load/README.md`](tests/emulator/load/README.md)). **No production load or failover testing** has been performed.
+- Automated tests now cover the security rules and the alert-approval function (`tests/emulator`, against the Firestore emulator), the PAGASA parser and TenDay client (`apps/functions`), and the mobile offline queue and PAGASA model (`apps/mobile/test`). Load and failover tests run against the **local emulator only** (`npm run test:load` in `tests/emulator`; see [`tests/emulator/load/README.md`](tests/emulator/load/README.md)). A staging load test is ready in [`tests/staging-load`](tests/staging-load/README.md); it refuses the production project and **has not yet been run against a real one**. **No production load or failover testing** has been performed.
 
 ---
 

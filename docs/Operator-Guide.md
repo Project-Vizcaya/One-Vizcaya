@@ -192,7 +192,9 @@ cd apps/mobile && flutter test
 ## 7. Known limits
 
 - Recording a referral does not notify the office.
-- Load testing has been done on the local emulator only, not in production
-  ([`tests/emulator/load/README.md`](../tests/emulator/load/README.md)).
+- Load testing has been done on the local emulator only
+  ([`tests/emulator/load/README.md`](../tests/emulator/load/README.md)). A staging
+  load test is ready but has not been run: create a staging Firebase project,
+  deploy to it, and follow [`tests/staging-load/README.md`](../tests/staging-load/README.md).
 - The Tagalog and Ilocano safety wording still awaits a native speaker's review
   ([`translation-review.md`](translation-review.md)).
