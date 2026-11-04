@@ -11,6 +11,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { updateReportStatus, assignResponder, addReportNote, deleteReport, transferReportLevel, closeReportWithDisposition, reopenReport } from "@/hooks/useReports";
 import { useResponders } from "@/hooks/useResponders";
+import { ReferralSection } from "@/components/reports/ReferralSection";
 import { useAuthStore } from "@/stores/authStore";
 import { toast } from "@/hooks/useToast";
 import { cn, timeAgo, authorColor, DISPOSITION_OPTIONS, dispositionLabel } from "@/lib/utils";
@@ -341,6 +342,9 @@ export function ReportDetail({ report, open, onClose }: ReportDetailProps) {
                   </p>
                 )}
               </div>
+
+              {/* Refer to a named office (P2) */}
+              <ReferralSection key={report.id} report={report} />
 
               {/* Route / transfer between administrative tiers (parity with the
                   mobile admin's 4-level routing). Escalating to Provincial or

@@ -150,6 +150,31 @@ service cloud.firestore {
               && d.get('dispositionAt', null) == request.time);
     }
 
+    // Referral to a named office (P2, PDRRMO): who the report was handed to,
+    // stamped with the referring admin and the server time. It may be replaced
+    // (re-referred) but never removed; every change is audited by
+    // auditReportReferral. Checked only when `referral` changes.
+    function referralOfficeTypes() {
+      return ['MDRRMO', 'BDRRMC', 'PDRRMO', 'BFP', 'PNP', 'MHO', 'MSWDO',
+              'MEO', 'DPWH', 'Other'];
+    }
+
+    function validReferral() {
+      let d = request.resource.data;
+      let r = d.get('referral', null);
+      return !d.diff(resource.data).affectedKeys().hasAny(['referral'])
+          || (r is map
+              && r.keys().hasOnly(['officeType', 'officeName', 'contact', 'note', 'by', 'at'])
+              && r.get('officeType', '') in referralOfficeTypes()
+              && r.get('officeName', '') is string
+              && r.get('officeName', '').size() >= 2
+              && r.get('officeName', '').size() <= 120
+              && r.get('contact', '') is string && r.get('contact', '').size() <= 80
+              && r.get('note', '') is string && r.get('note', '').size() <= 500
+              && r.get('by', '') == request.auth.uid
+              && r.get('at', null) == request.time);
+    }
+
     // ─── Super admin bypass ─────────────────────────────────────────────────
     // super_admin can read everything and write almost everything — EXCEPT the
     // collections only the server may write. Rules are OR-ed, so an
@@ -249,9 +274,10 @@ service cloud.firestore {
                              && municipalScoped(resource.data)
                              && request.resource.data.escalatedBy == request.auth.uid))
                          && validDisposition()
+                         && validReferral()
                       || (isOwner(userId)
                           && !request.resource.data.diff(resource.data)
-                               .affectedKeys().hasAny(dispositionFields()));
+                               .affectedKeys().hasAny(dispositionFields().concat(['referral'])));
         // Deletion goes ONLY through the deleteReportWithReason callable,
         // which checks the caller, requires a reason and records who did it.
         // (A client delete could not be attributed.)
@@ -314,7 +340,8 @@ service cloud.firestore {
                        || (approvingEscalation()
                            && municipalScoped(resource.data)
                            && request.resource.data.escalatedBy == request.auth.uid))
-                       && validDisposition();
+                       && validDisposition()
+                       && validReferral();
       allow delete: if false; // see the nested reports rule
     }
 

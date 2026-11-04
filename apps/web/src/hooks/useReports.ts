@@ -7,7 +7,7 @@ import {
 import { auth, db, functions } from "@/lib/firebase";
 import { httpsCallable } from "firebase/functions";
 import { useAuthStore } from "@/stores/authStore";
-import type { Report, ReportNote, ReportStatus, HandlingLevel, ReportDisposition } from "@/types";
+import type { Report, ReportNote, ReportStatus, HandlingLevel, ReportDisposition, Referral, ReferralOfficeType } from "@/types";
 
 function toDate(val: unknown): Date {
   if (val instanceof Timestamp) return val.toDate();
@@ -59,6 +59,20 @@ function toReport(d: {
     dispositionBy:     data.dispositionBy as string | undefined,
     dispositionAt:     data.dispositionAt ? toDate(data.dispositionAt) : undefined,
     duplicateOf:       data.duplicateOf as string | undefined,
+    referral:          toReferral(data.referral),
+  };
+}
+
+function toReferral(v: unknown): Referral | undefined {
+  if (!v || typeof v !== "object") return undefined;
+  const r = v as Record<string, unknown>;
+  return {
+    officeType: (r.officeType as ReferralOfficeType) ?? "Other",
+    officeName: String(r.officeName ?? ""),
+    contact: typeof r.contact === "string" && r.contact ? r.contact : undefined,
+    note: typeof r.note === "string" && r.note ? r.note : undefined,
+    by: String(r.by ?? ""),
+    at: r.at ? toDate(r.at) : undefined,
   };
 }
 
@@ -169,6 +183,28 @@ export async function transferReportLevel(
     ...(escalated
       ? { escalatedAt: Timestamp.now(), escalatedBy: escalatedBy ?? null }
       : {}),
+  });
+}
+
+// Refer a report to a named office (P2). firestore.rules require `by` to be
+// the acting admin and `at` the server time; auditReportReferral logs it.
+export async function referReport(
+  userId: string,
+  reportId: string,
+  r: { officeType: ReferralOfficeType; officeName: string; contact?: string; note?: string },
+) {
+  const uid = auth.currentUser?.uid;
+  if (!uid) throw new Error("Not signed in.");
+  await updateDoc(doc(db, "users", userId, "reports", reportId), {
+    referral: {
+      officeType: r.officeType,
+      officeName: r.officeName.trim(),
+      contact: r.contact?.trim() ?? "",
+      note: r.note?.trim() ?? "",
+      by: uid,
+      at: serverTimestamp(),
+    },
+    lastModified: Timestamp.now(),
   });
 }
 

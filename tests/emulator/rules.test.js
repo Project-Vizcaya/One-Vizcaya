@@ -341,3 +341,43 @@ test("residents can re-read the broadcasts addressed to them, with the app's que
   // Signed-out: nothing.
   await assertFails(getDoc(doc(env.unauthenticatedContext().firestore(), "broadcasts/prov")));
 });
+
+// ── referral to a named office (P2) ────────────────────────────────────────
+
+const referBy = (uid, extra = {}) => ({
+  referral: {
+    officeType: "MDRRMO", officeName: "MDRRMO Bambang", contact: "", note: "",
+    by: uid, at: serverTimestamp(), ...extra,
+  },
+});
+
+test("an in-scope admin can refer a report to a named office, attributed to them", async () => {
+  await assertSucceeds(updateDoc(doc(as("muni"), REPORT), referBy("muni")));
+  // Re-referral replaces it.
+  await assertSucceeds(updateDoc(doc(as("prov"), REPORT), referBy("prov", { officeType: "BFP", officeName: "BFP Bambang" })));
+});
+
+test("a referral must be stamped with the acting admin and the server time", async () => {
+  await assertFails(updateDoc(doc(as("muni"), REPORT), referBy("prov")));
+  await assertFails(updateDoc(doc(as("muni"), REPORT),
+    referBy("muni", { at: Timestamp.fromDate(new Date("2020-01-01")) })));
+});
+
+test("a referral needs a listed office type, a real name and no extra fields", async () => {
+  await assertFails(updateDoc(doc(as("muni"), REPORT), referBy("muni", { officeType: "Mayor" })));
+  await assertFails(updateDoc(doc(as("muni"), REPORT), referBy("muni", { officeName: "x" })));
+  await assertFails(updateDoc(doc(as("muni"), REPORT), referBy("muni", { note: "n".repeat(501) })));
+  await assertFails(updateDoc(doc(as("muni"), REPORT), referBy("muni", { priority: "critical" })));
+});
+
+test("a referral cannot be removed, and other edits still work once referred", async () => {
+  await env.withSecurityRulesDisabled((ctx) => updateDoc(doc(ctx.firestore(), REPORT),
+    { referral: { officeType: "MDRRMO", officeName: "MDRRMO Bambang", by: "muni", at: Timestamp.now() } }));
+  await assertFails(updateDoc(doc(as("muni"), REPORT), { referral: deleteField() }));
+  await assertSucceeds(updateDoc(doc(as("muni"), REPORT), { status: "acknowledged" }));
+});
+
+test("outsiders and the reporter cannot set a referral", async () => {
+  await assertFails(updateDoc(doc(as("muniOther"), REPORT), referBy("muniOther")));
+  await assertFails(updateDoc(doc(as("citizen"), REPORT), referBy("citizen")));
+});

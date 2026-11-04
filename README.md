@@ -381,7 +381,7 @@ does today rather than on intent. Each item is tracked for the pre-pilot work.
 
 **Report workflow**
 - The status lifecycle (`reported → acknowledged → under_review → ongoing → solved`) is **not enforced**: an admin may move a report straight to `solved`. Validation is operator practice, not a gate. (SOS verification *is* enforced in `firestore.rules`.)
-- Routing targets an administrative **tier** (barangay / municipal / provincial / Region II), not a named office. There is no MDRRMO/BDRRMC referral record or office-level assignment; the nearest field is a free-text assigned-responder name.
+- Routing targets an administrative **tier**; separately, the web console can record a **referral to a named office** (MDRRMO, BDRRMC, BFP, PNP and others), attributed and audited. Recording a referral **does not notify the office**, and the mobile admin app does not show or set referrals yet.
 - Reports can be deleted only through a server function that requires a reason and records **who deleted** the report; direct deletes are refused by `firestore.rules`. Closing a report *without action* remains the recommended route for false, duplicate, incomplete or unverifiable reports.
 
 **Alerts**

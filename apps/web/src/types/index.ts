@@ -17,6 +17,23 @@ export interface ReportNote {
   authorRole: string;
 }
 
+/** Office types a report can be referred to; must match firestore.rules. */
+export const REFERRAL_OFFICE_TYPES = [
+  "MDRRMO", "BDRRMC", "PDRRMO", "BFP", "PNP", "MHO", "MSWDO", "MEO", "DPWH", "Other",
+] as const;
+export type ReferralOfficeType = (typeof REFERRAL_OFFICE_TYPES)[number];
+
+/** The office a report was handed to (P2). Replaced on re-referral; the audit
+ *  log keeps the history. */
+export interface Referral {
+  officeType: ReferralOfficeType;
+  officeName: string;
+  contact?: string;
+  note?: string;
+  by: string;
+  at?: Date;
+}
+
 export interface Report {
   id: string;
   userId: string;
@@ -53,6 +70,7 @@ export interface Report {
   dispositionBy?: string;
   dispositionAt?: Date;
   duplicateOf?: string;
+  referral?: Referral;
 }
 
 export interface Responder {

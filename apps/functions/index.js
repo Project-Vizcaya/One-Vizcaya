@@ -144,6 +144,38 @@ exports.auditReportDisposition = onDocumentUpdated(
   }
 );
 
+// ── Referral to a named office (P2, PDRRMO) ─────────────────────────────────
+// Every set or change of `referral` is audited, so the full referral history
+// survives a re-referral (the report keeps only the current one).
+// firestore.rules require referral.by == the acting admin and referral.at ==
+// the server time, and do not allow a referral to be removed.
+exports.auditReportReferral = onDocumentUpdated(
+  "users/{userId}/reports/{reportId}",
+  async (event) => {
+    const before = event.data.before.data();
+    const after = event.data.after.data();
+    if (!before || !after || !after.referral) return;
+    if (JSON.stringify(before.referral || null) === JSON.stringify(after.referral)) return;
+    const r = after.referral;
+    await admin.firestore().collection("audit_logs").add({
+      action: before.referral ? "report_rereferred" : "report_referred",
+      reportId: event.params.reportId,
+      reportOwnerUid: event.params.userId,
+      municipality: after.municipality || null,
+      category: after.category || null,
+      officeType: r.officeType || null,
+      officeName: r.officeName || null,
+      contact: r.contact || null,
+      note: r.note || null,
+      previousOffice: before.referral
+        ? `${before.referral.officeType || ""} ${before.referral.officeName || ""}`.trim()
+        : null,
+      referredBy: r.by || null,
+      at: admin.firestore.FieldValue.serverTimestamp(),
+    });
+  }
+);
+
 // ── Response timeline: acknowledgedAt / referredAt / resolvedAt (§14) ────────
 // Stamped server-side for every client; see ./reports/milestones.js for the
 // exact definitions. The time stored is when the change itself happened
