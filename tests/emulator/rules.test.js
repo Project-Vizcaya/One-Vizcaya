@@ -257,3 +257,21 @@ test("only provincial admins can change SLA targets; admins can read them", asyn
   await assertFails(setDoc(doc(as("citizen"), "config/sla"), { hoursByPriority: { critical: 999 } }));
   await assertSucceeds(getDoc(doc(as("muni"), "config/sla")));
 });
+
+// ── uncapped analytics queries (P2, README limitation) ─────────────────────
+
+test("the analytics page's uncapped report queries are allowed exactly as written", async () => {
+  const { collectionGroup, orderBy } = require("firebase/firestore");
+  await env.withSecurityRulesDisabled((ctx) => setDoc(doc(ctx.firestore(), "users/brgy"),
+    { role: "barangay_admin", municipality: "Bambang", barangay: "Poblacion" }));
+  // Same shape as useReports(..., { uncapped: true }): no limit().
+  const reports = (fs, ...scope) =>
+    getDocs(query(collectionGroup(fs, "reports"), ...scope, orderBy("reportedAt", "desc")));
+  await assertSucceeds(reports(as("muni"), where("municipality", "==", "Bambang")));
+  await assertSucceeds(reports(as("prov"), where("escalatedToProvince", "==", true)));
+  await assertSucceeds(reports(as("brgy"),
+    where("municipality", "==", "Bambang"), where("barangay", "==", "Poblacion")));
+  // Dropping the limit does not widen scope.
+  await assertFails(reports(as("muni"), where("municipality", "==", "Solano")));
+  await assertFails(reports(as("brgy"), where("municipality", "==", "Bambang")));
+});

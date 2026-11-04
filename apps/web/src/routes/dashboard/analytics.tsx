@@ -15,7 +15,7 @@ export const Route = createFileRoute("/dashboard/analytics")({
 function AnalyticsPage() {
   const { getEffectiveMunicipality, user } = useAuthStore();
   const municipality = getEffectiveMunicipality();
-  const { reports, loading } = useReports(municipality);
+  const { reports, loading } = useReports(municipality, { uncapped: true });
 
   return (
     <div className="p-3 sm:p-5 lg:p-6 space-y-5 max-w-[1600px] mx-auto">

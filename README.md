@@ -382,7 +382,7 @@ does today rather than on intent. Each item is tracked for the pre-pilot work.
 **Report workflow**
 - The status lifecycle (`reported → acknowledged → under_review → ongoing → solved`) is **not enforced**: an admin may move a report straight to `solved`. Validation is operator practice, not a gate. (SOS verification *is* enforced in `firestore.rules`.)
 - Routing targets an administrative **tier** (barangay / municipal / provincial / Region II), not a named office. There is no MDRRMO/BDRRMC referral record or office-level assignment; the nearest field is a free-text assigned-responder name.
-- Report deletion is audited, but the audit entry **cannot name who deleted** the report (Firestore triggers carry no caller identity). Closing a report *without action* — the recommended route for false, duplicate, incomplete or unverifiable reports — does record the admin.
+- Reports can be deleted only through a server function that requires a reason and records **who deleted** the report; direct deletes are refused by `firestore.rules`. Closing a report *without action* remains the recommended route for false, duplicate, incomplete or unverifiable reports.
 
 **Alerts**
 - Alerts composed by an admin publish **immediately** — there is no second approver. (Automated weather alerts are different: they are only drafted, and reach the public after an in-scope admin approves them.)
@@ -395,9 +395,9 @@ does today rather than on intent. Each item is tracked for the pre-pilot work.
 - There is no **proxy / on-behalf-of reporting**, so a barangay official or family member cannot formally file for a resident who has no smartphone.
 
 **Measurement**
-- No timestamps exist for acknowledgement or referral, so **response and referral time cannot be computed**. Resolution time is recorded only when a report is closed from the mobile admin app — the web console does not write `resolvedAt`.
-- The console's "Overdue / past SLA" figure is **not meaningful**: the SLA table's category keys do not match the app's real category names, so every report falls back to a flat 72 hours.
-- Dashboard analytics read at most the **256 most recent reports**, so figures understate at scale.
+- Acknowledgement, referral and resolution times are stamped server-side from this release on, so **reports filed before it have no response timings**.
+- SLA targets are set by priority and overdue reports alert the responsible admins, but the targets stay labelled **provisional** until the PDRRMO confirms them.
+- The Analytics page counts every report in scope. The dashboard home, report table and map still show the **256 most recent** reports, so the home-screen totals understate at scale.
 - There is **no uptime measurement or health endpoint**.
 
 **Testing**

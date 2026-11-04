@@ -62,7 +62,13 @@ function toReport(d: {
   };
 }
 
-export function useReports(municipality: string | null) {
+// Live lists (dashboard, table, map) show the most recent LIVE_LIMIT reports.
+// Analytics passes { uncapped: true } so its counts and timings cover every
+// report in scope; Firestore sends only changes after the first load.
+const LIVE_LIMIT = 256;
+
+export function useReports(municipality: string | null, opts?: { uncapped?: boolean }) {
+  const uncapped = opts?.uncapped === true;
   const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
   const user = useAuthStore((s) => s.user);
@@ -78,14 +84,14 @@ export function useReports(municipality: string | null) {
     // Municipal admin has approved for escalation (escalatedToProvince == true).
     // A specific-municipality view still shows all of that town's reports so the
     // Municipal admin can triage and approve them.
-    const q = scopedBarangay !== null && municipality
-      ? query(base,
-          where("municipality", "==", municipality),
-          where("barangay", "==", scopedBarangay),
-          orderBy("reportedAt", "desc"), limit(256))
+    const scope = scopedBarangay !== null && municipality
+      ? [where("municipality", "==", municipality), where("barangay", "==", scopedBarangay)]
       : municipality
-        ? query(base, where("municipality", "==", municipality), orderBy("reportedAt", "desc"), limit(256))
-        : query(base, where("escalatedToProvince", "==", true), orderBy("reportedAt", "desc"), limit(256));
+        ? [where("municipality", "==", municipality)]
+        : [where("escalatedToProvince", "==", true)];
+    const q = uncapped
+      ? query(base, ...scope, orderBy("reportedAt", "desc"))
+      : query(base, ...scope, orderBy("reportedAt", "desc"), limit(LIVE_LIMIT));
 
     const unsub = onSnapshot(
       q,
@@ -94,7 +100,7 @@ export function useReports(municipality: string | null) {
     );
 
     return unsub;
-  }, [municipality, scopedBarangay]);
+  }, [municipality, scopedBarangay, uncapped]);
 
   return { reports, loading };
 }
