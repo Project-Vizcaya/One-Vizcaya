@@ -326,11 +326,14 @@ service cloud.firestore {
       // not "all" and not another town. The actorMunicipality() != '' guard
       // stops an admin with no municipality on their profile from matching an
       // empty municipality field, which onNewAnnouncement treats as "All".
-      allow create, update: if isProvincialAdmin()
+      // `delivery` (push counts) is written only by onNewAnnouncement.
+      allow create, update: if (isProvincialAdmin()
                             || (role() == 'municipal_admin'
                                 && actorMunicipality() != ''
                                 && request.resource.data.get('municipality', '')
-                                   == actorMunicipality());
+                                   == actorMunicipality()))
+                            && request.resource.data.get('delivery', null)
+                               == (resource == null ? null : resource.data.get('delivery', null));
       allow delete:        if isProvincialAdmin();
     }
 
@@ -354,13 +357,15 @@ service cloud.firestore {
       // spellings are therefore checked here. The actorMunicipality() != ''
       // guard stops an admin with no municipality on their profile from
       // matching an empty municipality field and reaching everyone.
-      allow create: if isProvincialAdmin()
+      // `delivery` (push counts) is written only by onNewBroadcast.
+      allow create: if (isProvincialAdmin()
                     || (role() == 'municipal_admin'
                         && actorMunicipality() != ''
                         && (request.resource.data.get('municipality', '')
                               == actorMunicipality()
                             || request.resource.data.get('scope', '')
-                              == actorMunicipality()));
+                              == actorMunicipality())))
+                    && !('delivery' in request.resource.data);
       allow delete: if isProvincialAdmin();
     }
 

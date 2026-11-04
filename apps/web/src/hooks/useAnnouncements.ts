@@ -13,6 +13,7 @@ import {
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import type { Announcement, Broadcast } from "@/types";
+import { toDelivery } from "@/lib/delivery";
 
 export function useAnnouncements() {
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
@@ -33,6 +34,7 @@ export function useAnnouncements() {
             timestamp: data.timestamp instanceof Timestamp ? data.timestamp.toDate() : new Date(),
             municipality: data.municipality ?? "all",
             scheduledFor: data.scheduledFor instanceof Timestamp ? data.scheduledFor.toDate() : undefined,
+            delivery: toDelivery(data.delivery),
           } as Announcement;
         })
       );

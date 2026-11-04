@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Card, CardContent } from "@/components/ui/card";
 import { BroadcastCard } from "@/components/broadcasts/BroadcastCard";
 import { PendingAlertsCard } from "@/components/broadcasts/PendingAlertsCard";
+import { RecentBroadcastsCard } from "@/components/broadcasts/RecentBroadcastsCard";
 import { useAuthStore } from "@/stores/authStore";
 
 export const Route = createFileRoute("/dashboard/broadcasts")({
@@ -37,6 +38,7 @@ function BroadcastsPage() {
             <BroadcastCard />
           </CardContent>
         </Card>
+        <RecentBroadcastsCard />
       </div>
     </div>
   );

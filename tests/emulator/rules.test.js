@@ -275,3 +275,21 @@ test("the analytics page's uncapped report queries are allowed exactly as writte
   await assertFails(reports(as("muni"), where("municipality", "==", "Solano")));
   await assertFails(reports(as("brgy"), where("municipality", "==", "Bambang")));
 });
+
+// ── push delivery counts are server-written (P2) ───────────────────────────
+
+test("admins cannot write an alert's delivery counts themselves", async () => {
+  const b = { title: "t", body: "b", scope: "municipality", municipality: "Bambang" };
+  await assertSucceeds(setDoc(doc(as("muni"), "broadcasts/x1"), b));
+  await assertFails(setDoc(doc(as("muni"), "broadcasts/x2"), { ...b, delivery: { delivered: 9999 } }));
+  await assertFails(setDoc(doc(as("prov"), "broadcasts/x3"), { ...b, delivery: { delivered: 9999 } }));
+
+  const a = { title: "t", body: "b", municipality: "Bambang" };
+  await assertSucceeds(setDoc(doc(as("muni"), "announcements/y1"), a));
+  await assertFails(setDoc(doc(as("muni"), "announcements/y2"), { ...a, delivery: { delivered: 1 } }));
+  await env.withSecurityRulesDisabled((ctx) =>
+    updateDoc(doc(ctx.firestore(), "announcements/y1"), { delivery: { delivered: 3 } }));
+  // Editing the announcement keeps working; changing the counts does not.
+  await assertSucceeds(updateDoc(doc(as("muni"), "announcements/y1"), { body: "edited" }));
+  await assertFails(updateDoc(doc(as("prov"), "announcements/y1"), { delivery: { delivered: 9999 } }));
+});

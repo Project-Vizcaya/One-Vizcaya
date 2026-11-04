@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { postAnnouncement, deleteAnnouncement } from "@/hooks/useAnnouncements";
+import { deliveryLabel } from "@/lib/delivery";
 import { useAuthStore } from "@/stores/authStore";
 import { toast } from "@/hooks/useToast";
 import { timeAgo } from "@/lib/utils";
@@ -182,6 +183,7 @@ export function AnnouncementsCard({ announcements, loading }: AnnouncementsCardP
                   <p className="text-xs text-muted-foreground mt-1.5">
                     {a.postedBy} · {timeAgo(a.timestamp)}
                   </p>
+                  <p className="text-xs text-muted-foreground tabular-nums">{deliveryLabel(a.delivery, a.timestamp)}</p>
                 </div>
                 <Button
                   variant="ghost"

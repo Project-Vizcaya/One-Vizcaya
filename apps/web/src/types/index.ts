@@ -88,6 +88,16 @@ export interface Announcement {
   timestamp: Date;
   municipality: string;
   scheduledFor?: Date;
+  delivery?: Delivery;
+}
+
+/** Push counts written by the server after an alert is sent (P2). */
+export interface Delivery {
+  attempted: number;
+  delivered: number;
+  failed: number;
+  invalidTokensRemoved: number;
+  completedAt?: Date;
 }
 
 export interface Broadcast {

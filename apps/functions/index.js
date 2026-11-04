@@ -569,6 +569,35 @@ exports.onNewNotification = onDocumentCreated(
   }
 );
 
+// ── Push delivery accounting (P2) ───────────────────────────────────────────
+const { sendWithAccounting, recipientsFrom } = require("./messaging/delivery");
+
+// Writes the per-alert delivery counts onto the alert document and removes
+// tokens FCM reported as permanently dead, so future alerts do not keep
+// counting them as failures. A token is removed only if the profile still holds
+// that same token (the app may have registered a new one in the meantime).
+async function finishDelivery(ref, result) {
+  const db = admin.firestore();
+  await ref.update({
+    delivery: {
+      attempted: result.attempted,
+      delivered: result.delivered,
+      failed: result.failed,
+      invalidTokensRemoved: result.deadTokens.length,
+      completedAt: admin.firestore.FieldValue.serverTimestamp(),
+    },
+  });
+  for (const { uid, token } of result.deadTokens) {
+    const userRef = db.collection("users").doc(uid);
+    await db.runTransaction(async (tx) => {
+      const snap = await tx.get(userRef);
+      if (snap.exists && snap.data().fcmToken === token) {
+        tx.update(userRef, { fcmToken: admin.firestore.FieldValue.delete() });
+      }
+    }).catch((e) => console.error(`Could not prune token for ${uid}:`, e));
+  }
+}
+
 /**
  * Sends a push notification to all users in a municipality
  * when a broadcast document is created.
@@ -606,13 +635,7 @@ exports.onNewBroadcast = onDocumentCreated(
       : db.collection("users").where("fcmToken", "!=", null);
 
     const usersSnap = await query.get();
-    if (usersSnap.empty) return;
-
-    const tokens = usersSnap.docs
-      .map((d) => d.data().fcmToken)
-      .filter(Boolean);
-
-    if (tokens.length === 0) return;
+    const recipients = recipientsFrom(usersSnap.docs);
 
     // Distinguish an urgent broadcast in the notification tray: a 🚨 URGENT
     // title prefix, and routing to the dedicated high-importance "urgent"
@@ -622,36 +645,30 @@ exports.onNewBroadcast = onDocumentCreated(
     // presenter can render its own urgent takeover without the prefix.
     const pushTitle = urgent ? `🚨 URGENT · ${title}` : title;
 
-    // Send in batches of 500 (FCM limit)
-    for (let i = 0; i < tokens.length; i += 500) {
-      const batch = tokens.slice(i, i + 500);
-      await admin
-        .messaging()
-        .sendEachForMulticast({
-          tokens: batch,
-          notification: { title: pushTitle, body },
-          // Data payload lets the app recognise a broadcast: in the foreground it
-          // presents the in-app urgent takeover / heads-up banner (and suppresses
-          // the generic toast), and a tray tap opens the same presentation.
-          data: {
-            type: "broadcast",
-            urgent: urgent ? "true" : "false",
-            title: String(title),
-            body: String(body),
-          },
-          android: {
-            priority: "high",
-            notification: {
-              channelId: urgent ? "one_vizcaya_urgent" : "one_vizcaya_broadcasts",
-              notificationPriority: urgent ? "PRIORITY_MAX" : "PRIORITY_HIGH",
-              visibility: "public",
-              defaultSound: true,
-              color: urgent ? "#8B0000" : "#1B5E20",
-            },
-          },
-        })
-        .catch((e) => console.error("Batch FCM failed:", e));
-    }
+    // Batches of 500 (FCM limit) and per-token accounting: messaging/delivery.js.
+    const result = await sendWithAccounting(admin.messaging(), recipients, {
+      notification: { title: pushTitle, body },
+      // Data payload lets the app recognise a broadcast: in the foreground it
+      // presents the in-app urgent takeover / heads-up banner (and suppresses
+      // the generic toast), and a tray tap opens the same presentation.
+      data: {
+        type: "broadcast",
+        urgent: urgent ? "true" : "false",
+        title: String(title),
+        body: String(body),
+      },
+      android: {
+        priority: "high",
+        notification: {
+          channelId: urgent ? "one_vizcaya_urgent" : "one_vizcaya_broadcasts",
+          notificationPriority: urgent ? "PRIORITY_MAX" : "PRIORITY_HIGH",
+          visibility: "public",
+          defaultSound: true,
+          color: urgent ? "#8B0000" : "#1B5E20",
+        },
+      },
+    });
+    await finishDelivery(event.data.ref, result);
   }
 );
 
@@ -683,10 +700,7 @@ exports.onNewAnnouncement = onDocumentCreated(
       : db.collection("users").where("municipality", "==", municipality);
 
     const usersSnap = await query.get();
-    if (usersSnap.empty) return;
-
-    const tokens = usersSnap.docs.map((d) => d.data().fcmToken).filter(Boolean);
-    if (tokens.length === 0) return;
+    const recipients = recipientsFrom(usersSnap.docs);
 
     const isUrgent = data.isUrgent === true;
     // Urgent announcements get the same tray distinction as urgent broadcasts:
@@ -696,30 +710,24 @@ exports.onNewAnnouncement = onDocumentCreated(
     const pushTitle = isUrgent ? `🚨 URGENT · ${title}` : title;
     const pushBody = (body || "").slice(0, 240);
 
-    for (let i = 0; i < tokens.length; i += 500) {
-      const batch = tokens.slice(i, i + 500);
-      await admin
-        .messaging()
-        .sendEachForMulticast({
-          tokens: batch,
-          notification: { title: pushTitle, body: pushBody },
-          android: {
-            priority: "high",
-            notification: {
-              channelId: isUrgent ? "one_vizcaya_urgent" : "one_vizcaya_announcements",
-              notificationPriority: isUrgent ? "PRIORITY_MAX" : "PRIORITY_DEFAULT",
-              visibility: "public",
-              defaultSound: true,
-              color: isUrgent ? "#8B0000" : "#1B5E20",
-            },
-          },
-          data: {
-            type: "announcement",
-            click_action: "FLUTTER_NOTIFICATION_CLICK",
-          },
-        })
-        .catch((e) => console.error("Announcement FCM batch failed:", e));
-    }
+    const result = await sendWithAccounting(admin.messaging(), recipients, {
+      notification: { title: pushTitle, body: pushBody },
+      android: {
+        priority: "high",
+        notification: {
+          channelId: isUrgent ? "one_vizcaya_urgent" : "one_vizcaya_announcements",
+          notificationPriority: isUrgent ? "PRIORITY_MAX" : "PRIORITY_DEFAULT",
+          visibility: "public",
+          defaultSound: true,
+          color: isUrgent ? "#8B0000" : "#1B5E20",
+        },
+      },
+      data: {
+        type: "announcement",
+        click_action: "FLUTTER_NOTIFICATION_CLICK",
+      },
+    });
+    await finishDelivery(event.data.ref, result);
   }
 );
 
