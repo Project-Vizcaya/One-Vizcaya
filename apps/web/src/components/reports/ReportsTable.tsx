@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { format } from "date-fns";
 import { Download, Search, Filter, AlertCircle, Clock, User, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,8 @@ import { toast } from "@/hooks/useToast";
 import { cn, isOverdue } from "@/lib/utils";
 import { useSla, slaHoursFor } from "@/lib/sla";
 import type { Report, ReportStatus } from "@/types";
+
+const PAGE = 100;
 
 const STATUS_FILTERS = [
   { value: "all",          label: "All" },
@@ -79,11 +81,19 @@ export function ReportsTable({ reports, loading, initialFilter = "all" }: Report
     return list;
   }, [reports, statusFilter, showCritical, showOverdue, showAssignedMe, search, dateFrom, dateTo, userName, sla]);
 
-  const allChecked = filtered.length > 0 && filtered.every((r) => selected.has(r.id));
+  // Rendered PAGE rows at a time: every report in scope is loaded, but a
+  // province's full history would be slow as one table. Filters reset it.
+  const [shown, setShown] = useState(PAGE);
+  useEffect(() => { setShown(PAGE); }, [statusFilter, showCritical, showOverdue, showAssignedMe, search, dateFrom, dateTo]);
+  const visible = filtered.slice(0, shown);
+
+  // "Select all" covers the rows on screen only, so a bulk status change can
+  // never touch reports the admin has not seen.
+  const allChecked = visible.length > 0 && visible.every((r) => selected.has(r.id));
 
   const toggleAll = useCallback(() => {
-    setSelected(allChecked ? new Set() : new Set(filtered.map((r) => r.id)));
-  }, [allChecked, filtered]);
+    setSelected(allChecked ? new Set() : new Set(visible.map((r) => r.id)));
+  }, [allChecked, visible]);
 
   const toggleRow = useCallback((id: string) => {
     setSelected((prev) => {
@@ -314,7 +324,7 @@ export function ReportsTable({ reports, loading, initialFilter = "all" }: Report
                   </td>
                 </tr>
               ) : (
-                filtered.map((r) => {
+                visible.map((r) => {
                   const overdue = isOverdue(r.reportedAt, r.status, slaHoursFor(sla, r.priority));
                   return (
                     <tr
@@ -369,9 +379,16 @@ export function ReportsTable({ reports, loading, initialFilter = "all" }: Report
         </div>
       </div>
 
-      <p className="text-[11px] text-muted-foreground text-right" aria-live="polite">
-        {filtered.length} of {reports.length} reports
-      </p>
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        {filtered.length > visible.length ? (
+          <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => setShown((n) => n + PAGE)}>
+            Show {Math.min(PAGE, filtered.length - visible.length)} more ({filtered.length - visible.length} not shown)
+          </Button>
+        ) : <span />}
+        <p className="text-xs text-muted-foreground text-right" aria-live="polite">
+          Showing {visible.length} of {filtered.length} matching · {reports.length} reports in total
+        </p>
+      </div>
 
       <ReportDetail report={selectedReport} open={!!selectedReport} onClose={() => setSelectedReport(null)} />
     </div>

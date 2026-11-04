@@ -278,13 +278,13 @@ test("only provincial admins can change SLA targets; admins can read them", asyn
   await assertSucceeds(getDoc(doc(as("muni"), "config/sla")));
 });
 
-// ── uncapped analytics queries (P2, README limitation) ─────────────────────
+// ── uncapped report queries, used by every console page (P2) ──────────────
 
-test("the analytics page's uncapped report queries are allowed exactly as written", async () => {
+test("the console's uncapped report queries are allowed exactly as written", async () => {
   const { collectionGroup, orderBy } = require("firebase/firestore");
   await env.withSecurityRulesDisabled((ctx) => setDoc(doc(ctx.firestore(), "users/brgy"),
     { role: "barangay_admin", municipality: "Bambang", barangay: "Poblacion" }));
-  // Same shape as useReports(..., { uncapped: true }): no limit().
+  // Same shape as useReports(): no limit().
   const reports = (fs, ...scope) =>
     getDocs(query(collectionGroup(fs, "reports"), ...scope, orderBy("reportedAt", "desc")));
   await assertSucceeds(reports(as("muni"), where("municipality", "==", "Bambang")));

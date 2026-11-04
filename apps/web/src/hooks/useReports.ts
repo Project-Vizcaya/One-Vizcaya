@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import {
-  collectionGroup, query, orderBy, limit, where,
+  collectionGroup, query, orderBy, where,
   onSnapshot, doc, updateDoc, Timestamp, arrayUnion,
   deleteField, serverTimestamp,
 } from "firebase/firestore";
@@ -76,13 +76,11 @@ function toReferral(v: unknown): Referral | undefined {
   };
 }
 
-// Live lists (dashboard, table, map) show the most recent LIVE_LIMIT reports.
-// Analytics passes { uncapped: true } so its counts and timings cover every
-// report in scope; Firestore sends only changes after the first load.
-const LIVE_LIMIT = 256;
-
-export function useReports(municipality: string | null, opts?: { uncapped?: boolean }) {
-  const uncapped = opts?.uncapped === true;
+// Every report in scope, for every page (dashboard, table, map, analytics).
+// No limit: counts and lists must be complete. All pages use the same query,
+// so the Firestore SDK shares one listener between them, and after the first
+// load it sends only changes. The table renders in pages (ReportsTable).
+export function useReports(municipality: string | null) {
   const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
   const user = useAuthStore((s) => s.user);
@@ -103,9 +101,7 @@ export function useReports(municipality: string | null, opts?: { uncapped?: bool
       : municipality
         ? [where("municipality", "==", municipality)]
         : [where("escalatedToProvince", "==", true)];
-    const q = uncapped
-      ? query(base, ...scope, orderBy("reportedAt", "desc"))
-      : query(base, ...scope, orderBy("reportedAt", "desc"), limit(LIVE_LIMIT));
+    const q = query(base, ...scope, orderBy("reportedAt", "desc"));
 
     const unsub = onSnapshot(
       q,
@@ -114,7 +110,7 @@ export function useReports(municipality: string | null, opts?: { uncapped?: bool
     );
 
     return unsub;
-  }, [municipality, scopedBarangay, uncapped]);
+  }, [municipality, scopedBarangay]);
 
   return { reports, loading };
 }

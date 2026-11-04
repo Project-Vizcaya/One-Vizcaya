@@ -193,8 +193,6 @@ cd apps/mobile && flutter test
 
 - Recording a referral does not notify the office.
 - The mobile admin app does not show or set referrals yet. Use the web console.
-- The dashboard home, report table and map show the 256 most recent reports.
-  **Analytics** counts all of them.
 - Load testing has been done on the local emulator only, not in production
   ([`tests/emulator/load/README.md`](../tests/emulator/load/README.md)).
 - The Tagalog and Ilocano safety wording still awaits a native speaker's review
