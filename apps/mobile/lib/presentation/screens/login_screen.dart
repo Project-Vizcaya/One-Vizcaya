@@ -303,7 +303,7 @@ class _LoginScreenState extends State<LoginScreen>
                             'Connecting you to your municipality',
                             style: TextStyle(
                               fontSize: 13,
-                              color: Colors.grey.shade500,
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
                             ),
                           ),
                         ),
@@ -341,7 +341,7 @@ class _LoginScreenState extends State<LoginScreen>
                             ),
                             decoration: InputDecoration(
                               hintText: '09171234567',
-                              hintStyle: TextStyle(color: Colors.grey.shade400),
+                              hintStyle: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
                               prefixIcon: Padding(
                                 padding: const EdgeInsets.only(
                                   left: 16,
@@ -437,7 +437,7 @@ class _LoginScreenState extends State<LoginScreen>
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                 fontSize: 12,
-                                color: Colors.grey.shade500,
+                                color: Theme.of(context).colorScheme.onSurfaceVariant,
                               ),
                             ),
                           ),
@@ -505,7 +505,7 @@ class _LoginScreenState extends State<LoginScreen>
                             'or',
                             style: TextStyle(
                               fontSize: 13,
-                              color: Colors.grey.shade400,
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
                             ),
                           ),
                         ),
@@ -708,7 +708,7 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
               Text(
                 'Enter the 6-digit code sent to your phone.',
                 textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.grey.shade500, fontSize: 14),
+                style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 14),
               ),
               const SizedBox(height: 32),
               TextFormField(
@@ -716,7 +716,7 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
                 decoration: InputDecoration(
                   hintText: '• • • • • •',
                   hintStyle: TextStyle(
-                    color: Colors.grey.shade400,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                     fontSize: 24,
                     letterSpacing: 8,
                   ),

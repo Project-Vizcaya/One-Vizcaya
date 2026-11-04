@@ -284,7 +284,7 @@ class _MunicipalityInfoSheetState extends State<_MunicipalityInfoSheet> {
                         'Compiled from public sources for general information.',
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                            fontSize: 12, color: Colors.grey.shade500),
+                            fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
                       ),
                     ),
                   ],

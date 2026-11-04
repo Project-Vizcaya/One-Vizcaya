@@ -219,7 +219,7 @@ class UrgentBroadcastScreen extends StatelessWidget {
                                   _formatTime(timestamp!),
                                   style: TextStyle(
                                     fontSize: 12,
-                                    color: Colors.grey[500],
+                                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                                   ),
                                 ),
                               ),

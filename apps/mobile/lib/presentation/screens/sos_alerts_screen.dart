@@ -71,7 +71,7 @@ class SosAlertsScreen extends StatelessWidget {
                       style: TextStyle(fontWeight: FontWeight.bold)),
                   const SizedBox(height: 4),
                   Text('New SOS alerts appear here instantly.',
-                      style: TextStyle(color: Colors.grey.shade500, fontSize: 12)),
+                      style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12)),
                 ],
               ),
             );
@@ -185,7 +185,7 @@ class _SosCard extends StatelessWidget {
                 if (alert.updatedAt != null)
                   Text(
                     'updated ${TimeOfDay.fromDateTime(alert.updatedAt!.toLocal()).format(context)}',
-                    style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+                    style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
                   ),
               ],
             ),
@@ -241,7 +241,7 @@ class _SosCard extends StatelessWidget {
                   style: TextStyle(
                       fontSize: 12,
                       fontStyle: FontStyle.italic,
-                      color: Colors.grey.shade500)),
+                      color: Theme.of(context).colorScheme.onSurfaceVariant)),
             if (alert.note != null && alert.note!.isNotEmpty) ...[
               const SizedBox(height: 4),
               Text('“${alert.note}”',

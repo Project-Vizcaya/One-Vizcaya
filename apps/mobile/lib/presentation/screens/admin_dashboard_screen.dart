@@ -741,7 +741,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                   fontSize: 12,
-                                  color: Colors.grey.shade500),
+                                  color: Theme.of(context).colorScheme.onSurfaceVariant),
                             ),
                             const SizedBox(height: 8),
                             const Text(
@@ -2240,7 +2240,7 @@ class _ReportDetailSheet extends StatelessWidget {
                       'to Provincial / Region II when it exceeds local capacity.',
                       textAlign: TextAlign.center,
                       style: TextStyle(
-                          fontSize: 12, color: Colors.grey.shade500),
+                          fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
                     ),
                   ],
 
@@ -2272,7 +2272,7 @@ class _ReportDetailSheet extends StatelessWidget {
                       'Sends this report to the Provincial Administrator\'s dashboard.',
                       textAlign: TextAlign.center,
                       style: TextStyle(
-                          fontSize: 12, color: Colors.grey.shade500),
+                          fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
                     ),
                   ],
                 ],
@@ -2853,7 +2853,7 @@ class _AdminReportCard extends StatelessWidget {
                       child: Text(
                         'Tap card for details',
                         style: TextStyle(
-                            fontSize: 12, color: Colors.grey.shade400),
+                            fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
                       ),
                     ),
                     if (report.status != ReportStatus.acknowledged)
@@ -3111,7 +3111,7 @@ class _AnnouncementsTab extends StatelessWidget {
                       Text('Tap the + button below to post one',
                           style: TextStyle(
                               fontSize: 13,
-                              color: Colors.grey.shade400)),
+                              color: Theme.of(context).colorScheme.onSurfaceVariant)),
                     ],
                   ),
                 );
@@ -3259,7 +3259,7 @@ class _AnnouncementsTab extends StatelessWidget {
                                   '${timestamp.month}/${timestamp.day}/${timestamp.year}',
                                   style: TextStyle(
                                       fontSize: 12,
-                                      color: Colors.grey.shade400),
+                                      color: Theme.of(context).colorScheme.onSurfaceVariant),
                                 ),
                             ],
                           ),
@@ -3268,7 +3268,7 @@ class _AnnouncementsTab extends StatelessWidget {
                             'By $postedBy',
                             style: TextStyle(
                                 fontSize: 12,
-                                color: Colors.grey.shade500),
+                                color: Theme.of(context).colorScheme.onSurfaceVariant),
                           ),
                         ],
                       ),
@@ -3488,7 +3488,7 @@ class _AddAnnouncementSheetState
                               : 'For ${widget.municipality} residents',
                           style: TextStyle(
                               fontSize: 12,
-                              color: Colors.grey.shade500),
+                              color: Theme.of(context).colorScheme.onSurfaceVariant),
                         ),
                       ],
                     ),
@@ -3580,7 +3580,7 @@ class _AddAnnouncementSheetState
                           Text('Target Audience',
                               style: TextStyle(
                                   fontSize: 12,
-                                  color: Colors.grey.shade500)),
+                                  color: Theme.of(context).colorScheme.onSurfaceVariant)),
                           Text(widget.municipality,
                               style: TextStyle(
                                   fontSize: 15,
@@ -3673,7 +3673,7 @@ class _AddAnnouncementSheetState
                       'Shows red border and URGENT badge to citizens',
                       style: TextStyle(
                           fontSize: 12,
-                          color: Colors.grey.shade500)),
+                          color: Theme.of(context).colorScheme.onSurfaceVariant)),
                   value: _isUrgent,
                   activeColor: Colors.red,
                   onChanged: (v) => setState(() => _isUrgent = v),
@@ -4047,13 +4047,13 @@ class _AnalyticsTab extends StatelessWidget {
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
-                color: Colors.grey.shade500,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
             const SizedBox(height: 6),
             Text(
               'Analytics will appear once reports are submitted.',
-              style: TextStyle(fontSize: 13, color: Colors.grey.shade400),
+              style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onSurfaceVariant),
               textAlign: TextAlign.center,
             ),
           ],
@@ -4775,7 +4775,7 @@ class _RoleManagementTabState extends State<_RoleManagementTab> {
                       const SizedBox(height: 12),
                       Text('No users found',
                           style: TextStyle(
-                              color: Colors.grey.shade500)),
+                              color: Theme.of(context).colorScheme.onSurfaceVariant)),
                     ],
                   ),
                 );
@@ -4849,7 +4849,7 @@ class _RoleManagementTabState extends State<_RoleManagementTab> {
                             Text(phone,
                                 style: TextStyle(
                                     fontSize: 12,
-                                    color: Colors.grey.shade400)),
+                                    color: Theme.of(context).colorScheme.onSurfaceVariant)),
                         ],
                       ),
                       trailing: Column(
@@ -4970,7 +4970,7 @@ class _RoleAssignDialogState extends State<_RoleAssignDialog> {
                   color: Colors.grey.shade600)),
           if (widget.phone.isNotEmpty)
             Text(widget.phone,
-                style: TextStyle(fontSize: 12, color: Colors.grey.shade400)),
+                style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant)),
         ],
       ),
       content: SizedBox(

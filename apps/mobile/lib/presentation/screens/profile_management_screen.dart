@@ -317,7 +317,7 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
                     ),
                     helperText: 'Used for report status notifications',
                     helperStyle: TextStyle(
-                      color: Colors.grey.shade500,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                       fontSize: 12,
                     ),
                   ),
@@ -560,7 +560,7 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
                                 'Long-press to copy UID',
                                 style: TextStyle(
                                   fontSize: 12,
-                                  color: Colors.grey.shade400,
+                                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                                   fontStyle: FontStyle.italic,
                                 ),
                               ),
@@ -573,7 +573,7 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
                             _profile!.email,
                             style: TextStyle(
                               fontSize: 13,
-                              color: Colors.grey.shade500,
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
                             ),
                           ),
                         ],
@@ -593,7 +593,7 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
                                   _profile!.location,
                                   style: TextStyle(
                                     fontSize: 13,
-                                    color: Colors.grey.shade500,
+                                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                                   ),
                                   overflow: TextOverflow.ellipsis,
                                   maxLines: 1,
@@ -763,7 +763,7 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
                               '${_totalReports > 0 ? ((_resolvedReports / _totalReports) * 100).round() : 0}% resolved',
                               style: TextStyle(
                                 fontSize: 12,
-                                color: Colors.grey.shade500,
+                                color: Theme.of(context).colorScheme.onSurfaceVariant,
                               ),
                             ),
                           ],
@@ -802,7 +802,7 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
-                              color: Colors.grey.shade500,
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
                               letterSpacing: 1.2,
                             ),
                           ),

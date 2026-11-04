@@ -185,14 +185,14 @@ class DevelopersScreen extends StatelessWidget {
           Center(
             child: Text(
               'One Vizcaya • ${AppConstants.appVersionDisplay}',
-              style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+              style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
             ),
           ),
           const SizedBox(height: 4),
           Center(
             child: Text(
               'Made for the People of Nueva Vizcaya',
-              style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+              style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
             ),
           ),
         ],

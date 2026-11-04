@@ -329,6 +329,9 @@ ThemeData _buildDarkTheme() {
       secondary: accent,
       surface: surface,
       onSurface: textPrimary,
+      // Secondary text (~7.6:1 on surface). Without it ColorScheme falls back
+      // to onSurface, so secondary text lost its distinction from primary.
+      onSurfaceVariant: textSecondary,
       surfaceContainerHighest: surfaceHigh,
       error: Color(0xFFEF5350),
     ),

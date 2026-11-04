@@ -196,7 +196,7 @@ class _AnnouncementsListState extends State<_AnnouncementsList> {
                   '${snapshot.error}',
                   textAlign: TextAlign.center,
                   style:
-                      TextStyle(fontSize: 12, color: Colors.grey.shade400),
+                      TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
                 ),
               ],
             ),
@@ -630,7 +630,7 @@ class _AnnouncementCardState extends State<_AnnouncementCard> {
                         timeago.format(timestamp),
                         style: TextStyle(
                           fontSize: 12,
-                          color: Colors.grey.shade400,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
                       ),
                     const SizedBox(width: 8),

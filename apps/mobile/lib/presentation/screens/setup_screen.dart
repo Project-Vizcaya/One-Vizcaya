@@ -349,7 +349,7 @@ class _MunicipalitySetupScreenState extends State<MunicipalitySetupScreen> {
                     'You can update your name and municipality later from your Profile.',
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                        fontSize: 12, color: Colors.grey.shade400),
+                        fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
                   ),
                 ],
               ),
