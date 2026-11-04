@@ -59,3 +59,28 @@ test("saved SLA targets are honoured and drop the provisional flag", async () =>
   assert.deepEqual(ids, ["freshCritical", "overdueCritical"]);
   assert.equal((await audits())[0].slaProvisional, false);
 });
+
+test("more than 3 overdue reports in one town get one summary push, but each is audited", async () => {
+  const sent = [];
+  const { Messaging } = require("firebase-admin/messaging");
+  const real = Messaging.prototype.sendEachForMulticast;
+  Messaging.prototype.sendEachForMulticast = async (m) => { sent.push(m); return { responses: m.tokens.map(() => ({ success: true })) }; };
+  try {
+    await db.doc("users/muni").update({ fcmToken: "tok-muni" });
+    for (let i = 0; i < 5; i++) {
+      await db.doc(`users/citizen/reports/bulk${i}`).set({ municipality: "Bambang", category: "Flooding",
+        status: "reported", priority: "medium", reportedAt: ago(100) });
+    }
+    await run({});
+  } finally {
+    Messaging.prototype.sendEachForMulticast = real;
+  }
+  const medium = sent.filter((m) => m.data.type === "report_overdue_summary");
+  assert.equal(medium.length, 1, "one summary for the five medium reports");
+  assert.match(medium[0].notification.title, /^5 reports overdue in Bambang/);
+  // The single critical one still gets its own linked push.
+  assert.ok(sent.some((m) => m.data.type === "report_overdue" && m.data.reportId === "overdueCritical"));
+  const a = await audits();
+  assert.equal(a.filter((x) => x.reportId.startsWith("bulk")).length, 5);
+  assert.ok(a.filter((x) => x.reportId.startsWith("bulk")).every((x) => x.summarised === true));
+});

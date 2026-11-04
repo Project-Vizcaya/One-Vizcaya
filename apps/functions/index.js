@@ -204,7 +204,14 @@ exports.stampReportMilestones = onDocumentUpdated(
 // Each escalation is stamped on the report (slaEscalatedAt) and audited.
 // While the targets are still the provisional defaults, the alert says so.
 const { resolveSla, slaBreach, OPEN_STATUSES } = require("./reports/sla");
-const ESCALATIONS_PER_RUN = 200; // bounds a backlog's first run
+// Bounds one run's time; oldest first, so the worst cases go first. In the
+// emulator load test (tests/emulator/load) 2000 overdue reports clear in one
+// run in under a second, far inside the 120 s timeout.
+const ESCALATIONS_PER_RUN = 5000;
+// Up to this many newly overdue reports per town per run get one push each
+// (linked to the report); more than that get ONE summary push for the town,
+// so a disaster backlog does not bury admins in hundreds of notifications.
+const PER_REPORT_PUSH_MAX = 3;
 
 exports.escalateOverdueReports = scheduled("escalateOverdueReports", 
   { schedule: "every 15 minutes", timeZone: "Asia/Manila", timeoutSeconds: 120 },
@@ -217,54 +224,96 @@ exports.escalateOverdueReports = scheduled("escalateOverdueReports",
       .orderBy("reportedAt")
       .get();
     const now = Date.now();
-    let sent = 0;
+
+    // Group newly overdue reports by town and by tier of who is alerted.
+    const groups = new Map();
+    let total = 0;
     for (const d of snap.docs) {
-      if (sent >= ESCALATIONS_PER_RUN) break;
+      if (total >= ESCALATIONS_PER_RUN) break;
       const r = d.data();
       const b = slaBreach(r, sla, now);
       if (!b) continue;
-      sent++;
+      total++;
+      const urgentTier = b.priority === "critical" || b.priority === "high";
+      const key = `${r.municipality || ""}|${urgentTier}`;
+      if (!groups.has(key)) groups.set(key, { municipality: r.municipality || null, urgentTier, items: [] });
+      groups.get(key).items.push({ d, r, b });
+    }
+
+    const openFor = (h) => (h < 48 ? `${Math.round(h)} h` : `${Math.round(h / 24)} days`);
+    const send = (tokens, msg) => (async () => {
+      for (let i = 0; i < tokens.length; i += 500) {
+        await admin.messaging().sendEachForMulticast({ ...msg, tokens: tokens.slice(i, i + 500) });
+      }
+    })();
+
+    for (const g of groups.values()) {
       try {
-        const urgentTier = b.priority === "critical" || b.priority === "high";
-        let tokens = await adminTokensFor(db, r.municipality, { includeProvincial: urgentTier });
-        if (!tokens.length && !urgentTier) tokens = await adminTokensFor(db, r.municipality);
-        const open = b.hoursOpen < 48 ? `${Math.round(b.hoursOpen)} h` : `${Math.round(b.hoursOpen / 24)} days`;
-        const body = `${r.category || "A report"} in ${r.municipality || "Nueva Vizcaya"} has been open ${open} ` +
-          `(target ${b.hoursAllowed} h${sla.provisional ? ", provisional" : ""}).` +
-          (b.unacknowledged ? " No one has responded yet." : "");
-        for (let i = 0; i < tokens.length; i += 500) {
-          await admin.messaging().sendEachForMulticast({
-            tokens: tokens.slice(i, i + 500),
-            notification: { title: `Overdue ${b.priority} report`, body },
-            data: { type: "report_overdue", reportId: d.id, userId: d.ref.parent.parent.id },
-            android: {
-              priority: "high",
-              notification: { channelId: urgentTier ? "one_vizcaya_urgent" : "one_vizcaya_reports" },
+        let tokens = await adminTokensFor(db, g.municipality, { includeProvincial: g.urgentTier });
+        if (!tokens.length && !g.urgentTier) tokens = await adminTokensFor(db, g.municipality);
+        const android = {
+          priority: "high",
+          notification: { channelId: g.urgentTier ? "one_vizcaya_urgent" : "one_vizcaya_reports" },
+        };
+        const town = g.municipality || "Nueva Vizcaya";
+        if (g.items.length <= PER_REPORT_PUSH_MAX) {
+          for (const { d, r, b } of g.items) {
+            const body = `${r.category || "A report"} in ${town} has been open ${openFor(b.hoursOpen)} ` +
+              `(target ${b.hoursAllowed} h${sla.provisional ? ", provisional" : ""}).` +
+              (b.unacknowledged ? " No one has responded yet." : "");
+            await send(tokens, {
+              notification: { title: `Overdue ${b.priority} report`, body },
+              data: { type: "report_overdue", reportId: d.id, userId: d.ref.parent.parent.id },
+              android,
+            });
+          }
+        } else {
+          const n = g.items.length;
+          const silent = g.items.filter((x) => x.b.unacknowledged).length;
+          const oldest = Math.max(...g.items.map((x) => x.b.hoursOpen));
+          await send(tokens, {
+            notification: {
+              title: `${n} ${g.urgentTier ? "high-priority " : ""}reports overdue in ${town}`,
+              body: `Oldest open ${openFor(oldest)}.` +
+                (silent ? ` ${silent} not yet responded to.` : "") +
+                (sla.provisional ? " Targets are provisional." : ""),
             },
+            data: { type: "report_overdue_summary", municipality: g.municipality || "", count: String(n) },
+            android,
           });
         }
-        await d.ref.update({
-          slaEscalatedAt: admin.firestore.FieldValue.serverTimestamp(),
-          slaHoursAllowed: b.hoursAllowed,
-        });
-        await db.collection("audit_logs").add({
-          action: "report_sla_breached",
-          reportId: d.id,
-          reportOwnerUid: d.ref.parent.parent.id,
-          municipality: r.municipality || null,
-          priority: b.priority,
-          hoursAllowed: b.hoursAllowed,
-          hoursOpen: Math.round(b.hoursOpen * 10) / 10,
-          unacknowledged: b.unacknowledged,
-          slaProvisional: sla.provisional,
-          notifiedAdmins: tokens.length,
-          at: admin.firestore.FieldValue.serverTimestamp(),
-        });
+
+        // Stamp and audit every report, batched (2 writes each).
+        for (let i = 0; i < g.items.length; i += 200) {
+          const batch = db.batch();
+          for (const { d, r, b } of g.items.slice(i, i + 200)) {
+            batch.update(d.ref, {
+              slaEscalatedAt: admin.firestore.FieldValue.serverTimestamp(),
+              slaHoursAllowed: b.hoursAllowed,
+            });
+            batch.set(db.collection("audit_logs").doc(), {
+              action: "report_sla_breached",
+              reportId: d.id,
+              reportOwnerUid: d.ref.parent.parent.id,
+              municipality: r.municipality || null,
+              priority: b.priority,
+              hoursAllowed: b.hoursAllowed,
+              hoursOpen: Math.round(b.hoursOpen * 10) / 10,
+              unacknowledged: b.unacknowledged,
+              slaProvisional: sla.provisional,
+              notifiedAdmins: tokens.length,
+              summarised: g.items.length > PER_REPORT_PUSH_MAX,
+              at: admin.firestore.FieldValue.serverTimestamp(),
+            });
+          }
+          await batch.commit();
+        }
       } catch (e) {
-        console.error(`escalateOverdueReports ${d.id} failed:`, e);
+        // Not stamped, so the next run retries this group.
+        console.error(`escalateOverdueReports ${g.municipality} failed:`, e);
       }
     }
-    if (sent) console.log(`escalateOverdueReports: escalated ${sent} report(s).`);
+    if (total) console.log(`escalateOverdueReports: escalated ${total} report(s) in ${groups.size} group(s).`);
   }
 );
 
