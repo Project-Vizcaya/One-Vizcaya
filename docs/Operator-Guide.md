@@ -106,7 +106,9 @@ Go to **Broadcasts**.
 **Sending one that needs approval.** Compose it and click **Request Approval**.
 Nothing goes out yet. The other in-scope admins get an "Approval needed" push.
 
-**Approving.** The alert appears under **Alerts awaiting approval**.
+**Approving.** The alert appears under **Alerts awaiting approval** in the web
+console, and as a banner at the top of the mobile admin dashboard (tapping the
+"Approval needed" push opens it).
 - Read it, and check PAGASA advisories for weather alerts.
 - Click **Approve…** then **Confirm and send**.
 - You cannot approve an alert you proposed. You can **Withdraw** it instead.

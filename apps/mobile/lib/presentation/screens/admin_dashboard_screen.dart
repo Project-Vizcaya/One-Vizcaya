@@ -7,6 +7,7 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import 'package:fl_chart/fl_chart.dart';
+import '../widgets/pending_alert_drafts.dart';
 import '../../domain/models/problem_report.dart';
 import '../../domain/enums/report_priority.dart';
 import '../../domain/enums/report_status.dart';
@@ -706,6 +707,11 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
       body: Column(
         children: [
           _buildSosBanner(),
+          // Alerts awaiting approval (P3): municipal admins and above, who are
+          // the ones decideAlertDraft lets decide.
+          if (_canSeeAnnouncements)
+            PendingAlertDraftsBanner(
+                municipality: _isProvincialView ? null : _activeMunicipalityName),
           Expanded(
             child: TabBarView(
         controller: tabController,

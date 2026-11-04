@@ -154,6 +154,13 @@ class NotificationService {
       return;
     }
 
+    // "Approval needed" push to admins: open the admin dashboard, whose
+    // banner lists the alerts awaiting approval.
+    if (data['type'] == 'alert_draft') {
+      navigatorKey?.currentState?.pushNamed('/admin');
+      return;
+    }
+
     final reportId = data['reportId'] as String?;
     if (reportId != null && reportId.isNotEmpty) {
       navigatorKey?.currentState?.pushNamed(
