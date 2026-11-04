@@ -48,6 +48,7 @@ const CANNED_RESPONSES = [
 ];
 
 const STATUS_VARIANT: Record<ReportStatus, "reported" | "acknowledged" | "under_review" | "ongoing" | "solved" | "closed"> = {
+  archived:     "closed",
   reported:     "reported",
   acknowledged: "acknowledged",
   under_review: "under_review",
@@ -206,7 +207,9 @@ export function ReportDetail({ report, open, onClose }: ReportDetailProps) {
                 {report.priority}
               </Badge>
               <Badge variant={STATUS_VARIANT[report.status]} className="text-[10px] capitalize">
-                {report.status.replace("_", " ")}
+                {report.status === "archived" && report.statusBeforeArchive
+                  ? `archived · was ${report.statusBeforeArchive.replace("_", " ")}`
+                  : report.status.replace("_", " ")}
               </Badge>
               <Badge variant="outline" className="text-[10px]">
                 {HANDLING_LABEL[level]}

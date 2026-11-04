@@ -22,7 +22,7 @@ const PRIORITY_DOT: Record<string, string> = {
 
 const STATUS_VARIANT: Record<string, "reported" | "acknowledged" | "under_review" | "ongoing" | "solved" | "closed"> = {
   reported: "reported", acknowledged: "acknowledged", under_review: "under_review",
-  ongoing: "ongoing", solved: "solved", closed: "closed",
+  ongoing: "ongoing", solved: "solved", closed: "closed", archived: "closed",
 };
 
 function DashboardOverview() {

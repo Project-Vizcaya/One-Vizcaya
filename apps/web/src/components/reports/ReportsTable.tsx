@@ -25,10 +25,11 @@ const STATUS_FILTERS = [
   { value: "ongoing",      label: "Ongoing" },
   { value: "solved",       label: "Solved" },
   { value: "closed",       label: "Closed (no action)" },
+  { value: "archived",     label: "Archived (12+ months)" },
 ] as const;
 
 const STATUS_VARIANT: Record<string, "reported" | "acknowledged" | "under_review" | "ongoing" | "solved" | "closed"> = {
-  reported: "reported", acknowledged: "acknowledged", under_review: "under_review", ongoing: "ongoing", solved: "solved", closed: "closed",
+  reported: "reported", acknowledged: "acknowledged", under_review: "under_review", ongoing: "ongoing", solved: "solved", closed: "closed", archived: "closed",
 };
 
 const PRIORITY_VARIANT: Record<string, "critical" | "high" | "medium" | "low"> = {

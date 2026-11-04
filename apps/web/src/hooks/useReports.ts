@@ -60,6 +60,7 @@ function toReport(d: {
     dispositionAt:     data.dispositionAt ? toDate(data.dispositionAt) : undefined,
     duplicateOf:       data.duplicateOf as string | undefined,
     referral:          toReferral(data.referral),
+    statusBeforeArchive: data.statusBeforeArchive as string | undefined,
   };
 }
 

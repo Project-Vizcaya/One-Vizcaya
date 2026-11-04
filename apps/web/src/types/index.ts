@@ -2,7 +2,9 @@ import type { AdminRole } from "@/lib/firebase";
 
 // "closed" = closed WITHOUT action, always with a ReportDisposition (§8).
 // Distinct from "solved" so a false report is never counted as resolved.
-export type ReportStatus = "reported" | "acknowledged" | "under_review" | "ongoing" | "solved" | "closed";
+// "archived": set by archiveOldReports 12 months after filing (retention);
+// statusBeforeArchive keeps what it was.
+export type ReportStatus = "reported" | "acknowledged" | "under_review" | "ongoing" | "solved" | "closed" | "archived";
 export type ReportDisposition = "false_report" | "duplicate" | "incomplete" | "unverifiable";
 export type ReportPriority = "critical" | "high" | "medium" | "low";
 // Administrative tier currently handling a report. Mirrors the mobile
@@ -71,6 +73,7 @@ export interface Report {
   dispositionAt?: Date;
   duplicateOf?: string;
   referral?: Referral;
+  statusBeforeArchive?: string;
 }
 
 export interface Responder {

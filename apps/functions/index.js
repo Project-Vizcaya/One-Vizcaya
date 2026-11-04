@@ -583,6 +583,8 @@ exports.migrateLegacyAdmins = onCall(async (request) => {
 // ── Auto-archive reports older than 12 months ───────────────────────────────
 // Runs daily at 2 AM Manila time. Marks reports with reportedAt > 12 months
 // as 'archived' so they no longer appear in active admin views.
+const { archiveUpdate, dueForDeletion } = require("./reports/retention");
+
 exports.archiveOldReports = scheduled("archiveOldReports", 
   { schedule: "0 2 * * *", timeZone: "Asia/Manila" },
   async () => {
@@ -598,9 +600,11 @@ exports.archiveOldReports = scheduled("archiveOldReports",
       .where("reportedAt", "<", cutoffTs)
       .get();
 
-    const toArchive = snapshot.docs.filter(
-      (d) => d.data().status !== "archived"
-    );
+    // Rule (and statusBeforeArchive) in ./reports/retention.js.
+    const nowMs = Date.now();
+    const toArchive = snapshot.docs
+      .map((d) => ({ ref: d.ref, update: archiveUpdate(d.data(), nowMs) }))
+      .filter((x) => x.update);
 
     if (toArchive.length === 0) {
       console.log("archiveOldReports: nothing to archive");
@@ -612,7 +616,7 @@ exports.archiveOldReports = scheduled("archiveOldReports",
     let count = 0;
     for (const doc of toArchive) {
       batch.update(doc.ref, {
-        status: "archived",
+        ...doc.update,
         archivedAt: admin.firestore.FieldValue.serverTimestamp(),
       });
       count++;
@@ -1842,7 +1846,15 @@ exports.deleteOldArchivedReports = scheduled("deleteOldArchivedReports",
       .where("reportedAt", "<", cutoffTs)
       .get();
 
-    if (snapshot.empty) {
+    // Only reports that went through the archive step (./reports/retention.js).
+    const nowMs = Date.now();
+    const due = snapshot.docs.filter((d) => dueForDeletion(d.data(), nowMs));
+    const skipped = snapshot.size - due.length;
+    if (skipped) {
+      console.warn(`deleteOldArchivedReports: ${skipped} report(s) older than 24 months are not archived; ` +
+        "kept until archiveOldReports archives them.");
+    }
+    if (due.length === 0) {
       console.log("deleteOldArchivedReports: nothing to delete");
       return;
     }
@@ -1851,7 +1863,7 @@ exports.deleteOldArchivedReports = scheduled("deleteOldArchivedReports",
     let batch = db.batch();
     let count = 0;
     let deleted = 0;
-    for (const doc of snapshot.docs) {
+    for (const doc of due) {
       await deleteImageByUrl(doc.data().imageUrl);
       batch.delete(doc.ref);
       count++;
@@ -1863,7 +1875,7 @@ exports.deleteOldArchivedReports = scheduled("deleteOldArchivedReports",
       }
     }
     if (count > 0) await batch.commit();
-    console.log(`deleteOldArchivedReports: deleted ${deleted} reports older than 24 months`);
+    console.log(`deleteOldArchivedReports: deleted ${deleted} archived reports older than 24 months`);
   }
 );
 
