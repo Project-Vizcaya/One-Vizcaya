@@ -12,7 +12,7 @@ import { updateReportStatus } from "@/hooks/useReports";
 import { useAuthStore } from "@/stores/authStore";
 import { toast } from "@/hooks/useToast";
 import { cn, isOverdue } from "@/lib/utils";
-import { SLA_HOURS } from "@/lib/firebase";
+import { useSla, slaHoursFor } from "@/lib/sla";
 import type { Report, ReportStatus } from "@/types";
 
 const STATUS_FILTERS = [
@@ -41,6 +41,7 @@ interface ReportsTableProps {
 
 export function ReportsTable({ reports, loading, initialFilter = "all" }: ReportsTableProps) {
   const { user } = useAuthStore();
+  const sla = useSla();
   const [statusFilter, setStatusFilter] = useState<string>(initialFilter);
   const [showCritical, setShowCritical] = useState(false);
   const [showOverdue, setShowOverdue] = useState(false);
@@ -60,7 +61,7 @@ export function ReportsTable({ reports, loading, initialFilter = "all" }: Report
     let list = reports;
     if (statusFilter !== "all") list = list.filter((r) => r.status === statusFilter);
     if (showCritical) list = list.filter((r) => r.priority === "critical");
-    if (showOverdue) list = list.filter((r) => isOverdue(r.reportedAt, r.status, SLA_HOURS[r.category] ?? 72));
+    if (showOverdue) list = list.filter((r) => isOverdue(r.reportedAt, r.status, slaHoursFor(sla, r.priority)));
     // Compare by responder name (stored field), not UID
     if (showAssignedMe && userName) list = list.filter((r) => r.assignedResponder === userName);
     if (search) {
@@ -76,7 +77,7 @@ export function ReportsTable({ reports, loading, initialFilter = "all" }: Report
     if (dateFrom) list = list.filter((r) => r.reportedAt >= new Date(dateFrom));
     if (dateTo)   list = list.filter((r) => r.reportedAt <= new Date(`${dateTo}T23:59:59`));
     return list;
-  }, [reports, statusFilter, showCritical, showOverdue, showAssignedMe, search, dateFrom, dateTo, userName]);
+  }, [reports, statusFilter, showCritical, showOverdue, showAssignedMe, search, dateFrom, dateTo, userName, sla]);
 
   const allChecked = filtered.length > 0 && filtered.every((r) => selected.has(r.id));
 
@@ -314,7 +315,7 @@ export function ReportsTable({ reports, loading, initialFilter = "all" }: Report
                 </tr>
               ) : (
                 filtered.map((r) => {
-                  const overdue = isOverdue(r.reportedAt, r.status, SLA_HOURS[r.category] ?? 72);
+                  const overdue = isOverdue(r.reportedAt, r.status, slaHoursFor(sla, r.priority));
                   return (
                     <tr
                       key={r.id}

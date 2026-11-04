@@ -26,14 +26,3 @@ export const NV_ZOOM = 10;
 export const ADMIN_ROLES = ["barangay_admin", "admin", "municipal_admin", "provincial_admin", "super_admin"] as const;
 export type AdminRole = (typeof ADMIN_ROLES)[number];
 
-export const SLA_HOURS: Record<string, number> = {
-  "Natural Disaster": 2,
-  "Medical Emergency": 1,
-  "Fire Incident": 1,
-  "Crime / Security": 2,
-  "Water Supply": 24,
-  "Road / Infrastructure": 48,
-  "Power Outage": 12,
-  "Environmental Hazard": 8,
-  Other: 72,
-};

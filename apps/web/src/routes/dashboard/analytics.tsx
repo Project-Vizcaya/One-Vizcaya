@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AnalyticsCharts } from "@/components/analytics/AnalyticsCharts";
 import { StatsGrid } from "@/components/dashboard/StatsGrid";
 import { ResponseTimeline } from "@/components/analytics/ResponseTimeline";
+import { SlaSettingsCard } from "@/components/analytics/SlaSettingsCard";
 import { useReports } from "@/hooks/useReports";
 import { useAuthStore } from "@/stores/authStore";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -43,6 +44,8 @@ function AnalyticsPage() {
       )}
 
       {!loading && <ResponseTimeline reports={reports} />}
+
+      <SlaSettingsCard />
 
       <Card>
         <CardHeader className="pb-2 border-b">

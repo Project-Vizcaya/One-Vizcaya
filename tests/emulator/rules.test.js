@@ -248,3 +248,12 @@ test("the report-delete exclusion does not stop super admins deleting other thin
   await env.withSecurityRulesDisabled((ctx) => setDoc(doc(ctx.firestore(), "zz_bypass_only/y"), { a: 1 }));
   await assertSucceeds(deleteDoc(doc(as("super"), "zz_bypass_only/y")));
 });
+
+// ── SLA targets (P2, PDRRMO §7/§14) ────────────────────────────────────────
+
+test("only provincial admins can change SLA targets; admins can read them", async () => {
+  await assertSucceeds(setDoc(doc(as("prov"), "config/sla"), { hoursByPriority: { critical: 2 }, provisional: true }));
+  await assertFails(setDoc(doc(as("muni"), "config/sla"), { hoursByPriority: { critical: 999 } }));
+  await assertFails(setDoc(doc(as("citizen"), "config/sla"), { hoursByPriority: { critical: 999 } }));
+  await assertSucceeds(getDoc(doc(as("muni"), "config/sla")));
+});

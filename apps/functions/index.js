@@ -141,6 +141,78 @@ exports.stampReportMilestones = onDocumentUpdated(
   }
 );
 
+// ── Escalation of overdue reports (PDRRMO §7, §14) ───────────────────────────
+// Every 15 minutes, finds OPEN reports past their SLA target (config/sla, see
+// ./reports/sla.js) and alerts the responsible admins once per report: the
+// town's municipal admins always, and provincial admins too for critical and
+// high priority — or when the town has no municipal admin to receive it.
+// Each escalation is stamped on the report (slaEscalatedAt) and audited.
+// While the targets are still the provisional defaults, the alert says so.
+const { resolveSla, slaBreach, OPEN_STATUSES } = require("./reports/sla");
+const ESCALATIONS_PER_RUN = 200; // bounds a backlog's first run
+
+exports.escalateOverdueReports = onSchedule(
+  { schedule: "every 15 minutes", timeZone: "Asia/Manila", timeoutSeconds: 120 },
+  async () => {
+    const db = admin.firestore();
+    const sla = resolveSla((await db.doc("config/sla").get()).data());
+    // Uses the existing (status, reportedAt) collection-group index.
+    const snap = await db.collectionGroup("reports")
+      .where("status", "in", OPEN_STATUSES)
+      .orderBy("reportedAt")
+      .get();
+    const now = Date.now();
+    let sent = 0;
+    for (const d of snap.docs) {
+      if (sent >= ESCALATIONS_PER_RUN) break;
+      const r = d.data();
+      const b = slaBreach(r, sla, now);
+      if (!b) continue;
+      sent++;
+      try {
+        const urgentTier = b.priority === "critical" || b.priority === "high";
+        let tokens = await adminTokensFor(db, r.municipality, { includeProvincial: urgentTier });
+        if (!tokens.length && !urgentTier) tokens = await adminTokensFor(db, r.municipality);
+        const open = b.hoursOpen < 48 ? `${Math.round(b.hoursOpen)} h` : `${Math.round(b.hoursOpen / 24)} days`;
+        const body = `${r.category || "A report"} in ${r.municipality || "Nueva Vizcaya"} has been open ${open} ` +
+          `(target ${b.hoursAllowed} h${sla.provisional ? ", provisional" : ""}).` +
+          (b.unacknowledged ? " No one has responded yet." : "");
+        for (let i = 0; i < tokens.length; i += 500) {
+          await admin.messaging().sendEachForMulticast({
+            tokens: tokens.slice(i, i + 500),
+            notification: { title: `Overdue ${b.priority} report`, body },
+            data: { type: "report_overdue", reportId: d.id, userId: d.ref.parent.parent.id },
+            android: {
+              priority: "high",
+              notification: { channelId: urgentTier ? "one_vizcaya_urgent" : "one_vizcaya_reports" },
+            },
+          });
+        }
+        await d.ref.update({
+          slaEscalatedAt: admin.firestore.FieldValue.serverTimestamp(),
+          slaHoursAllowed: b.hoursAllowed,
+        });
+        await db.collection("audit_logs").add({
+          action: "report_sla_breached",
+          reportId: d.id,
+          reportOwnerUid: d.ref.parent.parent.id,
+          municipality: r.municipality || null,
+          priority: b.priority,
+          hoursAllowed: b.hoursAllowed,
+          hoursOpen: Math.round(b.hoursOpen * 10) / 10,
+          unacknowledged: b.unacknowledged,
+          slaProvisional: sla.provisional,
+          notifiedAdmins: tokens.length,
+          at: admin.firestore.FieldValue.serverTimestamp(),
+        });
+      } catch (e) {
+        console.error(`escalateOverdueReports ${d.id} failed:`, e);
+      }
+    }
+    if (sent) console.log(`escalateOverdueReports: escalated ${sent} report(s).`);
+  }
+);
+
 // ── Notify citizen when report status changes ────────────────────────────────
 exports.notifyOnStatusChange = onDocumentUpdated(
   "users/{userId}/reports/{reportId}",
@@ -985,9 +1057,13 @@ async function draftAutomatedAlert(db, { title, body, municipality, urgent, sour
   return ref.id;
 }
 
-async function notifyAdminsOfDraft(db, draftId, municipality, title, urgent) {
+// FCM tokens of the admins responsible for a municipality: its municipal
+// admins, plus provincial-tier admins when includeProvincial is set.
+async function adminTokensFor(db, municipality, { includeProvincial = true } = {}) {
   const [provSnap, muniSnap] = await Promise.all([
-    db.collection("users").where("role", "in", PROVINCIAL_ROLES).get(),
+    includeProvincial
+      ? db.collection("users").where("role", "in", PROVINCIAL_ROLES).get()
+      : Promise.resolve({ forEach: () => {} }),
     db.collection("users").where("role", "==", "municipal_admin").get(),
   ]);
   const tokens = new Set();
@@ -996,7 +1072,11 @@ async function notifyAdminsOfDraft(db, draftId, municipality, title, urgent) {
     const u = d.data();
     if (u.fcmToken && u.municipality === municipality) tokens.add(u.fcmToken);
   });
-  const list = Array.from(tokens);
+  return Array.from(tokens);
+}
+
+async function notifyAdminsOfDraft(db, draftId, municipality, title, urgent) {
+  const list = await adminTokensFor(db, municipality);
   for (let i = 0; i < list.length; i += 500) {
     await admin.messaging().sendEachForMulticast({
       tokens: list.slice(i, i + 500),

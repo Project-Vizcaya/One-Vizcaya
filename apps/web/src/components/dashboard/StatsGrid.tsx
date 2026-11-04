@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { ClipboardList, AlertCircle, Wrench, CheckCircle2, UserX, Clock } from "lucide-react";
 import { cn, isOverdue, isOpenReport } from "@/lib/utils";
-import { SLA_HOURS } from "@/lib/firebase";
+import { useSla, slaHoursFor } from "@/lib/sla";
 import type { Report } from "@/types";
 
 const ICON_COLORS: Record<string, { icon: string; strip: string; bg: string }> = {
@@ -59,6 +59,7 @@ interface StatsGridProps {
 }
 
 export function StatsGrid({ reports, onFilterChange }: StatsGridProps) {
+  const sla = useSla();
   const stats = useMemo(() => {
     const open = reports.filter(isOpenReport);
     return {
@@ -67,9 +68,9 @@ export function StatsGrid({ reports, onFilterChange }: StatsGridProps) {
       ongoing: reports.filter((r) => r.status === "ongoing").length,
       resolved: reports.filter((r) => r.status === "solved").length,
       unassigned: open.filter((r) => !r.assignedResponder).length,
-      overdue: open.filter((r) => isOverdue(r.reportedAt, r.status, SLA_HOURS[r.category] ?? 72)).length,
+      overdue: open.filter((r) => isOverdue(r.reportedAt, r.status, slaHoursFor(sla, r.priority))).length,
     };
-  }, [reports]);
+  }, [reports, sla]);
 
   const cards = [
     { id: "total",      label: "Total Reports",   value: stats.total,       icon: <ClipboardList className="h-4 w-4 sm:h-5 sm:w-5" aria-hidden />, sub: "All reports",           filter: "all" },
@@ -77,7 +78,7 @@ export function StatsGrid({ reports, onFilterChange }: StatsGridProps) {
     { id: "ongoing",    label: "Ongoing",         value: stats.ongoing,     icon: <Wrench        className="h-4 w-4 sm:h-5 sm:w-5" aria-hidden />, sub: "Being addressed",       filter: "ongoing" },
     { id: "resolved",   label: "Resolved",        value: stats.resolved,    icon: <CheckCircle2  className="h-4 w-4 sm:h-5 sm:w-5" aria-hidden />, sub: "Completed reports",     filter: "solved" },
     { id: "unassigned", label: "Unassigned",      value: stats.unassigned,  icon: <UserX         className="h-4 w-4 sm:h-5 sm:w-5" aria-hidden />, sub: "No responder assigned", filter: "unassigned" },
-    { id: "overdue",    label: "Overdue",         value: stats.overdue,     icon: <Clock         className="h-4 w-4 sm:h-5 sm:w-5" aria-hidden />, sub: "Past SLA deadline",     filter: "overdue" },
+    { id: "overdue",    label: "Overdue",         value: stats.overdue,     icon: <Clock         className="h-4 w-4 sm:h-5 sm:w-5" aria-hidden />, sub: sla.provisional ? "Past SLA · provisional targets" : "Past SLA deadline", filter: "overdue" },
   ];
 
   return (
