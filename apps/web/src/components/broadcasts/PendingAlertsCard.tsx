@@ -100,14 +100,14 @@ export function PendingAlertsCard() {
     <Card>
       <CardHeader className="pb-2">
         <CardTitle className="text-sm flex items-center gap-1.5">
-          <Bot className="h-4 w-4" /> Automated alerts awaiting approval
+          <Bot aria-hidden="true" className="h-4 w-4" /> Automated alerts awaiting approval
         </CardTitle>
         <p className="text-xs text-muted-foreground">
           Weather watchers draft these from third-party forecast data. None is sent to the public until an admin approves it.
         </p>
       </CardHeader>
       <CardContent className="space-y-3">
-        {loading && <p className="text-xs text-muted-foreground flex items-center gap-1.5"><Loader2 className="h-3.5 w-3.5 animate-spin" /> Loading…</p>}
+        {loading && <p className="text-xs text-muted-foreground flex items-center gap-1.5"><Loader2 aria-hidden="true" className="h-3.5 w-3.5 animate-spin" /> Loading…</p>}
         {!loading && drafts.length === 0 && <p className="text-xs text-muted-foreground">No automated alerts awaiting approval.</p>}
         {drafts.map((d) => {
           const expired = !!d.expiresAt && d.expiresAt.getTime() < now;
@@ -131,36 +131,36 @@ export function PendingAlertsCard() {
               {confirming === d.id ? (
                 <div className="rounded-md bg-muted/50 p-2 space-y-2">
                   <p className="text-xs flex items-start gap-1.5">
-                    <AlertTriangle className="h-3.5 w-3.5 mt-0.5 shrink-0 text-amber-600" />
+                    <AlertTriangle aria-hidden="true" className="h-3.5 w-3.5 mt-0.5 shrink-0 text-amber-600" />
                     This sends a push notification to every user in {d.municipality}
                     {d.urgent ? " as an URGENT alert (sound and pop-up)" : ""}. Check PAGASA advisories before approving.
                   </p>
                   <div className="flex gap-2">
                     <Button size="sm" className="h-7 text-xs" disabled={busy === d.id} onClick={() => decide(d, "approve")}>
-                      {busy === d.id ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <Check className="h-3.5 w-3.5 mr-1" />}Confirm and send
+                      {busy === d.id ? <Loader2 aria-hidden="true" className="h-3.5 w-3.5 animate-spin mr-1" /> : <Check aria-hidden="true" className="h-3.5 w-3.5 mr-1" />}Confirm and send
                     </Button>
-                    <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setConfirming(null)}>Cancel</Button>
+                    <Button size="sm" variant="ghost" className="h-7 text-xs" disabled={busy === d.id} onClick={() => setConfirming(null)}>Cancel</Button>
                   </div>
                 </div>
               ) : rejecting === d.id ? (
                 <div className="space-y-2">
-                  <Textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="Why it is not being sent (optional, recorded in the audit log)" className="text-xs min-h-[60px]" />
+                  <Textarea value={note} onChange={(e) => setNote(e.target.value)} aria-label="Reason for rejecting (optional)" placeholder="Why it is not being sent (optional, recorded in the audit log)…" className="text-xs min-h-[60px]" />
                   <div className="flex gap-2">
                     <Button size="sm" variant="destructive" className="h-7 text-xs" disabled={busy === d.id} onClick={() => decide(d, "reject")}>
-                      {busy === d.id ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <X className="h-3.5 w-3.5 mr-1" />}Reject
+                      {busy === d.id ? <Loader2 aria-hidden="true" className="h-3.5 w-3.5 animate-spin mr-1" /> : <X aria-hidden="true" className="h-3.5 w-3.5 mr-1" />}Reject
                     </Button>
-                    <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => { setRejecting(null); setNote(""); }}>Cancel</Button>
+                    <Button size="sm" variant="ghost" className="h-7 text-xs" disabled={busy === d.id} onClick={() => { setRejecting(null); setNote(""); }}>Cancel</Button>
                   </div>
                 </div>
               ) : (
                 <div className="flex gap-2">
                   {!expired && (
                     <Button size="sm" className="h-7 text-xs" onClick={() => { setConfirming(d.id); setRejecting(null); }}>
-                      <Check className="h-3.5 w-3.5 mr-1" /> Approve…
+                      <Check aria-hidden="true" className="h-3.5 w-3.5 mr-1" /> Approve…
                     </Button>
                   )}
                   <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => { setRejecting(d.id); setConfirming(null); }}>
-                    <X className="h-3.5 w-3.5 mr-1" /> {expired ? "Dismiss" : "Reject"}
+                    <X aria-hidden="true" className="h-3.5 w-3.5 mr-1" /> {expired ? "Dismiss" : "Reject"}
                   </Button>
                 </div>
               )}
