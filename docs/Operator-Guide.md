@@ -49,6 +49,14 @@ Open **Reports**, then click a report.
    unverifiable reports. A reason is required, and the resident sees the
    category. A closed report can be re-opened.
 
+**Duplicates.** A report's detail lists **likely duplicates**: other open
+reports of the same category in the same town, filed within 48 hours, in the
+same barangay or within about 500 m. Nothing is merged automatically. If one
+really is the same incident, click **Close it as a duplicate of this report**.
+It is closed without action as a duplicate, linked to this report, and its
+reporter is told. It can be re-opened. The detail also lists reports already
+linked as duplicates.
+
 **Filing for a resident without a phone.** On **Reports**, click **File for a
 resident**. Enter their name and how to reach them, and ask their permission
 first. The report is filed under your account, so status updates come to you

@@ -12,6 +12,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { updateReportStatus, assignResponder, addReportNote, deleteReport, transferReportLevel, closeReportWithDisposition, reopenReport } from "@/hooks/useReports";
 import { useResponders } from "@/hooks/useResponders";
 import { ReferralSection } from "@/components/reports/ReferralSection";
+import { DuplicatesSection } from "@/components/reports/DuplicatesSection";
 import { useAuthStore } from "@/stores/authStore";
 import { toast } from "@/hooks/useToast";
 import { cn, timeAgo, authorColor, DISPOSITION_OPTIONS, dispositionLabel } from "@/lib/utils";
@@ -65,9 +66,11 @@ interface ReportDetailProps {
   report: Report | null;
   open: boolean;
   onClose: () => void;
+  /** Reports in scope, for duplicate suggestions. */
+  allReports?: Report[];
 }
 
-export function ReportDetail({ report, open, onClose }: ReportDetailProps) {
+export function ReportDetail({ report, open, onClose, allReports = [] }: ReportDetailProps) {
   const { user } = useAuthStore();
   const { responders } = useResponders();
   const [status, setStatus] = useState<ReportStatus | "">(report?.status ?? "");
@@ -383,6 +386,9 @@ export function ReportDetail({ report, open, onClose }: ReportDetailProps) {
 
               {/* Refer to a named office (P2) */}
               <ReferralSection key={report.id} report={report} />
+
+              {/* Duplicate linking (P3) */}
+              <DuplicatesSection report={report} allReports={allReports} />
 
               {/* Route / transfer between administrative tiers (parity with the
                   mobile admin's 4-level routing). Escalating to Provincial or

@@ -392,7 +392,7 @@ export function ReportsTable({ reports, loading, initialFilter = "all" }: Report
         </p>
       </div>
 
-      <ReportDetail report={selectedReport} open={!!selectedReport} onClose={() => setSelectedReport(null)} />
+      <ReportDetail report={selectedReport} open={!!selectedReport} onClose={() => setSelectedReport(null)} allReports={reports} />
     </div>
   );
 }
