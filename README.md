@@ -385,7 +385,7 @@ does today rather than on intent. Each item is tracked for the pre-pilot work.
 - Reports can be deleted only through a server function that requires a reason and records **who deleted** the report; direct deletes are refused by `firestore.rules`. Closing a report *without action* remains the recommended route for false, duplicate, incomplete or unverifiable reports.
 
 **Alerts**
-- Alerts composed by an admin publish **immediately** — there is no second approver. (Automated weather alerts are different: they are only drafted, and reach the public after an in-scope admin approves them.)
+- **Urgent** and **province-wide** admin alerts need a **second admin's approval** before anything is sent; the proposer cannot approve their own. Routine single-town alerts still publish immediately. Automated weather alerts are only drafted and reach the public after an in-scope admin approves them. If no second admin is available, an urgent alert waits (it expires after 6 hours), so **keep at least two admins per town reachable**, and keep radio, barangay and hotline channels for life-threatening warnings.
 - Residents can re-read the 20 most recent broadcasts addressed to them (province-wide or their profile town) in the in-app inbox. Older alerts are not shown.
 - Each broadcast and announcement records how many phones Firebase Cloud Messaging accepted it for and how many failed, and dead registrations are removed. "Accepted" is not proof that a phone displayed it; there is no per-phone read receipt.
 

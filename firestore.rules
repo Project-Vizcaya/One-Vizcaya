@@ -189,7 +189,10 @@ service cloud.firestore {
       // itself is an evaluation error — which denies EVERY write and would
       // silently remove the bypass; tests/emulator guards against that.)
       allow write: if isSuperAdmin() && !(request.path[3] in serverOnlyCollections())
-                    && !(request.method == 'delete' && isReportPath());
+                    && !(request.method == 'delete' && isReportPath())
+                    // Broadcasts follow their own rule, so a super admin also
+                    // needs a second approver for urgent/province-wide alerts.
+                    && request.path[3] != 'broadcasts';
     }
 
     // users/{uid}/reports/{id} — deleted only via deleteReportWithReason.
@@ -383,25 +386,27 @@ service cloud.firestore {
                             || (actorMunicipality() != ''
                                 && (resource.data.get('scope', '') == actorMunicipality()
                                     || resource.data.get('municipality', '') == actorMunicipality()))));
-      // Provincial+ may broadcast to any scope (incl. province-wide). A
-      // Municipal admin may ONLY broadcast to their OWN municipality. Until now
-      // this was enforced in the composer UI alone, so any admin could write
-      // scope:"all" directly and onNewBroadcast would fan it out province-wide.
-      //
-      // onNewBroadcast resolves the target as: `municipality` if set, else
-      // `scope` when scope is itself a town name, else province-wide. Both
-      // spellings are therefore checked here. The actorMunicipality() != ''
-      // guard stops an admin with no municipality on their profile from
-      // matching an empty municipality field and reaching everyone.
+      // Provincial+ may broadcast to any town; a Municipal admin ONLY to their
+      // OWN municipality. onNewBroadcast targets `municipality` when it is set,
+      // and it is now required, so a direct write always reaches one town.
+      // The actorMunicipality() != '' guard stops an admin with no
+      // municipality on their profile from matching an empty field.
       // `delivery` (push counts) is written only by onNewBroadcast.
+      //
+      // Second approver (P2, PDRRMO §2): a client may only create a ROUTINE
+      // SINGLE-TOWN broadcast directly — not urgent, and with `municipality`
+      // set, which onNewBroadcast uses as the target. Urgent or province-wide
+      // alerts go through proposeAdminAlert and need a second admin's approval
+      // in decideAlertDraft, which writes the broadcast server-side.
       allow create: if (isProvincialAdmin()
                     || (role() == 'municipal_admin'
                         && actorMunicipality() != ''
-                        && (request.resource.data.get('municipality', '')
-                              == actorMunicipality()
-                            || request.resource.data.get('scope', '')
-                              == actorMunicipality())))
-                    && !('delivery' in request.resource.data);
+                        && request.resource.data.get('municipality', '')
+                             == actorMunicipality()))
+                    && !('delivery' in request.resource.data)
+                    && request.resource.data.get('urgent', false) == false
+                    && request.resource.data.get('municipality', '') is string
+                    && request.resource.data.get('municipality', '') != '';
       allow delete: if isProvincialAdmin();
     }
 

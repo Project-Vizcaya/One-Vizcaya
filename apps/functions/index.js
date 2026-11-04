@@ -1099,7 +1099,7 @@ const NV_MUNICIPALITY_COORDS = {
 // through decideAlertDraft. In-scope admins are pushed an "approval needed"
 // notice (admins only, never the public).
 const ALERT_DRAFT_TTL_MS = 6 * 60 * 60 * 1000; // a stale weather alert must not go out late
-const PROVINCIAL_ROLES = ["admin", "provincial_admin", "super_admin"];
+const { needsSecondApprover, canPropose, decisionError, PROVINCIAL_ROLES } = require("./alerts/approval");
 
 async function draftAutomatedAlert(db, { title, body, municipality, urgent, source, evidence }) {
   const ref = await db.collection("alert_drafts").add({
@@ -1138,14 +1138,15 @@ async function adminTokensFor(db, municipality, { includeProvincial = true } = {
   return Array.from(tokens);
 }
 
-async function notifyAdminsOfDraft(db, draftId, municipality, title, urgent) {
-  const list = await adminTokensFor(db, municipality);
+async function notifyAdminsOfDraft(db, draftId, municipality, title, urgent, { kind = "automated", excludeToken = null } = {}) {
+  const list = (await adminTokensFor(db, municipality)).filter((t) => t !== excludeToken);
+  const who = kind === "admin" ? "a second admin" : "an admin";
   for (let i = 0; i < list.length; i += 500) {
     await admin.messaging().sendEachForMulticast({
       tokens: list.slice(i, i + 500),
       notification: {
-        title: `Approval needed: automated ${urgent ? "URGENT " : ""}alert`,
-        body: `${title} — not sent to the public until an admin approves it.`,
+        title: `Approval needed: ${kind} ${urgent ? "URGENT " : ""}${municipality ? "" : "province-wide "}alert`,
+        body: `${title} — not sent to the public until ${who} approves it.`,
       },
       data: { type: "alert_draft", draftId },
       android: {
@@ -1176,32 +1177,29 @@ exports.decideAlertDraft = onCall(async (request) => {
     const snap = await tx.get(ref);
     if (!snap.exists) throw new HttpsError("not-found", "Draft not found.");
     const d = snap.data();
-    if (d.status !== "pending") {
-      throw new HttpsError("failed-precondition", `This alert was already ${d.status}.`);
-    }
-    const inScope = PROVINCIAL_ROLES.includes(role) ||
-      (role === "municipal_admin" && !!profile.municipality && profile.municipality === d.municipality);
-    if (!inScope) {
-      throw new HttpsError("permission-denied", "Only an admin for this municipality can decide this alert.");
-    }
+    // Scope, expiry and the second-approver rule: ./alerts/approval.js.
+    const err = decisionError(d, {
+      uid, role, profileMunicipality: profile.municipality, decision, nowMs: Date.now(),
+    });
+    if (err) throw new HttpsError(err.code, err.message);
+    const isAdminAlert = !!d.requestedBy;
 
     const now = admin.firestore.FieldValue.serverTimestamp();
     let broadcastId = null;
     if (decision === "approve") {
-      if (d.expiresAt && d.expiresAt.toMillis() < Date.now()) {
-        throw new HttpsError("failed-precondition",
-          "This draft has expired; conditions may have changed, so it was not sent.");
-      }
       const bRef = db.collection("broadcasts").doc();
       broadcastId = bRef.id;
       tx.set(bRef, {
         title: d.title,
         body: d.body,
-        scope: d.municipality,
+        // A town name, or "all" for a province-wide alert (onNewBroadcast and
+        // the resident inbox both read scope this way).
+        scope: d.municipality || "all",
         urgent: d.urgent === true,
         type: d.type || "weather",
         source: d.source || null,
         draftId,
+        ...(isAdminAlert ? { sentBy: d.requestedBy } : {}),
         approvedBy: uid,
         timestamp: now,
       });
@@ -1214,7 +1212,8 @@ exports.decideAlertDraft = onCall(async (request) => {
       broadcastId,
     });
     tx.set(db.collection("audit_logs").doc(), {
-      action: decision === "approve" ? "automated_alert_approved" : "automated_alert_rejected",
+      action: `${isAdminAlert ? "admin" : "automated"}_alert_${decision === "approve" ? "approved" : "rejected"}`,
+      requestedBy: d.requestedBy || null,
       draftId,
       broadcastId,
       municipality: d.municipality || null,
@@ -1226,6 +1225,64 @@ exports.decideAlertDraft = onCall(async (request) => {
     });
     return { status: decision === "approve" ? "approved" : "rejected", broadcastId };
   });
+});
+
+// Propose an urgent or province-wide alert for a second admin's approval
+// (P2, PDRRMO §2). firestore.rules no longer let a client create such a
+// broadcast directly; it becomes a pending draft that decideAlertDraft sends
+// once a DIFFERENT in-scope admin approves it. Routine single-town alerts
+// are still written straight to `broadcasts` by the console.
+exports.proposeAdminAlert = onCall(async (request) => {
+  if (!request.auth) throw new HttpsError("unauthenticated", "Must be signed in.");
+  const { title, body, urgent, municipality } = request.data || {};
+  const t = typeof title === "string" ? title.trim() : "";
+  const b = typeof body === "string" ? body.trim() : "";
+  if (t.length < 3 || t.length > 120 || b.length < 3 || b.length > 1000) {
+    throw new HttpsError("invalid-argument", "A title (3–120 characters) and message (3–1000) are required.");
+  }
+  const town = typeof municipality === "string" && municipality.trim() ? municipality.trim() : null;
+  const isUrgent = urgent === true;
+  if (!needsSecondApprover({ urgent: isUrgent, municipality: town })) {
+    throw new HttpsError("invalid-argument", "Routine single-town alerts are sent directly; no approval is needed.");
+  }
+  const uid = request.auth.uid;
+  const db = admin.firestore();
+  const role = await resolveCallerRole(request);
+  const profile = (await db.collection("users").doc(uid).get()).data() || {};
+  if (!canPropose(role, profile.municipality, town)) {
+    throw new HttpsError("permission-denied",
+      town ? "You can only send alerts for your own municipality." : "Only a provincial admin can send a province-wide alert.");
+  }
+
+  const ref = db.collection("alert_drafts").doc();
+  const now = admin.firestore.FieldValue.serverTimestamp();
+  const batch = db.batch();
+  batch.set(ref, {
+    title: t,
+    body: b,
+    municipality: town,
+    urgent: isUrgent,
+    type: "admin",
+    source: "Admin",
+    evidence: null,
+    status: "pending",
+    requestedBy: uid,
+    requestedByName: typeof profile.name === "string" ? profile.name : null,
+    createdAt: now,
+    expiresAt: admin.firestore.Timestamp.fromMillis(Date.now() + ALERT_DRAFT_TTL_MS),
+  });
+  batch.set(db.collection("audit_logs").doc(), {
+    action: "admin_alert_proposed",
+    draftId: ref.id,
+    municipality: town,
+    urgent: isUrgent,
+    requestedBy: uid,
+    at: now,
+  });
+  await batch.commit();
+  await notifyAdminsOfDraft(db, ref.id, town, t, isUrgent, { kind: "admin", excludeToken: profile.fcmToken || null })
+    .catch((e) => console.error("draft notification failed:", e));
+  return { draftId: ref.id };
 });
 
 /**

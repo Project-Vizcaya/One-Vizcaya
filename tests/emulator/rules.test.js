@@ -184,7 +184,9 @@ test("the super-admin bypass itself still grants writes (a collection no other r
 
 test("a municipal admin may broadcast only to their own town", async () => {
   await assertSucceeds(setDoc(doc(as("muni"), "broadcasts/b1"), { scope: "municipality", municipality: "Bambang" }));
-  await assertSucceeds(setDoc(doc(as("muni"), "broadcasts/b2"), { scope: "Bambang" }));
+  // The legacy `scope: <town>` spelling is no longer accepted from clients:
+  // `municipality` is required so the target is unambiguous (P2).
+  await assertFails(setDoc(doc(as("muni"), "broadcasts/b2"), { scope: "Bambang" }));
   await assertFails(setDoc(doc(as("muni"), "broadcasts/b3"), { scope: "all" }));
   await assertFails(setDoc(doc(as("muni"), "broadcasts/b4"), { scope: "municipality", municipality: "Solano" }));
 });
@@ -193,8 +195,25 @@ test("an admin with no municipality on their profile cannot reach everyone", asy
   await assertFails(setDoc(doc(as("muniNoTown"), "broadcasts/b5"), { scope: "all", municipality: "" }));
 });
 
-test("a provincial admin may broadcast province-wide", async () => {
-  await assertSucceeds(setDoc(doc(as("prov"), "broadcasts/b6"), { scope: "all" }));
+// ── second approver for urgent / province-wide alerts (P2) ─────────────────
+
+test("province-wide or urgent broadcasts cannot be written directly — not even by a super admin", async () => {
+  // These go through proposeAdminAlert -> a second admin's approval.
+  await assertFails(setDoc(doc(as("prov"), "broadcasts/b6"), { scope: "all" }));
+  await assertFails(setDoc(doc(as("super"), "broadcasts/b7"), { scope: "all" }));
+  const town = { scope: "municipality", municipality: "Bambang" };
+  await assertFails(setDoc(doc(as("muni"), "broadcasts/b8"), { ...town, urgent: true }));
+  await assertFails(setDoc(doc(as("prov"), "broadcasts/b9"), { ...town, urgent: true }));
+  await assertFails(setDoc(doc(as("super"), "broadcasts/b10"), { ...town, urgent: true }));
+  // Routine single-town alerts still go out directly.
+  await assertSucceeds(setDoc(doc(as("prov"), "broadcasts/b11"), { ...town, urgent: false }));
+  await assertSucceeds(setDoc(doc(as("super"), "broadcasts/b12"), town));
+});
+
+test("super admins can still read and delete broadcasts", async () => {
+  await env.withSecurityRulesDisabled((ctx) => setDoc(doc(ctx.firestore(), "broadcasts/z"), { scope: "all" }));
+  await assertSucceeds(getDoc(doc(as("super"), "broadcasts/z")));
+  await assertSucceeds(deleteDoc(doc(as("super"), "broadcasts/z")));
 });
 
 // ── automated alert drafts (P1, PDRRMO §2) ─────────────────────────────────
