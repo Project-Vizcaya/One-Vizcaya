@@ -179,7 +179,7 @@ Five roles, mapped to the government hierarchy. The legacy `admin` role has been
 ### Citizen Mobile App
 - **Problem reporting** with category, priority, GPS, barangay, and **GPS-stamped photo evidence** (see below).
 - **Emergency SOS with live location** (see [SOS section](#-emergency-sos--live-location)).
-- **Offline report queue** — a report can be saved on the phone when there is no connection and is submitted on the next app launch, with a live queue-count banner; **SMS fallback** for zero-data areas. *See [Current Limitations](#-current-limitations) — the offline path is selected manually and the queue is not yet flushed automatically on reconnect.*
+- **Offline report queue** — with no connection, a report is saved on the phone and sent automatically when the connection returns (on Android even if the app is closed), never twice, with a live queue-count banner; **SMS fallback** for zero-data areas.
 - **Residency verification** — certify as a Nueva Vizcaya resident (Barangay Certificate / gov ID) so you can report from anywhere; GPS-verified or admin-certified.
 - **Announcements** — municipal + province-wide, with **bookmarks**, sort (newest/oldest), and filter by posting agency.
 - **Weather** — current conditions + forecast per municipality, backed by a scheduled provincial **rainfall watch** that raises advisories.
@@ -350,7 +350,7 @@ Some administrative one-shots run as callable functions by a super admin (e.g. `
 ### 🟠 Reporting & Dashboards — *Implemented*
 - [x] **4-level report routing** (Barangay/Municipal/Provincial/Region II) with criteria, on both mobile and web.
 - [x] **GPS-stamped camera evidence** + camera/gallery trust badge; EXIF stripping.
-- [x] **Offline report queue** (manually selected; flushes on next app start) + SMS fallback; residency gate.
+- [x] **Offline report queue** (automatic; background delivery on Android) + SMS fallback; residency gate.
 - [x] **Incident map** — municipality choropleth, **barangay boundary polygons**, zone bubbles, report/responder pins, scope-aware centring, barangay filter.
 - [x] **Analytics** (Recharts web / fl_chart mobile), **PDF export**, notes history, canned responses, responder assignment.
 - [x] **Announcements** (agency attribution, link import) + **broadcasts**; **weather** + scheduled **rainfall watch**.
@@ -376,7 +376,7 @@ Stated plainly, so that reviewers can assess this build on what it actually
 does today rather than on intent. Each item is tracked for the pre-pilot work.
 
 **Connectivity**
-- Saved (offline) reports are sent automatically **while the app is running** — on start, sign-in, return to the foreground, and every 60 s. If the app is closed, they are sent the next time it is opened; there is no background delivery.
+- Saved (offline) reports are sent automatically while the app is running (on start, sign-in, return to the foreground and every 60 s) and, **on Android, also when the app is closed**, through a WorkManager task that runs once the phone is online. **On iOS** a closed app sends them the next time it is opened. Background delivery has **not yet been tested on a real phone**.
 - Connectivity is detected by a real reachability probe, not by the OS network state, so detection can lag by up to a minute.
 
 **Report workflow**

@@ -64,6 +64,10 @@ class OfflineQueueService {
 
   Future<List<Map<String, dynamic>>> getQueue() async {
     final prefs = await SharedPreferences.getInstance();
+    // The Android background task (background_delivery.dart) runs in another
+    // isolate with its own cache; read from disk so neither overwrites the
+    // other's changes with a stale copy.
+    await prefs.reload();
     final list = _decodeList(prefs.getString(_queueKey));
     // Items queued by older app versions have no ids: give them stable ones
     // now so they flow through the same idempotent path.
