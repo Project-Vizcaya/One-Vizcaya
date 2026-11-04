@@ -158,7 +158,7 @@ class PagasaWeatherPanel extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(label.toUpperCase(),
-              style: const TextStyle(color: _accent, fontSize: 10.5, fontWeight: FontWeight.w700, letterSpacing: 1)),
+              style: const TextStyle(color: _accent, fontSize: 12, fontWeight: FontWeight.w700, letterSpacing: 1)),
           if (x.description != null)
             Text(x.description!, style: const TextStyle(color: Colors.white, fontSize: 14, height: 1.3)),
           if (temps.isNotEmpty) Text(temps, style: const TextStyle(color: Colors.white70, fontSize: 12.5)),
@@ -217,7 +217,7 @@ class PagasaWeatherPanel extends StatelessWidget {
         ...current.map((t) => _thunderstorm(t, expired: false)),
         if (expired.isNotEmpty) ...[
           const SizedBox(height: 6),
-          Text('Expired', style: TextStyle(color: Colors.white.withValues(alpha: 0.45), fontSize: 11, fontWeight: FontWeight.w700)),
+          Text('Expired', style: TextStyle(color: Colors.white.withValues(alpha: 0.45), fontSize: 12, fontWeight: FontWeight.w700)),
           ...expired.map((t) => _thunderstorm(t, expired: true)),
         ],
         _meta(p, coverage: p.thunderstormCoverage),
@@ -258,7 +258,7 @@ class PagasaWeatherPanel extends StatelessWidget {
             const SizedBox(height: 6),
             Text(t.text, style: const TextStyle(color: Colors.white, fontSize: 12.5, height: 1.4)),
             const SizedBox(height: 4),
-            Text(validity, style: const TextStyle(color: Colors.white60, fontSize: 11)),
+            Text(validity, style: const TextStyle(color: Colors.white60, fontSize: 12)),
           ],
         ),
       ),
@@ -288,7 +288,7 @@ class PagasaWeatherPanel extends StatelessWidget {
             child: Text(
               'Shown as published. For official tropical cyclone warnings and wind '
               'signals, follow PAGASA bulletins and PDRRMO.',
-              style: TextStyle(color: Colors.white.withValues(alpha: 0.55), fontSize: 11),
+              style: TextStyle(color: Colors.white.withValues(alpha: 0.55), fontSize: 12),
             ),
           ),
         _meta(p, coverage: p.synopsisCoverage, issued: p.synopsisIssuedAt, validUntil: p.synopsisValidUntil),
@@ -315,13 +315,13 @@ class PagasaWeatherPanel extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(lines.join(' · '),
-              style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 10.5, height: 1.35)),
+              style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 12, height: 1.35)),
           InkWell(
             onTap: () => launchUrl(Uri.parse(p.sourceUrl), mode: LaunchMode.externalApplication),
             child: const Padding(
               padding: EdgeInsets.symmetric(vertical: 4),
               child: Text('View original on PAGASA ↗',
-                  style: TextStyle(color: _accent, fontSize: 11, fontWeight: FontWeight.w600)),
+                  style: TextStyle(color: _accent, fontSize: 12, fontWeight: FontWeight.w600)),
             ),
           ),
         ],
@@ -345,7 +345,7 @@ class PagasaWeatherPanel extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(label, style: const TextStyle(color: _amber, fontSize: 11, fontWeight: FontWeight.w700)),
+            Text(label, style: const TextStyle(color: _amber, fontSize: 12, fontWeight: FontWeight.w700)),
             const SizedBox(height: 4),
             Text(text, style: const TextStyle(color: Colors.white, fontSize: 12.5, height: 1.4)),
           ],
@@ -358,7 +358,7 @@ class PagasaWeatherPanel extends StatelessWidget {
           color: c.withValues(alpha: 0.15),
           borderRadius: BorderRadius.circular(8),
         ),
-        child: Text(s, style: TextStyle(color: c, fontSize: 10.5, fontWeight: FontWeight.w600)),
+        child: Text(s, style: TextStyle(color: c, fontSize: 12, fontWeight: FontWeight.w600)),
       );
 
   /// Philippine time regardless of the device's time zone, so a timestamp

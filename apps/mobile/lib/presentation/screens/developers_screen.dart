@@ -130,7 +130,7 @@ class DevelopersScreen extends StatelessWidget {
                                 child: Text(
                                   _leadRole.toUpperCase(),
                                   style: TextStyle(
-                                      fontSize: 11,
+                                      fontSize: 12,
                                       fontWeight: FontWeight.bold,
                                       letterSpacing: 0.6,
                                       color: lguColor),
@@ -225,7 +225,7 @@ class _AreaChips extends StatelessWidget {
                 child: Text(
                   a,
                   style: TextStyle(
-                    fontSize: 11.5,
+                    fontSize: 12,
                     fontWeight: FontWeight.w600,
                     color: color,
                   ),

@@ -311,7 +311,7 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
                   child: Text(
                     'Some screens may require restarting the app to fully apply.',
                     style: TextStyle(
-                        fontSize: 11, color: Colors.grey.shade500),
+                        fontSize: 12, color: Colors.grey.shade500),
                   ),
                 ),
                 _DividerLine(),
@@ -797,7 +797,7 @@ class _SectionHeader extends StatelessWidget {
       child: Text(
         label,
         style: TextStyle(
-          fontSize: 11,
+          fontSize: 12,
           fontWeight: FontWeight.w700,
           color: Colors.grey.shade500,
           letterSpacing: 1.2,

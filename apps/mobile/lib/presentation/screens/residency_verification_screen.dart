@@ -288,7 +288,7 @@ class _ResidencyVerificationScreenState
                     'Your document is shared only with authorised LGU staff for '
                     'verification, in line with RA 10173.',
                     style: TextStyle(
-                        fontSize: 11, color: Colors.grey.shade500),
+                        fontSize: 12, color: Colors.grey.shade500),
                   ),
                 ],
               ],

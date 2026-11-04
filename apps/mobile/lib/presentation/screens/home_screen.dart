@@ -471,7 +471,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             Text(
                               'Tap to learn about this municipality',
                               style: TextStyle(
-                                fontSize: 11,
+                                fontSize: 12,
                                 color: appBarColor.withValues(alpha: 0.7),
                                 fontWeight: FontWeight.w500,
                               ),
@@ -1234,7 +1234,7 @@ class _QueueBottomSheet extends StatelessWidget {
                       child: const Text(
                         'Pending',
                         style: TextStyle(
-                          fontSize: 11,
+                          fontSize: 12,
                           fontWeight: FontWeight.w600,
                           color: Color(0xFFE65100),
                         ),
@@ -1325,7 +1325,7 @@ class _ServiceGridItem extends StatelessWidget {
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                fontSize: 11,
+                fontSize: 12,
                 fontWeight: FontWeight.w500,
                 color: Theme.of(context).textTheme.bodySmall?.color,
                 height: 1.2,

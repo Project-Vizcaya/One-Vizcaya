@@ -684,7 +684,7 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
                                 '${_photoTimestamp!.minute.toString().padLeft(2, '0')}'
                                 '${(_photoLatitude != null && _photoLongitude != null) ? '\nGPS: ${_photoLatitude!.toStringAsFixed(5)}, ${_photoLongitude!.toStringAsFixed(5)}' : ''}',
                                 style: TextStyle(
-                                  fontSize: 11,
+                                  fontSize: 12,
                                   color: Colors.green.shade700,
                                 ),
                               ),
@@ -845,7 +845,7 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
           Text(label, style: const TextStyle(fontWeight: FontWeight.w500)),
           Text(
             sublabel,
-            style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
+            style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
           ),
         ],
       ),
@@ -1184,7 +1184,7 @@ class _ModeOption extends StatelessWidget {
                     Text(
                       subtitle,
                       style: TextStyle(
-                        fontSize: 11,
+                        fontSize: 12,
                         color: selected
                             ? selectedColor.withValues(alpha: isDark ? 0.9 : 0.75)
                             : (isDark ? const Color(0xFFA8ADB5) : Colors.grey.shade500),
@@ -1387,7 +1387,7 @@ class _CategoryTreeSelectorState extends State<_CategoryTreeSelector> {
                 const SizedBox(width: 8),
                 const Text(
                   '* Required',
-                  style: TextStyle(fontSize: 11, color: Colors.red),
+                  style: TextStyle(fontSize: 12, color: Colors.red),
                 ),
               ],
             ],
@@ -1417,7 +1417,7 @@ class _CategoryTreeSelectorState extends State<_CategoryTreeSelector> {
             padding: const EdgeInsets.only(top: 6, left: 4),
             child: Text(
               'Please pick a category (search or browse) to continue.',
-              style: TextStyle(fontSize: 11, color: Colors.red.shade700),
+              style: TextStyle(fontSize: 12, color: Colors.red.shade700),
             ),
           ),
       ],
@@ -1481,7 +1481,7 @@ class _CategoryTreeSelectorState extends State<_CategoryTreeSelector> {
             const SizedBox(height: 4),
             Text(
               "Report it under “Others” and describe it — the LGU will route it.",
-              style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
+              style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 10),
@@ -1508,7 +1508,7 @@ class _CategoryTreeSelectorState extends State<_CategoryTreeSelector> {
           padding: const EdgeInsets.only(bottom: 6, left: 2),
           child: Text(
             '${matches.length} match${matches.length == 1 ? '' : 'es'}',
-            style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
+            style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
           ),
         ),
         ...matches.map(
@@ -1579,7 +1579,7 @@ class _CategoryTreeSelectorState extends State<_CategoryTreeSelector> {
             Text(
               'Change',
               style: TextStyle(
-                fontSize: 11,
+                fontSize: 12,
                 color: p.color.withValues(alpha: 0.7),
               ),
             ),
@@ -1672,7 +1672,7 @@ class _CategoryTreeSelectorState extends State<_CategoryTreeSelector> {
                   child: Text(
                     'Change',
                     style: TextStyle(
-                      fontSize: 11,
+                      fontSize: 12,
                       fontWeight: FontWeight.w600,
                       color: isDark
                           ? const Color(0xFFA8ADB5)
@@ -1758,7 +1758,7 @@ class _PriorityTile extends StatelessWidget {
                     Text(
                       '$categoryCount types',
                       style: TextStyle(
-                        fontSize: 10,
+                        fontSize: 12,
                         color: priority.color.withValues(alpha: 0.7),
                       ),
                     ),
@@ -1838,7 +1838,7 @@ class _CategoryCard extends StatelessWidget {
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                          fontSize: 11,
+                          fontSize: 12,
                           color: Colors.grey.shade500,
                           height: 1.4,
                         ),

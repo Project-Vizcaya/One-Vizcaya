@@ -90,7 +90,7 @@ class CommunityFeed extends StatelessWidget {
                   ? Text(
                       timeago.format(reportedAt),
                       style: const TextStyle(
-                          fontSize: 11, color: Colors.grey),
+                          fontSize: 12, color: Colors.grey),
                     )
                   : null,
             );

@@ -173,7 +173,7 @@ class _SupportScreenState extends State<SupportScreen> {
               child: Text(
                 AppStrings.get('contactUs'),
                 style: TextStyle(
-                  fontSize: 11,
+                  fontSize: 12,
                   fontWeight: FontWeight.w700,
                   color: Colors.grey.shade500,
                   letterSpacing: 1.2,
@@ -259,7 +259,7 @@ class _SupportScreenState extends State<SupportScreen> {
               child: Text(
                 AppStrings.get('faqHeader'),
                 style: TextStyle(
-                  fontSize: 11,
+                  fontSize: 12,
                   fontWeight: FontWeight.w700,
                   color: Colors.grey.shade500,
                   letterSpacing: 1.2,
@@ -399,7 +399,7 @@ class _SupportScreenState extends State<SupportScreen> {
                     'In compliance with RA 10173 (Data Privacy Act of 2012)',
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      fontSize: 11,
+                      fontSize: 12,
                       color: Colors.grey.shade400,
                       fontStyle: FontStyle.italic,
                     ),
@@ -608,7 +608,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 overflow: TextOverflow.ellipsis),
             const SizedBox(height: 4),
             Text(_formatTime(item.time),
-                style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                style: const TextStyle(fontSize: 12, color: Colors.grey)),
           ],
         ),
         trailing: unread

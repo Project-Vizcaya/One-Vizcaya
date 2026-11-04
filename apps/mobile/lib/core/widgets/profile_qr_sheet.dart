@@ -208,7 +208,7 @@ class ProfileQrSheet extends StatelessWidget {
                 Flexible(
                   child: Text(
                     'Issued by $municipality LGU · One Vizcaya v1',
-                    style: TextStyle(fontSize: 11, color: Colors.grey.shade400),
+                    style: TextStyle(fontSize: 12, color: Colors.grey.shade400),
                     textAlign: TextAlign.center,
                   ),
                 ),

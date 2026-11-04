@@ -160,7 +160,7 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
                           ? 'Required before you can submit reports.'
                           : 'Report from anywhere once certified.',
                       style: TextStyle(
-                          fontSize: 11.5, color: Colors.grey.shade600),
+                          fontSize: 12, color: Colors.grey.shade600),
                     ),
                   ],
                 ),
@@ -318,7 +318,7 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
                     helperText: 'Used for report status notifications',
                     helperStyle: TextStyle(
                       color: Colors.grey.shade500,
-                      fontSize: 11,
+                      fontSize: 12,
                     ),
                   ),
                   validator: (v) {
@@ -558,7 +558,7 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
                               Text(
                                 'Long-press to copy UID',
                                 style: TextStyle(
-                                  fontSize: 10,
+                                  fontSize: 12,
                                   color: Colors.grey.shade400,
                                   fontStyle: FontStyle.italic,
                                 ),
@@ -761,7 +761,7 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
                             Text(
                               '${_totalReports > 0 ? ((_resolvedReports / _totalReports) * 100).round() : 0}% resolved',
                               style: TextStyle(
-                                fontSize: 11,
+                                fontSize: 12,
                                 color: Colors.grey.shade500,
                               ),
                             ),
@@ -799,7 +799,7 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
                           child: Text(
                             'PROFILE MENU',
                             style: TextStyle(
-                              fontSize: 11,
+                              fontSize: 12,
                               fontWeight: FontWeight.w600,
                               color: Colors.grey.shade500,
                               letterSpacing: 1.2,
@@ -1049,7 +1049,7 @@ class _ProfileMenuItem extends StatelessWidget {
                   badgeText!,
                   style: const TextStyle(
                     color: Colors.white,
-                    fontSize: 11,
+                    fontSize: 12,
                     fontWeight: FontWeight.w600,
                   ),
                 ),

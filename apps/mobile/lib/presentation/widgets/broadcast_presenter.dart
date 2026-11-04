@@ -218,7 +218,7 @@ class UrgentBroadcastScreen extends StatelessWidget {
                                 child: Text(
                                   _formatTime(timestamp!),
                                   style: TextStyle(
-                                    fontSize: 11,
+                                    fontSize: 12,
                                     color: Colors.grey[500],
                                   ),
                                 ),
@@ -396,7 +396,7 @@ class _HeadsUpBannerState extends State<_HeadsUpBanner>
                                     child: Text(
                                       widget.label,
                                       style: TextStyle(
-                                        fontSize: 10,
+                                        fontSize: 12,
                                         fontWeight: FontWeight.w700,
                                         letterSpacing: 1.2,
                                         color: widget.accent,

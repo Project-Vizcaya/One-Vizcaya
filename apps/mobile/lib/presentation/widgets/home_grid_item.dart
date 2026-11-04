@@ -48,7 +48,7 @@ class HomeGridItem extends StatelessWidget {
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  fontSize: 11,
+                  fontSize: 12,
                   color: textColor.withValues(alpha: 0.8),
                 ),
               ),

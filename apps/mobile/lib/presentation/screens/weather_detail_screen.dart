@@ -261,7 +261,7 @@ class _WeatherDetailScreenState extends State<WeatherDetailScreen> {
             'Official advisories come from PAGASA and PDRRMO.',
             style: TextStyle(
               color: Colors.white.withValues(alpha: 0.45),
-              fontSize: 10.5,
+              fontSize: 12,
               height: 1.3,
             ),
           ),
@@ -278,7 +278,7 @@ class _WeatherDetailScreenState extends State<WeatherDetailScreen> {
           'SUPPLEMENTARY · OPENWEATHER (THIRD-PARTY, NOT PAGASA)',
           style: TextStyle(
             color: Colors.white.withValues(alpha: 0.55),
-            fontSize: 11,
+            fontSize: 12,
             fontWeight: FontWeight.w700,
             letterSpacing: 1.0,
           ),
@@ -334,7 +334,7 @@ class _WeatherDetailScreenState extends State<WeatherDetailScreen> {
                           '${(h.pop * 100).round()}%',
                           style: const TextStyle(
                             color: Color(0xFF82B1FF),
-                            fontSize: 11,
+                            fontSize: 12,
                           ),
                         )
                       else
@@ -659,7 +659,7 @@ class _WeatherDetailScreenState extends State<WeatherDetailScreen> {
                         DateFormat('h a').format(h.time),
                         style: const TextStyle(
                           color: Colors.white60,
-                          fontSize: 11,
+                          fontSize: 12,
                         ),
                       ),
                     ],
@@ -963,7 +963,7 @@ class _WeatherDetailScreenState extends State<WeatherDetailScreen> {
               title.toUpperCase(),
               style: const TextStyle(
                 color: Color(0xFF9FB2D0),
-                fontSize: 11,
+                fontSize: 12,
                 fontWeight: FontWeight.w600,
                 letterSpacing: 0.5,
               ),
@@ -1202,7 +1202,7 @@ class _WeatherDetailScreenState extends State<WeatherDetailScreen> {
                     ),
                     const Text(
                       'Sunrise',
-                      style: TextStyle(color: Colors.white60, fontSize: 11),
+                      style: TextStyle(color: Colors.white60, fontSize: 12),
                     ),
                   ],
                 ),
@@ -1219,7 +1219,7 @@ class _WeatherDetailScreenState extends State<WeatherDetailScreen> {
                     ),
                     const Text(
                       'Sunset',
-                      style: TextStyle(color: Colors.white60, fontSize: 11),
+                      style: TextStyle(color: Colors.white60, fontSize: 12),
                     ),
                   ],
                 ),
@@ -1451,7 +1451,7 @@ class _WeatherDetailScreenState extends State<WeatherDetailScreen> {
                             'Current conditions: OpenWeather (third-party)',
                             style: TextStyle(
                               color: Colors.white.withValues(alpha: 0.5),
-                              fontSize: 11,
+                              fontSize: 12,
                             ),
                           ),
                         ],
@@ -1518,7 +1518,7 @@ class _RainChartPainter extends CustomPainter {
       ..color = Colors.white24
       ..strokeWidth = 1
       ..style = PaintingStyle.stroke;
-    final textStyle = const TextStyle(color: Colors.white54, fontSize: 10);
+    final textStyle = const TextStyle(color: Colors.white54, fontSize: 12);
 
     final double chartBottom = size.height - 24;
     final double chartTop = 8;
@@ -1613,7 +1613,7 @@ class _WindCompassPainter extends CustomPainter {
       Offset(cx, cy + radius - 4),
       Offset(cx - radius + 6, cy + 4),
     ];
-    const labelStyle = TextStyle(color: Colors.white38, fontSize: 9);
+    const labelStyle = TextStyle(color: Colors.white38, fontSize: 11);
     for (int i = 0; i < labels.length; i++) {
       final tp = TextPainter(
         text: TextSpan(text: labels[i], style: labelStyle),

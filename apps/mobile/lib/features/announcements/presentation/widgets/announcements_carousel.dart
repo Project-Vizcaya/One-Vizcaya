@@ -116,7 +116,7 @@ class _AnnouncementCard extends StatelessWidget {
               Text(
                 '— $postedBy',
                 style: TextStyle(
-                  fontSize: 10,
+                  fontSize: 12,
                   color: Colors.grey.shade500,
                   fontStyle: FontStyle.italic,
                 ),

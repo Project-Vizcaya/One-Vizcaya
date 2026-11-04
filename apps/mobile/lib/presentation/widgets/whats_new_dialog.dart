@@ -130,7 +130,7 @@ class WhatsNewDialog extends StatelessWidget {
                                 Text(
                                   s.label.toUpperCase(),
                                   style: TextStyle(
-                                    fontSize: 10,
+                                    fontSize: 12,
                                     fontWeight: FontWeight.w700,
                                     letterSpacing: 1,
                                     color: s.color,
