@@ -96,6 +96,8 @@ firebase deploy --only functions
 - [ ] If asked to delete a function, answer **No**, and write down its name.
 
 ### 3.3 Production website (from main)
+Make sure you are on `main` (§3). Always build right before deploying: `firebase deploy`
+uploads whatever is in `apps/web/dist`.
 ```bash
 cd apps/web && npm install && npm run build && cd ../..
 firebase deploy --only hosting
@@ -249,7 +251,7 @@ already done on this branch, and open it as its own PR.
 | Admins can't send any broadcast | Check §3.3 was deployed. The old console + new rules refuse urgent sends |
 | Console shows no reports | Check the rules deploy succeeded; hard-refresh (Ctrl+Shift+R) |
 | App won't sign in | `google-services.json` / SHA-1 (runbook §2); use test numbers |
-| Need to undo the whole backend | `git checkout 1ec74da` (main before #135), then `firebase deploy --only firestore:rules,firestore:indexes,storage,hosting` and `firebase deploy --only functions` (answer **Yes** to deleting the three new functions only in this case), then `git checkout main` |
+| Need to undo the whole backend | `git checkout 1ec74da` (main before #135). **Rebuild the web first** (`cd apps/web && npm install && npm run build && cd ../..`); otherwise `dist` still holds the last build you made. Then `firebase deploy --only firestore:rules,firestore:indexes,storage,hosting` and `firebase deploy --only functions` (answer **Yes** to deleting the three new functions only in this case), then `git checkout main` |
 
 > **Safety:** for anything life-threatening during the test, residents still use 911, the
 > PDRRMO hotline, radio and barangay officials, as the app itself says.
