@@ -58,8 +58,8 @@ export function SlaSettingsCard() {
           <div className="h-1 w-4 rounded bg-[hsl(var(--gov-green-800))]" />
           <CardTitle className="text-sm font-bold uppercase tracking-widest text-muted-foreground">SLA targets</CardTitle>
           {sla.provisional
-            ? <Badge variant="outline" className="text-[10px] border-amber-400 text-amber-700">Provisional — pending PDRRMO approval</Badge>
-            : <Badge variant="secondary" className="text-[10px]">Confirmed</Badge>}
+            ? <Badge variant="outline" className="text-xs border-amber-400 text-amber-700">Provisional — pending PDRRMO approval</Badge>
+            : <Badge variant="secondary" className="text-xs">Confirmed</Badge>}
         </div>
       </CardHeader>
       <CardContent className="pt-4 space-y-3">
@@ -74,10 +74,12 @@ export function SlaSettingsCard() {
               <div className="flex items-center gap-1">
                 <input
                   type="number" min={0.25} step={0.25}
+                  name={`sla-${p}-hours`} inputMode="decimal" autoComplete="off"
+                  aria-invalid={!(Number(hours[p]) > 0)}
                   value={hours[p]}
                   disabled={!canEdit || saving}
                   onChange={(e) => setHours((h) => ({ ...h, [p]: e.target.value }))}
-                  className="w-full rounded-md border bg-background px-2 py-1.5 text-sm disabled:opacity-60"
+                  className="w-full rounded-md border bg-background px-2 py-1.5 text-sm tabular-nums disabled:opacity-60 aria-[invalid=true]:border-destructive"
                 />
                 <span className="text-muted-foreground">h</span>
               </div>
@@ -87,15 +89,17 @@ export function SlaSettingsCard() {
         {canEdit ? (
           <div className="flex flex-wrap gap-2">
             <Button size="sm" variant="outline" className="h-7 text-xs" disabled={!valid || saving} onClick={() => save(false)}>
-              {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <Save className="h-3.5 w-3.5 mr-1" />}Save as provisional
+              {saving ? <Loader2 aria-hidden="true" className="h-3.5 w-3.5 animate-spin mr-1" /> : <Save aria-hidden="true" className="h-3.5 w-3.5 mr-1" />}Save as provisional
             </Button>
             <Button size="sm" className="h-7 text-xs" disabled={!valid || saving} onClick={() => save(true)}>
-              Confirm as approved targets
+              {saving && <Loader2 aria-hidden="true" className="h-3.5 w-3.5 animate-spin mr-1" />}Confirm as approved targets
             </Button>
-            {!valid && <span className="text-xs text-destructive">Each target must be a positive number of hours.</span>}
+            <span role="status" aria-live="polite" className="text-xs text-destructive">
+              {!valid && "Each target must be a positive number of hours."}
+            </span>
           </div>
         ) : (
-          <p className="text-[11px] text-muted-foreground">Only provincial administrators can change SLA targets.</p>
+          <p className="text-xs text-muted-foreground">Only provincial administrators can change SLA targets.</p>
         )}
       </CardContent>
     </Card>

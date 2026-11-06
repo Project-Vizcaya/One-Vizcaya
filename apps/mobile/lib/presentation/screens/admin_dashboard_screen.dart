@@ -421,19 +421,19 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
   Widget? _roleDescription(UserRole role) {
     switch (role) {
       case UserRole.citizen:
-        return const Text('Standard app user', style: TextStyle(fontSize: 11));
+        return const Text('Standard app user', style: TextStyle(fontSize: 12));
       case UserRole.barangayAdmin:
         return const Text('Certifies residents & handles reports for their barangay',
-            style: TextStyle(fontSize: 11));
+            style: TextStyle(fontSize: 12));
       case UserRole.municipalAdmin:
         return const Text('Manages reports & announcements for their municipality',
-            style: TextStyle(fontSize: 11));
+            style: TextStyle(fontSize: 12));
       case UserRole.provincialAdmin:
         return const Text('Full access across all municipalities',
-            style: TextStyle(fontSize: 11));
+            style: TextStyle(fontSize: 12));
       case UserRole.superAdmin:
         return const Text('Full access — provincial + municipal view switching',
-            style: TextStyle(fontSize: 11));
+            style: TextStyle(fontSize: 12));
     }
   }
 
@@ -632,7 +632,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                 CheckedPopupMenuItem<String>(
                   value: '__ALL__',
                   checked: _isProvincialView,
-                  child: const Text('🌍 All Municipalities (Province-Wide)'),
+                  child: const Text('All Municipalities (Province-Wide)'),
                 ),
                 const PopupMenuDivider(),
                 ...AppConstants.municipalities.map(
@@ -750,8 +750,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                               '${snapshot.error}',
                               textAlign: TextAlign.center,
                               style: TextStyle(
-                                  fontSize: 11,
-                                  color: Colors.grey.shade500),
+                                  fontSize: 12,
+                                  color: Theme.of(context).colorScheme.onSurfaceVariant),
                             ),
                             const SizedBox(height: 8),
                             const Text(
@@ -1175,7 +1175,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                 padding: const EdgeInsets.symmetric(horizontal: 8),
               ),
               child: const Text('Clear filters',
-                  style: TextStyle(fontSize: 11)),
+                  style: TextStyle(fontSize: 12)),
             ),
           StreamBuilder<List<ProblemReport>>(
             stream: _reportsStream ?? const Stream.empty(),
@@ -1384,7 +1384,7 @@ class _ClickableStatBadge extends StatelessWidget {
             Text(
               label,
               style: const TextStyle(
-                  color: Colors.white70, fontSize: 10),
+                  color: Colors.white70, fontSize: 12),
             ),
           ],
         ),
@@ -1492,6 +1492,7 @@ class _ReportDetailSheet extends StatelessWidget {
             elevation: 0,
             foregroundColor: Colors.white,
             leading: IconButton(
+              tooltip: 'Close',
               icon: const Icon(Icons.close),
               onPressed: () => Navigator.of(ctx).pop(),
             ),
@@ -1612,7 +1613,7 @@ class _ReportDetailSheet extends StatelessWidget {
                                   'CURRENT',
                                   style: TextStyle(
                                       color: Colors.white,
-                                      fontSize: 10,
+                                      fontSize: 12,
                                       fontWeight: FontWeight.bold),
                                 ),
                               ),
@@ -1766,7 +1767,7 @@ class _ReportDetailSheet extends StatelessWidget {
                           style: TextStyle(
                               color: priorityColor,
                               fontWeight: FontWeight.bold,
-                              fontSize: 11),
+                              fontSize: 12),
                         ),
                       ],
                     ),
@@ -1784,7 +1785,7 @@ class _ReportDetailSheet extends StatelessWidget {
                       style: TextStyle(
                           color: statusColor,
                           fontWeight: FontWeight.bold,
-                          fontSize: 11),
+                          fontSize: 12),
                     ),
                   ),
                   if (report.escalatedToProvince) ...[
@@ -1810,7 +1811,7 @@ class _ReportDetailSheet extends StatelessWidget {
                             'ESCALATED',
                             style: TextStyle(
                                 color: Color(0xFF4A148C),
-                                fontSize: 10,
+                                fontSize: 12,
                                 fontWeight: FontWeight.bold),
                           ),
                         ],
@@ -1828,6 +1829,7 @@ class _ReportDetailSheet extends StatelessWidget {
                       iconSize: 22,
                     ),
                   IconButton(
+                    tooltip: 'Close',
                     icon: const Icon(Icons.close),
                     onPressed: () => Navigator.pop(context),
                     padding: EdgeInsets.zero,
@@ -2038,7 +2040,7 @@ class _ReportDetailSheet extends StatelessWidget {
                                   SizedBox(width: 4),
                                   Text('Tap to enlarge',
                                       style: TextStyle(
-                                          color: Colors.white, fontSize: 11)),
+                                          color: Colors.white, fontSize: 12)),
                                 ],
                               ),
                             ),
@@ -2319,7 +2321,7 @@ class _ReportDetailSheet extends StatelessWidget {
                       'to Provincial / Region II when it exceeds local capacity.',
                       textAlign: TextAlign.center,
                       style: TextStyle(
-                          fontSize: 11, color: Colors.grey.shade500),
+                          fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
                     ),
                   ],
 
@@ -2351,7 +2353,7 @@ class _ReportDetailSheet extends StatelessWidget {
                       'Sends this report to the Provincial Administrator\'s dashboard.',
                       textAlign: TextAlign.center,
                       style: TextStyle(
-                          fontSize: 11, color: Colors.grey.shade500),
+                          fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
                     ),
                   ],
                 ],
@@ -2500,7 +2502,7 @@ class _CitizenFeedbackSection extends StatelessWidget {
                       child: const Text('Low rating',
                           style: TextStyle(
                               color: Colors.white,
-                              fontSize: 9,
+                              fontSize: 11,
                               fontWeight: FontWeight.bold)),
                     ),
                   ],
@@ -2768,7 +2770,7 @@ class _AdminReportCard extends StatelessWidget {
                   style: TextStyle(
                       color: priorityColor,
                       fontWeight: FontWeight.bold,
-                      fontSize: 11),
+                      fontSize: 12),
                 ),
                 const Spacer(),
                 if (report.isFlagged) ...[
@@ -2778,7 +2780,7 @@ class _AdminReportCard extends StatelessWidget {
                     'FLAGGED',
                     style: TextStyle(
                         color: Colors.red,
-                        fontSize: 10,
+                        fontSize: 12,
                         fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(width: 8),
@@ -2791,7 +2793,7 @@ class _AdminReportCard extends StatelessWidget {
                     'ESCALATED',
                     style: TextStyle(
                         color: Color(0xFF4A148C),
-                        fontSize: 10,
+                        fontSize: 12,
                         fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(width: 8),
@@ -2808,7 +2810,7 @@ class _AdminReportCard extends StatelessWidget {
                       '${report.duplicateCount} similar',
                       style: TextStyle(
                           color: priorityColor,
-                          fontSize: 10,
+                          fontSize: 12,
                           fontWeight: FontWeight.bold),
                     ),
                   ),
@@ -2852,7 +2854,7 @@ class _AdminReportCard extends StatelessWidget {
                             style: TextStyle(
                                 color: statusColor,
                                 fontWeight: FontWeight.bold,
-                                fontSize: 11),
+                                fontSize: 12),
                           ),
                         ],
                       ),
@@ -2870,7 +2872,7 @@ class _AdminReportCard extends StatelessWidget {
                       Text(
                         report.municipality,
                         style: TextStyle(
-                            fontSize: 11,
+                            fontSize: 12,
                             color: Colors.grey.shade600,
                             fontWeight: FontWeight.w600),
                       ),
@@ -2914,7 +2916,7 @@ class _AdminReportCard extends StatelessWidget {
                     Text(
                       _formatTimestamp(report.reportedAt),
                       style: const TextStyle(
-                          fontSize: 11, color: Colors.grey),
+                          fontSize: 12, color: Colors.grey),
                     ),
                     if (report.imageUrl != null &&
                         report.imageUrl!.isNotEmpty) ...[
@@ -2932,7 +2934,7 @@ class _AdminReportCard extends StatelessWidget {
                       child: Text(
                         'Tap card for details',
                         style: TextStyle(
-                            fontSize: 10, color: Colors.grey.shade400),
+                            fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
                       ),
                     ),
                     if (report.status != ReportStatus.acknowledged)
@@ -3043,7 +3045,7 @@ class _SmallStatusButton extends StatelessWidget {
           foregroundColor: Colors.white,
           padding: const EdgeInsets.symmetric(horizontal: 10),
           textStyle: const TextStyle(
-              fontSize: 11, fontWeight: FontWeight.bold),
+              fontSize: 12, fontWeight: FontWeight.bold),
           shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(6)),
           elevation: 0,
@@ -3192,7 +3194,7 @@ class _AnnouncementsTab extends StatelessWidget {
                       Text('Tap the + button below to post one',
                           style: TextStyle(
                               fontSize: 13,
-                              color: Colors.grey.shade400)),
+                              color: Theme.of(context).colorScheme.onSurfaceVariant)),
                     ],
                   ),
                 );
@@ -3302,10 +3304,10 @@ class _AnnouncementsTab extends StatelessWidget {
                                 ),
                                 child: Text(
                                   isProvinceWide
-                                      ? '🌍 Province-Wide'
+                                      ? 'Province-Wide'
                                       : muni,
                                   style: TextStyle(
-                                      fontSize: 10,
+                                      fontSize: 12,
                                       color: isProvinceWide
                                           ? const Color(0xFF4A148C)
                                           : lguColor,
@@ -3328,7 +3330,7 @@ class _AnnouncementsTab extends StatelessWidget {
                                   child: const Text(
                                     '⚠ URGENT',
                                     style: TextStyle(
-                                        fontSize: 10,
+                                        fontSize: 12,
                                         color: Colors.red,
                                         fontWeight: FontWeight.w700),
                                   ),
@@ -3339,8 +3341,8 @@ class _AnnouncementsTab extends StatelessWidget {
                                 Text(
                                   '${timestamp.month}/${timestamp.day}/${timestamp.year}',
                                   style: TextStyle(
-                                      fontSize: 10,
-                                      color: Colors.grey.shade400),
+                                      fontSize: 12,
+                                      color: Theme.of(context).colorScheme.onSurfaceVariant),
                                 ),
                             ],
                           ),
@@ -3348,8 +3350,8 @@ class _AnnouncementsTab extends StatelessWidget {
                           Text(
                             'By $postedBy',
                             style: TextStyle(
-                                fontSize: 11,
-                                color: Colors.grey.shade500),
+                                fontSize: 12,
+                                color: Theme.of(context).colorScheme.onSurfaceVariant),
                           ),
                         ],
                       ),
@@ -3569,7 +3571,7 @@ class _AddAnnouncementSheetState
                               : 'For ${widget.municipality} residents',
                           style: TextStyle(
                               fontSize: 12,
-                              color: Colors.grey.shade500),
+                              color: Theme.of(context).colorScheme.onSurfaceVariant),
                         ),
                       ],
                     ),
@@ -3629,7 +3631,7 @@ class _AddAnnouncementSheetState
                   items: [
                     const DropdownMenuItem(
                       value: 'All',
-                      child: Text('🌍 All Municipalities (Province-Wide)'),
+                      child: Text('All Municipalities (Province-Wide)'),
                     ),
                     ...AppConstants.municipalities.map((m) =>
                         DropdownMenuItem(
@@ -3661,7 +3663,7 @@ class _AddAnnouncementSheetState
                           Text('Target Audience',
                               style: TextStyle(
                                   fontSize: 12,
-                                  color: Colors.grey.shade500)),
+                                  color: Theme.of(context).colorScheme.onSurfaceVariant)),
                           Text(widget.municipality,
                               style: TextStyle(
                                   fontSize: 15,
@@ -3753,8 +3755,8 @@ class _AddAnnouncementSheetState
                   subtitle: Text(
                       'Shows red border and URGENT badge to citizens',
                       style: TextStyle(
-                          fontSize: 11,
-                          color: Colors.grey.shade500)),
+                          fontSize: 12,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant)),
                   value: _isUrgent,
                   activeColor: Colors.red,
                   onChanged: (v) => setState(() => _isUrgent = v),
@@ -3979,6 +3981,7 @@ class _AddAnnouncementSheetState
                               color: accentColor)),
                       const Spacer(),
                       IconButton(
+                        tooltip: 'Close',
                         icon: const Icon(Icons.close),
                         onPressed: () => Navigator.pop(ctx),
                         padding: EdgeInsets.zero,
@@ -4037,7 +4040,7 @@ class _AddAnnouncementSheetState
                                     child: Text(
                                       entry['category']!,
                                       style: TextStyle(
-                                        fontSize: 11,
+                                        fontSize: 12,
                                         fontWeight: FontWeight.w700,
                                         color: accentColor,
                                         letterSpacing: 0.5,
@@ -4127,13 +4130,13 @@ class _AnalyticsTab extends StatelessWidget {
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
-                color: Colors.grey.shade500,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
             const SizedBox(height: 6),
             Text(
               'Analytics will appear once reports are submitted.',
-              style: TextStyle(fontSize: 13, color: Colors.grey.shade400),
+              style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onSurfaceVariant),
               textAlign: TextAlign.center,
             ),
           ],
@@ -4433,7 +4436,7 @@ class _AnalyticsTab extends StatelessWidget {
                           '$name\n$count report${count == 1 ? '' : 's'}',
                           const TextStyle(
                             color: Colors.white,
-                            fontSize: 11,
+                            fontSize: 12,
                             fontWeight: FontWeight.w600,
                           ),
                         );
@@ -4454,7 +4457,7 @@ class _AnalyticsTab extends StatelessWidget {
                           }
                           return Text(
                             value.toInt().toString(),
-                            style: const TextStyle(fontSize: 10),
+                            style: const TextStyle(fontSize: 12),
                           );
                         },
                       ),
@@ -4478,7 +4481,7 @@ class _AnalyticsTab extends StatelessWidget {
                             child: Text(
                               display,
                               textAlign: TextAlign.center,
-                              style: const TextStyle(fontSize: 9),
+                              style: const TextStyle(fontSize: 11),
                             ),
                           );
                         },
@@ -4558,7 +4561,7 @@ class _AnalyticsTab extends StatelessWidget {
         radius: 64,
         title: pct >= 7 ? '${pct.toStringAsFixed(0)}%' : '',
         titleStyle: const TextStyle(
-          fontSize: 11,
+          fontSize: 12,
           fontWeight: FontWeight.bold,
           color: Colors.white,
         ),
@@ -4627,7 +4630,7 @@ class _AnalyticsTab extends StatelessWidget {
                     const SizedBox(width: 4),
                     Text(
                       '${entry.key} (${entry.value})',
-                      style: const TextStyle(fontSize: 11),
+                      style: const TextStyle(fontSize: 12),
                     ),
                   ],
                 );
@@ -4683,7 +4686,7 @@ class _KpiTile extends StatelessWidget {
           Text(
             label,
             style: TextStyle(
-              fontSize: 11,
+              fontSize: 12,
               color: color.withValues(alpha: 0.75),
               fontWeight: FontWeight.w500,
             ),
@@ -4737,19 +4740,19 @@ class _RoleManagementTabState extends State<_RoleManagementTab> {
   Widget? _roleDescription(UserRole role) {
     switch (role) {
       case UserRole.citizen:
-        return const Text('Standard app user', style: TextStyle(fontSize: 11));
+        return const Text('Standard app user', style: TextStyle(fontSize: 12));
       case UserRole.barangayAdmin:
         return const Text('Certifies residents & handles reports for their barangay',
-            style: TextStyle(fontSize: 11));
+            style: TextStyle(fontSize: 12));
       case UserRole.municipalAdmin:
         return const Text('Manages reports & announcements for their municipality',
-            style: TextStyle(fontSize: 11));
+            style: TextStyle(fontSize: 12));
       case UserRole.provincialAdmin:
         return const Text('Full access across all municipalities',
-            style: TextStyle(fontSize: 11));
+            style: TextStyle(fontSize: 12));
       case UserRole.superAdmin:
         return const Text('Full access — provincial + municipal view switching',
-            style: TextStyle(fontSize: 11));
+            style: TextStyle(fontSize: 12));
     }
   }
 
@@ -4855,7 +4858,7 @@ class _RoleManagementTabState extends State<_RoleManagementTab> {
                       const SizedBox(height: 12),
                       Text('No users found',
                           style: TextStyle(
-                              color: Colors.grey.shade500)),
+                              color: Theme.of(context).colorScheme.onSurfaceVariant)),
                     ],
                   ),
                 );
@@ -4928,8 +4931,8 @@ class _RoleManagementTabState extends State<_RoleManagementTab> {
                           if (phone.isNotEmpty)
                             Text(phone,
                                 style: TextStyle(
-                                    fontSize: 11,
-                                    color: Colors.grey.shade400)),
+                                    fontSize: 12,
+                                    color: Theme.of(context).colorScheme.onSurfaceVariant)),
                         ],
                       ),
                       trailing: Column(
@@ -4949,7 +4952,7 @@ class _RoleManagementTabState extends State<_RoleManagementTab> {
                             child: Text(
                               role.displayName,
                               style: TextStyle(
-                                  fontSize: 10,
+                                  fontSize: 12,
                                   color: roleColor,
                                   fontWeight: FontWeight.bold),
                             ),
@@ -5050,7 +5053,7 @@ class _RoleAssignDialogState extends State<_RoleAssignDialog> {
                   color: Colors.grey.shade600)),
           if (widget.phone.isNotEmpty)
             Text(widget.phone,
-                style: TextStyle(fontSize: 12, color: Colors.grey.shade400)),
+                style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant)),
         ],
       ),
       content: SizedBox(
@@ -5369,7 +5372,7 @@ class _ClosedDispositionPanel extends StatelessWidget {
         children: [
           Text('CLOSED WITHOUT ACTION',
               style: TextStyle(
-                  fontSize: 11,
+                  fontSize: 12,
                   fontWeight: FontWeight.w700,
                   letterSpacing: 0.8,
                   color: Colors.blueGrey.shade700)),
@@ -5388,7 +5391,7 @@ class _ClosedDispositionPanel extends StatelessWidget {
             '${at != null ? '${at.month}/${at.day}/${at.year} · ' : ''}'
             'by admin ${report.dispositionBy != null && report.dispositionBy!.length >= 8 ? report.dispositionBy!.substring(0, 8) : (report.dispositionBy ?? 'unknown')}'
             ' · recorded in the audit log',
-            style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+            style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
           ),
           if (onReopen != null) ...[
             const SizedBox(height: 8),

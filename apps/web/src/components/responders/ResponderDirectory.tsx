@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Search, Phone, MessageSquare, Plus, Edit, Trash2, Loader2, Shield } from "lucide-react";
+import { Search, Phone, MessageSquare, Plus, Edit, Trash2, Loader2, Shield, Siren, BadgeCheck, Flame, Hospital, Stethoscope, HardHat, Building2, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -25,13 +25,16 @@ const TYPE_COLORS: Record<ResponderType, string> = {
   dpwh: "bg-yellow-100 text-yellow-800",
 };
 
-const TYPE_ICONS: Record<ResponderType, string> = {
-  mdrrmo: "🆘",
-  police: "👮",
-  fire: "🚒",
-  hospital: "🏥",
-  health: "⚕️",
-  dpwh: "🏗️",
+// Vector icons (not emoji): emoji render differently on every OS and cannot
+// follow the theme. Each type also gets a distinct tint so the directory can be
+// scanned by type at a glance — the label beside it still carries the meaning.
+const TYPE_ICONS: Record<ResponderType, { icon: LucideIcon; tint: string }> = {
+  mdrrmo: { icon: Siren, tint: "bg-red-50 text-red-700" },
+  police: { icon: BadgeCheck, tint: "bg-blue-50 text-blue-700" },
+  fire: { icon: Flame, tint: "bg-orange-50 text-orange-700" },
+  hospital: { icon: Hospital, tint: "bg-rose-50 text-rose-700" },
+  health: { icon: Stethoscope, tint: "bg-emerald-50 text-emerald-700" },
+  dpwh: { icon: HardHat, tint: "bg-amber-50 text-amber-800" },
 };
 
 interface ResponderDirectoryProps {
@@ -168,23 +171,33 @@ export function ResponderDirectory({ responders, loading }: ResponderDirectoryPr
             <div key={r.id} className="border rounded-xl p-4 bg-white hover:shadow-sm transition-shadow">
               <div className="flex items-start justify-between gap-2">
                 <div className="flex items-center gap-2.5 min-w-0">
-                  <span className="text-xl shrink-0">{TYPE_ICONS[r.type] ?? "🏢"}</span>
+                  {(() => {
+                    const t = TYPE_ICONS[r.type] ?? { icon: Building2, tint: "bg-slate-100 text-slate-700" };
+                    const Icon = t.icon;
+                    return (
+                      <span className={`h-9 w-9 rounded-lg flex items-center justify-center shrink-0 ${t.tint}`} aria-hidden>
+                        <Icon className="h-5 w-5" />
+                      </span>
+                    );
+                  })()}
                   <div className="min-w-0">
                     <p className="font-medium text-sm truncate">{r.name}</p>
                     <p className="text-xs text-muted-foreground truncate">{r.municipality}</p>
                   </div>
                 </div>
                 <div className="flex gap-1 shrink-0">
-                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(r)}>
-                    <Edit className="h-3 w-3" />
+                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(r)} aria-label={`Edit ${r.name}`} title="Edit">
+                    <Edit className="h-3 w-3" aria-hidden />
                   </Button>
                   <Button
                     variant="ghost"
                     size="icon"
                     className="h-7 w-7 text-destructive hover:text-destructive"
                     onClick={() => { setDeleteId(r.id); setDeleteName(r.name); }}
+                    aria-label={`Delete ${r.name}`}
+                    title="Delete"
                   >
-                    <Trash2 className="h-3 w-3" />
+                    <Trash2 className="h-3 w-3" aria-hidden />
                   </Button>
                 </div>
               </div>

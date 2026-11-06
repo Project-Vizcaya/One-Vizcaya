@@ -50,11 +50,11 @@ export function ResponseTimeline({ reports }: { reports: Report[] }) {
         {rows.map((r) => (
           <div key={r.label} className="rounded-lg border p-3">
             <p className="text-xs font-semibold">{r.label}</p>
-            <p className="text-[11px] text-muted-foreground">{r.hint}</p>
+            <p className="text-xs text-muted-foreground">{r.hint}</p>
             {r.s ? (
               <>
                 <p className="text-2xl font-bold mt-1">{fmt(r.s.median)}</p>
-                <p className="text-[11px] text-muted-foreground">median · mean {fmt(r.s.mean)} · {r.s.n} report{r.s.n === 1 ? "" : "s"}</p>
+                <p className="text-xs text-muted-foreground">median · mean {fmt(r.s.mean)} · {r.s.n} report{r.s.n === 1 ? "" : "s"}</p>
               </>
             ) : (
               <p className="text-xs text-muted-foreground mt-2">No timed reports yet. Recording started with this release; earlier reports have no timestamps.</p>

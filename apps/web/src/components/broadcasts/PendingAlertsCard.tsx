@@ -107,14 +107,14 @@ export function PendingAlertsCard() {
     <Card>
       <CardHeader className="pb-2">
         <CardTitle className="text-sm flex items-center gap-1.5">
-          <Bot className="h-4 w-4" /> Alerts awaiting approval
+          <Bot aria-hidden="true" className="h-4 w-4" /> Alerts awaiting approval
         </CardTitle>
         <p className="text-xs text-muted-foreground">
           Automated weather drafts, and urgent or province-wide alerts from admins, which need a second admin. None is sent to the public until approved.
         </p>
       </CardHeader>
       <CardContent className="space-y-3">
-        {loading && <p className="text-xs text-muted-foreground flex items-center gap-1.5"><Loader2 className="h-3.5 w-3.5 animate-spin" /> Loading…</p>}
+        {loading && <p className="text-xs text-muted-foreground flex items-center gap-1.5"><Loader2 aria-hidden="true" className="h-3.5 w-3.5 animate-spin" /> Loading…</p>}
         {!loading && drafts.length === 0 && <p className="text-xs text-muted-foreground">No alerts awaiting approval.</p>}
         {drafts.map((d) => {
           const expired = !!d.expiresAt && d.expiresAt.getTime() < now;
@@ -124,14 +124,14 @@ export function PendingAlertsCard() {
           return (
             <div key={d.id} className={`rounded-lg border p-3 space-y-2 ${d.urgent ? "border-red-300" : ""} ${expired ? "opacity-60" : ""}`}>
               <div className="flex flex-wrap items-center gap-1.5">
-                {d.urgent && <Badge variant="destructive" className="text-[10px]">URGENT</Badge>}
-                <Badge variant="outline" className="text-[10px]">{where}</Badge>
-                {d.source && <Badge variant="secondary" className="text-[10px]">{d.source}</Badge>}
-                {expired && <Badge variant="outline" className="text-[10px]">Expired — can no longer be sent</Badge>}
+                {d.urgent && <Badge variant="destructive" className="text-xs">URGENT</Badge>}
+                <Badge variant="outline" className="text-xs">{where}</Badge>
+                {d.source && <Badge variant="secondary" className="text-xs">{d.source}</Badge>}
+                {expired && <Badge variant="outline" className="text-xs">Expired — can no longer be sent</Badge>}
               </div>
               <p className="text-sm font-semibold">{d.title}</p>
               <p className="text-xs">{d.body}</p>
-              <p className="text-[11px] text-muted-foreground">
+              <p className="text-xs text-muted-foreground">
                 {d.requestedBy ? `Proposed by ${mine ? "you" : d.requestedByName || `admin ${d.requestedBy.slice(0, 8)}`}. ` : ""}
                 {provider ? `Based on ${provider} forecast data (third-party, not PAGASA). ` : ""}
                 {d.createdAt ? `Drafted ${d.createdAt.toLocaleString("en-PH", { timeZone: "Asia/Manila" })}` : ""}
@@ -141,25 +141,25 @@ export function PendingAlertsCard() {
               {confirming === d.id ? (
                 <div className="rounded-md bg-muted/50 p-2 space-y-2">
                   <p className="text-xs flex items-start gap-1.5">
-                    <AlertTriangle className="h-3.5 w-3.5 mt-0.5 shrink-0 text-amber-600" />
+                    <AlertTriangle aria-hidden="true" className="h-3.5 w-3.5 mt-0.5 shrink-0 text-amber-600" />
                     This sends a push notification to every user in {d.municipality || "the province"}
                     {d.urgent ? " as an URGENT alert (sound and pop-up)" : ""}. Check PAGASA advisories before approving.
                   </p>
                   <div className="flex gap-2">
                     <Button size="sm" className="h-7 text-xs" disabled={busy === d.id} onClick={() => decide(d, "approve")}>
-                      {busy === d.id ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <Check className="h-3.5 w-3.5 mr-1" />}Confirm and send
+                      {busy === d.id ? <Loader2 aria-hidden="true" className="h-3.5 w-3.5 animate-spin mr-1" /> : <Check aria-hidden="true" className="h-3.5 w-3.5 mr-1" />}Confirm and send
                     </Button>
-                    <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setConfirming(null)}>Cancel</Button>
+                    <Button size="sm" variant="ghost" className="h-7 text-xs" disabled={busy === d.id} onClick={() => setConfirming(null)}>Cancel</Button>
                   </div>
                 </div>
               ) : rejecting === d.id ? (
                 <div className="space-y-2">
-                  <Textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="Why it is not being sent (optional, recorded in the audit log)" className="text-xs min-h-[60px]" />
+                  <Textarea value={note} onChange={(e) => setNote(e.target.value)} aria-label="Reason for rejecting (optional)" placeholder="Why it is not being sent (optional, recorded in the audit log)…" className="text-xs min-h-[60px]" />
                   <div className="flex gap-2">
                     <Button size="sm" variant="destructive" className="h-7 text-xs" disabled={busy === d.id} onClick={() => decide(d, "reject")}>
-                      {busy === d.id ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <X className="h-3.5 w-3.5 mr-1" />}Reject
+                      {busy === d.id ? <Loader2 aria-hidden="true" className="h-3.5 w-3.5 animate-spin mr-1" /> : <X aria-hidden="true" className="h-3.5 w-3.5 mr-1" />}Reject
                     </Button>
-                    <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => { setRejecting(null); setNote(""); }}>Cancel</Button>
+                    <Button size="sm" variant="ghost" className="h-7 text-xs" disabled={busy === d.id} onClick={() => { setRejecting(null); setNote(""); }}>Cancel</Button>
                   </div>
                 </div>
               ) : (
@@ -169,11 +169,11 @@ export function PendingAlertsCard() {
                   )}
                   {!expired && !mine && (
                     <Button size="sm" className="h-7 text-xs" onClick={() => { setConfirming(d.id); setRejecting(null); }}>
-                      <Check className="h-3.5 w-3.5 mr-1" /> Approve…
+                      <Check aria-hidden="true" className="h-3.5 w-3.5 mr-1" /> Approve…
                     </Button>
                   )}
                   <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => { setRejecting(d.id); setConfirming(null); }}>
-                    <X className="h-3.5 w-3.5 mr-1" /> {expired ? "Dismiss" : mine ? "Withdraw" : "Reject"}
+                    <X aria-hidden="true" className="h-3.5 w-3.5 mr-1" /> {expired ? "Dismiss" : mine ? "Withdraw" : "Reject"}
                   </Button>
                 </div>
               )}

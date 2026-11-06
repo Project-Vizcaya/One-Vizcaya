@@ -54,7 +54,7 @@ function Brand({ className = "" }: { className?: string }) {
       <img src="/img/seals/nueva-vizcaya.png" alt="Province of Nueva Vizcaya seal" className="h-9 w-9 object-contain" />
       <div className="leading-none">
         <span className="block text-lg font-extrabold tracking-tight text-[hsl(var(--gov-green-800))]">One Vizcaya</span>
-        <span className="block text-[10px] font-medium text-muted-foreground">Isang Boses. Isang Vizcaya.</span>
+        <span className="block text-xs font-medium text-muted-foreground">Isang Boses. Isang Vizcaya.</span>
       </div>
     </div>
   );
@@ -134,13 +134,13 @@ export function LandingPage() {
                 <img src="/img/seals/nueva-vizcaya.png" alt="" className="h-8 w-8 object-contain" />
                 <div>
                   <p className="text-sm font-bold text-[hsl(var(--gov-green-800))]">One Vizcaya</p>
-                  <p className="text-[10px] text-muted-foreground">Connecting you to your municipality</p>
+                  <p className="text-xs text-muted-foreground">Connecting you to your municipality</p>
                 </div>
               </div>
               <div className="mt-4 space-y-3">
                 {[
                   { icon: FileCheck2, t: "Road damage on Purok 3", s: "Ongoing · Bambang" },
-                  { icon: Cloud, t: "⛈ Heavy rain expected", s: "Weather advisory" },
+                  { icon: Cloud, t: "Heavy rain expected", s: "Weather advisory" },
                   { icon: Check, t: "Streetlight repaired", s: "Solved · Solano" },
                 ].map((r, i) => (
                   <div key={i} className="flex items-center gap-3 rounded-xl border bg-[hsl(var(--gov-green-50))]/60 p-3">

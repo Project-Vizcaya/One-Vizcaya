@@ -293,7 +293,7 @@ class _MyDataScreenState extends State<MyDataScreen> {
                         Text(
                             '${m['location'] ?? '—'}  •  ${m['reportedAt'] ?? '—'}',
                             style: TextStyle(
-                                fontSize: 11, color: Colors.grey.shade600)),
+                                fontSize: 12, color: Colors.grey.shade600)),
                       ],
                     ),
                   );

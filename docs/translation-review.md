@@ -41,6 +41,29 @@ Submit button. Source: `apps/mobile/lib/core/l10n/app_strings.dart`.
 
 > The Ilocano was the least certain of all. Please check it closely.
 
+### A3. `navReport` (bottom navigation tab label — keep it to one short word)
+
+Added on the experimental UI branch. Shown under the camera icon in the
+home screen's bottom bar; it opens Report a Problem.
+
+| Language | Current text | OK | Correction |
+|---|---|:-:|---|
+| English (source) | Report | — | — |
+| Tagalog | Mag-ulat | ☐ | |
+| Ilocano | Ireport | ☐ | |
+
+### A4. `sosNotACall` (SOS screen — shown while an emergency beacon is active)
+
+Safety-critical: read under stress. It must keep both points of the English:
+(1) the alert shares location but **is not a phone call**, (2) **also call**
+the PDRRMO hotline or 911 if able.
+
+| Language | Current text | OK | Correction |
+|---|---|:-:|---|
+| English (source) | This alert shares your location but is not a phone call. If you can, also call the PDRRMO hotline or 911. | — | — |
+| Tagalog | Ibinabahagi ng alertong ito ang iyong lokasyon pero hindi ito tawag sa telepono. Kung kaya mo, tumawag din sa PDRRMO hotline o sa 911. | ☐ | |
+| Ilocano | Ibingay daytoy nga alerto ti lokasionmo ngem saan nga awag iti telepono. No kabaelam, umawag met iti PDRRMO hotline wenno iti 911. | ☐ | |
+
 ### A5. `broadcastAlert` / `broadcastAlertUrgent` (inbox — label above a re-opened alert)
 
 Shown when a resident taps an alert in their notifications inbox. Keep it short.

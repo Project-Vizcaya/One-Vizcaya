@@ -196,7 +196,7 @@ class _AnnouncementsListState extends State<_AnnouncementsList> {
                   '${snapshot.error}',
                   textAlign: TextAlign.center,
                   style:
-                      TextStyle(fontSize: 11, color: Colors.grey.shade400),
+                      TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
                 ),
               ],
             ),
@@ -594,7 +594,7 @@ class _AnnouncementCardState extends State<_AnnouncementCard> {
                             Text(
                               AppStrings.get('urgentBadge'),
                               style: TextStyle(
-                                fontSize: 10,
+                                fontSize: 12,
                                 fontWeight: FontWeight.bold,
                                 color: Colors.red.shade600,
                               ),
@@ -618,7 +618,7 @@ class _AnnouncementCardState extends State<_AnnouncementCard> {
                             ? 'Province-Wide'
                             : municipality,
                         style: TextStyle(
-                          fontSize: 10,
+                          fontSize: 12,
                           fontWeight: FontWeight.w600,
                           color: widget.lguColor,
                         ),
@@ -629,8 +629,8 @@ class _AnnouncementCardState extends State<_AnnouncementCard> {
                       Text(
                         timeago.format(timestamp),
                         style: TextStyle(
-                          fontSize: 11,
-                          color: Colors.grey.shade400,
+                          fontSize: 12,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
                       ),
                     const SizedBox(width: 8),

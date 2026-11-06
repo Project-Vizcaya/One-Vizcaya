@@ -220,7 +220,7 @@ class _WeatherWidgetState extends State<WeatherWidget> {
                                     ? 'CURRENT LOCATION'
                                     : 'MUNICIPALITY',
                                 style: TextStyle(
-                                  fontSize: 10,
+                                  fontSize: 12,
                                   fontWeight: FontWeight.w700,
                                   letterSpacing: 0.8,
                                   color: subColor,
@@ -343,7 +343,7 @@ class _StatBlock extends StatelessWidget {
               Text(
                 label,
                 style: TextStyle(
-                  fontSize: 11,
+                  fontSize: 12,
                   fontWeight: FontWeight.w700,
                   color: titleColor,
                   height: 1.2,
@@ -353,7 +353,7 @@ class _StatBlock extends StatelessWidget {
               Text(
                 value.toUpperCase(),
                 style: TextStyle(
-                  fontSize: 10,
+                  fontSize: 12,
                   fontWeight: FontWeight.w600,
                   letterSpacing: 0.3,
                   color: subColor,

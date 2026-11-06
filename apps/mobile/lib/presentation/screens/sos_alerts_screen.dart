@@ -71,7 +71,7 @@ class SosAlertsScreen extends StatelessWidget {
                       style: TextStyle(fontWeight: FontWeight.bold)),
                   const SizedBox(height: 4),
                   Text('New SOS alerts appear here instantly.',
-                      style: TextStyle(color: Colors.grey.shade500, fontSize: 12)),
+                      style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12)),
                 ],
               ),
             );
@@ -159,7 +159,7 @@ class _SosCard extends StatelessWidget {
                     dispatched ? 'DISPATCHED' : 'ACTIVE SOS',
                     style: const TextStyle(
                         color: Colors.white,
-                        fontSize: 10,
+                        fontSize: 12,
                         fontWeight: FontWeight.bold,
                         letterSpacing: 0.5),
                   ),
@@ -178,14 +178,14 @@ class _SosCard extends StatelessWidget {
                     child: Text('UNVERIFIED',
                         style: TextStyle(
                             color: Colors.amber.shade900,
-                            fontSize: 10,
+                            fontSize: 12,
                             fontWeight: FontWeight.bold)),
                   ),
                 const Spacer(),
                 if (alert.updatedAt != null)
                   Text(
                     'updated ${TimeOfDay.fromDateTime(alert.updatedAt!.toLocal()).format(context)}',
-                    style: TextStyle(fontSize: 10, color: Colors.grey.shade500),
+                    style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
                   ),
               ],
             ),
@@ -206,7 +206,7 @@ class _SosCard extends StatelessWidget {
                       child: Text(
                         'Flagged: ${alert.flagReason ?? 'possible misuse'} — verify before dispatch.',
                         style: TextStyle(
-                            fontSize: 11, color: Colors.blueGrey.shade700),
+                            fontSize: 12, color: Colors.blueGrey.shade700),
                       ),
                     ),
                   ],
@@ -229,7 +229,7 @@ class _SosCard extends StatelessWidget {
             const SizedBox(height: 6),
             if (hasFix)
               Text(
-                '📍 ${alert.lat!.toStringAsFixed(6)}, ${alert.lng!.toStringAsFixed(6)}'
+                '${alert.lat!.toStringAsFixed(6)}, ${alert.lng!.toStringAsFixed(6)}'
                 '${alert.accuracy != null ? '  ·  ±${alert.accuracy!.round()} m' : ''}',
                 style: TextStyle(
                     fontSize: 12,
@@ -241,7 +241,7 @@ class _SosCard extends StatelessWidget {
                   style: TextStyle(
                       fontSize: 12,
                       fontStyle: FontStyle.italic,
-                      color: Colors.grey.shade500)),
+                      color: Theme.of(context).colorScheme.onSurfaceVariant)),
             if (alert.note != null && alert.note!.isNotEmpty) ...[
               const SizedBox(height: 4),
               Text('“${alert.note}”',

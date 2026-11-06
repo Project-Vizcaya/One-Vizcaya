@@ -703,10 +703,13 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
                             fit: BoxFit.cover,
                           ),
                         ),
+                        // 48 dp tap area around the small visual circle, so
+                        // an unsteady hand removes the photo, not misses it.
                         Positioned(
-                          top: 8,
-                          right: 8,
+                          top: 0,
+                          right: 0,
                           child: GestureDetector(
+                            behavior: HitTestBehavior.opaque,
                             onTap: () => setState(() {
                               _selectedImage = null;
                               _photoTimestamp = null;
@@ -714,6 +717,10 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
                               _photoLongitude = null;
                               _photoSource = null;
                             }),
+                            child: SizedBox(
+                              width: 48,
+                              height: 48,
+                              child: Center(
                             child: Container(
                               padding: const EdgeInsets.all(4),
                               decoration: const BoxDecoration(
@@ -725,6 +732,8 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
                                 color: Colors.white,
                                 size: 18,
                                 semanticLabel: 'Remove photo',
+                              ),
+                            ),
                               ),
                             ),
                           ),
@@ -761,7 +770,7 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
                                 '${_photoTimestamp!.minute.toString().padLeft(2, '0')}'
                                 '${(_photoLatitude != null && _photoLongitude != null) ? '\nGPS: ${_photoLatitude!.toStringAsFixed(5)}, ${_photoLongitude!.toStringAsFixed(5)}' : ''}',
                                 style: TextStyle(
-                                  fontSize: 11,
+                                  fontSize: 12,
                                   color: Colors.green.shade700,
                                 ),
                               ),
@@ -862,13 +871,13 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
                 Text(
                   'Camera photos include a verified timestamp and GPS location.',
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+                  style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   'Gallery photos do not include a timestamp or GPS.',
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 12, color: Colors.grey.shade400),
+                  style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
                 ),
                 const SizedBox(height: 20),
                 Row(
@@ -909,8 +918,15 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
     required String sublabel,
     required VoidCallback onTap,
   }) {
-    return GestureDetector(
-      onTap: onTap,
+    return Semantics(
+      button: true,
+      child: Material(
+        type: MaterialType.transparency,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(16),
+          child: Padding(
+            padding: const EdgeInsets.all(8),
       child: Column(
         children: [
           Container(
@@ -925,9 +941,13 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
           Text(label, style: const TextStyle(fontWeight: FontWeight.w500)),
           Text(
             sublabel,
-            style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
+            // grey.shade700: grey.shade500 on white was ~2.6:1, below 4.5:1.
+            style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
           ),
         ],
+      ),
+          ),
+        ),
       ),
     );
   }
@@ -1264,7 +1284,7 @@ class _ModeOption extends StatelessWidget {
                     Text(
                       subtitle,
                       style: TextStyle(
-                        fontSize: 11,
+                        fontSize: 12,
                         color: selected
                             ? selectedColor.withValues(alpha: isDark ? 0.9 : 0.75)
                             : (isDark ? const Color(0xFFA8ADB5) : Colors.grey.shade500),
@@ -1467,7 +1487,7 @@ class _CategoryTreeSelectorState extends State<_CategoryTreeSelector> {
                 const SizedBox(width: 8),
                 const Text(
                   '* Required',
-                  style: TextStyle(fontSize: 11, color: Colors.red),
+                  style: TextStyle(fontSize: 12, color: Colors.red),
                 ),
               ],
             ],
@@ -1497,7 +1517,7 @@ class _CategoryTreeSelectorState extends State<_CategoryTreeSelector> {
             padding: const EdgeInsets.only(top: 6, left: 4),
             child: Text(
               'Please pick a category (search or browse) to continue.',
-              style: TextStyle(fontSize: 11, color: Colors.red.shade700),
+              style: TextStyle(fontSize: 12, color: Colors.red.shade700),
             ),
           ),
       ],
@@ -1513,7 +1533,7 @@ class _CategoryTreeSelectorState extends State<_CategoryTreeSelector> {
       decoration: InputDecoration(
         isDense: true,
         hintText: 'Search e.g. "traffic", "flood", "streetlight"…',
-        hintStyle: TextStyle(fontSize: 13, color: Colors.grey.shade500),
+        hintStyle: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onSurfaceVariant),
         prefixIcon: Icon(Icons.search, size: 20, color: widget.primaryColor),
         suffixIcon: _query.isNotEmpty
             ? IconButton(
@@ -1561,7 +1581,7 @@ class _CategoryTreeSelectorState extends State<_CategoryTreeSelector> {
             const SizedBox(height: 4),
             Text(
               "Report it under “Others” and describe it — the LGU will route it.",
-              style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
+              style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 10),
@@ -1588,7 +1608,7 @@ class _CategoryTreeSelectorState extends State<_CategoryTreeSelector> {
           padding: const EdgeInsets.only(bottom: 6, left: 2),
           child: Text(
             '${matches.length} match${matches.length == 1 ? '' : 'es'}',
-            style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
+            style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
           ),
         ),
         ...matches.map(
@@ -1632,9 +1652,14 @@ class _CategoryTreeSelectorState extends State<_CategoryTreeSelector> {
   // ── Selected priority header with back button ─────────────────────────────
   Widget _buildSelectedPriorityHeader() {
     final p = widget.selectedPriority!;
-    return GestureDetector(
+    return Semantics(
+      button: true,
+      label: 'Change priority, currently ${p.displayName}',
+      excludeSemantics: true,
+      child: GestureDetector(
       onTap: widget.onReset,
       child: Container(
+        constraints: const BoxConstraints(minHeight: 48),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
           color: p.color.withValues(alpha: 0.08),
@@ -1659,12 +1684,13 @@ class _CategoryTreeSelectorState extends State<_CategoryTreeSelector> {
             Text(
               'Change',
               style: TextStyle(
-                fontSize: 11,
+                fontSize: 12,
                 color: p.color.withValues(alpha: 0.7),
               ),
             ),
           ],
         ),
+      ),
       ),
     );
   }
@@ -1736,8 +1762,16 @@ class _CategoryTreeSelectorState extends State<_CategoryTreeSelector> {
                   ),
                 ),
               ),
-              GestureDetector(
+              // The chip stays small; its tap area is 48 dp tall.
+              Semantics(
+                button: true,
+                label: 'Change category',
+                excludeSemantics: true,
+                child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
                 onTap: widget.onReset,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
                 child: Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 8,
@@ -1752,7 +1786,7 @@ class _CategoryTreeSelectorState extends State<_CategoryTreeSelector> {
                   child: Text(
                     'Change',
                     style: TextStyle(
-                      fontSize: 11,
+                      fontSize: 12,
                       fontWeight: FontWeight.w600,
                       color: isDark
                           ? const Color(0xFFA8ADB5)
@@ -1760,6 +1794,8 @@ class _CategoryTreeSelectorState extends State<_CategoryTreeSelector> {
                     ),
                   ),
                 ),
+                ),
+              ),
               ),
             ],
           ),
@@ -1838,7 +1874,7 @@ class _PriorityTile extends StatelessWidget {
                     Text(
                       '$categoryCount types',
                       style: TextStyle(
-                        fontSize: 10,
+                        fontSize: 12,
                         color: priority.color.withValues(alpha: 0.7),
                       ),
                     ),
@@ -1918,8 +1954,8 @@ class _CategoryCard extends StatelessWidget {
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                          fontSize: 11,
-                          color: Colors.grey.shade500,
+                          fontSize: 12,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
                           height: 1.4,
                         ),
                       ),

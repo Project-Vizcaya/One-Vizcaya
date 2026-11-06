@@ -112,6 +112,7 @@ class _CitizenGuideScreenState extends State<CitizenGuideScreen> {
                             Icon(Icons.search, color: Colors.grey.shade500),
                         suffixIcon: _query.isNotEmpty
                             ? IconButton(
+                              tooltip: 'Close',
                                 icon: const Icon(Icons.close, size: 18),
                                 onPressed: () {
                                   _searchCtrl.clear();

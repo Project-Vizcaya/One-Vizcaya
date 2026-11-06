@@ -225,7 +225,7 @@ export function ReportsTable({ reports, loading, initialFilter = "all" }: Report
           {(dateFrom || dateTo) && (
             <button
               onClick={() => { setDateFrom(""); setDateTo(""); }}
-              className="text-[11px] text-muted-foreground hover:text-foreground underline whitespace-nowrap"
+              className="text-xs text-muted-foreground hover:text-foreground underline whitespace-nowrap"
             >
               Clear
             </button>
@@ -294,11 +294,11 @@ export function ReportsTable({ reports, loading, initialFilter = "all" }: Report
                     aria-label="Select all reports"
                   />
                 </th>
-                <th className="px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Category / Location</th>
-                <th className="px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-muted-foreground hidden md:table-cell">Municipality</th>
-                <th className="px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Status</th>
-                <th className="px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Priority</th>
-                <th className="px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-muted-foreground hidden lg:table-cell">Reported</th>
+                <th className="px-3 py-2.5 text-left text-xs font-bold uppercase tracking-widest text-muted-foreground">Category / Location</th>
+                <th className="px-3 py-2.5 text-left text-xs font-bold uppercase tracking-widest text-muted-foreground hidden md:table-cell">Municipality</th>
+                <th className="px-3 py-2.5 text-left text-xs font-bold uppercase tracking-widest text-muted-foreground">Status</th>
+                <th className="px-3 py-2.5 text-left text-xs font-bold uppercase tracking-widest text-muted-foreground">Priority</th>
+                <th className="px-3 py-2.5 text-left text-xs font-bold uppercase tracking-widest text-muted-foreground hidden lg:table-cell">Reported</th>
                 <th className="w-8 px-2" />
               </tr>
             </thead>
@@ -348,7 +348,7 @@ export function ReportsTable({ reports, loading, initialFilter = "all" }: Report
                       </td>
                       <td className="px-3 py-2.5">
                         <p className="font-medium text-sm truncate max-w-[140px] sm:max-w-[180px]">{r.category}</p>
-                        <p className="text-[11px] text-muted-foreground truncate max-w-[140px] sm:max-w-[180px]">
+                        <p className="text-xs text-muted-foreground truncate max-w-[140px] sm:max-w-[180px]">
                           {r.location || r.municipality}
                           {overdue && <span className="ml-1 text-amber-600 font-semibold" aria-label="Overdue">⏰</span>}
                         </p>
@@ -357,12 +357,12 @@ export function ReportsTable({ reports, loading, initialFilter = "all" }: Report
                         <span className="text-sm text-muted-foreground">{r.municipality}</span>
                       </td>
                       <td className="px-3 py-2.5">
-                        <Badge variant={STATUS_VARIANT[r.status]} className="text-[10px] uppercase tracking-wide whitespace-nowrap">
+                        <Badge variant={STATUS_VARIANT[r.status]} className="text-xs uppercase tracking-wide whitespace-nowrap">
                           {r.status.replace("_", " ")}
                         </Badge>
                       </td>
                       <td className="px-3 py-2.5">
-                        <Badge variant={PRIORITY_VARIANT[r.priority]} className="text-[10px] uppercase tracking-wide">
+                        <Badge variant={PRIORITY_VARIANT[r.priority]} className="text-xs uppercase tracking-wide">
                           {r.priority}
                         </Badge>
                       </td>

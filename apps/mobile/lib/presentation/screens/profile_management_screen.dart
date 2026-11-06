@@ -160,7 +160,7 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
                           ? 'Required before you can submit reports.'
                           : 'Report from anywhere once certified.',
                       style: TextStyle(
-                          fontSize: 11.5, color: Colors.grey.shade600),
+                          fontSize: 12, color: Colors.grey.shade600),
                     ),
                   ],
                 ),
@@ -317,8 +317,8 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
                     ),
                     helperText: 'Used for report status notifications',
                     helperStyle: TextStyle(
-                      color: Colors.grey.shade500,
-                      fontSize: 11,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      fontSize: 12,
                     ),
                   ),
                   validator: (v) {
@@ -442,6 +442,7 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
                   pinned: true,
                   centerTitle: true,
                   leading: IconButton(
+                    tooltip: 'Back',
                     icon: const Icon(Icons.arrow_back_ios_new, size: 20),
                     onPressed: () => Navigator.of(context).pop(),
                   ),
@@ -558,8 +559,8 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
                               Text(
                                 'Long-press to copy UID',
                                 style: TextStyle(
-                                  fontSize: 10,
-                                  color: Colors.grey.shade400,
+                                  fontSize: 12,
+                                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                                   fontStyle: FontStyle.italic,
                                 ),
                               ),
@@ -572,7 +573,7 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
                             _profile!.email,
                             style: TextStyle(
                               fontSize: 13,
-                              color: Colors.grey.shade500,
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
                             ),
                           ),
                         ],
@@ -592,7 +593,7 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
                                   _profile!.location,
                                   style: TextStyle(
                                     fontSize: 13,
-                                    color: Colors.grey.shade500,
+                                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                                   ),
                                   overflow: TextOverflow.ellipsis,
                                   maxLines: 1,
@@ -761,8 +762,8 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
                             Text(
                               '${_totalReports > 0 ? ((_resolvedReports / _totalReports) * 100).round() : 0}% resolved',
                               style: TextStyle(
-                                fontSize: 11,
-                                color: Colors.grey.shade500,
+                                fontSize: 12,
+                                color: Theme.of(context).colorScheme.onSurfaceVariant,
                               ),
                             ),
                           ],
@@ -799,9 +800,9 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
                           child: Text(
                             'PROFILE MENU',
                             style: TextStyle(
-                              fontSize: 11,
+                              fontSize: 12,
                               fontWeight: FontWeight.w600,
-                              color: Colors.grey.shade500,
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
                               letterSpacing: 1.2,
                             ),
                           ),
@@ -1049,7 +1050,7 @@ class _ProfileMenuItem extends StatelessWidget {
                   badgeText!,
                   style: const TextStyle(
                     color: Colors.white,
-                    fontSize: 11,
+                    fontSize: 12,
                     fontWeight: FontWeight.w600,
                   ),
                 ),

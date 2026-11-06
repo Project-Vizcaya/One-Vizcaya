@@ -4,6 +4,8 @@ class AppStrings {
     'English': {
       'appTitle': 'One Vizcaya',
       'home': 'Home',
+      'navReport': 'Report',
+      'sosNotACall': 'This alert shares your location but is not a phone call. If you can, also call the PDRRMO hotline or 911.',
       // ── Data Privacy (RA 10173) ──
       'downloadMyData': 'Download My Data',
       'downloadMyDataSubtitle': 'Get a copy of the personal data we hold about you',
@@ -286,6 +288,8 @@ class AppStrings {
     'Tagalog': {
       'appTitle': 'One Vizcaya',
       'home': 'Tahanan',
+      'navReport': 'Mag-ulat',
+      'sosNotACall': 'Ibinabahagi ng alertong ito ang iyong lokasyon pero hindi ito tawag sa telepono. Kung kaya mo, tumawag din sa PDRRMO hotline o sa 911.',
       // ── Pagkapribado ng Datos (RA 10173) ──
       'downloadMyData': 'I-download ang Aking Datos',
       'downloadMyDataSubtitle': 'Kumuha ng kopya ng personal na datos na hawak namin tungkol sa iyo',
@@ -568,6 +572,8 @@ class AppStrings {
     'Ilocano': {
       'appTitle': 'One Vizcaya',
       'home': 'Abong',
+      'navReport': 'Ireport',
+      'sosNotACall': 'Ibingay daytoy nga alerto ti lokasionmo ngem saan nga awag iti telepono. No kabaelam, umawag met iti PDRRMO hotline wenno iti 911.',
       // ── Kinasipnget ti Datos (RA 10173) ──
       'downloadMyData': 'I-download ti Datosko',
       'downloadMyDataSubtitle': 'Mangala iti kopia ti personal a datos nga iggem mi maipapan kenka',

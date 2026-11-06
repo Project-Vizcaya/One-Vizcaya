@@ -49,7 +49,7 @@ class CommunityFeed extends StatelessWidget {
                 Text(
                   'Reports marked as solved will appear here',
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 13, color: Colors.grey.shade400),
+                  style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onSurfaceVariant),
                 ),
               ],
             ),
@@ -90,7 +90,7 @@ class CommunityFeed extends StatelessWidget {
                   ? Text(
                       timeago.format(reportedAt),
                       style: const TextStyle(
-                          fontSize: 11, color: Colors.grey),
+                          fontSize: 12, color: Colors.grey),
                     )
                   : null,
             );

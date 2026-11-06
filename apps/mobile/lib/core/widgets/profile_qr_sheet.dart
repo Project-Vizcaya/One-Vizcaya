@@ -81,7 +81,7 @@ class ProfileQrSheet extends StatelessWidget {
             Text(
               'Scan to verify citizen identity',
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 13, color: Colors.grey.shade500),
+              style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onSurfaceVariant),
             ),
             const SizedBox(height: 20),
 
@@ -208,7 +208,7 @@ class ProfileQrSheet extends StatelessWidget {
                 Flexible(
                   child: Text(
                     'Issued by $municipality LGU · One Vizcaya v1',
-                    style: TextStyle(fontSize: 11, color: Colors.grey.shade400),
+                    style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
                     textAlign: TextAlign.center,
                   ),
                 ),

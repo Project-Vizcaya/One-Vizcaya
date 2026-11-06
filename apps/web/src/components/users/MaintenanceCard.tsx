@@ -119,7 +119,7 @@ export function MaintenanceCard() {
         </Button>
       </div>
 
-      <p className="text-[11px] text-muted-foreground">
+      <p className="text-xs text-muted-foreground">
         <strong>Sync Responder Directory</strong> re-writes the responders collection with the
         latest official numbers (run this after any responder-number update).
         Placeholder/unverified numbers are marked and shown as "being verified".{" "}

@@ -26,7 +26,7 @@ function BroadcastsPage() {
         </div>
         <div className="text-right shrink-0">
           <p className="text-xs font-semibold text-foreground">{user?.name}</p>
-          <p className="text-[10px] text-muted-foreground">{new Date().toLocaleDateString("en-PH", { weekday: "short", year: "numeric", month: "short", day: "numeric" })}</p>
+          <p className="text-xs text-muted-foreground">{new Date().toLocaleDateString("en-PH", { weekday: "short", year: "numeric", month: "short", day: "numeric" })}</p>
         </div>
       </div>
 

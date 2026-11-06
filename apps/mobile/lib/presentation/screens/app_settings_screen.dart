@@ -278,7 +278,7 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
                   ),
                   subtitle: Text(
                     'Currently using ${_darkModeEnabled ? 'dark' : 'light'} theme',
-                    style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+                    style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -311,7 +311,7 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
                   child: Text(
                     'Some screens may require restarting the app to fully apply.',
                     style: TextStyle(
-                        fontSize: 11, color: Colors.grey.shade500),
+                        fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
                   ),
                 ),
                 _DividerLine(),
@@ -797,9 +797,9 @@ class _SectionHeader extends StatelessWidget {
       child: Text(
         label,
         style: TextStyle(
-          fontSize: 11,
+          fontSize: 12,
           fontWeight: FontWeight.w700,
-          color: Colors.grey.shade500,
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
           letterSpacing: 1.2,
         ),
       ),
@@ -873,7 +873,7 @@ class _ToggleTile extends StatelessWidget {
       ),
       subtitle: Text(
         subtitle,
-        style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+        style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
         maxLines: 2,
         overflow: TextOverflow.ellipsis,
       ),
@@ -920,7 +920,7 @@ class _NavigationTile extends StatelessWidget {
       ),
       subtitle: Text(
         subtitle,
-        style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+        style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
         maxLines: 2,
         overflow: TextOverflow.ellipsis,
       ),
@@ -966,7 +966,7 @@ class _InfoTile extends StatelessWidget {
       ),
       trailing: Text(
         value,
-        style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+        style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
       ),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
     );
@@ -1015,7 +1015,7 @@ class _DropdownTile extends StatelessWidget {
       ),
       subtitle: Text(
         subtitle,
-        style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+        style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
       ),
       trailing: DropdownButton<String>(
         value: value,

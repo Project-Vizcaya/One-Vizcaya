@@ -213,15 +213,15 @@ export function ReportDetail({ report, open, onClose, allReports = [] }: ReportD
           <DialogHeader>
             <DialogTitle className="flex flex-wrap items-center gap-2 text-base">
               Report #{report.id.slice(-6).toUpperCase()}
-              <Badge variant={PRIORITY_VARIANT[report.priority] ?? "low"} className="text-[10px] uppercase tracking-wide">
+              <Badge variant={PRIORITY_VARIANT[report.priority] ?? "low"} className="text-xs uppercase tracking-wide">
                 {report.priority}
               </Badge>
-              <Badge variant={STATUS_VARIANT[report.status]} className="text-[10px] capitalize">
+              <Badge variant={STATUS_VARIANT[report.status]} className="text-xs capitalize">
                 {report.status === "archived" && report.statusBeforeArchive
                   ? `archived · was ${report.statusBeforeArchive.replace("_", " ")}`
                   : report.status.replace("_", " ")}
               </Badge>
-              <Badge variant="outline" className="text-[10px]">
+              <Badge variant="outline" className="text-xs">
                 {HANDLING_LABEL[level]}
               </Badge>
             </DialogTitle>
@@ -245,7 +245,7 @@ export function ReportDetail({ report, open, onClose, allReports = [] }: ReportD
 
               {/* Description */}
               <div className="bg-muted/40 rounded-lg p-3 text-sm border">
-                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1.5">Incident Description</p>
+                <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-1.5">Incident Description</p>
                 <p className="whitespace-pre-wrap leading-relaxed">{report.description}</p>
               </div>
 
@@ -261,15 +261,15 @@ export function ReportDetail({ report, open, onClose, allReports = [] }: ReportD
               {report.imageUrl && (
                 <div>
                   <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1">
+                    <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1">
                       <FileImage className="h-3 w-3" aria-hidden /> Attached Photo
                     </p>
                     {report.photoSource === "camera" ? (
-                      <span className="text-[10px] font-semibold text-green-700 bg-green-100 rounded px-1.5 py-0.5 flex items-center gap-1">
+                      <span className="text-xs font-semibold text-green-700 bg-green-100 rounded px-1.5 py-0.5 flex items-center gap-1">
                         <Camera className="h-3 w-3" /> Live camera · GPS-stamped
                       </span>
                     ) : report.photoSource === "gallery" ? (
-                      <span className="text-[10px] font-semibold text-amber-700 bg-amber-100 rounded px-1.5 py-0.5 flex items-center gap-1">
+                      <span className="text-xs font-semibold text-amber-700 bg-amber-100 rounded px-1.5 py-0.5 flex items-center gap-1">
                         <ImageIcon className="h-3 w-3" /> From gallery · unverified
                       </span>
                     ) : null}
@@ -284,7 +284,7 @@ export function ReportDetail({ report, open, onClose, allReports = [] }: ReportD
                     <a
                       href={`https://www.google.com/maps/search/?api=1&query=${report.photoLatitude},${report.photoLongitude}`}
                       target="_blank" rel="noopener noreferrer"
-                      className="mt-1 inline-flex items-center gap-1 text-[11px] text-primary hover:underline"
+                      className="mt-1 inline-flex items-center gap-1 text-xs text-primary hover:underline"
                     >
                       <MapPin className="h-3 w-3" /> Open photo location in Google Maps
                     </a>
@@ -302,7 +302,7 @@ export function ReportDetail({ report, open, onClose, allReports = [] }: ReportD
                   <p className="text-sm font-semibold">{dispositionLabel(report.disposition)}</p>
                   {report.dispositionReason && <p className="text-sm whitespace-pre-line">{report.dispositionReason}</p>}
                   {report.duplicateOf && <p className="text-xs text-muted-foreground">Duplicate of report #{report.duplicateOf.slice(-6).toUpperCase()}</p>}
-                  <p className="text-[11px] text-muted-foreground">
+                  <p className="text-xs text-muted-foreground">
                     {report.dispositionAt ? `${format(report.dispositionAt, "MMM d, yyyy h:mm a")} · ` : ""}
                     by admin {report.dispositionBy ? report.dispositionBy.slice(0, 8) : "unknown"} · recorded in the audit log
                   </p>
@@ -425,10 +425,10 @@ export function ReportDetail({ report, open, onClose, allReports = [] }: ReportD
                     {[...report.notes].reverse().map((n, i) => (
                       <div key={i} className="bg-muted/30 border rounded-md p-2.5 text-sm">
                         <div className="flex items-center gap-2 mb-1 flex-wrap">
-                          <span className={cn("text-[10px] px-1.5 py-0.5 rounded font-semibold uppercase tracking-wide", authorColor(n.author))}>
+                          <span className={cn("text-xs px-1.5 py-0.5 rounded font-semibold uppercase tracking-wide", authorColor(n.author))}>
                             {n.author}
                           </span>
-                          <span className="text-[11px] text-muted-foreground">
+                          <span className="text-xs text-muted-foreground">
                             {timeAgo(n.timestamp instanceof Date ? n.timestamp : new Date(n.timestamp as unknown as string))}
                           </span>
                         </div>
@@ -445,7 +445,7 @@ export function ReportDetail({ report, open, onClose, allReports = [] }: ReportD
                       key={i}
                       type="button"
                       onClick={() => appendCanned(r)}
-                      className="text-[11px] bg-muted/60 hover:bg-accent px-2 py-1 rounded border text-left transition-colors leading-tight"
+                      className="text-xs bg-muted/60 hover:bg-accent px-2 py-1 rounded border text-left transition-colors leading-tight"
                     >
                       {r.slice(0, 38)}…
                     </button>
@@ -461,7 +461,7 @@ export function ReportDetail({ report, open, onClose, allReports = [] }: ReportD
                   aria-label="Add note"
                 />
                 <div className="flex items-center justify-between mt-1.5">
-                  <span className="text-[11px] text-muted-foreground">{note.length} characters</span>
+                  <span className="text-xs text-muted-foreground">{note.length} characters</span>
                   <Button size="sm" onClick={handleNoteSave} disabled={saving || !note.trim()}>
                     {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" aria-hidden /> : <Save className="h-3.5 w-3.5 mr-1" aria-hidden />}
                     Add Note
@@ -472,7 +472,7 @@ export function ReportDetail({ report, open, onClose, allReports = [] }: ReportD
               <Separator />
 
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
-                <p className="text-[11px] text-muted-foreground">
+                <p className="text-xs text-muted-foreground">
                   Last modified: {format(report.lastModified, "MMM d, yyyy h:mm a")}
                 </p>
                 <Button
@@ -574,7 +574,7 @@ function InfoRow({ icon, label, value }: { icon: React.ReactNode; label: string;
     <div className="flex items-start gap-2">
       <span className="text-muted-foreground mt-0.5 shrink-0" aria-hidden="true">{icon}</span>
       <div className="min-w-0">
-        <p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">{label}</p>
+        <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">{label}</p>
         <p className="text-sm font-medium truncate">{value}</p>
       </div>
     </div>

@@ -123,7 +123,7 @@ export function PagasaPanel({ place }: { place: string }) {
             {current.map((t, i) => <Thunderstorm key={`c${i}`} t={t} expired={false} />)}
             {expired.length > 0 && (
               <>
-                <p className="text-[11px] font-semibold text-muted-foreground pt-1">Expired</p>
+                <p className="text-xs font-semibold text-muted-foreground pt-1">Expired</p>
                 {expired.map((t, i) => <Thunderstorm key={`e${i}`} t={t} expired />)}
               </>
             )}
@@ -139,7 +139,7 @@ export function PagasaPanel({ place }: { place: string }) {
               {synExpired && <Note icon={Clock}>This synopsis expired {fmtPht(p.synopsis.validUntil)}.</Note>}
               <p className="text-xs whitespace-pre-line leading-relaxed">{p.synopsis.text}</p>
               {p.synopsis.mentionsTropicalCyclone && (
-                <p className="text-[11px] text-muted-foreground">
+                <p className="text-xs text-muted-foreground">
                   Shown as published. For official tropical cyclone warnings and wind signals, follow PAGASA bulletins and PDRRMO.
                 </p>
               )}
@@ -174,7 +174,7 @@ function Period({ label, x }: { label: string; x: PagasaPeriod }) {
   const wind = [x.windSpeed, x.windDirection].filter(Boolean).join(", ");
   return (
     <div className="text-xs space-y-0.5">
-      <p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">{label}</p>
+      <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">{label}</p>
       {x.description && <p className="text-sm">{x.description}</p>}
       {temps && <p>{temps}</p>}
       {wind && <p className="text-muted-foreground">Wind: {wind}</p>}
@@ -186,13 +186,13 @@ function Thunderstorm({ t, expired }: { t: PagasaThunderstorm; expired: boolean 
   return (
     <div className={`rounded-md border p-2 space-y-1 ${expired ? "opacity-50" : ""}`}>
       <div className="flex flex-wrap gap-1">
-        <Badge variant="secondary" className="text-[10px]">{KIND_LABEL[t.kind] ?? "PAGASA thunderstorm item"}</Badge>
-        <Badge variant="outline" className="text-[10px]">
+        <Badge variant="secondary" className="text-xs">{KIND_LABEL[t.kind] ?? "PAGASA thunderstorm item"}</Badge>
+        <Badge variant="outline" className="text-xs">
           {t.mentionsNuevaVizcaya ? "Names Nueva Vizcaya" : "Does not name Nueva Vizcaya"}
         </Badge>
       </div>
       <p className="text-xs whitespace-pre-line leading-relaxed">{t.text}</p>
-      <p className="text-[11px] text-muted-foreground">
+      <p className="text-xs text-muted-foreground">
         {t.validUntil ? `${expired ? "Expired" : "Valid until"} ${fmtPht(t.validUntil)}` : "Validity not stated by PAGASA"}
       </p>
     </div>
@@ -210,7 +210,7 @@ function Meta({ p, coverage, issued, validUntil }: {
     `Retrieved ${fmtPht(p.lastSuccessAt ?? p.retrievedAt)}`,
   ].filter(Boolean);
   return (
-    <div className="text-[10.5px] text-muted-foreground space-y-0.5">
+    <div className="text-xs text-muted-foreground space-y-0.5">
       <p>{parts.join(" · ")}</p>
       <a href={p.sourceUrl} target="_blank" rel="noopener noreferrer"
         className="inline-flex items-center gap-1 text-[hsl(var(--gov-green-700))] hover:underline">
@@ -235,7 +235,7 @@ function Note({ icon: Icon, tone, children }: {
 function Verbatim({ label, text }: { label: string; text: string }) {
   return (
     <div className="rounded-md border border-amber-400/50 bg-amber-50/50 dark:bg-amber-950/20 p-2">
-      <p className="text-[11px] font-semibold text-amber-800 dark:text-amber-300">{label}</p>
+      <p className="text-xs font-semibold text-amber-800 dark:text-amber-300">{label}</p>
       <p className="text-xs whitespace-pre-line">{text}</p>
     </div>
   );

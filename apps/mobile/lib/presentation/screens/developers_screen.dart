@@ -130,7 +130,7 @@ class DevelopersScreen extends StatelessWidget {
                                 child: Text(
                                   _leadRole.toUpperCase(),
                                   style: TextStyle(
-                                      fontSize: 11,
+                                      fontSize: 12,
                                       fontWeight: FontWeight.bold,
                                       letterSpacing: 0.6,
                                       color: lguColor),
@@ -185,14 +185,14 @@ class DevelopersScreen extends StatelessWidget {
           Center(
             child: Text(
               'One Vizcaya • ${AppConstants.appVersionDisplay}',
-              style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+              style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
             ),
           ),
           const SizedBox(height: 4),
           Center(
             child: Text(
               'Made for the People of Nueva Vizcaya',
-              style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+              style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
             ),
           ),
         ],
@@ -225,7 +225,7 @@ class _AreaChips extends StatelessWidget {
                 child: Text(
                   a,
                   style: TextStyle(
-                    fontSize: 11.5,
+                    fontSize: 12,
                     fontWeight: FontWeight.w600,
                     color: color,
                   ),

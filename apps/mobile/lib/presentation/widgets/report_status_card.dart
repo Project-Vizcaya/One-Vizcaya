@@ -45,14 +45,29 @@ class _ReportStatusCardState extends State<ReportStatusCard>
       _checkFeedbackStatus();
     }
 
-    // Pulse animation for current active step
+    // Pulse animation for current active step (started in
+    // didChangeDependencies, which can read the OS motion setting).
     _pulseController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 1),
-    )..repeat(reverse: true);
+    );
     _pulseOpacity = Tween<double>(begin: 0.6, end: 1.0).animate(
       CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
     );
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Respect the OS "Remove animations" setting: an endlessly pulsing step is
+    // exactly what people with vestibular or attention conditions turn off.
+    if (MediaQuery.of(context).disableAnimations) {
+      _pulseController
+        ..stop()
+        ..value = 1.0;
+    } else if (!_pulseController.isAnimating) {
+      _pulseController.repeat(reverse: true);
+    }
   }
 
   @override
@@ -214,84 +229,105 @@ class _ReportStatusCardState extends State<ReportStatusCard>
     const greyColor = Color(0xFFBDBDBD);
     const size = 20.0;
 
-    return SizedBox(
-      height: 68,
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: List.generate(stepLabels.length * 2 - 1, (i) {
-          if (i.isOdd) {
-            // Connector line — green if next step is completed
-            final lineStepIndex = i ~/ 2;
-            final isCompleted = step > lineStepIndex;
-            return Expanded(
-              child: Padding(
-                padding: const EdgeInsets.only(top: 9),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 300),
-                  height: 2,
-                  color: isCompleted ? activeColor : greyColor,
-                ),
-              ),
-            );
-          }
+    // Responsive stepper. Five labels side by side need ~420 logical px, so on
+    // phones they were being clipped. Each step is now an equal-width cell
+    // (circle centred, connector halves either side), so the circles fit any
+    // width; the labels row only appears when there is room for it, and
+    // otherwise one clear line states the current step. Screen readers get a
+    // single summary instead of five fragments.
+    final current = step.clamp(0, stepLabels.length - 1);
+    final summary = isResolved
+        ? 'Resolved'
+        : 'Step ${current + 1} of ${stepLabels.length} · ${stepLabels[current]}';
 
-          // Circle node
-          final circleIndex = i ~/ 2;
-          // A node is done if a later step is current, or if the report is in a
-          // terminal (resolved) state and this is the current/final node.
-          final isDone =
-              step > circleIndex || (isResolved && step == circleIndex);
-          final isActive =
-              step == circleIndex && !isResolved; // current step, not yet done
+    Color nodeColor(int i) {
+      final done = step > i || (isResolved && step == i);
+      return done || (step == i && !isResolved) ? activeColor : greyColor;
+    }
 
-          Widget circle = AnimatedContainer(
-            duration: const Duration(milliseconds: 300),
-            curve: Curves.easeOut,
-            width: size,
-            height: size,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: isDone ? activeColor : Colors.transparent,
-              border: isDone
-                  ? null
-                  : Border.all(
-                      color: isActive ? activeColor : greyColor,
-                      width: 1.5,
-                    ),
+    Widget node(int i) {
+      final isDone = step > i || (isResolved && step == i);
+      final isActive = step == i && !isResolved;
+      Widget circle = AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: isDone ? activeColor : Colors.transparent,
+          border: isDone
+              ? null
+              : Border.all(color: isActive ? activeColor : greyColor, width: 1.5),
+        ),
+        child: isDone ? const Icon(Icons.check, size: 12, color: Colors.white) : null,
+      );
+      if (isActive) {
+        circle = AnimatedBuilder(
+          animation: _pulseOpacity,
+          builder: (_, child) => Opacity(opacity: _pulseOpacity.value, child: child),
+          child: circle,
+        );
+      }
+      Widget half(bool show, bool done) => Expanded(
+            child: Container(
+              height: 2,
+              color: show ? (done ? activeColor : greyColor) : Colors.transparent,
             ),
-            child: isDone
-                ? const Icon(Icons.check, size: 12, color: Colors.white)
-                : null,
           );
+      // Left half joins step i-1 -> i; right half joins step i -> i+1.
+      return Expanded(
+        child: Row(children: [
+          half(i > 0, step >= i),
+          circle,
+          half(i < stepLabels.length - 1, step > i),
+        ]),
+      );
+    }
 
-          // Wrap active (not-yet-done) circle in a pulsing opacity
-          if (isActive) {
-            circle = AnimatedBuilder(
-              animation: _pulseOpacity,
-              builder: (_, child) =>
-                  Opacity(opacity: _pulseOpacity.value, child: child),
-              child: circle,
-            );
-          }
-
-          return Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              circle,
-              const SizedBox(height: 4),
-              Text(
-                stepLabels[circleIndex],
-                style: TextStyle(
-                  fontSize: 9,
-                  fontWeight: FontWeight.w500,
-                  color: isDone || isActive ? activeColor : greyColor,
+    return Semantics(
+      label: 'Report progress: $summary',
+      excludeSemantics: true,
+      child: LayoutBuilder(builder: (context, c) {
+        final scale = MediaQuery.textScalerOf(context).scale(1);
+        final roomForLabels = c.maxWidth >= 420 * scale;
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(children: List.generate(stepLabels.length, node)),
+            const SizedBox(height: 6),
+            if (roomForLabels)
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: List.generate(
+                  stepLabels.length,
+                  (i) => Expanded(
+                    child: Text(
+                      stepLabels[i],
+                      textAlign: TextAlign.center,
+                      maxLines: 2,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: nodeColor(i),
+                      ),
+                    ),
+                  ),
                 ),
+              )
+            else
+              Text(
+                summary,
                 textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: activeColor,
+                ),
               ),
-            ],
-          );
-        }),
-      ),
+          ],
+        );
+      }),
     );
   }
 
@@ -648,6 +684,7 @@ class _ReportStatusCardState extends State<ReportStatusCard>
                     child: CircleAvatar(
                       backgroundColor: Colors.white24,
                       child: IconButton(
+                        tooltip: 'Close',
                         icon: const Icon(Icons.close,
                             color: Colors.white, size: 20),
                         onPressed: () => Navigator.of(sCtx).pop(),
@@ -728,18 +765,19 @@ class _ReportStatusCardState extends State<ReportStatusCard>
                 Icon(widget.report.priority.icon,
                     size: 14, color: priorityColor),
                 const SizedBox(width: 6),
-                Text(
-                  '${widget.report.priority.displayName} Priority',
-                  style: TextStyle(
-                    color: priorityColor,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 12,
+                Expanded(
+                  child: Text(
+                    '${widget.report.priority.displayName} Priority',
+                    style: TextStyle(
+                      color: priorityColor,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                    ),
                   ),
                 ),
-                const Spacer(),
                 Text(
                   'Score: ${widget.report.priorityScore}',
-                  style: TextStyle(color: priorityColor, fontSize: 11),
+                  style: TextStyle(color: priorityColor, fontSize: 12),
                 ),
                 if (widget.report.duplicateCount > 0) ...[
                   const SizedBox(width: 8),
@@ -755,7 +793,7 @@ class _ReportStatusCardState extends State<ReportStatusCard>
                       '${widget.report.duplicateCount} similar',
                       style: TextStyle(
                           color: priorityColor,
-                          fontSize: 10,
+                          fontSize: 12,
                           fontWeight: FontWeight.bold),
                     ),
                   ),
@@ -769,60 +807,61 @@ class _ReportStatusCardState extends State<ReportStatusCard>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // Category, then its status on its own line: a long status
+                // ("Closed — no action taken") no longer fights the category
+                // for one line, and reading order is what-then-status.
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Flexible(
-                      child: Text(
-                        widget.report.category.displayName,
-                        style: Theme.of(context)
-                            .textTheme
-                            .bodyLarge
-                            ?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: accent,
-                            ),
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.only(top: 12),
+                        child: Text(
+                          widget.report.category.displayName,
+                          style: Theme.of(context)
+                              .textTheme
+                              .bodyLarge
+                              ?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: accent,
+                              ),
+                        ),
                       ),
                     ),
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        // Share button
-                        GestureDetector(
-                          onTap: _shareReport,
-                          child: Padding(
-                            padding: const EdgeInsets.only(right: 8),
-                            child: Icon(Icons.share_outlined,
-                                size: 20, color: Colors.grey.shade600),
-                          ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: statusColor
-                                .withAlpha((255 * 0.1).round()),
-                            borderRadius: BorderRadius.circular(20.0),
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(statusIcon,
-                                  color: statusColor, size: 16),
-                              const SizedBox(width: 6),
-                              Text(
-                                statusText,
-                                style: TextStyle(
-                                  color: statusColor,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
+                    // 48 dp target with a ripple and a screen-reader name
+                    // (was a bare 20 px icon in a GestureDetector).
+                    IconButton(
+                      onPressed: _shareReport,
+                      tooltip: 'Share report',
+                      icon: Icon(Icons.share_outlined,
+                          size: 20, color: Colors.grey.shade700),
                     ),
                   ],
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: statusColor.withAlpha((255 * 0.1).round()),
+                    borderRadius: BorderRadius.circular(20.0),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(statusIcon, color: statusColor, size: 16),
+                      const SizedBox(width: 6),
+                      Flexible(
+                        child: Text(
+                          statusText,
+                          style: TextStyle(
+                            color: statusColor,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
                 const SizedBox(height: 10),
                 // POLISH 1: Animated step tracker
@@ -867,7 +906,7 @@ class _ReportStatusCardState extends State<ReportStatusCard>
                                 ? 'Live camera · GPS-stamped'
                                 : 'From gallery · unverified',
                             style: TextStyle(
-                              fontSize: 11,
+                              fontSize: 12,
                               fontWeight: FontWeight.w600,
                               color: widget.report.photoSource == 'camera'
                                   ? Colors.green.shade800
@@ -937,9 +976,11 @@ class _ReportStatusCardState extends State<ReportStatusCard>
                     const Icon(Icons.calendar_today,
                         size: 16, color: Colors.grey),
                     const SizedBox(width: 8),
-                    Text(
-                      'Reported on: ${_formatDate(widget.report.reportedAt)}',
-                      style: Theme.of(context).textTheme.bodyMedium,
+                    Expanded(
+                      child: Text(
+                        'Reported on: ${_formatDate(widget.report.reportedAt)}',
+                        style: Theme.of(context).textTheme.bodyMedium,
+                      ),
                     ),
                   ],
                 ),
@@ -984,7 +1025,7 @@ class _ReportStatusCardState extends State<ReportStatusCard>
                                 Text(
                                   'Feedback submitted',
                                   style: TextStyle(
-                                      fontSize: 11,
+                                      fontSize: 12,
                                       color: Colors.green.shade600),
                                 ),
                               ],

@@ -190,8 +190,10 @@ export function AnnouncementsCard({ announcements, loading }: AnnouncementsCardP
                   size="icon"
                   className="h-7 w-7 shrink-0 text-muted-foreground hover:text-destructive"
                   onClick={() => { setDeleteId(a.id); setDeleteTitle(a.title); }}
+                  aria-label={`Delete announcement: ${a.title}`}
+                  title="Delete"
                 >
-                  <Trash2 className="h-3.5 w-3.5" />
+                  <Trash2 className="h-3.5 w-3.5" aria-hidden />
                 </Button>
               </div>
             </div>
@@ -233,7 +235,7 @@ export function AnnouncementsCard({ announcements, loading }: AnnouncementsCardP
                 <Select value={municipality} onValueChange={setMunicipality}>
                   <SelectTrigger className="text-xs"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">🌍 All Municipalities (Province-Wide)</SelectItem>
+                    <SelectItem value="all">All Municipalities (Province-Wide)</SelectItem>
                     {MUNICIPALITIES.map((m) => <SelectItem key={m.name} value={m.name}>{m.name}</SelectItem>)}
                   </SelectContent>
                 </Select>
@@ -250,7 +252,7 @@ export function AnnouncementsCard({ announcements, loading }: AnnouncementsCardP
             <div className="space-y-1">
               <Label className="text-xs">Source URL (optional)</Label>
               <Input value={sourceUrl} onChange={(e) => setSourceUrl(e.target.value)} placeholder="https://facebook.com/post/…" className="text-sm" />
-              <p className="text-[10px] text-muted-foreground">Citizens can tap to view the original post.</p>
+              <p className="text-xs text-muted-foreground">Citizens can tap to view the original post.</p>
             </div>
             <Button type="button" variant="outline" className="w-full gap-2" onClick={handleAutofill} disabled={fetchingMeta || !sourceUrl.trim()}>
               {fetchingMeta ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wand2 className="h-4 w-4" />}
@@ -271,7 +273,7 @@ export function AnnouncementsCard({ announcements, loading }: AnnouncementsCardP
               <AlertTriangle className={`h-5 w-5 shrink-0 ${urgent ? "text-red-500" : "text-muted-foreground"}`} />
               <div className="flex-1">
                 <p className={`text-sm font-medium ${urgent ? "text-red-700" : ""}`}>Mark as Urgent</p>
-                <p className="text-[11px] text-muted-foreground">Shows a red border and URGENT badge to citizens.</p>
+                <p className="text-xs text-muted-foreground">Shows a red border and URGENT badge to citizens.</p>
               </div>
               <Switch checked={urgent} onCheckedChange={setUrgent} />
             </div>

@@ -108,16 +108,16 @@ function AlertCard({ alert }: { alert: SosAlert }) {
           {alert.verified ? (
             <Badge className="bg-green-600 gap-1"><BadgeCheck className="h-3 w-3" /> Verified</Badge>
           ) : (
-            <Badge variant="outline" className="text-[10px] border-amber-400 text-amber-700">Unverified</Badge>
+            <Badge variant="outline" className="text-xs border-amber-400 text-amber-700">Unverified</Badge>
           )}
-          {alert.barangay && <Badge variant="outline" className="text-[10px]">Brgy. {alert.barangay}</Badge>}
-          {alert.municipality && <Badge variant="outline" className="text-[10px]">{alert.municipality}</Badge>}
+          {alert.barangay && <Badge variant="outline" className="text-xs">Brgy. {alert.barangay}</Badge>}
+          {alert.municipality && <Badge variant="outline" className="text-xs">{alert.municipality}</Badge>}
           {alert.updatedAt && (
-            <span className="ml-auto text-[11px] text-muted-foreground">updated {timeAgo(alert.updatedAt)}</span>
+            <span className="ml-auto text-xs text-muted-foreground">updated {timeAgo(alert.updatedAt)}</span>
           )}
         </div>
         {alert.flagged && (
-          <div className="flex items-center gap-1.5 text-[11px] text-slate-600 bg-slate-100 rounded px-2 py-1 mb-1.5">
+          <div className="flex items-center gap-1.5 text-xs text-slate-600 bg-slate-100 rounded px-2 py-1 mb-1.5">
             <Flag className="h-3 w-3 shrink-0" />
             Flagged: {alert.flagReason ?? "possible misuse"} — verify before dispatch.
           </div>
@@ -126,7 +126,7 @@ function AlertCard({ alert }: { alert: SosAlert }) {
         <p className="text-xs text-muted-foreground">{alert.phone || "no phone"}</p>
         <p className="text-xs mt-1.5 font-mono">
           {hasFix
-            ? `📍 ${alert.lat!.toFixed(6)}, ${alert.lng!.toFixed(6)}${alert.accuracy != null ? `  ·  ±${Math.round(alert.accuracy)} m` : ""}`
+            ? `${alert.lat!.toFixed(6)}, ${alert.lng!.toFixed(6)}${alert.accuracy != null ? `  ·  ±${Math.round(alert.accuracy)} m` : ""}`
             : "Waiting for a location fix…"}
         </p>
         {alert.note && <p className="text-xs italic text-muted-foreground mt-1">“{alert.note}”</p>}

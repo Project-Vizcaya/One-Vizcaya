@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../core/constants/app_constants.dart';
+import '../../core/l10n/app_strings.dart';
 import '../../core/utils/toast_utils.dart';
 import '../../data/services/sos_service.dart';
 import '../../domain/models/sos_alert.dart';
@@ -61,7 +62,15 @@ class SosActiveScreen extends StatelessWidget {
               final alert = snap.data;
               final dispatched = alert?.status == SosStatus.dispatched;
               final hasFix = alert?.lat != null && alert?.lng != null;
-              return Padding(
+              // Scrolls only when the content cannot fit (small phone, large
+              // text), so the Call button can never be pushed off-screen;
+              // otherwise the Spacer still pins the buttons to the bottom.
+              return LayoutBuilder(builder: (context, viewport) =>
+                  SingleChildScrollView(
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(minHeight: viewport.maxHeight),
+                  child: IntrinsicHeight(
+                    child: Padding(
                 padding: const EdgeInsets.all(24),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -78,28 +87,45 @@ class SosActiveScreen extends StatelessWidget {
                           fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 8),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        SizedBox(
-                          width: 14,
-                          height: 14,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            valueColor: const AlwaysStoppedAnimation(Colors.white),
-                            value: hasFix ? null : null,
+                    // Announced when it changes, so a screen-reader user hears
+                    // that their location has started being shared.
+                    Semantics(
+                      liveRegion: true,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          // A spinner only while it is actually still working.
+                          // (It previously spun forever — `value: hasFix ? null
+                          // : null` — telling a frightened person it was still
+                          // loading after the location was already shared.)
+                          hasFix
+                              ? const Icon(Icons.share_location_rounded,
+                                  color: Colors.white, size: 18)
+                              : const SizedBox(
+                                  width: 14,
+                                  height: 14,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor:
+                                        AlwaysStoppedAnimation(Colors.white),
+                                  ),
+                                ),
+                          const SizedBox(width: 10),
+                          Flexible(
+                            child: Text(
+                              hasFix
+                                  ? 'Your live location is being shared with responders'
+                                  : 'Getting your location…',
+                              // Full white: white70 on this red was ~4:1, below
+                              // 4.5:1 for the most important line on screen.
+                              style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600),
+                            ),
                           ),
-                        ),
-                        const SizedBox(width: 10),
-                        Flexible(
-                          child: Text(
-                            hasFix
-                                ? 'Your live location is being shared with responders'
-                                : 'Getting your location…',
-                            style: const TextStyle(color: Colors.white70, fontSize: 13),
-                          ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                     const SizedBox(height: 24),
                     if (hasFix)
@@ -138,6 +164,25 @@ class SosActiveScreen extends StatelessWidget {
                         ),
                       ),
                     const Spacer(),
+                    // PDRRMO §7: the beacon complements, not replaces, a call.
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Icon(Icons.info_outline_rounded,
+                              color: Colors.white, size: 18),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              AppStrings.get('sosNotACall'),
+                              style: const TextStyle(
+                                  color: Colors.white, fontSize: 13, height: 1.35),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                     ElevatedButton.icon(
                       onPressed: _call,
                       style: ElevatedButton.styleFrom(
@@ -155,14 +200,19 @@ class SosActiveScreen extends StatelessWidget {
                       onPressed: () => _standDown(context),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: Colors.white,
-                        side: const BorderSide(color: Colors.white54),
+                        // White edge: white54 was ~2.5:1 on red, under the
+                        // 3:1 needed for a control's boundary to be seen.
+                        side: const BorderSide(color: Colors.white, width: 1.5),
                         padding: const EdgeInsets.symmetric(vertical: 14),
                       ),
                       child: const Text("I'm safe now — end emergency"),
                     ),
                   ],
                 ),
-              );
+                    ),
+                  ),
+                ),
+              ));
             },
           ),
         ),
