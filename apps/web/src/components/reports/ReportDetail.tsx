@@ -11,6 +11,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { updateReportStatus, assignResponder, addReportNote, deleteReport, transferReportLevel, closeReportWithDisposition, reopenReport } from "@/hooks/useReports";
 import { useResponders } from "@/hooks/useResponders";
+import { ReferralSection } from "@/components/reports/ReferralSection";
+import { DuplicatesSection } from "@/components/reports/DuplicatesSection";
 import { useAuthStore } from "@/stores/authStore";
 import { toast } from "@/hooks/useToast";
 import { cn, timeAgo, authorColor, DISPOSITION_OPTIONS, dispositionLabel } from "@/lib/utils";
@@ -47,6 +49,7 @@ const CANNED_RESPONSES = [
 ];
 
 const STATUS_VARIANT: Record<ReportStatus, "reported" | "acknowledged" | "under_review" | "ongoing" | "solved" | "closed"> = {
+  archived:     "closed",
   reported:     "reported",
   acknowledged: "acknowledged",
   under_review: "under_review",
@@ -63,17 +66,21 @@ interface ReportDetailProps {
   report: Report | null;
   open: boolean;
   onClose: () => void;
+  /** Reports in scope, for duplicate suggestions. */
+  allReports?: Report[];
 }
 
-export function ReportDetail({ report, open, onClose }: ReportDetailProps) {
+export function ReportDetail({ report, open, onClose, allReports = [] }: ReportDetailProps) {
   const { user } = useAuthStore();
   const { responders } = useResponders();
   const [status, setStatus] = useState<ReportStatus | "">(report?.status ?? "");
+  const [resolution, setResolution] = useState("");
   const [assigned, setAssigned] = useState<string>(report?.assignedResponder ?? "");
   const [level, setLevel] = useState<HandlingLevel>(report?.handlingLevel ?? "municipal");
   const [note, setNote] = useState("");
   const [saving, setSaving] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleteReason, setDeleteReason] = useState("");
   // Close-without-action dialog (PDRRMO §8 disposition).
   const [dispOpen, setDispOpen] = useState(false);
   const [disp, setDisp] = useState<ReportDisposition | "">("");
@@ -120,12 +127,18 @@ export function ReportDetail({ report, open, onClose }: ReportDetailProps) {
     setNote((prev) => (prev.trim() ? `${prev.trim()} ${text}` : text));
   }, []);
 
+  // Lifecycle (P3): Solved only from Ongoing, with a note of what was done.
+  const canSolve = report?.status === "ongoing";
+  const resolutionOk = resolution.trim().length >= 10 && resolution.trim().length <= 1000;
+
   const handleStatusSave = async () => {
     if (!report || !status || status === report.status) return;
+    if (status === "solved" && !resolutionOk) return;
     setSaving(true);
     try {
-      await updateReportStatus(report.userId, report.id, status as ReportStatus);
+      await updateReportStatus(report.userId, report.id, status as ReportStatus, resolution);
       toast({ title: "Status updated", variant: "success" as never });
+      setResolution("");
     } catch {
       toast({ title: "Failed to update status", variant: "destructive" });
     } finally {
@@ -182,11 +195,12 @@ export function ReportDetail({ report, open, onClose }: ReportDetailProps) {
   const handleDelete = async () => {
     if (!report) return;
     try {
-      await deleteReport(report.userId, report.id);
-      toast({ title: "Report deleted" });
+      await deleteReport(report.userId, report.id, deleteReason);
+      toast({ title: "Report deleted", description: "Recorded in the audit log with your name and reason." });
+      setDeleteReason("");
       onClose();
-    } catch {
-      toast({ title: "Failed to delete", variant: "destructive" });
+    } catch (e) {
+      toast({ title: "Failed to delete", description: (e as { message?: string })?.message, variant: "destructive" });
     }
   };
 
@@ -203,7 +217,9 @@ export function ReportDetail({ report, open, onClose }: ReportDetailProps) {
                 {report.priority}
               </Badge>
               <Badge variant={STATUS_VARIANT[report.status]} className="text-[10px] capitalize">
-                {report.status.replace("_", " ")}
+                {report.status === "archived" && report.statusBeforeArchive
+                  ? `archived · was ${report.statusBeforeArchive.replace("_", " ")}`
+                  : report.status.replace("_", " ")}
               </Badge>
               <Badge variant="outline" className="text-[10px]">
                 {HANDLING_LABEL[level]}
@@ -220,6 +236,10 @@ export function ReportDetail({ report, open, onClose }: ReportDetailProps) {
                 <InfoRow icon={<MapPin className="h-3.5 w-3.5" />}  label="Location"    value={report.location || "—"} />
                 <InfoRow icon={<Clock className="h-3.5 w-3.5" />}   label="Reported"    value={format(report.reportedAt, "MMM d, yyyy · h:mm a")} />
                 <InfoRow icon={<User className="h-3.5 w-3.5" />}    label="Reporter"    value={report.isAnonymous ? "Anonymous" : report.userId.slice(0, 10) + "…"} />
+                {report.onBehalfOf && (
+                  <InfoRow icon={<User className="h-3.5 w-3.5" />} label="Filed on behalf of"
+                    value={[report.onBehalfOf.name, report.onBehalfOf.relationship && `(${report.onBehalfOf.relationship})`, report.onBehalfOf.contact].filter(Boolean).join(" · ")} />
+                )}
                 <InfoRow icon={<AlertCircle className="h-3.5 w-3.5" />} label="Assigned To" value={assigned || "Unassigned"} />
               </div>
 
@@ -228,6 +248,14 @@ export function ReportDetail({ report, open, onClose }: ReportDetailProps) {
                 <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1.5">Incident Description</p>
                 <p className="whitespace-pre-wrap leading-relaxed">{report.description}</p>
               </div>
+
+              {report.status === "solved" && report.resolutionNote && (
+                <div className="rounded-lg p-3 text-sm border border-green-200 bg-green-50/60 dark:bg-green-950/20">
+                  <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-1">How it was resolved</p>
+                  <p className="whitespace-pre-wrap break-words">{report.resolutionNote}</p>
+                  {report.resolutionBy && <p className="text-xs text-muted-foreground mt-1">by admin {report.resolutionBy.slice(0, 8)}</p>}
+                </div>
+              )}
 
               {/* Photo */}
               {report.imageUrl && (
@@ -292,13 +320,16 @@ export function ReportDetail({ report, open, onClose }: ReportDetailProps) {
                     </SelectTrigger>
                     <SelectContent>
                       {STATUS_OPTIONS.map((opt) => (
-                        <SelectItem key={opt.value} value={opt.value} className="text-sm">{opt.label}</SelectItem>
+                        <SelectItem key={opt.value} value={opt.value} className="text-sm"
+                          disabled={opt.value === "solved" && !canSolve && report.status !== "solved"}>
+                          {opt.label}{opt.value === "solved" && !canSolve && report.status !== "solved" ? " (from Ongoing only)" : ""}
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                   <Button
                     onClick={handleStatusSave}
-                    disabled={saving || !status || status === report.status}
+                    disabled={saving || !status || status === report.status || (status === "solved" && !resolutionOk)}
                     size="sm"
                     className="shrink-0"
                     aria-label="Save status"
@@ -307,6 +338,19 @@ export function ReportDetail({ report, open, onClose }: ReportDetailProps) {
                     <span className="ml-1.5 hidden sm:inline">Save</span>
                   </Button>
                 </div>
+                {status === "solved" && status !== report.status && (
+                  <div className="mt-2 space-y-1">
+                    <Textarea
+                      aria-label="Resolution note" maxLength={1000} rows={2}
+                      value={resolution} onChange={(e) => setResolution(e.target.value)}
+                      placeholder="What was done to resolve it (required)…"
+                      className="text-sm resize-none"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      At least 10 characters. Recorded with your name; the resident is told the report is resolved.
+                    </p>
+                  </div>
+                )}
                 <Button size="sm" variant="outline" className="h-7 text-xs gap-1.5 mt-2" onClick={() => setDispOpen(true)}>
                   <XCircle className="h-3.5 w-3.5" /> Close without action…
                 </Button>
@@ -339,6 +383,12 @@ export function ReportDetail({ report, open, onClose }: ReportDetailProps) {
                   </p>
                 )}
               </div>
+
+              {/* Refer to a named office (P2) */}
+              <ReferralSection key={report.id} report={report} />
+
+              {/* Duplicate linking (P3) */}
+              <DuplicatesSection report={report} allReports={allReports} />
 
               {/* Route / transfer between administrative tiers (parity with the
                   mobile admin's 4-level routing). Escalating to Provincial or
@@ -497,9 +547,19 @@ export function ReportDetail({ report, open, onClose }: ReportDetailProps) {
               "Close without action" instead — it keeps a record of why.
             </AlertDialogDescription>
           </AlertDialogHeader>
+          <Textarea
+            value={deleteReason}
+            onChange={(e) => setDeleteReason(e.target.value)}
+            placeholder="Reason for deleting (required, recorded in the audit log)"
+            className="text-sm min-h-[70px]"
+          />
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90">
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); handleDelete(); }}
+              disabled={deleteReason.trim().length < 5}
+              className="bg-destructive hover:bg-destructive/90"
+            >
               Delete Permanently
             </AlertDialogAction>
           </AlertDialogFooter>

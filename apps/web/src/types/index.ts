@@ -2,7 +2,9 @@ import type { AdminRole } from "@/lib/firebase";
 
 // "closed" = closed WITHOUT action, always with a ReportDisposition (§8).
 // Distinct from "solved" so a false report is never counted as resolved.
-export type ReportStatus = "reported" | "acknowledged" | "under_review" | "ongoing" | "solved" | "closed";
+// "archived": set by archiveOldReports 12 months after filing (retention);
+// statusBeforeArchive keeps what it was.
+export type ReportStatus = "reported" | "acknowledged" | "under_review" | "ongoing" | "solved" | "closed" | "archived";
 export type ReportDisposition = "false_report" | "duplicate" | "incomplete" | "unverifiable";
 export type ReportPriority = "critical" | "high" | "medium" | "low";
 // Administrative tier currently handling a report. Mirrors the mobile
@@ -15,6 +17,23 @@ export interface ReportNote {
   author: string;
   timestamp: Date;
   authorRole: string;
+}
+
+/** Office types a report can be referred to; must match firestore.rules. */
+export const REFERRAL_OFFICE_TYPES = [
+  "MDRRMO", "BDRRMC", "PDRRMO", "BFP", "PNP", "MHO", "MSWDO", "MEO", "DPWH", "Other",
+] as const;
+export type ReferralOfficeType = (typeof REFERRAL_OFFICE_TYPES)[number];
+
+/** The office a report was handed to (P2). Replaced on re-referral; the audit
+ *  log keeps the history. */
+export interface Referral {
+  officeType: ReferralOfficeType;
+  officeName: string;
+  contact?: string;
+  note?: string;
+  by: string;
+  at?: Date;
 }
 
 export interface Report {
@@ -31,6 +50,10 @@ export interface Report {
   description: string;
   isAnonymous: boolean;
   reportedAt: Date;
+  // Response timeline, stamped server-side (stampReportMilestones). Absent on
+  // reports that predate it — those are not back-filled.
+  acknowledgedAt?: Date;
+  referredAt?: Date;
   resolvedAt?: Date;
   notes: ReportNote[];
   assignedResponder?: string;
@@ -49,6 +72,11 @@ export interface Report {
   dispositionBy?: string;
   dispositionAt?: Date;
   duplicateOf?: string;
+  referral?: Referral;
+  statusBeforeArchive?: string;
+  resolutionNote?: string;
+  resolutionBy?: string;
+  onBehalfOf?: { name: string; contact?: string; relationship?: string };
 }
 
 export interface Responder {
@@ -84,6 +112,16 @@ export interface Announcement {
   timestamp: Date;
   municipality: string;
   scheduledFor?: Date;
+  delivery?: Delivery;
+}
+
+/** Push counts written by the server after an alert is sent (P2). */
+export interface Delivery {
+  attempted: number;
+  delivered: number;
+  failed: number;
+  invalidTokensRemoved: number;
+  completedAt?: Date;
 }
 
 export interface Broadcast {

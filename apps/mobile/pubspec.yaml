@@ -41,6 +41,7 @@ dependencies:
   mobile_scanner: ^7.0.0
   share_plus: ^13.1.0
   path_provider: ^2.1.4
+  workmanager: ^0.10.10
 
 dev_dependencies:
   flutter_test:

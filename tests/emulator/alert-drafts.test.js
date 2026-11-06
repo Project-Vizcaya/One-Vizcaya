@@ -131,3 +131,60 @@ test("invalid input is refused", async () => {
   await assert.rejects(call("muni", { decision: "approve" }), rejectsWith("invalid-argument"));
   await assert.rejects(call("muni", { draftId: "missing", decision: "approve" }), rejectsWith("not-found"));
 });
+
+// ── second approver for admin alerts (P2) ──────────────────────────────────
+
+const propose = fft.wrap(fns.proposeAdminAlert);
+const proposeAs = (uid, data) => propose({ data, auth: { uid, token: {} } });
+const drafts = async () => (await db.collection("alert_drafts").get()).docs;
+
+test("an urgent town alert waits for a second admin, then goes out", async () => {
+  await db.doc("users/muni2").set({ role: "municipal_admin", municipality: "Bambang" });
+  const { draftId } = await proposeAs("muni",
+    { title: "Evacuate Purok 3", body: "River rising fast; go to the school.", urgent: true, municipality: "Bambang" });
+  assert.equal((await broadcasts()).length, 0, "nothing sent on one person's say-so");
+  const d = (await db.doc(`alert_drafts/${draftId}`).get()).data();
+  assert.equal(d.requestedBy, "muni");
+  assert.equal(d.status, "pending");
+
+  await assert.rejects(call("muni", { draftId, decision: "approve" }), rejectsWith("permission-denied"));
+  await assert.rejects(call("muniOther", { draftId, decision: "approve" }), rejectsWith("permission-denied"));
+  await call("muni2", { draftId, decision: "approve" });
+
+  const [b] = await broadcasts();
+  assert.equal(b.scope, "Bambang");
+  assert.equal(b.urgent, true);
+  assert.equal(b.sentBy, "muni");
+  assert.equal(b.approvedBy, "muni2");
+  const actions = (await audits()).map((a) => a.action).sort();
+  assert.deepEqual(actions, ["admin_alert_approved", "admin_alert_proposed"]);
+});
+
+test("a province-wide alert needs a second PROVINCIAL admin and goes out with scope 'all'", async () => {
+  await db.doc("users/prov2").set({ role: "provincial_admin" });
+  const { draftId } = await proposeAs("prov", { title: "Typhoon signal no. 2", body: "Prepare and stay indoors.", urgent: false });
+  await assert.rejects(call("muni", { draftId, decision: "approve" }), rejectsWith("permission-denied"));
+  await assert.rejects(call("prov", { draftId, decision: "approve" }), rejectsWith("permission-denied"));
+  await call("prov2", { draftId, decision: "approve" });
+  const [b] = await broadcasts();
+  assert.equal(b.scope, "all");
+});
+
+test("the proposer can withdraw their own alert", async () => {
+  const { draftId } = await proposeAs("muni", { title: "Test alert", body: "Sent by mistake.", urgent: true, municipality: "Bambang" });
+  await call("muni", { draftId, decision: "reject", note: "Sent by mistake" });
+  assert.equal((await db.doc(`alert_drafts/${draftId}`).get()).data().status, "rejected");
+  assert.equal((await broadcasts()).length, 0);
+});
+
+test("proposals are scope-checked and only for alerts that need approval", async () => {
+  await assert.rejects(proposeAs("muni", { title: "Hello all", body: "Province-wide please.", urgent: false }),
+    rejectsWith("permission-denied"));
+  await assert.rejects(proposeAs("muni", { title: "Solano alert", body: "Not my town.", urgent: true, municipality: "Solano" }),
+    rejectsWith("permission-denied"));
+  await assert.rejects(proposeAs("citizen", { title: "Fake alert", body: "Not an admin.", urgent: true, municipality: "Bambang" }),
+    rejectsWith("permission-denied"));
+  await assert.rejects(proposeAs("muni", { title: "Routine", body: "Water interruption.", urgent: false, municipality: "Bambang" }),
+    rejectsWith("invalid-argument"));
+  assert.equal((await drafts()).length, 0);
+});

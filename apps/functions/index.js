@@ -2,10 +2,33 @@
 // Run: cd functions && npm install && firebase deploy --only functions
 const { onDocumentCreated, onDocumentUpdated, onDocumentDeleted } = require("firebase-functions/v2/firestore");
 const { onSchedule } = require("firebase-functions/v2/scheduler");
-const { onCall, HttpsError } = require("firebase-functions/v2/https");
+const { onCall, onRequest, HttpsError } = require("firebase-functions/v2/https");
 const admin = require("firebase-admin");
 
 admin.initializeApp();
+
+// ── Scheduled-job heartbeats (P2, uptime) ────────────────────────────────────
+// Every scheduled job is declared through scheduled(), which records when it
+// last succeeded or threw in system_health/{job}. The public `health` endpoint
+// reads these to tell whether a job has stopped running.
+const { assessHealth, JOB_INTERVAL_MIN } = require("./health/health");
+
+function scheduled(name, opts, handler) {
+  return onSchedule(opts, async (event) => {
+    const ref = admin.firestore().collection("system_health").doc(name);
+    const now = () => admin.firestore.FieldValue.serverTimestamp();
+    try {
+      const out = await handler(event);
+      await ref.set({ lastSuccessAt: now() }, { merge: true })
+        .catch((e) => console.error(`heartbeat ${name}:`, e));
+      return out;
+    } catch (e) {
+      await ref.set({ lastErrorAt: now(), lastError: String(e?.message ?? e).slice(0, 300) }, { merge: true })
+        .catch((e2) => console.error(`heartbeat ${name}:`, e2));
+      throw e;
+    }
+  });
+}
 
 // ── Audit trail: record account deletions ────────────────────────────────────
 // When a citizen deletes their account the app removes their profile but
@@ -121,6 +144,179 @@ exports.auditReportDisposition = onDocumentUpdated(
   }
 );
 
+// ── Referral to a named office (P2, PDRRMO) ─────────────────────────────────
+// Every set or change of `referral` is audited, so the full referral history
+// survives a re-referral (the report keeps only the current one).
+// firestore.rules require referral.by == the acting admin and referral.at ==
+// the server time, and do not allow a referral to be removed.
+exports.auditReportReferral = onDocumentUpdated(
+  "users/{userId}/reports/{reportId}",
+  async (event) => {
+    const before = event.data.before.data();
+    const after = event.data.after.data();
+    if (!before || !after || !after.referral) return;
+    if (JSON.stringify(before.referral || null) === JSON.stringify(after.referral)) return;
+    const r = after.referral;
+    await admin.firestore().collection("audit_logs").add({
+      action: before.referral ? "report_rereferred" : "report_referred",
+      reportId: event.params.reportId,
+      reportOwnerUid: event.params.userId,
+      municipality: after.municipality || null,
+      category: after.category || null,
+      officeType: r.officeType || null,
+      officeName: r.officeName || null,
+      contact: r.contact || null,
+      note: r.note || null,
+      previousOffice: before.referral
+        ? `${before.referral.officeType || ""} ${before.referral.officeName || ""}`.trim()
+        : null,
+      referredBy: r.by || null,
+      at: admin.firestore.FieldValue.serverTimestamp(),
+    });
+  }
+);
+
+// ── Response timeline: acknowledgedAt / referredAt / resolvedAt (§14) ────────
+// Stamped server-side for every client; see ./reports/milestones.js for the
+// exact definitions. The time stored is when the change itself happened
+// (event.time), not when this trigger happened to run.
+const { milestoneUpdates } = require("./reports/milestones");
+
+exports.stampReportMilestones = onDocumentUpdated(
+  "users/{userId}/reports/{reportId}",
+  async (event) => {
+    const before = event.data.before.data();
+    const after = event.data.after.data();
+    if (!before || !after) return;
+    const when = admin.firestore.Timestamp.fromDate(new Date(event.time));
+    const u = milestoneUpdates(before, after, when, admin.firestore.FieldValue.delete());
+    // Only writes when a milestone is missing, so its own follow-up update
+    // is a no-op rather than a loop.
+    if (Object.keys(u).length) await event.data.after.ref.update(u);
+  }
+);
+
+// ── Escalation of overdue reports (PDRRMO §7, §14) ───────────────────────────
+// Every 15 minutes, finds OPEN reports past their SLA target (config/sla, see
+// ./reports/sla.js) and alerts the responsible admins once per report: the
+// town's municipal admins always, and provincial admins too for critical and
+// high priority — or when the town has no municipal admin to receive it.
+// Each escalation is stamped on the report (slaEscalatedAt) and audited.
+// While the targets are still the provisional defaults, the alert says so.
+const { resolveSla, slaBreach, OPEN_STATUSES } = require("./reports/sla");
+// Bounds one run's time; oldest first, so the worst cases go first. In the
+// emulator load test (tests/emulator/load) 2000 overdue reports clear in one
+// run in under a second, far inside the 120 s timeout.
+const ESCALATIONS_PER_RUN = 5000;
+// Up to this many newly overdue reports per town per run get one push each
+// (linked to the report); more than that get ONE summary push for the town,
+// so a disaster backlog does not bury admins in hundreds of notifications.
+const PER_REPORT_PUSH_MAX = 3;
+
+exports.escalateOverdueReports = scheduled("escalateOverdueReports", 
+  { schedule: "every 15 minutes", timeZone: "Asia/Manila", timeoutSeconds: 120 },
+  async () => {
+    const db = admin.firestore();
+    const sla = resolveSla((await db.doc("config/sla").get()).data());
+    // Uses the existing (status, reportedAt) collection-group index.
+    const snap = await db.collectionGroup("reports")
+      .where("status", "in", OPEN_STATUSES)
+      .orderBy("reportedAt")
+      .get();
+    const now = Date.now();
+
+    // Group newly overdue reports by town and by tier of who is alerted.
+    const groups = new Map();
+    let total = 0;
+    for (const d of snap.docs) {
+      if (total >= ESCALATIONS_PER_RUN) break;
+      const r = d.data();
+      const b = slaBreach(r, sla, now);
+      if (!b) continue;
+      total++;
+      const urgentTier = b.priority === "critical" || b.priority === "high";
+      const key = `${r.municipality || ""}|${urgentTier}`;
+      if (!groups.has(key)) groups.set(key, { municipality: r.municipality || null, urgentTier, items: [] });
+      groups.get(key).items.push({ d, r, b });
+    }
+
+    const openFor = (h) => (h < 48 ? `${Math.round(h)} h` : `${Math.round(h / 24)} days`);
+    const send = (tokens, msg) => (async () => {
+      for (let i = 0; i < tokens.length; i += 500) {
+        await admin.messaging().sendEachForMulticast({ ...msg, tokens: tokens.slice(i, i + 500) });
+      }
+    })();
+
+    for (const g of groups.values()) {
+      try {
+        let tokens = await adminTokensFor(db, g.municipality, { includeProvincial: g.urgentTier });
+        if (!tokens.length && !g.urgentTier) tokens = await adminTokensFor(db, g.municipality);
+        const android = {
+          priority: "high",
+          notification: { channelId: g.urgentTier ? "one_vizcaya_urgent" : "one_vizcaya_reports" },
+        };
+        const town = g.municipality || "Nueva Vizcaya";
+        if (g.items.length <= PER_REPORT_PUSH_MAX) {
+          for (const { d, r, b } of g.items) {
+            const body = `${r.category || "A report"} in ${town} has been open ${openFor(b.hoursOpen)} ` +
+              `(target ${b.hoursAllowed} h${sla.provisional ? ", provisional" : ""}).` +
+              (b.unacknowledged ? " No one has responded yet." : "");
+            await send(tokens, {
+              notification: { title: `Overdue ${b.priority} report`, body },
+              data: { type: "report_overdue", reportId: d.id, userId: d.ref.parent.parent.id },
+              android,
+            });
+          }
+        } else {
+          const n = g.items.length;
+          const silent = g.items.filter((x) => x.b.unacknowledged).length;
+          const oldest = Math.max(...g.items.map((x) => x.b.hoursOpen));
+          await send(tokens, {
+            notification: {
+              title: `${n} ${g.urgentTier ? "high-priority " : ""}reports overdue in ${town}`,
+              body: `Oldest open ${openFor(oldest)}.` +
+                (silent ? ` ${silent} not yet responded to.` : "") +
+                (sla.provisional ? " Targets are provisional." : ""),
+            },
+            data: { type: "report_overdue_summary", municipality: g.municipality || "", count: String(n) },
+            android,
+          });
+        }
+
+        // Stamp and audit every report, batched (2 writes each).
+        for (let i = 0; i < g.items.length; i += 200) {
+          const batch = db.batch();
+          for (const { d, r, b } of g.items.slice(i, i + 200)) {
+            batch.update(d.ref, {
+              slaEscalatedAt: admin.firestore.FieldValue.serverTimestamp(),
+              slaHoursAllowed: b.hoursAllowed,
+            });
+            batch.set(db.collection("audit_logs").doc(), {
+              action: "report_sla_breached",
+              reportId: d.id,
+              reportOwnerUid: d.ref.parent.parent.id,
+              municipality: r.municipality || null,
+              priority: b.priority,
+              hoursAllowed: b.hoursAllowed,
+              hoursOpen: Math.round(b.hoursOpen * 10) / 10,
+              unacknowledged: b.unacknowledged,
+              slaProvisional: sla.provisional,
+              notifiedAdmins: tokens.length,
+              summarised: g.items.length > PER_REPORT_PUSH_MAX,
+              at: admin.firestore.FieldValue.serverTimestamp(),
+            });
+          }
+          await batch.commit();
+        }
+      } catch (e) {
+        // Not stamped, so the next run retries this group.
+        console.error(`escalateOverdueReports ${g.municipality} failed:`, e);
+      }
+    }
+    if (total) console.log(`escalateOverdueReports: escalated ${total} report(s) in ${groups.size} group(s).`);
+  }
+);
+
 // ── Notify citizen when report status changes ────────────────────────────────
 exports.notifyOnStatusChange = onDocumentUpdated(
   "users/{userId}/reports/{reportId}",
@@ -218,7 +414,7 @@ exports.trackSubReportRate = onDocumentCreated(
 );
 
 // ── Reset rate limits daily at midnight Manila time ──────────────────────────
-exports.resetRateLimits = onSchedule(
+exports.resetRateLimits = scheduled("resetRateLimits", 
   { schedule: "0 0 * * *", timeZone: "Asia/Manila" },
   async () => {
     const db = admin.firestore();
@@ -387,7 +583,9 @@ exports.migrateLegacyAdmins = onCall(async (request) => {
 // ── Auto-archive reports older than 12 months ───────────────────────────────
 // Runs daily at 2 AM Manila time. Marks reports with reportedAt > 12 months
 // as 'archived' so they no longer appear in active admin views.
-exports.archiveOldReports = onSchedule(
+const { archiveUpdate, dueForDeletion } = require("./reports/retention");
+
+exports.archiveOldReports = scheduled("archiveOldReports", 
   { schedule: "0 2 * * *", timeZone: "Asia/Manila" },
   async () => {
     const db = admin.firestore();
@@ -402,9 +600,11 @@ exports.archiveOldReports = onSchedule(
       .where("reportedAt", "<", cutoffTs)
       .get();
 
-    const toArchive = snapshot.docs.filter(
-      (d) => d.data().status !== "archived"
-    );
+    // Rule (and statusBeforeArchive) in ./reports/retention.js.
+    const nowMs = Date.now();
+    const toArchive = snapshot.docs
+      .map((d) => ({ ref: d.ref, update: archiveUpdate(d.data(), nowMs) }))
+      .filter((x) => x.update);
 
     if (toArchive.length === 0) {
       console.log("archiveOldReports: nothing to archive");
@@ -416,7 +616,7 @@ exports.archiveOldReports = onSchedule(
     let count = 0;
     for (const doc of toArchive) {
       batch.update(doc.ref, {
-        status: "archived",
+        ...doc.update,
         archivedAt: admin.firestore.FieldValue.serverTimestamp(),
       });
       count++;
@@ -477,6 +677,35 @@ exports.onNewNotification = onDocumentCreated(
   }
 );
 
+// ── Push delivery accounting (P2) ───────────────────────────────────────────
+const { sendWithAccounting, recipientsFrom } = require("./messaging/delivery");
+
+// Writes the per-alert delivery counts onto the alert document and removes
+// tokens FCM reported as permanently dead, so future alerts do not keep
+// counting them as failures. A token is removed only if the profile still holds
+// that same token (the app may have registered a new one in the meantime).
+async function finishDelivery(ref, result) {
+  const db = admin.firestore();
+  await ref.update({
+    delivery: {
+      attempted: result.attempted,
+      delivered: result.delivered,
+      failed: result.failed,
+      invalidTokensRemoved: result.deadTokens.length,
+      completedAt: admin.firestore.FieldValue.serverTimestamp(),
+    },
+  });
+  for (const { uid, token } of result.deadTokens) {
+    const userRef = db.collection("users").doc(uid);
+    await db.runTransaction(async (tx) => {
+      const snap = await tx.get(userRef);
+      if (snap.exists && snap.data().fcmToken === token) {
+        tx.update(userRef, { fcmToken: admin.firestore.FieldValue.delete() });
+      }
+    }).catch((e) => console.error(`Could not prune token for ${uid}:`, e));
+  }
+}
+
 /**
  * Sends a push notification to all users in a municipality
  * when a broadcast document is created.
@@ -514,13 +743,7 @@ exports.onNewBroadcast = onDocumentCreated(
       : db.collection("users").where("fcmToken", "!=", null);
 
     const usersSnap = await query.get();
-    if (usersSnap.empty) return;
-
-    const tokens = usersSnap.docs
-      .map((d) => d.data().fcmToken)
-      .filter(Boolean);
-
-    if (tokens.length === 0) return;
+    const recipients = recipientsFrom(usersSnap.docs);
 
     // Distinguish an urgent broadcast in the notification tray: a 🚨 URGENT
     // title prefix, and routing to the dedicated high-importance "urgent"
@@ -530,36 +753,30 @@ exports.onNewBroadcast = onDocumentCreated(
     // presenter can render its own urgent takeover without the prefix.
     const pushTitle = urgent ? `🚨 URGENT · ${title}` : title;
 
-    // Send in batches of 500 (FCM limit)
-    for (let i = 0; i < tokens.length; i += 500) {
-      const batch = tokens.slice(i, i + 500);
-      await admin
-        .messaging()
-        .sendEachForMulticast({
-          tokens: batch,
-          notification: { title: pushTitle, body },
-          // Data payload lets the app recognise a broadcast: in the foreground it
-          // presents the in-app urgent takeover / heads-up banner (and suppresses
-          // the generic toast), and a tray tap opens the same presentation.
-          data: {
-            type: "broadcast",
-            urgent: urgent ? "true" : "false",
-            title: String(title),
-            body: String(body),
-          },
-          android: {
-            priority: "high",
-            notification: {
-              channelId: urgent ? "one_vizcaya_urgent" : "one_vizcaya_broadcasts",
-              notificationPriority: urgent ? "PRIORITY_MAX" : "PRIORITY_HIGH",
-              visibility: "public",
-              defaultSound: true,
-              color: urgent ? "#8B0000" : "#1B5E20",
-            },
-          },
-        })
-        .catch((e) => console.error("Batch FCM failed:", e));
-    }
+    // Batches of 500 (FCM limit) and per-token accounting: messaging/delivery.js.
+    const result = await sendWithAccounting(admin.messaging(), recipients, {
+      notification: { title: pushTitle, body },
+      // Data payload lets the app recognise a broadcast: in the foreground it
+      // presents the in-app urgent takeover / heads-up banner (and suppresses
+      // the generic toast), and a tray tap opens the same presentation.
+      data: {
+        type: "broadcast",
+        urgent: urgent ? "true" : "false",
+        title: String(title),
+        body: String(body),
+      },
+      android: {
+        priority: "high",
+        notification: {
+          channelId: urgent ? "one_vizcaya_urgent" : "one_vizcaya_broadcasts",
+          notificationPriority: urgent ? "PRIORITY_MAX" : "PRIORITY_HIGH",
+          visibility: "public",
+          defaultSound: true,
+          color: urgent ? "#8B0000" : "#1B5E20",
+        },
+      },
+    });
+    await finishDelivery(event.data.ref, result);
   }
 );
 
@@ -591,10 +808,7 @@ exports.onNewAnnouncement = onDocumentCreated(
       : db.collection("users").where("municipality", "==", municipality);
 
     const usersSnap = await query.get();
-    if (usersSnap.empty) return;
-
-    const tokens = usersSnap.docs.map((d) => d.data().fcmToken).filter(Boolean);
-    if (tokens.length === 0) return;
+    const recipients = recipientsFrom(usersSnap.docs);
 
     const isUrgent = data.isUrgent === true;
     // Urgent announcements get the same tray distinction as urgent broadcasts:
@@ -604,30 +818,24 @@ exports.onNewAnnouncement = onDocumentCreated(
     const pushTitle = isUrgent ? `🚨 URGENT · ${title}` : title;
     const pushBody = (body || "").slice(0, 240);
 
-    for (let i = 0; i < tokens.length; i += 500) {
-      const batch = tokens.slice(i, i + 500);
-      await admin
-        .messaging()
-        .sendEachForMulticast({
-          tokens: batch,
-          notification: { title: pushTitle, body: pushBody },
-          android: {
-            priority: "high",
-            notification: {
-              channelId: isUrgent ? "one_vizcaya_urgent" : "one_vizcaya_announcements",
-              notificationPriority: isUrgent ? "PRIORITY_MAX" : "PRIORITY_DEFAULT",
-              visibility: "public",
-              defaultSound: true,
-              color: isUrgent ? "#8B0000" : "#1B5E20",
-            },
-          },
-          data: {
-            type: "announcement",
-            click_action: "FLUTTER_NOTIFICATION_CLICK",
-          },
-        })
-        .catch((e) => console.error("Announcement FCM batch failed:", e));
-    }
+    const result = await sendWithAccounting(admin.messaging(), recipients, {
+      notification: { title: pushTitle, body: pushBody },
+      android: {
+        priority: "high",
+        notification: {
+          channelId: isUrgent ? "one_vizcaya_urgent" : "one_vizcaya_announcements",
+          notificationPriority: isUrgent ? "PRIORITY_MAX" : "PRIORITY_DEFAULT",
+          visibility: "public",
+          defaultSound: true,
+          color: isUrgent ? "#8B0000" : "#1B5E20",
+        },
+      },
+      data: {
+        type: "announcement",
+        click_action: "FLUTTER_NOTIFICATION_CLICK",
+      },
+    });
+    await finishDelivery(event.data.ref, result);
   }
 );
 
@@ -944,7 +1152,7 @@ const NV_MUNICIPALITY_COORDS = {
 // through decideAlertDraft. In-scope admins are pushed an "approval needed"
 // notice (admins only, never the public).
 const ALERT_DRAFT_TTL_MS = 6 * 60 * 60 * 1000; // a stale weather alert must not go out late
-const PROVINCIAL_ROLES = ["admin", "provincial_admin", "super_admin"];
+const { needsSecondApprover, canPropose, decisionError, PROVINCIAL_ROLES } = require("./alerts/approval");
 
 async function draftAutomatedAlert(db, { title, body, municipality, urgent, source, evidence }) {
   const ref = await db.collection("alert_drafts").add({
@@ -965,9 +1173,13 @@ async function draftAutomatedAlert(db, { title, body, municipality, urgent, sour
   return ref.id;
 }
 
-async function notifyAdminsOfDraft(db, draftId, municipality, title, urgent) {
+// FCM tokens of the admins responsible for a municipality: its municipal
+// admins, plus provincial-tier admins when includeProvincial is set.
+async function adminTokensFor(db, municipality, { includeProvincial = true } = {}) {
   const [provSnap, muniSnap] = await Promise.all([
-    db.collection("users").where("role", "in", PROVINCIAL_ROLES).get(),
+    includeProvincial
+      ? db.collection("users").where("role", "in", PROVINCIAL_ROLES).get()
+      : Promise.resolve({ forEach: () => {} }),
     db.collection("users").where("role", "==", "municipal_admin").get(),
   ]);
   const tokens = new Set();
@@ -976,13 +1188,18 @@ async function notifyAdminsOfDraft(db, draftId, municipality, title, urgent) {
     const u = d.data();
     if (u.fcmToken && u.municipality === municipality) tokens.add(u.fcmToken);
   });
-  const list = Array.from(tokens);
+  return Array.from(tokens);
+}
+
+async function notifyAdminsOfDraft(db, draftId, municipality, title, urgent, { kind = "automated", excludeToken = null } = {}) {
+  const list = (await adminTokensFor(db, municipality)).filter((t) => t !== excludeToken);
+  const who = kind === "admin" ? "a second admin" : "an admin";
   for (let i = 0; i < list.length; i += 500) {
     await admin.messaging().sendEachForMulticast({
       tokens: list.slice(i, i + 500),
       notification: {
-        title: `Approval needed: automated ${urgent ? "URGENT " : ""}alert`,
-        body: `${title} — not sent to the public until an admin approves it.`,
+        title: `Approval needed: ${kind} ${urgent ? "URGENT " : ""}${municipality ? "" : "province-wide "}alert`,
+        body: `${title} — not sent to the public until ${who} approves it.`,
       },
       data: { type: "alert_draft", draftId },
       android: {
@@ -1013,32 +1230,29 @@ exports.decideAlertDraft = onCall(async (request) => {
     const snap = await tx.get(ref);
     if (!snap.exists) throw new HttpsError("not-found", "Draft not found.");
     const d = snap.data();
-    if (d.status !== "pending") {
-      throw new HttpsError("failed-precondition", `This alert was already ${d.status}.`);
-    }
-    const inScope = PROVINCIAL_ROLES.includes(role) ||
-      (role === "municipal_admin" && !!profile.municipality && profile.municipality === d.municipality);
-    if (!inScope) {
-      throw new HttpsError("permission-denied", "Only an admin for this municipality can decide this alert.");
-    }
+    // Scope, expiry and the second-approver rule: ./alerts/approval.js.
+    const err = decisionError(d, {
+      uid, role, profileMunicipality: profile.municipality, decision, nowMs: Date.now(),
+    });
+    if (err) throw new HttpsError(err.code, err.message);
+    const isAdminAlert = !!d.requestedBy;
 
     const now = admin.firestore.FieldValue.serverTimestamp();
     let broadcastId = null;
     if (decision === "approve") {
-      if (d.expiresAt && d.expiresAt.toMillis() < Date.now()) {
-        throw new HttpsError("failed-precondition",
-          "This draft has expired; conditions may have changed, so it was not sent.");
-      }
       const bRef = db.collection("broadcasts").doc();
       broadcastId = bRef.id;
       tx.set(bRef, {
         title: d.title,
         body: d.body,
-        scope: d.municipality,
+        // A town name, or "all" for a province-wide alert (onNewBroadcast and
+        // the resident inbox both read scope this way).
+        scope: d.municipality || "all",
         urgent: d.urgent === true,
         type: d.type || "weather",
         source: d.source || null,
         draftId,
+        ...(isAdminAlert ? { sentBy: d.requestedBy } : {}),
         approvedBy: uid,
         timestamp: now,
       });
@@ -1051,7 +1265,8 @@ exports.decideAlertDraft = onCall(async (request) => {
       broadcastId,
     });
     tx.set(db.collection("audit_logs").doc(), {
-      action: decision === "approve" ? "automated_alert_approved" : "automated_alert_rejected",
+      action: `${isAdminAlert ? "admin" : "automated"}_alert_${decision === "approve" ? "approved" : "rejected"}`,
+      requestedBy: d.requestedBy || null,
       draftId,
       broadcastId,
       municipality: d.municipality || null,
@@ -1065,6 +1280,64 @@ exports.decideAlertDraft = onCall(async (request) => {
   });
 });
 
+// Propose an urgent or province-wide alert for a second admin's approval
+// (P2, PDRRMO §2). firestore.rules no longer let a client create such a
+// broadcast directly; it becomes a pending draft that decideAlertDraft sends
+// once a DIFFERENT in-scope admin approves it. Routine single-town alerts
+// are still written straight to `broadcasts` by the console.
+exports.proposeAdminAlert = onCall(async (request) => {
+  if (!request.auth) throw new HttpsError("unauthenticated", "Must be signed in.");
+  const { title, body, urgent, municipality } = request.data || {};
+  const t = typeof title === "string" ? title.trim() : "";
+  const b = typeof body === "string" ? body.trim() : "";
+  if (t.length < 3 || t.length > 120 || b.length < 3 || b.length > 1000) {
+    throw new HttpsError("invalid-argument", "A title (3–120 characters) and message (3–1000) are required.");
+  }
+  const town = typeof municipality === "string" && municipality.trim() ? municipality.trim() : null;
+  const isUrgent = urgent === true;
+  if (!needsSecondApprover({ urgent: isUrgent, municipality: town })) {
+    throw new HttpsError("invalid-argument", "Routine single-town alerts are sent directly; no approval is needed.");
+  }
+  const uid = request.auth.uid;
+  const db = admin.firestore();
+  const role = await resolveCallerRole(request);
+  const profile = (await db.collection("users").doc(uid).get()).data() || {};
+  if (!canPropose(role, profile.municipality, town)) {
+    throw new HttpsError("permission-denied",
+      town ? "You can only send alerts for your own municipality." : "Only a provincial admin can send a province-wide alert.");
+  }
+
+  const ref = db.collection("alert_drafts").doc();
+  const now = admin.firestore.FieldValue.serverTimestamp();
+  const batch = db.batch();
+  batch.set(ref, {
+    title: t,
+    body: b,
+    municipality: town,
+    urgent: isUrgent,
+    type: "admin",
+    source: "Admin",
+    evidence: null,
+    status: "pending",
+    requestedBy: uid,
+    requestedByName: typeof profile.name === "string" ? profile.name : null,
+    createdAt: now,
+    expiresAt: admin.firestore.Timestamp.fromMillis(Date.now() + ALERT_DRAFT_TTL_MS),
+  });
+  batch.set(db.collection("audit_logs").doc(), {
+    action: "admin_alert_proposed",
+    draftId: ref.id,
+    municipality: town,
+    urgent: isUrgent,
+    requestedBy: uid,
+    at: now,
+  });
+  await batch.commit();
+  await notifyAdminsOfDraft(db, ref.id, town, t, isUrgent, { kind: "admin", excludeToken: profile.fcmToken || null })
+    .catch((e) => console.error("draft notification failed:", e));
+  return { draftId: ref.id };
+});
+
 /**
  * Scheduled rainfall watch (PANaHON-style automatic weather alerts). Every 3
  * hours it checks the short-term forecast for each municipality and, when
@@ -1076,7 +1349,7 @@ exports.decideAlertDraft = onCall(async (request) => {
  * runtime (e.g. `firebase functions:secrets:set OPENWEATHER_API_KEY` or a
  * .env entry). Without it the job logs a warning and no-ops — nothing breaks.
  */
-exports.rainfallWatch = onSchedule(
+exports.rainfallWatch = scheduled("rainfallWatch", 
   // The `secrets` binding makes the OPENWEATHER_API_KEY set via
   // `firebase functions:secrets:set` available as process.env at runtime.
   { schedule: "0 */3 * * *", timeZone: "Asia/Manila", secrets: ["OPENWEATHER_API_KEY"] },
@@ -1214,7 +1487,7 @@ async function fetchWindyPointForecast(lat, lon, apiKey) {
 // error is recorded alongside it, so the app can show how stale it is.
 const { parseNlprsd, SOURCE_URL: NLPRSD_URL } = require("./pagasa-public/regional");
 
-exports.pagasaRegionalWatch = onSchedule(
+exports.pagasaRegionalWatch = scheduled("pagasaRegionalWatch", 
   { schedule: "every 60 minutes", timeZone: "Asia/Manila", timeoutSeconds: 60 },
   async () => {
     const ref = admin.firestore().collection("pagasa_products").doc("nueva_vizcaya");
@@ -1381,7 +1654,7 @@ exports.getWindyForecast = onCall(
 // Runs every 3h for fresher advisories: 8 runs/day × 15 municipalities
 // ≈ 120 Point-Forecast calls/day. Watch Windy's free-tier quota; if it's tight,
 // raise this back to "0 */6 * * *" or reduce the municipality set.
-exports.windyWindWatch = onSchedule(
+exports.windyWindWatch = scheduled("windyWindWatch", 
   { schedule: "0 */3 * * *", timeZone: "Asia/Manila", secrets: ["WINDY_API_KEY"] },
   async () => {
     const apiKey = process.env.WINDY_API_KEY;
@@ -1487,19 +1760,15 @@ exports.cleanupReportImageOnDelete = onDocumentDeleted(
 // restrict report deletion to provincial admins, so the actor set is small, but
 // full attribution needs deletion routed through a callable that verifies the
 // caller — tracked as follow-up work.
+const { deletionAudit } = require("./reports/deletion");
+
 exports.onReportDeleted = onDocumentDeleted(
   "users/{userId}/reports/{reportId}",
   async (event) => {
     const data = (event.data && event.data.data()) || {};
-    const reportedAt = data.reportedAt?.toDate?.() ?? null;
-    const ageMonths = reportedAt
-      ? (Date.now() - reportedAt.getTime()) / (1000 * 60 * 60 * 24 * 30.44)
-      : null;
-    // The retention job only ever deletes reports past 24 months.
-    const cause =
-      ageMonths !== null && ageMonths >= 24
-        ? "retention_24_months"
-        : "operator_deletion";
+    // Who and why come from the stamp deleteReportWithReason writes just
+    // before deleting; see ./reports/deletion.js for what is (not) inferred.
+    const { cause, deletedBy, reason } = deletionAudit(data, Date.now());
 
     await admin
       .firestore()
@@ -1507,6 +1776,8 @@ exports.onReportDeleted = onDocumentDeleted(
       .add({
         action: "report_deleted",
         cause,
+        deletedBy,
+        reason,
         targetUid: event.params.userId,
         reportId: event.params.reportId,
         category: data.category || null,
@@ -1521,12 +1792,48 @@ exports.onReportDeleted = onDocumentDeleted(
   }
 );
 
+// ── Attributed report deletion (PDRRMO §8, §3) ───────────────────────────────
+// The only route by which an app user can delete a report (firestore.rules
+// forbids client deletes). Same authority as before — provincial admins — but
+// a reason is required and the caller is recorded. For a false, duplicate,
+// incomplete or unverifiable report, closing it without action is preferred:
+// that keeps the report on record.
+exports.deleteReportWithReason = onCall(async (request) => {
+  if (!request.auth) throw new HttpsError("unauthenticated", "Must be signed in.");
+  const { userId, reportId, reason } = request.data || {};
+  if (typeof userId !== "string" || !userId || typeof reportId !== "string" || !reportId) {
+    throw new HttpsError("invalid-argument", "userId and reportId are required.");
+  }
+  const why = typeof reason === "string" ? reason.trim() : "";
+  if (why.length < 5) {
+    throw new HttpsError("invalid-argument", "A reason of at least 5 characters is required.");
+  }
+  const role = await resolveCallerRole(request);
+  if (!PROVINCIAL_ROLES.includes(role)) {
+    throw new HttpsError("permission-denied",
+      "Only provincial administrators can delete reports. To record a false or duplicate report, close it without action instead.");
+  }
+  const ref = admin.firestore().collection("users").doc(userId).collection("reports").doc(reportId);
+  const snap = await ref.get();
+  if (!snap.exists) throw new HttpsError("not-found", "Report not found.");
+
+  // Stamp who and why, then delete: onReportDeleted reads these from the
+  // deleted document's final snapshot to write a single attributed entry.
+  await ref.update({
+    deletionRequestedBy: request.auth.uid,
+    deletionReason: why.slice(0, 500),
+    deletionRequestedAt: admin.firestore.FieldValue.serverTimestamp(),
+  });
+  await ref.delete();
+  return { deleted: true };
+});
+
 // ── RA 10173 retention: purge reports older than 24 months ───────────────────
 // Runs daily at 3 AM Manila time. The privacy policy commits to deleting
 // archived reports after 24 months; archiveOldReports only marks them at 12
 // months. This job deletes report documents (and their photos) past 24 months,
 // which also triggers cleanupReportImageOnDelete for Storage cleanup.
-exports.deleteOldArchivedReports = onSchedule(
+exports.deleteOldArchivedReports = scheduled("deleteOldArchivedReports", 
   { schedule: "0 3 * * *", timeZone: "Asia/Manila" },
   async () => {
     const db = admin.firestore();
@@ -1539,7 +1846,15 @@ exports.deleteOldArchivedReports = onSchedule(
       .where("reportedAt", "<", cutoffTs)
       .get();
 
-    if (snapshot.empty) {
+    // Only reports that went through the archive step (./reports/retention.js).
+    const nowMs = Date.now();
+    const due = snapshot.docs.filter((d) => dueForDeletion(d.data(), nowMs));
+    const skipped = snapshot.size - due.length;
+    if (skipped) {
+      console.warn(`deleteOldArchivedReports: ${skipped} report(s) older than 24 months are not archived; ` +
+        "kept until archiveOldReports archives them.");
+    }
+    if (due.length === 0) {
       console.log("deleteOldArchivedReports: nothing to delete");
       return;
     }
@@ -1548,7 +1863,7 @@ exports.deleteOldArchivedReports = onSchedule(
     let batch = db.batch();
     let count = 0;
     let deleted = 0;
-    for (const doc of snapshot.docs) {
+    for (const doc of due) {
       await deleteImageByUrl(doc.data().imageUrl);
       batch.delete(doc.ref);
       count++;
@@ -1560,7 +1875,7 @@ exports.deleteOldArchivedReports = onSchedule(
       }
     }
     if (count > 0) await batch.commit();
-    console.log(`deleteOldArchivedReports: deleted ${deleted} reports older than 24 months`);
+    console.log(`deleteOldArchivedReports: deleted ${deleted} archived reports older than 24 months`);
   }
 );
 
@@ -1715,4 +2030,36 @@ exports.seedResponders = onCall(async (request) => {
     total: written,
     note: "BFP numbers marked verified:false are placeholder values — confirm with each municipal BFP station.",
   };
+});
+
+// ── Health endpoint (P2, uptime) ─────────────────────────────────────────────
+// Public, unauthenticated GET for an uptime monitor (e.g. a Google Cloud
+// Monitoring uptime check). 200 only when everything is healthy; 503 when
+// Firestore is unreachable or a scheduled job has stopped or is failing, so
+// the monitor alerts. The body names checks and states only; no error text.
+exports.health = onRequest({ timeoutSeconds: 15, cors: false, invoker: "public" }, async (req, res) => {
+  res.set("Cache-Control", "no-store");
+  if (req.method !== "GET" && req.method !== "HEAD") {
+    res.status(405).send("Method Not Allowed");
+    return;
+  }
+  const heartbeats = {};
+  let firestoreOk = true;
+  try {
+    const snap = await Promise.race([
+      admin.firestore().collection("system_health").get(),
+      new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), 5000)),
+    ]);
+    const ms = (v) => (v && typeof v.toMillis === "function" ? v.toMillis() : null);
+    snap.forEach((d) => {
+      if (!(d.id in JOB_INTERVAL_MIN)) return;
+      heartbeats[d.id] = { lastSuccessMs: ms(d.data().lastSuccessAt), lastErrorMs: ms(d.data().lastErrorAt) };
+    });
+  } catch (e) {
+    console.error("health: Firestore check failed:", e);
+    firestoreOk = false;
+  }
+  const result = assessHealth({ firestoreOk, heartbeats, nowMs: Date.now() });
+  res.status(result.status === "ok" ? 200 : 503)
+    .json({ ...result, checkedAt: new Date().toISOString() });
 });

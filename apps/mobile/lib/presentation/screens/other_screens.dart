@@ -466,6 +466,11 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   }
 
   ({IconData icon, Color color}) _visual(FeedItem item, Color accent) {
+    if (item.type == FeedType.broadcast) {
+      return item.urgent
+          ? (icon: Icons.warning_amber_rounded, color: const Color(0xFFD32F2F))
+          : (icon: Icons.podcasts_rounded, color: accent);
+    }
     if (item.type == FeedType.announcement) {
       return item.urgent
           ? (icon: Icons.warning_amber_rounded, color: const Color(0xFFD32F2F))
@@ -494,7 +499,55 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           .pushNamed('/status', arguments: {'reportId': item.reportId});
     } else if (item.type == FeedType.announcement) {
       Navigator.of(context).pushNamed('/announcements');
+    } else if (item.type == FeedType.broadcast) {
+      _showBroadcast(item);
     }
+  }
+
+  // A broadcast is re-read in full here (P2): the push may have been missed,
+  // dismissed or cut short by the notification tray.
+  void _showBroadcast(FeedItem item) {
+    final red = Theme.of(context).colorScheme.error;
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              AppStrings.get(item.urgent ? 'broadcastAlertUrgent' : 'broadcastAlert'),
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: item.urgent ? red : Theme.of(ctx).colorScheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(item.title),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SelectableText(item.body),
+              const SizedBox(height: 12),
+              Text(_formatTime(item.time),
+                  style: TextStyle(
+                      fontSize: 12,
+                      color: Theme.of(ctx).colorScheme.onSurfaceVariant)),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: Text(AppStrings.get('ok')),
+          ),
+        ],
+      ),
+    );
   }
 
   @override

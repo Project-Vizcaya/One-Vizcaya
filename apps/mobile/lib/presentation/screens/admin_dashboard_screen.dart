@@ -7,6 +7,7 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import 'package:fl_chart/fl_chart.dart';
+import '../widgets/pending_alert_drafts.dart';
 import '../../domain/models/problem_report.dart';
 import '../../domain/enums/report_priority.dart';
 import '../../domain/enums/report_status.dart';
@@ -502,14 +503,15 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
         isProvincialView: _isProvincialView,
         canDelete: _currentUserRole == UserRole.provincialAdmin ||
             _currentUserRole == UserRole.superAdmin,
-        onStatusUpdate: (reportId, userId, newStatus) =>
-            _reportRepository.updateReportStatus(userId, reportId, newStatus),
+        onStatusUpdate: (reportId, userId, newStatus, {resolutionNote}) =>
+            _reportRepository.updateReportStatus(userId, reportId, newStatus,
+                resolutionNote: resolutionNote),
         onEscalate: (reportId, userId) =>
             _reportRepository.escalateToProvince(userId, reportId),
         onTransfer: (reportId, userId, level) =>
             _reportRepository.transferToLevel(userId, reportId, level),
-        onDelete: (reportId, userId) =>
-            _reportRepository.deleteReport(userId, reportId),
+        onDelete: (reportId, userId, reason) =>
+            _reportRepository.deleteReport(userId, reportId, reason),
         onFlagUpdate: (reportId, userId, isFlagged) =>
             _reportRepository.flagReport(userId, reportId, isFlagged),
         onCloseWithDisposition: (reportId, userId, disposition, reason, duplicateOf) =>
@@ -517,6 +519,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                 userId, reportId, disposition, reason, duplicateOf: duplicateOf),
         onReopenClosed: (reportId, userId) =>
             _reportRepository.reopenReport(userId, reportId),
+        onRefer: (reportId, userId, type, name, contact, note) =>
+            _reportRepository.referToOffice(userId, reportId,
+                officeType: type, officeName: name, contact: contact, note: note),
       ),
     );
   }
@@ -702,6 +707,11 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
       body: Column(
         children: [
           _buildSosBanner(),
+          // Alerts awaiting approval (P3): municipal admins and above, who are
+          // the ones decideAlertDraft lets decide.
+          if (_canSeeAnnouncements)
+            PendingAlertDraftsBanner(
+                municipality: _isProvincialView ? null : _activeMunicipalityName),
           Expanded(
             child: TabBarView(
         controller: tabController,
@@ -811,9 +821,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                             lguColor: lguColor,
                             showMunicipality: _isProvincialView,
                             onStatusUpdate:
-                                (reportId, userId, newStatus) =>
+                                (reportId, userId, newStatus, {resolutionNote}) =>
                                     _reportRepository.updateReportStatus(
-                                        userId, reportId, newStatus),
+                                        userId, reportId, newStatus,
+                                        resolutionNote: resolutionNote),
                           ),
                         );
                       },
@@ -1386,22 +1397,60 @@ class _ClickableStatBadge extends StatelessWidget {
 // REPORT DETAIL BOTTOM SHEET
 // ─────────────────────────────────────────────────────────────────────────────
 
+/// Asks what was done to resolve a report (lifecycle, P3). Returns the note,
+/// or null if cancelled. firestore.rules require 10-1000 characters.
+Future<String?> askResolutionNote(BuildContext context) {
+  final controller = TextEditingController();
+  return showDialog<String>(
+    context: context,
+    builder: (ctx) => StatefulBuilder(
+      builder: (ctx, setState) {
+        final ok = controller.text.trim().length >= 10;
+        return AlertDialog(
+          title: const Text('Mark as solved'),
+          content: TextField(
+            controller: controller,
+            autofocus: true,
+            maxLength: 1000,
+            maxLines: 4,
+            onChanged: (_) => setState(() {}),
+            decoration: const InputDecoration(
+              labelText: 'What was done to resolve it?',
+              helperText: 'At least 10 characters. Recorded with your name.',
+            ),
+          ),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+            FilledButton(
+              onPressed: ok ? () => Navigator.pop(ctx, controller.text.trim()) : null,
+              child: const Text('Mark solved'),
+            ),
+          ],
+        );
+      },
+    ),
+  ).whenComplete(controller.dispose);
+}
+
 class _ReportDetailSheet extends StatelessWidget {
   final ProblemReport report;
   final Color lguColor;
   final bool isProvincialView;
   final bool canDelete;
-  final void Function(String reportId, String userId, String newStatus)
-      onStatusUpdate;
+  final void Function(String reportId, String userId, String newStatus,
+      {String? resolutionNote}) onStatusUpdate;
   final Future<void> Function(String reportId, String userId) onEscalate;
   final Future<void> Function(
       String reportId, String userId, HandlingLevel level) onTransfer;
-  final Future<void> Function(String reportId, String userId) onDelete;
+  final Future<void> Function(String reportId, String userId, String reason) onDelete;
   final Future<void> Function(String reportId, String userId, bool isFlagged)
       onFlagUpdate;
   final Future<void> Function(String reportId, String userId,
       String disposition, String reason, String? duplicateOf) onCloseWithDisposition;
   final Future<void> Function(String reportId, String userId) onReopenClosed;
+  final Future<void> Function(String reportId, String userId, String officeType,
+      String officeName, String contact, String note) onRefer;
 
   const _ReportDetailSheet({
     required this.report,
@@ -1415,6 +1464,7 @@ class _ReportDetailSheet extends StatelessWidget {
     required this.onFlagUpdate,
     required this.onCloseWithDisposition,
     required this.onReopenClosed,
+    required this.onRefer,
   });
 
   String _formatFullTimestamp(DateTime dt) {
@@ -1618,24 +1668,43 @@ class _ReportDetailSheet extends StatelessWidget {
   }
 
   void _confirmDelete(BuildContext context) {
+    final reason = TextEditingController();
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setState) => AlertDialog(
         shape:
             RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text('Delete Report'),
-        content: const Text(
-            'Permanently delete this report? This cannot be undone.'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+                'Permanently delete this report? This cannot be undone. To record '
+                'a false or duplicate report, use "Close without action" instead.'),
+            TextField(
+              controller: reason,
+              minLines: 2,
+              maxLines: 3,
+              onChanged: (_) => setState(() {}),
+              decoration: const InputDecoration(
+                  labelText: 'Reason (required, recorded in the audit log)'),
+            ),
+          ],
+        ),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx),
               child: const Text('Cancel')),
           ElevatedButton(
-            onPressed: () async {
+            onPressed: reason.text.trim().length < 5
+                ? null
+                : () async {
               Navigator.pop(ctx);
               Navigator.pop(context);
               if (report.userId != null) {
-                await onDelete(report.id, report.userId!);
+                await onDelete(report.id, report.userId!, reason.text.trim());
               }
             },
             style: ElevatedButton.styleFrom(
@@ -1645,7 +1714,8 @@ class _ReportDetailSheet extends StatelessWidget {
           ),
         ],
       ),
-    );
+      ),
+    ).then((_) => reason.dispose());
   }
 
   @override
@@ -1853,6 +1923,24 @@ class _ReportDetailSheet extends StatelessWidget {
                       lguColor: lguColor,
                     ),
 
+                  // Proxy reporting (P3): the filer above is an official or a
+                  // family member; this is the resident it was filed for.
+                  if (report.onBehalfOf != null) ...[
+                    const SizedBox(height: 12),
+                    _DetailSection(
+                      icon: Icons.person_outline_rounded,
+                      label: 'Filed on behalf of',
+                      content: [
+                        report.onBehalfOf!['name'] ?? '',
+                        if ((report.onBehalfOf!['relationship'] ?? '').isNotEmpty)
+                          '(${report.onBehalfOf!['relationship']})',
+                        if ((report.onBehalfOf!['contact'] ?? '').isNotEmpty)
+                          report.onBehalfOf!['contact']!,
+                      ].join(' · '),
+                      lguColor: lguColor,
+                    ),
+                  ],
+
                   if (report.status == ReportStatus.solved &&
                       report.resolvedAt != null) ...[
                     const SizedBox(height: 12),
@@ -2045,6 +2133,17 @@ class _ReportDetailSheet extends StatelessWidget {
                     _CitizenFeedbackSection(report: report, lguColor: lguColor),
                   ],
 
+                  // Referral to a named office (P2)
+                  if (report.userId != null) ...[
+                    const SizedBox(height: 12),
+                    _ReferralPanel(
+                      report: report,
+                      lguColor: lguColor,
+                      onRefer: (type, name, contact, note) =>
+                          onRefer(report.id, report.userId!, type, name, contact, note),
+                    ),
+                  ],
+
                   const SizedBox(height: 24),
                   const Divider(),
                   const SizedBox(height: 12),
@@ -2114,17 +2213,19 @@ class _ReportDetailSheet extends StatelessWidget {
                             }
                           },
                         ),
-                      if (report.status != ReportStatus.solved)
+                      // Lifecycle (P3): Solved only from Ongoing, with a note.
+                      if (report.status == ReportStatus.ongoing)
                         _ActionButton(
                           label: 'Mark Solved',
                           color: Colors.green,
                           icon: Icons.check_circle,
-                          onTap: () {
-                            if (report.userId != null) {
-                              onStatusUpdate(
-                                  report.id, report.userId!, 'solved');
-                              Navigator.pop(context);
-                            }
+                          onTap: () async {
+                            if (report.userId == null) return;
+                            final note = await askResolutionNote(context);
+                            if (note == null || !context.mounted) return;
+                            onStatusUpdate(report.id, report.userId!, 'solved',
+                                resolutionNote: note);
+                            Navigator.pop(context);
                           },
                         ),
                       if (report.status == ReportStatus.solved)
@@ -2551,8 +2652,8 @@ class _AdminReportCard extends StatelessWidget {
   final ProblemReport report;
   final Color lguColor;
   final bool showMunicipality;
-  final void Function(String reportId, String userId, String newStatus)
-      onStatusUpdate;
+  final void Function(String reportId, String userId, String newStatus,
+      {String? resolutionNote}) onStatusUpdate;
 
   const _AdminReportCard({
     required this.report,
@@ -2879,14 +2980,16 @@ class _AdminReportCard extends StatelessWidget {
                         },
                       ),
                     const SizedBox(width: 4),
-                    if (report.status != ReportStatus.solved)
+                    if (report.status == ReportStatus.ongoing)
                       _SmallStatusButton(
                         label: 'Solved',
                         color: Colors.green,
-                        onTap: () {
+                        onTap: () async {
                           if (report.userId != null) {
-                            onStatusUpdate(
-                                report.id, report.userId!, 'solved');
+                            final note = await askResolutionNote(context);
+                            if (note == null) return;
+                            onStatusUpdate(report.id, report.userId!, 'solved',
+                                resolutionNote: note);
                           } else {
                             ToastUtils.showError(
                                 'Cannot update: missing user info');
@@ -5037,6 +5140,213 @@ class _RoleAssignDialogState extends State<_RoleAssignDialog> {
 }
 
 // ── Close without action (PDRRMO §8) ────────────────────────────────────────
+
+/// Referral to a named office (P2), mirroring the web console's "Refer to
+/// Office". Recording a referral does not notify the office.
+class _ReferralPanel extends StatefulWidget {
+  final ProblemReport report;
+  final Color lguColor;
+  final Future<void> Function(
+      String officeType, String officeName, String contact, String note) onRefer;
+  const _ReferralPanel(
+      {required this.report, required this.lguColor, required this.onRefer});
+
+  @override
+  State<_ReferralPanel> createState() => _ReferralPanelState();
+}
+
+class _ReferralPanelState extends State<_ReferralPanel> {
+  // Shown immediately after a save; the sheet's report is a snapshot.
+  late ReportReferral? _current = widget.report.referral;
+
+  Future<void> _openForm() async {
+    final saved = await showModalBottomSheet<ReportReferral>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      builder: (_) => _ReferralForm(
+        initial: _current,
+        municipality: widget.report.municipality,
+        onRefer: widget.onRefer,
+      ),
+    );
+    if (saved != null && mounted) setState(() => _current = saved);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final r = _current;
+    final muted = Theme.of(context).colorScheme.onSurfaceVariant;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Refer to Office',
+            style: TextStyle(
+                fontWeight: FontWeight.bold, color: widget.lguColor, fontSize: 13)),
+        const SizedBox(height: 8),
+        if (r != null)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Theme.of(context).dividerColor),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('${r.officeType} · ${r.officeName}',
+                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
+                if (r.contact != null)
+                  Text('Contact: ${r.contact}', style: const TextStyle(fontSize: 13)),
+                if (r.note != null) Text(r.note!, style: const TextStyle(fontSize: 13)),
+                const SizedBox(height: 4),
+                Text(
+                  '${r.at != null ? '${r.at!.month}/${r.at!.day}/${r.at!.year} · ' : ''}'
+                  'by admin ${r.by.length >= 8 ? r.by.substring(0, 8) : r.by}'
+                  ' · recorded in the audit log',
+                  style: TextStyle(fontSize: 12, color: muted),
+                ),
+              ],
+            ),
+          ),
+        const SizedBox(height: 8),
+        OutlinedButton.icon(
+          onPressed: _openForm,
+          icon: const Icon(Icons.apartment_rounded, size: 18),
+          label: Text(r == null ? 'Refer to an office…' : 'Refer to a different office…'),
+          style: OutlinedButton.styleFrom(minimumSize: const Size(0, 48)),
+        ),
+      ],
+    );
+  }
+}
+
+class _ReferralForm extends StatefulWidget {
+  final ReportReferral? initial;
+  final String municipality;
+  final Future<void> Function(
+      String officeType, String officeName, String contact, String note) onRefer;
+  const _ReferralForm(
+      {required this.initial, required this.municipality, required this.onRefer});
+
+  @override
+  State<_ReferralForm> createState() => _ReferralFormState();
+}
+
+class _ReferralFormState extends State<_ReferralForm> {
+  late String? _type = widget.initial?.officeType;
+  late final _name = TextEditingController(text: widget.initial?.officeName ?? '');
+  late final _contact = TextEditingController(text: widget.initial?.contact ?? '');
+  final _note = TextEditingController();
+  bool _saving = false;
+
+  @override
+  void dispose() {
+    _name.dispose();
+    _contact.dispose();
+    _note.dispose();
+    super.dispose();
+  }
+
+  bool get _valid {
+    final n = _name.text.trim().length;
+    return _type != null && n >= 2 && n <= 120;
+  }
+
+  Future<void> _save() async {
+    if (!_valid || _saving) return;
+    setState(() => _saving = true);
+    try {
+      await widget.onRefer(_type!, _name.text, _contact.text, _note.text);
+      if (!mounted) return;
+      Navigator.pop(
+        context,
+        ReportReferral(
+          officeType: _type!,
+          officeName: _name.text.trim(),
+          contact: _contact.text.trim().isEmpty ? null : _contact.text.trim(),
+          note: _note.text.trim().isEmpty ? null : _note.text.trim(),
+          by: FirebaseAuth.instance.currentUser?.uid ?? '',
+          at: DateTime.now(),
+        ),
+      );
+    } catch (_) {
+      // The repository already showed the error.
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final muted = Theme.of(context).colorScheme.onSurfaceVariant;
+    return Padding(
+      padding: EdgeInsets.fromLTRB(
+          16, 16, 16, 16 + MediaQuery.of(context).viewInsets.bottom),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Text('Refer to Office',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+            const SizedBox(height: 12),
+            DropdownButtonFormField<String>(
+              initialValue: _type,
+              isExpanded: true,
+              decoration: const InputDecoration(labelText: 'Office type'),
+              items: ReportReferral.officeTypes.entries
+                  .map((e) => DropdownMenuItem(
+                      value: e.key,
+                      child: Text(e.value, overflow: TextOverflow.ellipsis)))
+                  .toList(),
+              onChanged: (v) => setState(() => _type = v),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _name,
+              maxLength: 120,
+              decoration: InputDecoration(
+                  labelText: 'Office name',
+                  hintText: 'e.g. MDRRMO ${widget.municipality}'),
+              onChanged: (_) => setState(() {}),
+            ),
+            TextField(
+              controller: _contact,
+              maxLength: 80,
+              decoration: const InputDecoration(
+                  labelText: 'Contact person or number (optional)'),
+            ),
+            TextField(
+              controller: _note,
+              maxLength: 500,
+              maxLines: 3,
+              decoration: const InputDecoration(
+                  labelText: 'What was asked of them (optional)'),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'This records the hand-off; it does not notify the office. '
+              'Contact them through your usual channel.',
+              style: TextStyle(fontSize: 12, color: muted),
+            ),
+            const SizedBox(height: 12),
+            FilledButton.icon(
+              onPressed: _valid && !_saving ? _save : null,
+              style: FilledButton.styleFrom(minimumSize: const Size(0, 48)),
+              icon: _saving
+                  ? const SizedBox(
+                      width: 18, height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2))
+                  : const Icon(Icons.send_rounded),
+              label: const Text('Record referral'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
 
 class _ClosedDispositionPanel extends StatelessWidget {
   final ProblemReport report;

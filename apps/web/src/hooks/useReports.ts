@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
 import {
-  collectionGroup, query, orderBy, limit, where,
-  onSnapshot, doc, updateDoc, Timestamp, arrayUnion, deleteDoc,
+  collectionGroup, query, orderBy, where,
+  onSnapshot, doc, updateDoc, Timestamp, arrayUnion,
   deleteField, serverTimestamp,
 } from "firebase/firestore";
-import { auth, db } from "@/lib/firebase";
+import { auth, db, functions } from "@/lib/firebase";
+import { httpsCallable } from "firebase/functions";
 import { useAuthStore } from "@/stores/authStore";
-import type { Report, ReportNote, ReportStatus, HandlingLevel, ReportDisposition } from "@/types";
+import type { Report, ReportNote, ReportStatus, HandlingLevel, ReportDisposition, Referral, ReferralOfficeType } from "@/types";
 
 function toDate(val: unknown): Date {
   if (val instanceof Timestamp) return val.toDate();
@@ -36,6 +37,8 @@ function toReport(d: {
     description:      (data.description as string) ?? "",
     isAnonymous:      (data.isAnonymous as boolean) ?? false,
     reportedAt:        toDate(data.reportedAt),
+    acknowledgedAt:    data.acknowledgedAt ? toDate(data.acknowledgedAt) : undefined,
+    referredAt:        data.referredAt ? toDate(data.referredAt) : undefined,
     resolvedAt:        data.resolvedAt ? toDate(data.resolvedAt) : undefined,
     notes: ((data.notes as ReportNote[]) ?? []).map((n) => ({
       ...n,
@@ -56,9 +59,32 @@ function toReport(d: {
     dispositionBy:     data.dispositionBy as string | undefined,
     dispositionAt:     data.dispositionAt ? toDate(data.dispositionAt) : undefined,
     duplicateOf:       data.duplicateOf as string | undefined,
+    referral:          toReferral(data.referral),
+    statusBeforeArchive: data.statusBeforeArchive as string | undefined,
+    resolutionNote:    data.resolutionNote as string | undefined,
+    resolutionBy:      data.resolutionBy as string | undefined,
+    onBehalfOf:        data.onBehalfOf && typeof data.onBehalfOf === "object"
+      ? (data.onBehalfOf as Report["onBehalfOf"]) : undefined,
   };
 }
 
+function toReferral(v: unknown): Referral | undefined {
+  if (!v || typeof v !== "object") return undefined;
+  const r = v as Record<string, unknown>;
+  return {
+    officeType: (r.officeType as ReferralOfficeType) ?? "Other",
+    officeName: String(r.officeName ?? ""),
+    contact: typeof r.contact === "string" && r.contact ? r.contact : undefined,
+    note: typeof r.note === "string" && r.note ? r.note : undefined,
+    by: String(r.by ?? ""),
+    at: r.at ? toDate(r.at) : undefined,
+  };
+}
+
+// Every report in scope, for every page (dashboard, table, map, analytics).
+// No limit: counts and lists must be complete. All pages use the same query,
+// so the Firestore SDK shares one listener between them, and after the first
+// load it sends only changes. The table renders in pages (ReportsTable).
 export function useReports(municipality: string | null) {
   const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
@@ -75,14 +101,12 @@ export function useReports(municipality: string | null) {
     // Municipal admin has approved for escalation (escalatedToProvince == true).
     // A specific-municipality view still shows all of that town's reports so the
     // Municipal admin can triage and approve them.
-    const q = scopedBarangay !== null && municipality
-      ? query(base,
-          where("municipality", "==", municipality),
-          where("barangay", "==", scopedBarangay),
-          orderBy("reportedAt", "desc"), limit(256))
+    const scope = scopedBarangay !== null && municipality
+      ? [where("municipality", "==", municipality), where("barangay", "==", scopedBarangay)]
       : municipality
-        ? query(base, where("municipality", "==", municipality), orderBy("reportedAt", "desc"), limit(256))
-        : query(base, where("escalatedToProvince", "==", true), orderBy("reportedAt", "desc"), limit(256));
+        ? [where("municipality", "==", municipality)]
+        : [where("escalatedToProvince", "==", true)];
+    const q = query(base, ...scope, orderBy("reportedAt", "desc"));
 
     const unsub = onSnapshot(
       q,
@@ -135,9 +159,13 @@ export async function reopenReport(userId: string, reportId: string) {
   });
 }
 
-export async function updateReportStatus(userId: string, reportId: string, status: ReportStatus) {
+// Lifecycle (P3): firestore.rules allow 'solved' only from 'ongoing', with a
+// resolution note (10-1000 chars) attributed to the acting admin.
+export async function updateReportStatus(userId: string, reportId: string, status: ReportStatus, resolutionNote?: string) {
+  const uid = auth.currentUser?.uid;
   await updateDoc(doc(db, "users", userId, "reports", reportId), {
     status,
+    ...(status === "solved" ? { resolutionNote: (resolutionNote ?? "").trim(), resolutionBy: uid ?? null } : {}),
     lastModified: Timestamp.now(),
   });
 }
@@ -163,6 +191,28 @@ export async function transferReportLevel(
   });
 }
 
+// Refer a report to a named office (P2). firestore.rules require `by` to be
+// the acting admin and `at` the server time; auditReportReferral logs it.
+export async function referReport(
+  userId: string,
+  reportId: string,
+  r: { officeType: ReferralOfficeType; officeName: string; contact?: string; note?: string },
+) {
+  const uid = auth.currentUser?.uid;
+  if (!uid) throw new Error("Not signed in.");
+  await updateDoc(doc(db, "users", userId, "reports", reportId), {
+    referral: {
+      officeType: r.officeType,
+      officeName: r.officeName.trim(),
+      contact: r.contact?.trim() ?? "",
+      note: r.note?.trim() ?? "",
+      by: uid,
+      at: serverTimestamp(),
+    },
+    lastModified: Timestamp.now(),
+  });
+}
+
 export async function assignResponder(userId: string, reportId: string, responder: string) {
   await updateDoc(doc(db, "users", userId, "reports", reportId), {
     assignedResponder: responder,
@@ -181,6 +231,9 @@ export async function addReportNote(
   });
 }
 
-export async function deleteReport(userId: string, reportId: string) {
-  await deleteDoc(doc(db, "users", userId, "reports", reportId));
+// Deletion runs server-side (deleteReportWithReason): it checks the caller,
+// requires a reason and records who deleted the report. Client deletes are
+// refused by firestore.rules, because they could not be attributed.
+export async function deleteReport(userId: string, reportId: string, reason: string) {
+  await httpsCallable(functions, "deleteReportWithReason")({ userId, reportId, reason });
 }

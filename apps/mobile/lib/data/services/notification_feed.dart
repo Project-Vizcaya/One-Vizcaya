@@ -1,15 +1,16 @@
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'citizen_broadcasts.dart';
 
-/// One unified notification feed (PANaHON-style inbox) merging the two sources a
+/// One unified notification feed (PANaHON-style inbox) merging the sources a
 /// citizen is allowed to read:
 ///   1. personal report updates  →  users/{uid}/notifications
 ///   2. LGU announcements (incl. urgent weather advisories) for their town / All
-///
-/// Broadcasts are intentionally excluded — the security rules make them
-/// admin-only, so they reach citizens as push/OS notifications, not the inbox.
-enum FeedType { report, announcement }
+///   3. broadcast alerts addressed to them (P2) — so a missed or dismissed
+///      urgent alert can be read again. Scoped by the PROFILE town, see
+///      citizen_broadcasts.dart.
+enum FeedType { report, announcement, broadcast }
 
 class FeedItem {
   final String id;
@@ -41,11 +42,18 @@ Stream<List<FeedItem>> notificationFeedStream(String uid, String municipality) {
   final controller = StreamController<List<FeedItem>>.broadcast();
   List<FeedItem> personal = [];
   List<FeedItem> announcements = [];
+  // Keyed by id: an alert can match both broadcast queries.
+  final broadcasts = <int, Map<String, FeedItem>>{};
   StreamSubscription? s1, s2;
+  final broadcastSubs = <StreamSubscription>[];
+  var cancelled = false;
 
   void emit() {
-    final merged = [...personal, ...announcements]
-      ..sort((a, b) => b.time.compareTo(a.time));
+    final merged = [
+      ...personal,
+      ...announcements,
+      ...{for (final m in broadcasts.values) ...m}.values,
+    ]..sort((a, b) => b.time.compareTo(a.time));
     if (!controller.isClosed) controller.add(merged);
   }
 
@@ -57,7 +65,11 @@ Stream<List<FeedItem>> notificationFeedStream(String uid, String municipality) {
       .limit(50)
       .snapshots()
       .listen((snap) {
-    personal = snap.docs.map((d) {
+    // Older app versions copied broadcasts into this collection; they now
+    // come from the broadcasts themselves, so skip the copies.
+    personal = snap.docs
+        .where((d) => d.data()['type'] != 'broadcast')
+        .map((d) {
       final m = d.data();
       return FeedItem(
         id: d.id,
@@ -98,9 +110,35 @@ Stream<List<FeedItem>> notificationFeedStream(String uid, String municipality) {
     emit();
   }, onError: (_) {});
 
+  final db = FirebaseFirestore.instance;
+  profileMunicipality(db, uid).then((town) {
+    if (cancelled) return;
+    final queries = citizenBroadcastQueries(db, town);
+    for (var i = 0; i < queries.length; i++) {
+      broadcastSubs.add(queries[i].snapshots().listen((snap) {
+        broadcasts[i] = {
+          for (final d in snap.docs)
+            d.id: FeedItem(
+              id: d.id,
+              type: FeedType.broadcast,
+              title: (d.data()['title'] as String?) ?? 'Alert',
+              body: (d.data()['body'] as String?) ?? '',
+              time: _asDate(d.data()['timestamp']),
+              urgent: (d.data()['urgent'] as bool?) ?? false,
+            ),
+        };
+        emit();
+      }, onError: (_) {}));
+    }
+  });
+
   controller.onCancel = () {
+    cancelled = true;
     s1?.cancel();
     s2?.cancel();
+    for (final s in broadcastSubs) {
+      s.cancel();
+    }
   };
   return controller.stream;
 }

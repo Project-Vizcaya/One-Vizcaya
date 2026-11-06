@@ -71,7 +71,7 @@ export function truncate(str: string, length: number): string {
 
 /** Still needs action: neither resolved nor closed without action. */
 export function isOpenReport(r: { status: string }): boolean {
-  return r.status !== "solved" && r.status !== "closed";
+  return r.status !== "solved" && r.status !== "closed" && r.status !== "archived";
 }
 
 export const DISPOSITION_OPTIONS = [

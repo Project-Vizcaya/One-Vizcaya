@@ -8,6 +8,8 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { sendBroadcast } from "@/hooks/useAnnouncements";
+import { httpsCallable } from "firebase/functions";
+import { functions } from "@/lib/firebase";
 import { useAuthStore } from "@/stores/authStore";
 import { toast } from "@/hooks/useToast";
 import { MUNICIPALITIES } from "@/data/municipalities";
@@ -38,30 +40,47 @@ export function BroadcastCard() {
   const targetLabel = effScope === "all" ? "all users province-wide" : `all users in ${effMunicipality}`;
 
   const canSend = !!title.trim() && !!body.trim() && (effScope === "all" || !!effMunicipality);
+  // Second approver (P2, PDRRMO §2): urgent or province-wide alerts are not
+  // sent on one admin's say-so. They become a pending draft that a different
+  // in-scope admin approves under "Awaiting approval" above.
+  const needsApproval = urgent || effScope === "all";
 
   const handleSend = async () => {
     if (!user || !canSend) return;
     setSaving(true);
     try {
-      await sendBroadcast({
-        title: title.trim(),
-        body: body.trim(),
-        urgent,
-        scope: effScope,
-        // Only include municipality when scoped — Firestore rejects an
-        // `undefined` field, which was causing "All Users" to fail.
-        ...(effScope === "municipality" ? { municipality: effMunicipality } : {}),
-        sentBy: user.uid,
-      });
-      toast({ title: "Broadcast sent!", description: `Sent to ${effScope === "all" ? "all users" : effMunicipality}`, variant: "success" as never });
+      if (needsApproval) {
+        await httpsCallable(functions, "proposeAdminAlert")({
+          title: title.trim(),
+          body: body.trim(),
+          urgent,
+          municipality: effScope === "municipality" ? effMunicipality : null,
+        });
+        toast({
+          title: "Sent for approval",
+          description: "Nothing has gone out yet. Another admin must approve it; they have been notified.",
+        });
+      } else {
+        await sendBroadcast({
+          title: title.trim(),
+          body: body.trim(),
+          urgent,
+          scope: effScope,
+          // Only include municipality when scoped — Firestore rejects an
+          // `undefined` field, which was causing "All Users" to fail.
+          ...(effScope === "municipality" ? { municipality: effMunicipality } : {}),
+          sentBy: user.uid,
+        });
+        toast({ title: "Broadcast sent!", description: `Sent to ${effMunicipality}`, variant: "success" as never });
+      }
       setTitle("");
       setBody("");
       setUrgent(false);
       setScope("all");
       setMunicipality("");
       setConfirmOpen(false);
-    } catch {
-      toast({ title: "Failed to send broadcast", variant: "destructive" });
+    } catch (e) {
+      toast({ title: "Failed to send broadcast", description: (e as { message?: string })?.message, variant: "destructive" });
     } finally {
       setSaving(false);
     }
@@ -141,17 +160,24 @@ export function BroadcastCard() {
           disabled={!canSend || saving}
           onClick={() => setConfirmOpen(true)}
         >
-          <Radio className="h-4 w-4 mr-2" />
-          Send Broadcast
+          <Radio className="h-4 w-4 mr-2" aria-hidden="true" />
+          {needsApproval ? "Request Approval" : "Send Broadcast"}
         </Button>
+        {needsApproval && canSend && (
+          <p className="text-xs text-muted-foreground">
+            {urgent ? "Urgent" : "Province-wide"} alerts need a second admin's approval before anything is sent.
+          </p>
+        )}
       </div>
 
       <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Send Broadcast?</AlertDialogTitle>
+            <AlertDialogTitle>{needsApproval ? "Request approval?" : "Send Broadcast?"}</AlertDialogTitle>
             <AlertDialogDescription>
-              This will send "{title}" to {targetLabel}.
+              {needsApproval
+                ? `"${title}" for ${targetLabel} will wait until another admin approves it. Nothing is sent until then.`
+                : `This will send "${title}" to ${targetLabel}.`}
               {urgent && " This is marked URGENT."}
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -159,7 +185,7 @@ export function BroadcastCard() {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={handleSend} disabled={saving}>
               {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-              Send
+              {needsApproval ? "Request approval" : "Send"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

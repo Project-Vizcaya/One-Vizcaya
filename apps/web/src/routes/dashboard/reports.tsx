@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 import { Card, CardContent } from "@/components/ui/card";
 import { ReportsTable } from "@/components/reports/ReportsTable";
+import { ProxyReportDialog } from "@/components/reports/ProxyReportDialog";
 import { useReports } from "@/hooks/useReports";
 import { useAuthStore } from "@/stores/authStore";
 
@@ -36,7 +37,8 @@ function ReportsPage() {
             </span>
           </p>
         </div>
-        <div className="text-right shrink-0">
+        <div className="text-right shrink-0 space-y-1.5">
+          <ProxyReportDialog />
           <p className="text-xs font-semibold text-foreground">{user?.name}</p>
           <p className="text-[10px] text-muted-foreground">{new Date().toLocaleDateString("en-PH", { weekday: "short", year: "numeric", month: "short", day: "numeric" })}</p>
         </div>

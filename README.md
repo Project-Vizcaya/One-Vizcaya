@@ -179,7 +179,7 @@ Five roles, mapped to the government hierarchy. The legacy `admin` role has been
 ### Citizen Mobile App
 - **Problem reporting** with category, priority, GPS, barangay, and **GPS-stamped photo evidence** (see below).
 - **Emergency SOS with live location** (see [SOS section](#-emergency-sos--live-location)).
-- **Offline report queue** — a report can be saved on the phone when there is no connection and is submitted on the next app launch, with a live queue-count banner; **SMS fallback** for zero-data areas. *See [Current Limitations](#-current-limitations) — the offline path is selected manually and the queue is not yet flushed automatically on reconnect.*
+- **Offline report queue** — with no connection, a report is saved on the phone and sent automatically when the connection returns (on Android even if the app is closed), never twice, with a live queue-count banner; **SMS fallback** for zero-data areas.
 - **Residency verification** — certify as a Nueva Vizcaya resident (Barangay Certificate / gov ID) so you can report from anywhere; GPS-verified or admin-certified.
 - **Announcements** — municipal + province-wide, with **bookmarks**, sort (newest/oldest), and filter by posting agency.
 - **Weather** — current conditions + forecast per municipality, backed by a scheduled provincial **rainfall watch** that raises advisories.
@@ -332,7 +332,7 @@ firebase deploy --only functions   # from the repo root
 | Web console (build + hosting) | `npm run build:web && firebase deploy --only hosting` |
 | Mobile | `cd apps/mobile && flutter build apk --release` (then distribute / Play) |
 
-Some administrative one-shots run as callable functions by a super admin (e.g. `seedResponders`, `migrateLegacyAdmins`). Full build/deploy/phone-auth steps — including the Google Play Internal Testing route that fixes real-number login — are in [`docs/Computer-Shop-Runbook.md`](docs/Computer-Shop-Runbook.md).
+Some administrative one-shots run as callable functions by a super admin (e.g. `seedResponders`, `migrateLegacyAdmins`). Full build/deploy/phone-auth steps — including the Google Play Internal Testing route that fixes real-number login — are in [`docs/Computer-Shop-Runbook.md`](docs/Computer-Shop-Runbook.md). Day-to-day use of the admin console (alerts and approvals, referrals, SLA targets, the health check) is in [`docs/Operator-Guide.md`](docs/Operator-Guide.md).
 
 ---
 
@@ -350,7 +350,7 @@ Some administrative one-shots run as callable functions by a super admin (e.g. `
 ### 🟠 Reporting & Dashboards — *Implemented*
 - [x] **4-level report routing** (Barangay/Municipal/Provincial/Region II) with criteria, on both mobile and web.
 - [x] **GPS-stamped camera evidence** + camera/gallery trust badge; EXIF stripping.
-- [x] **Offline report queue** (manually selected; flushes on next app start) + SMS fallback; residency gate.
+- [x] **Offline report queue** (automatic; background delivery on Android) + SMS fallback; residency gate.
 - [x] **Incident map** — municipality choropleth, **barangay boundary polygons**, zone bubbles, report/responder pins, scope-aware centring, barangay filter.
 - [x] **Analytics** (Recharts web / fl_chart mobile), **PDF export**, notes history, canned responses, responder assignment.
 - [x] **Announcements** (agency attribution, link import) + **broadcasts**; **weather** + scheduled **rainfall watch**.
@@ -376,32 +376,32 @@ Stated plainly, so that reviewers can assess this build on what it actually
 does today rather than on intent. Each item is tracked for the pre-pilot work.
 
 **Connectivity**
-- Saved (offline) reports are sent automatically **while the app is running** — on start, sign-in, return to the foreground, and every 60 s. If the app is closed, they are sent the next time it is opened; there is no background delivery.
+- Saved (offline) reports are sent automatically while the app is running (on start, sign-in, return to the foreground and every 60 s) and, **on Android, also when the app is closed**, through a WorkManager task that runs once the phone is online. **On iOS** a closed app sends them the next time it is opened. Background delivery has **not yet been tested on a real phone**.
 - Connectivity is detected by a real reachability probe, not by the OS network state, so detection can lag by up to a minute.
 
 **Report workflow**
-- The status lifecycle (`reported → acknowledged → under_review → ongoing → solved`) is **not enforced**: an admin may move a report straight to `solved`. Validation is operator practice, not a gate. (SOS verification *is* enforced in `firestore.rules`.)
-- Routing targets an administrative **tier** (barangay / municipal / provincial / Region II), not a named office. There is no MDRRMO/BDRRMC referral record or office-level assignment; the nearest field is a free-text assigned-responder name.
-- Report deletion is audited, but the audit entry **cannot name who deleted** the report (Firestore triggers carry no caller identity). Closing a report *without action* — the recommended route for false, duplicate, incomplete or unverifiable reports — does record the admin.
+- The status lifecycle is enforced in `firestore.rules` at its key step: a report becomes `solved` **only from `ongoing`, with a resolution note** attributed to the admin. Earlier steps may be skipped. Super admins' general rules override is not bound by this check.
+- Routing targets an administrative **tier**; separately, the web console can record a **referral to a named office** (MDRRMO, BDRRMC, BFP, PNP and others), attributed and audited. Recording a referral **does not notify the office**. Referrals can be recorded from the web console and the mobile admin app.
+- Reports can be deleted only through a server function that requires a reason and records **who deleted** the report; direct deletes are refused by `firestore.rules`. Closing a report *without action* remains the recommended route for false, duplicate, incomplete or unverifiable reports.
 
 **Alerts**
-- Alerts composed by an admin publish **immediately** — there is no second approver. (Automated weather alerts are different: they are only drafted, and reach the public after an in-scope admin approves them.)
-- A citizen **cannot re-read a past broadcast**: broadcasts are admin-read-only and are delivered only as a transient push, so a missed urgent alert is not recoverable in-app.
-- Push delivery results are not recorded, so there is no delivered/failed count per alert.
+- **Urgent** and **province-wide** admin alerts need a **second admin's approval** before anything is sent; the proposer cannot approve their own. Routine single-town alerts still publish immediately. Automated weather alerts are only drafted and reach the public after an in-scope admin approves them. If no second admin is available, an urgent alert waits (it expires after 6 hours), so **keep at least two admins per town reachable**, and keep radio, barangay and hotline channels for life-threatening warnings.
+- Residents can re-read the 20 most recent broadcasts addressed to them (province-wide or their profile town) in the in-app inbox. Older alerts are not shown.
+- Each broadcast and announcement records how many phones Firebase Cloud Messaging accepted it for and how many failed, and dead registrations are removed. "Accepted" is not proof that a phone displayed it; there is no per-phone read receipt.
 
 **Positioning**
 - The "supplements rather than replaces 911 / hotlines / radio" notice is shown on the report screen but **not yet on the SOS screen**.
 - Its Tagalog and Ilocano wording, and several newer citizen messages, **await native-speaker review** — see `docs/translation-review.md`.
-- There is no **proxy / on-behalf-of reporting**, so a barangay official or family member cannot formally file for a resident who has no smartphone.
+- **Proxy reporting** exists: barangay and municipal officials (in their own area), provincial admins (anywhere) and residents with **certified** residency (for example for a family member) can file for a resident without a smartphone. The report is filed under the filer's account, so status updates go to the filer to pass on; the resident gets no notification of their own.
 
 **Measurement**
-- No timestamps exist for acknowledgement or referral, so **response and referral time cannot be computed**. Resolution time is recorded only when a report is closed from the mobile admin app — the web console does not write `resolvedAt`.
-- The console's "Overdue / past SLA" figure is **not meaningful**: the SLA table's category keys do not match the app's real category names, so every report falls back to a flat 72 hours.
-- Dashboard analytics read at most the **256 most recent reports**, so figures understate at scale.
-- There is **no uptime measurement or health endpoint**.
+- Acknowledgement, referral and resolution times are stamped server-side from this release on, so **reports filed before it have no response timings**.
+- SLA targets are set by priority and overdue reports alert the responsible admins, but the targets stay labelled **provisional** until the PDRRMO confirms them.
+- Every console page loads **all** reports in scope (one shared listener); the report table shows them 100 at a time. With a very large history the first load of the console takes longer.
+- A public `health` endpoint reports whether Firestore is reachable and every scheduled job is still running (200 when healthy, 503 otherwise), but **no uptime monitor is pointed at it yet**. Once deployed, add a Google Cloud Monitoring uptime check on `https://us-central1-one-vizcaya-app.cloudfunctions.net/health` with an alert to the operators; until then nobody is told when the service is down.
 
 **Testing**
-- Automated tests now cover the security rules and the alert-approval function (`tests/emulator`, against the Firestore emulator), the PAGASA parser and TenDay client (`apps/functions`), and the mobile offline queue and PAGASA model (`apps/mobile/test`). **No load, stress or failover testing** has been performed.
+- Automated tests now cover the security rules and the alert-approval function (`tests/emulator`, against the Firestore emulator), the PAGASA parser and TenDay client (`apps/functions`), and the mobile offline queue and PAGASA model (`apps/mobile/test`). Load and failover tests run against the **local emulator only** (`npm run test:load` in `tests/emulator`; see [`tests/emulator/load/README.md`](tests/emulator/load/README.md)). A staging load test is ready in [`tests/staging-load`](tests/staging-load/README.md); it refuses the production project and **has not yet been run against a real one**. **No production load or failover testing** has been performed.
 
 ---
 

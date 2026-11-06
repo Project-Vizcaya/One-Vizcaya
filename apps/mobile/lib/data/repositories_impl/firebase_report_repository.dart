@@ -7,6 +7,7 @@ import '../../domain/models/problem_report.dart';
 import '../../domain/enums/handling_level.dart';
 import '../../domain/repositories/report_repository.dart';
 import '../../core/utils/toast_utils.dart';
+import '../../core/utils/callable.dart';
 
 class FirebaseReportRepository implements ReportRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -144,12 +145,15 @@ class FirebaseReportRepository implements ReportRepository {
   Future<void> updateReportStatus(
     String userId,
     String reportId,
-    String newStatus,
-  ) async {
+    String newStatus, {
+    String? resolutionNote,
+  }) async {
     try {
       final update = <String, dynamic>{'status': newStatus};
       if (newStatus == 'solved') {
         update['resolvedAt'] = FieldValue.serverTimestamp();
+        update['resolutionNote'] = (resolutionNote ?? '').trim();
+        update['resolutionBy'] = FirebaseAuth.instance.currentUser?.uid;
       } else {
         update['resolvedAt'] = FieldValue.delete();
       }
@@ -239,6 +243,39 @@ class FirebaseReportRepository implements ReportRepository {
   // PDRRMO §8: a bad report is recorded, never silently deleted.
   // firestore.rules requires every field below: an allowed disposition, a
   // reason of 5+ characters, dispositionBy == this admin, and the server time.
+  @override
+  Future<void> referToOffice(String userId, String reportId,
+      {required String officeType,
+      required String officeName,
+      String contact = '',
+      String note = ''}) async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) throw StateError('Not signed in');
+    try {
+      await _firestore
+          .collection('users')
+          .doc(userId)
+          .collection('reports')
+          .doc(reportId)
+          .update({
+        // firestore.rules require by == the acting admin and at == the
+        // server time, and refuse removal of a referral.
+        'referral': {
+          'officeType': officeType,
+          'officeName': officeName.trim(),
+          'contact': contact.trim(),
+          'note': note.trim(),
+          'by': uid,
+          'at': FieldValue.serverTimestamp(),
+        },
+      });
+      ToastUtils.showSuccess('Referred to ${officeName.trim()}');
+    } catch (e) {
+      ToastUtils.showError('Failed to record referral: $e');
+      rethrow;
+    }
+  }
+
   @override
   Future<void> closeWithDisposition(String userId, String reportId,
       String disposition, String reason, {String? duplicateOf}) async {
@@ -348,14 +385,10 @@ class FirebaseReportRepository implements ReportRepository {
   }
 
   @override
-  Future<void> deleteReport(String userId, String reportId) async {
+  Future<void> deleteReport(String userId, String reportId, String reason) async {
     try {
-      await _firestore
-          .collection('users')
-          .doc(userId)
-          .collection('reports')
-          .doc(reportId)
-          .delete();
+      await callFunction('deleteReportWithReason',
+          {'userId': userId, 'reportId': reportId, 'reason': reason});
       ToastUtils.showSuccess('Report deleted');
     } catch (e) {
       ToastUtils.showError('Failed to delete report: $e');

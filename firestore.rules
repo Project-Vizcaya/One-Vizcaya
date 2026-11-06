@@ -150,10 +150,99 @@ service cloud.firestore {
               && d.get('dispositionAt', null) == request.time);
     }
 
+    // Referral to a named office (P2, PDRRMO): who the report was handed to,
+    // stamped with the referring admin and the server time. It may be replaced
+    // (re-referred) but never removed; every change is audited by
+    // auditReportReferral. Checked only when `referral` changes.
+    function referralOfficeTypes() {
+      return ['MDRRMO', 'BDRRMC', 'PDRRMO', 'BFP', 'PNP', 'MHO', 'MSWDO',
+              'MEO', 'DPWH', 'Other'];
+    }
+
+    function validReferral() {
+      let d = request.resource.data;
+      let r = d.get('referral', null);
+      return !d.diff(resource.data).affectedKeys().hasAny(['referral'])
+          || (r is map
+              && r.keys().hasOnly(['officeType', 'officeName', 'contact', 'note', 'by', 'at'])
+              && r.get('officeType', '') in referralOfficeTypes()
+              && r.get('officeName', '') is string
+              && r.get('officeName', '').size() >= 2
+              && r.get('officeName', '').size() <= 120
+              && r.get('contact', '') is string && r.get('contact', '').size() <= 80
+              && r.get('note', '') is string && r.get('note', '').size() <= 500
+              && r.get('by', '') == request.auth.uid
+              && r.get('at', null) == request.time);
+    }
+
+    // Status lifecycle (P3, PDRRMO §8): a report may become 'solved' only
+    // from 'ongoing', with a resolution note (what was done, 10-1000 chars)
+    // and resolutionBy == the acting admin. Other steps may be skipped and
+    // moving back is allowed. Closing without action is validDisposition().
+    function validLifecycle() {
+      let d = request.resource.data;
+      let toSolved = d.get('status', '') == 'solved'
+                     && resource.data.get('status', '') != 'solved';
+      return !toSolved
+          || (resource.data.get('status', '') == 'ongoing'
+              && d.get('resolutionNote', '') is string
+              && d.get('resolutionNote', '').size() >= 10
+              && d.get('resolutionNote', '').size() <= 1000
+              && d.get('resolutionBy', '') == request.auth.uid);
+    }
+
+    // Proxy reporting (P3, PDRRMO §11): a report filed for a resident without
+    // a smartphone. It is filed under the FILER's own account (so status
+    // updates reach the filer, who relays them) with `onBehalfOf` naming the
+    // resident. Who may file for someone else:
+    //   - a Barangay admin, for their own barangay;
+    //   - a Municipal admin, for their own municipality;
+    //   - a Provincial / Super admin, anywhere;
+    //   - a resident whose residency is CERTIFIED, e.g. for a family member.
+    function validOnBehalf() {
+      let d = request.resource.data;
+      let p = d.get('onBehalfOf', null);
+      return p == null
+          || (p is map
+              && p.keys().hasOnly(['name', 'contact', 'relationship'])
+              && p.get('name', '') is string
+              && p.get('name', '').size() >= 2 && p.get('name', '').size() <= 80
+              && p.get('contact', '') is string && p.get('contact', '').size() <= 40
+              && p.get('relationship', '') is string && p.get('relationship', '').size() <= 40
+              && (isProvincialAdmin()
+                  || (municipalScoped(d) && actorMunicipality() != '')
+                  || (barangayScoped(d) && actorBarangay() != '')
+                  || get(/databases/$(database)/documents/users/$(request.auth.uid))
+                       .data.get('residencyStatus', '') == 'certified'));
+    }
+
     // ─── Super admin bypass ─────────────────────────────────────────────────
-    // super_admin has unrestricted read/write access to every document
+    // super_admin can read everything and write almost everything — EXCEPT the
+    // collections only the server may write. Rules are OR-ed, so an
+    // `allow write: if false` on those collections could not stop this bypass;
+    // the exclusion has to live here. Without it a super admin client could
+    // falsify official PAGASA data, or approve an automated alert by editing
+    // its draft directly and skip decideAlertDraft's checks.
     match /{document=**} {
-      allow read, write: if isSuperAdmin();
+      allow read:  if isSuperAdmin();
+      // request.path is /databases/(default)/documents/<collection>/..., so
+      // [3] is the top-level collection. (Indexing the `document` wildcard
+      // itself is an evaluation error — which denies EVERY write and would
+      // silently remove the bypass; tests/emulator guards against that.)
+      allow write: if isSuperAdmin() && !(request.path[3] in serverOnlyCollections())
+                    && !(request.method == 'delete' && isReportPath())
+                    // Broadcasts follow their own rule, so a super admin also
+                    // needs a second approver for urgent/province-wide alerts.
+                    && request.path[3] != 'broadcasts';
+    }
+
+    // users/{uid}/reports/{id} — deleted only via deleteReportWithReason.
+    function isReportPath() {
+      return string(request.path).matches('.*/users/[^/]+/reports/[^/]+$');
+    }
+
+    function serverOnlyCollections() {
+      return ['pagasa_products', 'alert_drafts', 'system_health'];
     }
 
     // ─── User profiles ──────────────────────────────────────────────────────
@@ -210,7 +299,8 @@ service cloud.firestore {
                       && request.resource.data.isAnonymous == false
                       && get(/databases/$(database)/documents/users/$(userId))
                            .data.get('residencyStatus', 'grandfathered')
-                           in ['gps_verified', 'certified', 'grandfathered'];
+                           in ['gps_verified', 'certified', 'grandfathered']
+                      && validOnBehalf();
         // Approval chain (Municipal → Provincial): an escalation (turning on
         // escalatedToProvince) may ONLY be approved by a Municipal admin of the
         // report's own municipality, and must stamp escalatedBy with their uid.
@@ -229,10 +319,15 @@ service cloud.firestore {
                              && municipalScoped(resource.data)
                              && request.resource.data.escalatedBy == request.auth.uid))
                          && validDisposition()
+                         && validReferral()
+                         && validLifecycle()
                       || (isOwner(userId)
                           && !request.resource.data.diff(resource.data)
-                               .affectedKeys().hasAny(dispositionFields()));
-        allow delete: if isProvincialAdmin();
+                               .affectedKeys().hasAny(dispositionFields().concat(['referral', 'resolutionNote', 'resolutionBy', 'onBehalfOf'])));
+        // Deletion goes ONLY through the deleteReportWithReason callable,
+        // which checks the caller, requires a reason and records who did it.
+        // (A client delete could not be attributed.)
+        allow delete: if false;
       }
 
       // Per-user notifications
@@ -291,8 +386,10 @@ service cloud.firestore {
                        || (approvingEscalation()
                            && municipalScoped(resource.data)
                            && request.resource.data.escalatedBy == request.auth.uid))
-                       && validDisposition();
-      allow delete: if isProvincialAdmin();
+                       && validDisposition()
+                       && validReferral()
+                       && validLifecycle();
+      allow delete: if false; // see the nested reports rule
     }
 
     // ─── Announcements ───────────────────────────────────────────────────────
@@ -303,11 +400,14 @@ service cloud.firestore {
       // not "all" and not another town. The actorMunicipality() != '' guard
       // stops an admin with no municipality on their profile from matching an
       // empty municipality field, which onNewAnnouncement treats as "All".
-      allow create, update: if isProvincialAdmin()
+      // `delivery` (push counts) is written only by onNewAnnouncement.
+      allow create, update: if (isProvincialAdmin()
                             || (role() == 'municipal_admin'
                                 && actorMunicipality() != ''
                                 && request.resource.data.get('municipality', '')
-                                   == actorMunicipality());
+                                   == actorMunicipality()))
+                            && request.resource.data.get('delivery', null)
+                               == (resource == null ? null : resource.data.get('delivery', null));
       allow delete:        if isProvincialAdmin();
     }
 
@@ -320,24 +420,37 @@ service cloud.firestore {
 
     // ─── FCM broadcast records ───────────────────────────────────────────────
     match /broadcasts/{broadcastId} {
-      allow read:   if isAdmin();
-      // Provincial+ may broadcast to any scope (incl. province-wide). A
-      // Municipal admin may ONLY broadcast to their OWN municipality. Until now
-      // this was enforced in the composer UI alone, so any admin could write
-      // scope:"all" directly and onNewBroadcast would fan it out province-wide.
+      // Residents may re-read the alerts addressed to them (P2 inbox), using
+      // the same targeting as onNewBroadcast: province-wide (scope "all" /
+      // legacy "All Province"), or their profile town in `scope` (approved
+      // automated alerts, legacy) or in `municipality` (admin composer).
+      allow read:   if isAdmin()
+                    || (isAuth()
+                        && (resource.data.get('scope', '') in ['all', 'All Province']
+                            || (actorMunicipality() != ''
+                                && (resource.data.get('scope', '') == actorMunicipality()
+                                    || resource.data.get('municipality', '') == actorMunicipality()))));
+      // Provincial+ may broadcast to any town; a Municipal admin ONLY to their
+      // OWN municipality. onNewBroadcast targets `municipality` when it is set,
+      // and it is now required, so a direct write always reaches one town.
+      // The actorMunicipality() != '' guard stops an admin with no
+      // municipality on their profile from matching an empty field.
+      // `delivery` (push counts) is written only by onNewBroadcast.
       //
-      // onNewBroadcast resolves the target as: `municipality` if set, else
-      // `scope` when scope is itself a town name, else province-wide. Both
-      // spellings are therefore checked here. The actorMunicipality() != ''
-      // guard stops an admin with no municipality on their profile from
-      // matching an empty municipality field and reaching everyone.
-      allow create: if isProvincialAdmin()
+      // Second approver (P2, PDRRMO §2): a client may only create a ROUTINE
+      // SINGLE-TOWN broadcast directly — not urgent, and with `municipality`
+      // set, which onNewBroadcast uses as the target. Urgent or province-wide
+      // alerts go through proposeAdminAlert and need a second admin's approval
+      // in decideAlertDraft, which writes the broadcast server-side.
+      allow create: if (isProvincialAdmin()
                     || (role() == 'municipal_admin'
                         && actorMunicipality() != ''
-                        && (request.resource.data.get('municipality', '')
-                              == actorMunicipality()
-                            || request.resource.data.get('scope', '')
-                              == actorMunicipality()));
+                        && request.resource.data.get('municipality', '')
+                             == actorMunicipality()))
+                    && !('delivery' in request.resource.data)
+                    && request.resource.data.get('urgent', false) == false
+                    && request.resource.data.get('municipality', '') is string
+                    && request.resource.data.get('municipality', '') != '';
       allow delete: if isProvincialAdmin();
     }
 

@@ -9,7 +9,6 @@ import {
   updateDoc,
   getDocs,
   Timestamp,
-  addDoc,
   deleteDoc,
   writeBatch,
 } from "firebase/firestore";
@@ -78,15 +77,6 @@ export function useAuditLog() {
   }, []);
 
   return { logs, loading };
-}
-
-export async function writeAuditLog(userId: string, action: string, details: Record<string, unknown>) {
-  await addDoc(collection(db, "audit_logs"), {
-    action,
-    details,
-    userId,
-    timestamp: Timestamp.now(),
-  });
 }
 
 // Super-admin only (enforced by Firestore rules: audit_logs delete requires

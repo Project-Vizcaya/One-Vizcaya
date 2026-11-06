@@ -29,7 +29,10 @@ abstract class ReportRepository {
   Stream<List<ProblemReport>> getAllProvincialReports();
 
   /// Admin: Update the status of a report (requires the userId who owns it)
-  Future<void> updateReportStatus(String userId, String reportId, String newStatus);
+  /// 'solved' needs [resolutionNote] (10-1000 chars) and is accepted by
+  /// firestore.rules only from 'ongoing' (lifecycle, P3).
+  Future<void> updateReportStatus(String userId, String reportId, String newStatus,
+      {String? resolutionNote});
 
   /// Admin: Escalate a report to provincial level
   Future<void> escalateToProvince(String userId, String reportId);
@@ -40,7 +43,10 @@ abstract class ReportRepository {
       String userId, String reportId, HandlingLevel level);
 
   /// Provincial Admin: Permanently delete a report
-  Future<void> deleteReport(String userId, String reportId);
+  /// Deletes a report through the deleteReportWithReason Cloud Function,
+  /// which checks the caller, requires [reason] (5+ characters) and records
+  /// who deleted it. Direct client deletes are refused by firestore.rules.
+  Future<void> deleteReport(String userId, String reportId, String reason);
 
   /// Admin: Flag or unflag a report as suspicious
   Future<void> flagReport(String userId, String reportId, bool isFlagged);
@@ -53,4 +59,13 @@ abstract class ReportRepository {
 
   /// Re-opens a closed report into the queue, attributed to the acting admin.
   Future<void> reopenReport(String userId, String reportId);
+
+  /// Records that a report was referred to a named office (P2), stamped with
+  /// the acting admin and the server time; audited by auditReportReferral.
+  /// [officeType] is a key of ReportReferral.officeTypes.
+  Future<void> referToOffice(String userId, String reportId,
+      {required String officeType,
+      required String officeName,
+      String contact = '',
+      String note = ''});
 }

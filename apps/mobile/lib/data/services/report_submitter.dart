@@ -19,6 +19,7 @@ import '../../domain/models/problem_report.dart';
 import '../repositories_impl/firebase_report_repository.dart';
 import 'offline_queue_service.dart';
 import 'priority_service.dart';
+import 'background_delivery.dart';
 
 /// The ONE path by which a citizen report reaches Firestore — used both for a
 /// live submission and for delivering a queued one (PDRRMO §1, §8, §12).
@@ -140,6 +141,9 @@ class ReportSubmitter {
       photoSource: item['photoSource'] as String?,
       isAnonymous: false,
       barangay: item['barangay'] as String?,
+      onBehalfOf: item['onBehalfOf'] is Map
+          ? (item['onBehalfOf'] as Map).map((k, v) => MapEntry('$k', '${v ?? ''}'))
+          : null,
     );
 
     await FirebaseReportRepository()
@@ -198,6 +202,8 @@ class QueueFlusher with WidgetsBindingObserver {
 
   void _syncTimer() {
     if (OfflineQueueService.count.value > 0) {
+      // Also hand it to Android, so it is sent even if the app is closed.
+      BackgroundDelivery.schedule();
       _timer ??= Timer.periodic(const Duration(seconds: 60), (_) => flush());
     } else {
       _timer?.cancel();
@@ -205,34 +211,46 @@ class QueueFlusher with WidgetsBindingObserver {
     }
   }
 
+  /// Delivers this user's queued reports; no UI, so it also runs from the
+  /// Android background task (background_delivery.dart). Returns how many
+  /// were sent and whether the connection dropped part-way (retry later).
+  static Future<({int delivered, bool interrupted})> deliverQueued() async {
+    final queue = await OfflineQueueService().getQueue();
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    final mine = queue
+        .where((x) => x['userId'] == uid &&
+            ((x['attempts'] as int?) ?? 0) < OfflineQueueService.maxAttempts)
+        .toList();
+    if (uid == null || mine.isEmpty) return (delivered: 0, interrupted: false);
+    if (!await ConnectivityProbe.isOnline()) return (delivered: 0, interrupted: true);
+
+    var delivered = 0;
+    for (final item in mine) {
+      try {
+        // Idempotent (fixed report id), so the app and the background task
+        // overlapping can never create a report twice.
+        await ReportSubmitter.deliver(item, queued: true);
+        // Removed immediately, one at a time — never all-or-nothing.
+        await OfflineQueueService().remove(item['queueId'] as String);
+        delivered++;
+      } catch (e) {
+        if (ReportSubmitter.isNetworkError(e)) {
+          return (delivered: delivered, interrupted: true); // retry later
+        }
+        // A permanent refusal (e.g. permission): count it, keep the report.
+        await OfflineQueueService().recordFailedAttempt(item['queueId'] as String, '$e');
+        debugPrint('QueueFlusher: item ${item['queueId']} failed: $e');
+      }
+    }
+    return (delivered: delivered, interrupted: false);
+  }
+
   /// Single-flight: overlapping triggers share one pass.
   Future<void> flush() async {
     if (_running) return;
     _running = true;
     try {
-      final queue = await OfflineQueueService().getQueue();
-      final uid = FirebaseAuth.instance.currentUser?.uid;
-      final mine = queue
-          .where((x) => x['userId'] == uid &&
-              ((x['attempts'] as int?) ?? 0) < OfflineQueueService.maxAttempts)
-          .toList();
-      if (uid == null || mine.isEmpty) return;
-      if (!await ConnectivityProbe.isOnline()) return;
-
-      var delivered = 0;
-      for (final item in mine) {
-        try {
-          await ReportSubmitter.deliver(item, queued: true);
-          // Removed immediately, one at a time — never all-or-nothing.
-          await OfflineQueueService().remove(item['queueId'] as String);
-          delivered++;
-        } catch (e) {
-          if (ReportSubmitter.isNetworkError(e)) break; // connection dropped; retry later
-          // A permanent refusal (e.g. permission): count it, keep the report.
-          await OfflineQueueService().recordFailedAttempt(item['queueId'] as String, '$e');
-          debugPrint('QueueFlusher: item ${item['queueId']} failed: $e');
-        }
-      }
+      final delivered = (await deliverQueued()).delivered;
       if (delivered > 0) {
         ToastUtils.showSuccess(delivered == 1
             ? 'Your saved report was sent.'

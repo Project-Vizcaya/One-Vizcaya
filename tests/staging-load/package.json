@@ -1,0 +1,11 @@
+{
+  "name": "one-vizcaya-staging-load",
+  "private": true,
+  "description": "Load test for a STAGING Firebase project. Refuses production. See README.md.",
+  "scripts": {
+    "start": "node run.js"
+  },
+  "dependencies": {
+    "firebase-admin": "^12.0.0"
+  }
+}
