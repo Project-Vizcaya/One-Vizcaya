@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as DashboardRouteRouteImport } from './routes/dashboard/route'
 import { Route as IndexRouteImport } from './routes/index'
@@ -25,6 +26,11 @@ import { Route as DashboardAuditRouteImport } from './routes/dashboard/audit'
 import { Route as DashboardAnnouncementsRouteImport } from './routes/dashboard/announcements'
 import { Route as DashboardAnalyticsRouteImport } from './routes/dashboard/analytics'
 
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
@@ -45,14 +51,14 @@ const DashboardIndexRoute = DashboardIndexRouteImport.update({
   path: '/',
   getParentRoute: () => DashboardRouteRoute,
 } as any)
-const DashboardVerificationsRoute = DashboardVerificationsRouteImport.update({
-  id: '/verifications',
-  path: '/verifications',
-  getParentRoute: () => DashboardRouteRoute,
-} as any)
 const DashboardWeatherRoute = DashboardWeatherRouteImport.update({
   id: '/weather',
   path: '/weather',
+  getParentRoute: () => DashboardRouteRoute,
+} as any)
+const DashboardVerificationsRoute = DashboardVerificationsRouteImport.update({
+  id: '/verifications',
+  path: '/verifications',
   getParentRoute: () => DashboardRouteRoute,
 } as any)
 const DashboardUsersRoute = DashboardUsersRouteImport.update({
@@ -105,6 +111,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRouteRouteWithChildren
   '/login': typeof LoginRoute
+  '/privacy': typeof PrivacyRoute
   '/dashboard/analytics': typeof DashboardAnalyticsRoute
   '/dashboard/announcements': typeof DashboardAnnouncementsRoute
   '/dashboard/audit': typeof DashboardAuditRoute
@@ -121,6 +128,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/privacy': typeof PrivacyRoute
   '/dashboard/analytics': typeof DashboardAnalyticsRoute
   '/dashboard/announcements': typeof DashboardAnnouncementsRoute
   '/dashboard/audit': typeof DashboardAuditRoute
@@ -139,6 +147,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRouteRouteWithChildren
   '/login': typeof LoginRoute
+  '/privacy': typeof PrivacyRoute
   '/dashboard/analytics': typeof DashboardAnalyticsRoute
   '/dashboard/announcements': typeof DashboardAnnouncementsRoute
   '/dashboard/audit': typeof DashboardAuditRoute
@@ -158,6 +167,7 @@ export interface FileRouteTypes {
     | '/'
     | '/dashboard'
     | '/login'
+    | '/privacy'
     | '/dashboard/analytics'
     | '/dashboard/announcements'
     | '/dashboard/audit'
@@ -174,6 +184,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/login'
+    | '/privacy'
     | '/dashboard/analytics'
     | '/dashboard/announcements'
     | '/dashboard/audit'
@@ -191,6 +202,7 @@ export interface FileRouteTypes {
     | '/'
     | '/dashboard'
     | '/login'
+    | '/privacy'
     | '/dashboard/analytics'
     | '/dashboard/announcements'
     | '/dashboard/audit'
@@ -209,10 +221,18 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   DashboardRouteRoute: typeof DashboardRouteRouteWithChildren
   LoginRoute: typeof LoginRoute
+  PrivacyRoute: typeof PrivacyRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/login': {
       id: '/login'
       path: '/login'
@@ -241,18 +261,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardIndexRouteImport
       parentRoute: typeof DashboardRouteRoute
     }
-    '/dashboard/verifications': {
-      id: '/dashboard/verifications'
-      path: '/verifications'
-      fullPath: '/dashboard/verifications'
-      preLoaderRoute: typeof DashboardVerificationsRouteImport
-      parentRoute: typeof DashboardRouteRoute
-    }
     '/dashboard/weather': {
       id: '/dashboard/weather'
       path: '/weather'
       fullPath: '/dashboard/weather'
       preLoaderRoute: typeof DashboardWeatherRouteImport
+      parentRoute: typeof DashboardRouteRoute
+    }
+    '/dashboard/verifications': {
+      id: '/dashboard/verifications'
+      path: '/verifications'
+      fullPath: '/dashboard/verifications'
+      preLoaderRoute: typeof DashboardVerificationsRouteImport
       parentRoute: typeof DashboardRouteRoute
     }
     '/dashboard/users': {
@@ -359,6 +379,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DashboardRouteRoute: DashboardRouteRouteWithChildren,
   LoginRoute: LoginRoute,
+  PrivacyRoute: PrivacyRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
