@@ -135,3 +135,21 @@
   body { background: white; }
   .gov-card { box-shadow: none; border: 1px solid #ccc; }
 }
+
+/* Public landing page */
+@media (prefers-reduced-motion: no-preference) {
+  html { scroll-behavior: smooth; }
+}
+
+@layer components {
+  .btn-primary,
+  .btn-emergency,
+  .btn-emergency-outline {
+    @apply inline-flex h-10 items-center gap-2 rounded-lg px-4 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2;
+  }
+  .btn-primary { @apply bg-[#166534] text-white hover:bg-[#14532d] focus-visible:ring-[#166534]; }
+  /* Red is reserved for emergency actions only. */
+  .btn-emergency { @apply bg-red-700 text-white hover:bg-red-800 focus-visible:ring-red-700; }
+  .btn-emergency-outline { @apply border-2 border-red-700 bg-white text-red-700 hover:bg-red-50 focus-visible:ring-red-700; }
+  .btn-lg { @apply h-12 px-5 text-base; }
+}
