@@ -1,311 +1,394 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
+import type { LucideIcon } from "lucide-react";
 import {
-  Download, ArrowRight, ShieldCheck, MapPin, Bell, Cloud, Languages,
-  FileCheck2, Siren, Lock, Eye, Users, ChevronDown, Menu, X, Check,
+  Download, Phone as PhoneIcon, ShieldCheck, MapPin, Menu, X, ArrowRight,
+  EyeOff, Shuffle, Timer, UserCheck, Archive, Users, FileText, Mail,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { MUNICIPALITIES } from "@/data/municipalities";
+import { Phone, ReportScreen, MapScreen, AlertsScreen, SosScreen } from "./Phone";
+import { MunicipalityMap } from "./MunicipalityMap";
 
 // Drop the built APK at apps/web/public/downloads/One-Vizcaya.apk to make this
-// live. Build it with `flutter build apk --release --dart-define=FORCE_RECAPTCHA=true`
-// so real-number sign-in works on sideloaded installs.
+// live (see public/downloads/README.md).
 const APK_URL = "/downloads/One-Vizcaya.apk";
 
+// 911 is the national emergency hotline. The PDRRMO direct line is still a
+// placeholder (docs/hotline-verification.md) — never put an unverified number
+// behind a tel: link.
+const EMERGENCY_TEL = "tel:911";
+const PDRRMO_HOTLINE = "[PDRRMO hotline]";
+const CONTACT_EMAIL = "[team email]";
+
+// Pilot LGUs: list names exactly as in src/data/municipalities.ts once
+// confirmed. Leave empty until then — don't invent partners.
+const PILOT_LGUS: string[] = [];
+
 const NAV = [
+  { label: "How it works", href: "#flow" },
   { label: "Features", href: "#features" },
-  { label: "How It Works", href: "#how" },
-  { label: "Security", href: "#security" },
-  { label: "FAQ", href: "#faq" },
+  { label: "Coverage", href: "#coverage" },
+  { label: "Privacy", href: "#privacy" },
 ];
 
-const FEATURES = [
-  { icon: FileCheck2, title: "Verified Reporting", body: "Report road, flood, health and safety issues in minutes — every report tied to a verified resident, never anonymous." },
-  { icon: MapPin, title: "GPS + Photo Evidence", body: "Attach your exact location and a photo so the right LGU office can act fast and accurately." },
-  { icon: Bell, title: "Real-time Tracking", body: "Follow your report from Reported → Ongoing → Solved, with notifications at every step." },
-  { icon: Siren, title: "One-tap PDRRMO SOS", body: "Reach the Provincial Disaster hotline instantly from the home screen during emergencies." },
-  { icon: Cloud, title: "Weather & Rainfall Alerts", body: "Local forecasts plus automatic push alerts when heavy rain is expected in your municipality." },
-  { icon: Languages, title: "Trilingual & Offline", body: "Works in English, Tagalog and Ilocano, and queues your report offline until you're back online." },
+const SECTIONS = ["problem", "flow", "features", "coverage", "privacy", "endorsement"];
+
+const PROBLEMS = [
+  { icon: EyeOff, title: "Hazards go unreported", body: "A blocked drainage canal or a cracked slope is easy to walk past. Without a simple way to report it, the barangay finds out only after it becomes an emergency." },
+  { icon: Shuffle, title: "Reports get lost between offices", body: "A concern raised at the barangay hall has to travel to the municipality and then the Province — by phone, paper or chat. Details and photos drop off along the way." },
+  { icon: Timer, title: "Emergency handoffs are slow", body: "When responders have to ask “where exactly?” and “what happened?”, minutes are lost before anyone is dispatched." },
 ];
 
 const STEPS = [
-  { n: "01", title: "Download the App", body: "Get One Vizcaya on your Android phone and pick your municipality." },
-  { n: "02", title: "Verify Your Residency", body: "Confirm you're a Nueva Vizcaya resident via GPS at sign-up, or certify with a Barangay Certificate / government ID." },
-  { n: "03", title: "Report & Track", body: "Submit a report, watch it get routed to the right office, and rate the resolution." },
+  { title: "Resident submits", body: "A verified resident files a report with a photo, GPS location and category." },
+  { title: "Municipal review & approval", body: "The municipal LGU checks the report and acts on it, or approves it for escalation." },
+  { title: "Provincial / PDRRMO action", body: "Only municipally-approved escalations reach the Province and PDRRMO." },
+  { title: "Resident gets updates", body: "The resident is notified at each status change, from Reported to Resolved." },
 ];
 
-const TRUST = [
-  { icon: ShieldCheck, title: "RA 10173 Compliant", body: "Built to the Data Privacy Act of 2012 and NPC guidance. Photos are stripped of hidden location metadata before upload." },
-  { icon: Users, title: "Verified Identity", body: "No anonymous reports — every submission is tied to a verified resident, so LGUs can act with confidence." },
-  { icon: Lock, title: "Encrypted & Secured", body: "Data is protected with Google Firebase's enterprise-grade security, with biometric app-lock available." },
-  { icon: Eye, title: "Accountable by Design", body: "Barangay → Municipal → Provincial routing with a single accountable owner per report and a full audit trail." },
+const FEATURES = [
+  { id: "report", label: "Report", title: "Report in under a minute", body: "Pick a category, take a live photo and let GPS fill in the location. Reports are tied to your verified account, so LGUs can act on them with confidence.", points: ["Live-camera photos are GPS-stamped", "Categories set the priority (e.g. Disaster & Risk Management)", "Saved offline and sent when you're back online"], screen: <ReportScreen /> },
+  { id: "map", label: "Live map", title: "See reports across the province", body: "LGU staff see reports on one map, filtered by municipality and status, so the busiest areas stand out.", points: ["Filter by municipality and status", "Each report has one accountable office", "Exportable records for after-action reports"], screen: <MapScreen /> },
+  { id: "alerts", label: "Alerts", title: "Provincial advisories, pushed to you", body: "Approved advisories from the Province — rainfall warnings, road closures — arrive as push notifications for the municipalities they affect.", points: ["Scoped to the affected municipalities", "Alerts are approved before they are sent", "Status updates on your own reports"], screen: <AlertsScreen /> },
+  { id: "sos", label: "One-tap PDRRMO", title: "One tap to the Provincial Disaster office", body: "During an emergency, a single button on the home screen reaches PDRRMO and shares your location with responders.", points: ["Reachable from the home screen", "Location shared with the responder", "Local BFP and DRRMO contacts listed"], screen: <SosScreen /> },
 ];
 
-const FAQS = [
-  { q: "Is One Vizcaya free to use?", a: "Yes. One Vizcaya is free to download and use for the residents of Nueva Vizcaya." },
-  { q: "Who can use the app?", a: "Verified residents of Nueva Vizcaya. You verify by GPS when you register inside the province, or by submitting a Barangay Certificate of Residency or a government ID with your NV address — then you can report from anywhere." },
-  { q: "Is my personal information safe?", a: "Yes. The app complies with RA 10173 (Data Privacy Act of 2012). We collect only your phone number and municipality, photos are stripped of hidden EXIF/location data, data is encrypted, and it is never sold." },
-  { q: "What languages are supported?", a: "English, Tagalog and Ilocano — switch anytime in Settings." },
-  { q: "Do I need internet to file a report?", a: "You can start a report offline; it's queued on your device and submitted automatically once you're back online." },
+const ROLES = [
+  { role: "Resident", sees: "Your own reports and their status, plus public advisories." },
+  { role: "Barangay / Municipal LGU", sees: "Reports filed in their own barangay or municipality only." },
+  { role: "Provincial (PA, PDRRMO)", sees: "Only reports the municipality has approved for escalation." },
 ];
-
-function Brand({ className = "" }: { className?: string }) {
-  return (
-    <div className={`flex items-center gap-2.5 ${className}`}>
-      <img src="/img/seals/nueva-vizcaya.png" alt="Province of Nueva Vizcaya seal" className="h-9 w-9 object-contain" />
-      <div className="leading-none">
-        <span className="block text-lg font-extrabold tracking-tight text-[hsl(var(--gov-green-800))]">One Vizcaya</span>
-        <span className="block text-[10px] font-medium text-muted-foreground">Isang Boses. Isang Vizcaya.</span>
-      </div>
-    </div>
-  );
-}
 
 export function LandingPage() {
   const [menuOpen, setMenuOpen] = useState(false);
-  const [openFaq, setOpenFaq] = useState<number | null>(0);
+  const active = useActiveSection(SECTIONS);
 
   return (
-    <div className="min-h-screen bg-[hsl(var(--background))] text-[hsl(var(--foreground))]">
+    <div className="min-h-screen bg-white text-slate-900">
+      <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-50 focus:rounded focus:bg-white focus:px-3 focus:py-2 focus:shadow">
+        Skip to content
+      </a>
+
       {/* ── Header ── */}
-      <header className="sticky top-0 z-40 border-b bg-white/80 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
-          <Brand />
-          <nav className="hidden items-center gap-7 md:flex">
+      <header className="sticky top-0 z-40 border-b bg-white/90 backdrop-blur">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
+          <a href="#top" className="rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#166534]">
+            <Wordmark />
+          </a>
+          <nav aria-label="Main" className="hidden items-center gap-6 lg:flex">
             {NAV.map((n) => (
-              <a key={n.href} href={n.href} className="text-sm font-medium text-muted-foreground transition-colors hover:text-[hsl(var(--gov-green-800))]">{n.label}</a>
+              <a key={n.href} href={n.href} className="text-sm font-medium text-slate-600 hover:text-[#166534]">{n.label}</a>
             ))}
           </nav>
-          <div className="hidden items-center gap-3 md:flex">
-            <Link to="/login" className="text-sm font-medium text-muted-foreground hover:text-[hsl(var(--gov-green-800))]">Admin sign-in</Link>
-            <a href={APK_URL}>
-              <Button className="gap-2 bg-[hsl(var(--gov-green-800))] hover:bg-[hsl(var(--gov-green-900))]"><Download className="h-4 w-4" /> Download App</Button>
-            </a>
+          <div className="flex items-center gap-2">
+            <a href={APK_URL} className="btn-primary hidden sm:inline-flex"><Download className="h-4 w-4" aria-hidden="true" /> Download app</a>
+            <a href={EMERGENCY_TEL} className="btn-emergency"><PhoneIcon className="h-4 w-4" aria-hidden="true" /> Emergency</a>
+            <button
+              type="button"
+              className="rounded p-1.5 lg:hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#166534]"
+              aria-label={menuOpen ? "Close menu" : "Open menu"}
+              aria-expanded={menuOpen}
+              aria-controls="mobile-nav"
+              onClick={() => setMenuOpen((v) => !v)}
+            >
+              {menuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+            </button>
           </div>
-          <button className="md:hidden" aria-label="Menu" onClick={() => setMenuOpen((v) => !v)}>
-            {menuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-          </button>
         </div>
         {menuOpen && (
-          <div className="border-t bg-white px-4 py-3 md:hidden">
-            <div className="flex flex-col gap-3">
+          <nav id="mobile-nav" aria-label="Main" className="border-t bg-white px-4 py-3 lg:hidden">
+            <ul className="flex flex-col gap-1">
               {NAV.map((n) => (
-                <a key={n.href} href={n.href} onClick={() => setMenuOpen(false)} className="text-sm font-medium text-muted-foreground">{n.label}</a>
+                <li key={n.href}>
+                  <a href={n.href} onClick={() => setMenuOpen(false)} className="block rounded px-2 py-2 font-medium text-slate-700 hover:bg-slate-50">{n.label}</a>
+                </li>
               ))}
-              <Link to="/login" className="text-sm font-medium text-muted-foreground">Admin sign-in</Link>
-              <a href={APK_URL}><Button className="w-full gap-2 bg-[hsl(var(--gov-green-800))]"><Download className="h-4 w-4" /> Download App</Button></a>
-            </div>
-          </div>
+              <li className="pt-2 sm:hidden">
+                <a href={APK_URL} className="btn-primary w-full justify-center"><Download className="h-4 w-4" aria-hidden="true" /> Download app</a>
+              </li>
+            </ul>
+          </nav>
         )}
       </header>
 
-      {/* ── Hero ── */}
-      <section className="relative overflow-hidden">
-        <div className="absolute inset-0 -z-10 bg-gradient-to-b from-[hsl(var(--gov-green-50))] to-white" />
-        <div className="mx-auto grid max-w-6xl items-center gap-10 px-4 py-16 md:grid-cols-2 md:py-24">
-          <div>
-            <span className="inline-flex items-center gap-2 rounded-full border border-[hsl(var(--gov-green-800))]/25 bg-white px-3 py-1 text-xs font-semibold text-[hsl(var(--gov-green-800))]">
-              <span className="h-1.5 w-1.5 rounded-full bg-[hsl(var(--gov-gold))]" /> Pilot Program · Province of Nueva Vizcaya
-            </span>
-            <h1 className="mt-4 text-4xl font-extrabold leading-[1.1] tracking-tight md:text-5xl">
-              Your community issues, <span className="text-[hsl(var(--gov-green-800))]">reported and resolved.</span>
-            </h1>
-            <p className="mt-4 max-w-lg text-base text-muted-foreground md:text-lg">
-              One Vizcaya connects the residents of all 15 municipalities of Nueva Vizcaya directly to their LGUs — report a problem, track it in real time, and get a response.
-            </p>
-            <div className="mt-7 flex flex-wrap items-center gap-3">
-              <a href={APK_URL}>
-                <Button size="lg" className="gap-2 bg-[hsl(var(--gov-green-800))] hover:bg-[hsl(var(--gov-green-900))]"><Download className="h-5 w-5" /> Download for Android</Button>
-              </a>
-              <a href="#how">
-                <Button size="lg" variant="outline" className="gap-2">How it works <ArrowRight className="h-4 w-4" /></Button>
-              </a>
-            </div>
-            <div className="mt-8 flex flex-wrap gap-x-8 gap-y-3 text-sm">
-              <Stat value="15" label="Municipalities" />
-              <Stat value="3" label="Languages" />
-              <Stat value="RA 10173" label="Privacy compliant" />
-            </div>
-          </div>
-
-          {/* Decorative app panel (no photo dependency) */}
-          <div className="relative mx-auto w-full max-w-sm">
-            <div className="rounded-[2rem] border bg-white p-5 shadow-2xl">
-              <div className="flex items-center gap-2.5 border-b pb-3">
-                <img src="/img/seals/nueva-vizcaya.png" alt="" className="h-8 w-8 object-contain" />
-                <div>
-                  <p className="text-sm font-bold text-[hsl(var(--gov-green-800))]">One Vizcaya</p>
-                  <p className="text-[10px] text-muted-foreground">Connecting you to your municipality</p>
-                </div>
-              </div>
-              <div className="mt-4 space-y-3">
-                {[
-                  { icon: FileCheck2, t: "Road damage on Purok 3", s: "Ongoing · Bambang" },
-                  { icon: Cloud, t: "⛈ Heavy rain expected", s: "Weather advisory" },
-                  { icon: Check, t: "Streetlight repaired", s: "Solved · Solano" },
-                ].map((r, i) => (
-                  <div key={i} className="flex items-center gap-3 rounded-xl border bg-[hsl(var(--gov-green-50))]/60 p-3">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[hsl(var(--gov-green-800))]/10">
-                      <r.icon className="h-5 w-5 text-[hsl(var(--gov-green-800))]" />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-semibold">{r.t}</p>
-                      <p className="text-xs text-muted-foreground">{r.s}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div className="absolute -right-3 -top-3 -z-10 h-24 w-24 rounded-full bg-[hsl(var(--gov-gold))]/25 blur-2xl" />
-          </div>
-        </div>
-      </section>
-
-      {/* ── Features ── */}
-      <section id="features" className="mx-auto max-w-6xl px-4 py-16 md:py-20">
-        <SectionHead eyebrow="Features" title="Everything you need, in one app" sub="Designed for every resident of Nueva Vizcaya — simple, secure, and works on any Android phone." />
-        <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {FEATURES.map((f) => (
-            <div key={f.title} className="rounded-2xl border bg-white p-6 transition-shadow hover:shadow-md">
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[hsl(var(--gov-green-50))]">
-                <f.icon className="h-5 w-5 text-[hsl(var(--gov-green-800))]" />
-              </div>
-              <h3 className="mt-4 text-base font-bold">{f.title}</h3>
-              <p className="mt-1.5 text-sm text-muted-foreground">{f.body}</p>
-            </div>
+      {/* ── Section indicator (desktop) ── */}
+      <div aria-hidden="true" className="fixed right-6 top-1/2 z-30 hidden -translate-y-1/2 flex-col items-center gap-3 xl:flex">
+        <span className="text-xs font-bold tabular-nums text-[#166534]">
+          {active >= 0 ? `${pad(active + 1)} / ${pad(SECTIONS.length)}` : `— / ${pad(SECTIONS.length)}`}
+        </span>
+        <div className="flex flex-col gap-1.5">
+          {SECTIONS.map((s, i) => (
+            <span key={s} className={`h-6 w-1 rounded-full transition-colors ${i === active ? "bg-[#166534]" : "bg-slate-200"}`} />
           ))}
         </div>
-      </section>
+      </div>
 
-      {/* ── How it works ── */}
-      <section id="how" className="border-y bg-[hsl(var(--gov-green-50))]/50">
-        <div className="mx-auto max-w-6xl px-4 py-16 md:py-20">
-          <SectionHead eyebrow="How It Works" title="Get started in 3 easy steps" sub="From download to your first report — it only takes minutes." />
-          <div className="mt-10 grid gap-8 md:grid-cols-3">
-            {STEPS.map((s) => (
-              <div key={s.n} className="relative rounded-2xl border bg-white p-6">
-                <span className="text-3xl font-extrabold text-[hsl(var(--gov-green-800))]/15">{s.n}</span>
-                <h3 className="mt-2 text-lg font-bold">{s.title}</h3>
-                <p className="mt-1.5 text-sm text-muted-foreground">{s.body}</p>
+      <main id="main">
+        {/* ── Hero ── */}
+        <section id="top" className="relative overflow-hidden bg-gradient-to-b from-[#f0fdf4] to-white">
+          <div className="mx-auto grid max-w-6xl items-center gap-12 px-4 py-14 md:grid-cols-[1.1fr_1fr] md:py-20">
+            <div>
+              <p className="text-sm font-semibold text-[#166534]">Para sa bawat barangay ng Nueva Vizcaya</p>
+              <h1 className="mt-3 text-[2.6rem] font-extrabold leading-[1.05] tracking-tight sm:text-6xl">
+                <span className="block sm:inline">Report.</span>{" "}
+                <span className="block sm:inline">Respond.</span>{" "}
+                <span className="block text-[#166534] sm:inline">Recover.</span>
+              </h1>
+              <p className="mt-5 max-w-lg text-lg text-slate-600">
+                One Vizcaya connects every barangay to the Province — so hazards get reported, verified and acted on faster.
+              </p>
+              <div className="mt-8 flex flex-wrap gap-3">
+                <a href={APK_URL} className="btn-primary btn-lg"><Download className="h-5 w-5" aria-hidden="true" /> Download the app</a>
+                <a href={EMERGENCY_TEL} className="btn-emergency-outline btn-lg"><PhoneIcon className="h-5 w-5" aria-hidden="true" /> Emergency hotline</a>
+              </div>
+              <ul className="mt-8 flex flex-wrap gap-2 text-xs font-semibold text-slate-700">
+                <li className="inline-flex items-center gap-1.5 rounded-full border bg-white px-3 py-1.5"><MapPin className="h-3.5 w-3.5 text-[#166534]" aria-hidden="true" /> Built in Nueva Vizcaya</li>
+                <li className="inline-flex items-center gap-1.5 rounded-full border bg-white px-3 py-1.5"><ShieldCheck className="h-3.5 w-3.5 text-[#166534]" aria-hidden="true" /> RA 10173 compliant</li>
+              </ul>
+            </div>
+            <Phone label="One Vizcaya app: the Report a problem screen with category, photo, GPS location and description fields">
+              <ReportScreen />
+            </Phone>
+          </div>
+        </section>
+
+        {/* ── 01 Problem ── */}
+        <Section id="problem" n={1} eyebrow="The problem" title="Concerns get stuck between the barangay and the Province">
+          <div className="mt-10 grid gap-4 md:grid-cols-3">
+            {PROBLEMS.map((p) => (
+              <div key={p.title} className="rounded-2xl border bg-white p-6">
+                <p.icon className="h-6 w-6 text-[#166534]" aria-hidden="true" />
+                <h3 className="mt-4 text-lg font-bold">{p.title}</h3>
+                <p className="mt-2 text-slate-600">{p.body}</p>
               </div>
             ))}
           </div>
-        </div>
-      </section>
+        </Section>
 
-      {/* ── Security ── */}
-      <section id="security" className="mx-auto max-w-6xl px-4 py-16 md:py-20">
-        <SectionHead eyebrow="Trust & Security" title="Your data is safe with us" sub="One Vizcaya is built on verified identity, bounded authority, and Philippine data-privacy law." />
-        <div className="mt-10 grid gap-4 sm:grid-cols-2">
-          {TRUST.map((t) => (
-            <div key={t.title} className="flex gap-4 rounded-2xl border bg-white p-6">
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[hsl(var(--gov-green-50))]">
-                <t.icon className="h-5 w-5 text-[hsl(var(--gov-green-800))]" />
-              </div>
-              <div>
-                <h3 className="text-base font-bold">{t.title}</h3>
-                <p className="mt-1 text-sm text-muted-foreground">{t.body}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* ── FAQ ── */}
-      <section id="faq" className="border-y bg-[hsl(var(--gov-green-50))]/50">
-        <div className="mx-auto max-w-3xl px-4 py-16 md:py-20">
-          <SectionHead eyebrow="FAQ" title="Frequently asked questions" sub="Everything you need to know about One Vizcaya." />
-          <div className="mt-8 space-y-3">
-            {FAQS.map((f, i) => {
-              const open = openFaq === i;
-              return (
-                <div key={i} className="overflow-hidden rounded-xl border bg-white">
-                  <button className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left" onClick={() => setOpenFaq(open ? null : i)}>
-                    <span className="text-sm font-semibold">{f.q}</span>
-                    <ChevronDown className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`} />
-                  </button>
-                  {open && <p className="px-5 pb-5 text-sm text-muted-foreground">{f.a}</p>}
+        {/* ── 02 Flow ── */}
+        <Section id="flow" n={2} eyebrow="How a report flows" title="Every report has one clear path — and one accountable office" tinted>
+          <ol className="mt-10 grid gap-4 md:grid-cols-4">
+            {STEPS.map((s, i) => (
+              <li key={s.title} className="relative flex gap-4 md:flex-col">
+                <div className="flex flex-col items-center md:flex-row">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#166534] font-bold text-white">{i + 1}</span>
+                  {i < STEPS.length - 1 && <span aria-hidden="true" className="w-0.5 flex-1 bg-[#166534]/25 md:h-0.5 md:w-auto md:flex-1 md:ml-3" />}
                 </div>
-              );
-            })}
-          </div>
-        </div>
-      </section>
+                <div className={`pb-6 md:pb-0 ${i === 1 ? "rounded-xl border-2 border-[#166534]/30 bg-white p-4 -mt-2 md:mt-0" : ""}`}>
+                  <h3 className="font-bold">{s.title}</h3>
+                  <p className="mt-1 text-sm text-slate-600">{s.body}</p>
+                  {i === 1 && <p className="mt-2 text-xs font-semibold text-[#166534]">Approval gate: nothing reaches the Province without it.</p>}
+                </div>
+              </li>
+            ))}
+          </ol>
+        </Section>
 
-      {/* ── Download CTA ── */}
-      <section className="mx-auto max-w-6xl px-4 py-16 md:py-20">
-        <div className="relative overflow-hidden rounded-3xl bg-[hsl(var(--gov-green-800))] px-6 py-14 text-center text-white md:px-16">
-          <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/10" />
-          <div className="absolute -bottom-12 -left-8 h-44 w-44 rounded-full bg-white/5" />
-          <h2 className="relative text-3xl font-extrabold md:text-4xl">Start using One Vizcaya today</h2>
-          <p className="relative mx-auto mt-3 max-w-xl text-white/80">Join your neighbors across Nueva Vizcaya. Report an issue and see your barangay respond.</p>
-          <div className="relative mt-8 flex flex-wrap items-center justify-center gap-3">
-            <a href={APK_URL}>
-              <Button size="lg" className="gap-2 bg-white text-[hsl(var(--gov-green-800))] hover:bg-white/90"><Download className="h-5 w-5" /> Download for Android</Button>
-            </a>
-            <span className="inline-flex items-center gap-2 rounded-full border border-white/30 px-4 py-2 text-sm text-white/80">
-              <span className="h-1.5 w-1.5 rounded-full bg-[hsl(var(--gov-gold))]" /> Coming soon to Google Play
-            </span>
-          </div>
-          <p className="relative mx-auto mt-5 max-w-xl text-xs text-white/60">
-            Currently in pilot. Android install requires enabling installs from your browser. iOS coming later.
-          </p>
-        </div>
-      </section>
+        {/* ── 03 Features ── */}
+        <Section id="features" n={3} eyebrow="Features" title="What the app does">
+          <Tabs defaultValue="report" className="mt-10">
+            <TabsList className="flex h-auto w-full flex-wrap justify-start gap-1 bg-slate-100 p-1 sm:w-fit">
+              {FEATURES.map((f) => (
+                <TabsTrigger key={f.id} value={f.id} className="px-4 py-2 text-sm data-[state=active]:text-[#166534]">{f.label}</TabsTrigger>
+              ))}
+            </TabsList>
+            {FEATURES.map((f) => (
+              <TabsContent key={f.id} value={f.id} className="mt-8">
+                <div className="grid items-center gap-10 md:grid-cols-2">
+                  <div>
+                    <h3 className="text-2xl font-bold">{f.title}</h3>
+                    <p className="mt-3 text-slate-600">{f.body}</p>
+                    <ul className="mt-5 space-y-2">
+                      {f.points.map((pt) => (
+                        <li key={pt} className="flex gap-2 text-slate-700"><span aria-hidden="true" className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[#166534]" />{pt}</li>
+                      ))}
+                    </ul>
+                  </div>
+                  <Phone label={`One Vizcaya app: ${f.label} screen`}>{f.screen}</Phone>
+                </div>
+              </TabsContent>
+            ))}
+          </Tabs>
+        </Section>
 
-      {/* ── Footer ── */}
-      <footer className="border-t bg-white">
-        <div className="mx-auto max-w-6xl px-4 py-12">
-          <div className="grid gap-8 md:grid-cols-4">
-            <div className="md:col-span-2">
-              <Brand />
-              <p className="mt-3 max-w-sm text-sm text-muted-foreground">
-                A civic-reporting platform connecting the residents of Nueva Vizcaya to their Local Government Units, from the barangay to the Provincial Capitol.
+        {/* ── 04 Coverage ── */}
+        <Section id="coverage" n={4} eyebrow="Coverage" title="All 15 municipalities of Nueva Vizcaya" tinted>
+          <div className="mt-10 grid items-start gap-10 md:grid-cols-2">
+            <div className="rounded-2xl border bg-white p-4">
+              <MunicipalityMap titled highlight={PILOT_LGUS} className="mx-auto h-auto max-h-[420px] w-full max-w-md" />
+              <p className="mt-3 flex items-center gap-2 text-xs text-slate-600">
+                <span aria-hidden="true" className="inline-block h-3 w-3 rounded-sm bg-[#166534]" /> Pilot LGU
+                {PILOT_LGUS.length === 0 && <span>— [Pilot LGU] to be announced</span>}
               </p>
             </div>
             <div>
-              <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Product</p>
-              <ul className="mt-3 space-y-2 text-sm">
-                <li><a href="#features" className="text-muted-foreground hover:text-[hsl(var(--gov-green-800))]">Features</a></li>
-                <li><a href="#how" className="text-muted-foreground hover:text-[hsl(var(--gov-green-800))]">How it works</a></li>
-                <li><a href="#security" className="text-muted-foreground hover:text-[hsl(var(--gov-green-800))]">Security</a></li>
-                <li><a href="#faq" className="text-muted-foreground hover:text-[hsl(var(--gov-green-800))]">FAQ</a></li>
-              </ul>
-            </div>
-            <div>
-              <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Access</p>
-              <ul className="mt-3 space-y-2 text-sm">
-                <li><a href={APK_URL} className="text-muted-foreground hover:text-[hsl(var(--gov-green-800))]">Download app</a></li>
-                <li><Link to="/login" className="text-muted-foreground hover:text-[hsl(var(--gov-green-800))]">Admin / LGU sign-in</Link></li>
+              <p className="text-slate-600">
+                One Vizcaya serves Nueva Vizcaya only. When you register, your phone's GPS confirms you are inside the province.
+                Residents can also verify with a Barangay Certificate of Residency or a government ID with an NV address.
+              </p>
+              <p className="mt-3 text-slate-600">
+                Reports are routed to the municipality and barangay where they happen, so each one lands with the office that can act on it.
+              </p>
+              <ul className="mt-6 grid grid-cols-2 gap-x-4 gap-y-1.5 text-sm sm:grid-cols-3">
+                {[...MUNICIPALITIES].map((m) => m.name).sort().map((name) => (
+                  <li key={name} className="flex items-center gap-1.5">
+                    <MapPin className="h-3.5 w-3.5 text-[#166534]" aria-hidden="true" />
+                    {name}
+                    {PILOT_LGUS.includes(name) && <span className="text-xs font-semibold text-[#166534]">(pilot)</span>}
+                  </li>
+                ))}
               </ul>
             </div>
           </div>
-          <div className="mt-10 border-t pt-6 text-xs text-muted-foreground">
+        </Section>
+
+        {/* ── 05 Privacy ── */}
+        <Section id="privacy" n={5} eyebrow="Trust & privacy" title="Accountable reporting, protected data">
+          <div className="mt-10 grid gap-4 md:grid-cols-3">
+            <Card icon={UserCheck} title="Verified, not anonymous">Every report is tied to a verified Nueva Vizcaya resident. This keeps false and prank reports out, so LGUs can act with confidence.</Card>
+            <Card icon={ShieldCheck} title="RA 10173 compliant">Built to the Data Privacy Act of 2012. Photos are stripped of hidden metadata before upload, and you can request or download your data from the app.</Card>
+            <Card icon={Archive} title="Archived, not erased">Reports are official LGU records. If you delete your account, your personal profile is removed and your reports are archived — not silently deleted.</Card>
+          </div>
+          <div className="mt-8 overflow-hidden rounded-2xl border">
+            <div className="flex items-center gap-2 border-b bg-slate-50 px-5 py-3">
+              <Users className="h-4 w-4 text-[#166534]" aria-hidden="true" />
+              <h3 className="font-bold">Who can see what</h3>
+            </div>
+            <dl className="divide-y">
+              {ROLES.map((r) => (
+                <div key={r.role} className="grid gap-1 px-5 py-3 sm:grid-cols-[14rem_1fr]">
+                  <dt className="font-semibold">{r.role}</dt>
+                  <dd className="text-slate-600">{r.sees}</dd>
+                </div>
+              ))}
+            </dl>
+          </div>
+          <Link to="/privacy" className="mt-6 inline-flex items-center gap-1.5 font-semibold text-[#166534] underline-offset-4 hover:underline">
+            Read the full Data Privacy Notice <ArrowRight className="h-4 w-4" aria-hidden="true" />
+          </Link>
+        </Section>
+
+        {/* ── 06 Endorsement ── */}
+        <Section id="endorsement" n={6} eyebrow="Endorsement & partners" title="Reviewed by the Province" tinted>
+          <div className="mt-8 max-w-3xl space-y-3 text-slate-700">
             <p>
-              One Vizcaya is a civic-technology pilot built by the <span className="font-semibold">Project: Vizcaya Team (Nueva Vizcaya State University)</span> and offered to the Provincial Government of Nueva Vizcaya. It is an independent project and is not (yet) an official government platform.
+              One Vizcaya was presented to the Provincial Technical Review Committee on June 10, 2026, and endorsed by the
+              Office of the Provincial Administrator (Endorsement Ref. No. G-373, June 11, 2026).
             </p>
-            <p className="mt-2">© {2026} Project: Vizcaya · Made for the people of Nueva Vizcaya.</p>
+            <p>The committee's feedback — including PDRRMO's — shaped how reports are reviewed by the municipality before they are escalated to the Province.</p>
           </div>
+          {/*
+            Provincial seal / LGU logos go here ONLY once written permission is on file.
+            <div className="mt-8 flex flex-wrap items-center gap-6">
+              <img src="/img/seals/nueva-vizcaya.png" alt="Province of Nueva Vizcaya" className="h-16 w-16" loading="lazy" />
+            </div>
+          */}
+        </Section>
+
+        {/* ── Closing CTA ── */}
+        <section className="px-4 py-16 md:py-20">
+          <div className="mx-auto max-w-6xl rounded-3xl bg-[#166534] px-6 py-14 text-center text-white md:px-16">
+            <h2 className="text-3xl font-extrabold md:text-4xl">Is your barangay ready?</h2>
+            <p className="mx-auto mt-3 max-w-xl text-white/85">Download the app to start reporting, or contact the team to bring One Vizcaya to your LGU.</p>
+            <div className="mt-8 flex flex-wrap justify-center gap-3">
+              <a href={APK_URL} className="btn-lg inline-flex items-center gap-2 rounded-lg bg-white px-5 font-semibold text-[#166534] hover:bg-white/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#166534]">
+                <Download className="h-5 w-5" aria-hidden="true" /> Download app
+              </a>
+              <a href="#contact" className="btn-lg inline-flex items-center gap-2 rounded-lg border border-white/60 px-5 font-semibold text-white hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#166534]">
+                <Mail className="h-5 w-5" aria-hidden="true" /> Contact the team
+              </a>
+            </div>
+            <p className="mt-5 text-xs text-white/75">Android app, currently in pilot. Google Play and iOS to follow.</p>
+          </div>
+        </section>
+      </main>
+
+      {/* ── Footer ── */}
+      <footer className="border-t bg-slate-50">
+        <div className="mx-auto grid max-w-6xl gap-10 px-4 py-12 md:grid-cols-3">
+          <div>
+            <Wordmark />
+            <p className="mt-3 text-sm text-slate-600">Civic reporting for Nueva Vizcaya — from the barangay to the Provincial Capitol.</p>
+          </div>
+          <div>
+            <h2 className="text-xs font-bold uppercase tracking-wide text-slate-600">Emergency hotlines</h2>
+            <ul className="mt-3 space-y-2 text-sm">
+              <li><a href={EMERGENCY_TEL} className="font-semibold text-red-700 hover:underline">National emergency: 911</a></li>
+              <li className="text-slate-700">PDRRMO Nueva Vizcaya: {PDRRMO_HOTLINE}</li>
+            </ul>
+          </div>
+          <div id="contact">
+            <h2 className="text-xs font-bold uppercase tracking-wide text-slate-600">About</h2>
+            <ul className="mt-3 space-y-2 text-sm text-slate-700">
+              <li><Link to="/privacy" className="hover:text-[#166534] hover:underline">Data Privacy Notice</Link></li>
+              <li><span>Terms of Use [coming soon]</span></li>
+              <li className="flex items-center gap-1.5"><Mail className="h-3.5 w-3.5" aria-hidden="true" /> {CONTACT_EMAIL}</li>
+              <li><Link to="/login" className="hover:text-[#166534] hover:underline">LGU staff sign-in</Link></li>
+            </ul>
+          </div>
+        </div>
+        <div className="mx-auto max-w-6xl border-t px-4 py-6 text-xs text-slate-600">
+          <p className="flex items-start gap-1.5"><FileText className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" /> Developed by Aaron Anthony A. Gano II, Sean Godric Reyes and Darius Acosta (Project: Vizcaya Team).</p>
+          <p className="mt-2">© 2026 One Vizcaya · Made for the people of Nueva Vizcaya.</p>
         </div>
       </footer>
     </div>
   );
 }
 
-function Stat({ value, label }: { value: string; label: string }) {
+function Wordmark() {
   return (
-    <div>
-      <p className="text-2xl font-extrabold text-[hsl(var(--gov-green-800))]">{value}</p>
-      <p className="text-xs text-muted-foreground">{label}</p>
+    <span className="flex items-center gap-2">
+      <span aria-hidden="true" className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#166534] text-white">
+        <MapPin className="h-4 w-4" />
+      </span>
+      <span className="text-lg font-extrabold tracking-tight text-[#166534]">One Vizcaya</span>
+    </span>
+  );
+}
+
+function Section({ id, n, eyebrow, title, tinted = false, children }: { id: string; n: number; eyebrow: string; title: string; tinted?: boolean; children: React.ReactNode }) {
+  return (
+    <section id={id} aria-labelledby={`${id}-title`} className={`scroll-mt-16 ${tinted ? "border-y bg-[#f0fdf4]/60" : ""}`}>
+      <div className="mx-auto max-w-6xl px-4 py-16 md:py-24">
+        <p className="text-sm font-bold text-[#166534]"><span className="tabular-nums">{pad(n)}</span> — {eyebrow}</p>
+        <h2 id={`${id}-title`} className="mt-2 max-w-3xl text-3xl font-extrabold tracking-tight md:text-4xl">{title}</h2>
+        {children}
+      </div>
+    </section>
+  );
+}
+
+function Card({ icon: Icon, title, children }: { icon: LucideIcon; title: string; children: React.ReactNode }) {
+  return (
+    <div className="rounded-2xl border bg-white p-6">
+      <Icon className="h-6 w-6 text-[#166534]" aria-hidden="true" />
+      <h3 className="mt-4 text-lg font-bold">{title}</h3>
+      <p className="mt-2 text-slate-600">{children}</p>
     </div>
   );
 }
 
-function SectionHead({ eyebrow, title, sub }: { eyebrow: string; title: string; sub: string }) {
-  return (
-    <div className="mx-auto max-w-2xl text-center">
-      <p className="text-xs font-bold uppercase tracking-widest text-[hsl(var(--gov-green-800))]">{eyebrow}</p>
-      <h2 className="mt-2 text-3xl font-extrabold tracking-tight md:text-4xl">{title}</h2>
-      <p className="mt-3 text-muted-foreground">{sub}</p>
-    </div>
-  );
+function pad(n: number) {
+  return String(n).padStart(2, "0");
+}
+
+// Index of the section currently in the middle of the viewport (-1 = hero).
+function useActiveSection(ids: string[]) {
+  const [active, setActive] = useState(-1);
+  useEffect(() => {
+    const els = ids.map((id) => document.getElementById(id)).filter((e): e is HTMLElement => !!e);
+    const obs = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) if (e.isIntersecting) setActive(ids.indexOf(e.target.id));
+      },
+      { rootMargin: "-50% 0px -50% 0px" },
+    );
+    els.forEach((el) => obs.observe(el));
+    const onScroll = () => { if (window.scrollY < 200) setActive(-1); };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => { obs.disconnect(); window.removeEventListener("scroll", onScroll); };
+  }, [ids]);
+  return active;
 }
