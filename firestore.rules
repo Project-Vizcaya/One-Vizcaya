@@ -257,7 +257,10 @@ service cloud.firestore {
       // super-admin power (or the nominate → approve workflow), never a direct
       // client write — role() falls back to this field, so it must be guarded.
       allow create: if (isOwner(userId)
-                        && request.resource.data.get('role', 'citizen') == 'citizen')
+                        && request.resource.data.get('role', 'citizen') == 'citizen'
+                        // Never self-certified: only an LGU approval sets it.
+                        && request.resource.data.get('residencyStatus', 'unverified')
+                             in ['unverified', 'gps_verified'])
                     || isSuperAdmin()
                     || (isProvincialAdmin()
                         && request.resource.data.get('role', 'citizen') == 'citizen');
@@ -274,7 +277,19 @@ service cloud.firestore {
                         && (request.resource.data.get('residencyStatus', 'unverified')
                               == resource.data.get('residencyStatus', 'unverified')
                             || request.resource.data.get('residencyStatus', 'unverified')
-                                 in ['unverified', 'gps_verified']))
+                                 in ['unverified', 'gps_verified'])
+                        // Removing the field would read as 'grandfathered' in
+                        // the report rule and skip the residency gate.
+                        && (!('residencyStatus' in resource.data)
+                            || 'residencyStatus' in request.resource.data)
+                        // An admin's town and barangay ARE their jurisdiction
+                        // (actorMunicipality / actorBarangay), so an admin may
+                        // not move themselves; only a role grant sets them.
+                        && (resource.data.get('role', 'citizen') == 'citizen'
+                            || (request.resource.data.get('municipality', '')
+                                  == resource.data.get('municipality', '')
+                                && request.resource.data.get('barangay', '')
+                                  == resource.data.get('barangay', ''))))
                     || (isProvincialAdmin()
                         && request.resource.data.get('role', 'citizen')
                            == resource.data.get('role', 'citizen'));
@@ -304,7 +319,16 @@ service cloud.firestore {
                       && get(/databases/$(database)/documents/users/$(userId))
                            .data.get('residencyStatus', 'grandfathered')
                            in ['gps_verified', 'certified', 'grandfathered']
-                      && validOnBehalf();
+                      && validOnBehalf()
+                      // A new report starts as 'reported', filed about now. (A
+                      // report saved offline keeps its real filing time, hence
+                      // the window.) Otherwise a reporter could create one
+                      // already 'solved' or 'archived', or back-date it into
+                      // the retention purge.
+                      && request.resource.data.status == 'reported'
+                      && request.resource.data.reportedAt is timestamp
+                      && request.resource.data.reportedAt > request.time - duration.value(60, 'd')
+                      && request.resource.data.reportedAt < request.time + duration.value(1, 'd');
         // Approval chain (Municipal → Provincial): an escalation (turning on
         // escalatedToProvince) may ONLY be approved by a Municipal admin of the
         // report's own municipality, and must stamp escalatedBy with their uid.
@@ -325,9 +349,15 @@ service cloud.firestore {
                          && validDisposition()
                          && validReferral()
                          && validLifecycle()
+                      // The reporter never edits a filed report (ratings go
+                      // to the feedback subcollection). The ONE owner write is
+                      // account deletion, which archives their reports so the
+                      // LGU keeps the record (app_settings_screen.dart).
                       || (isOwner(userId)
-                          && !request.resource.data.diff(resource.data)
-                               .affectedKeys().hasAny(dispositionFields().concat(['referral', 'resolutionNote', 'resolutionBy', 'onBehalfOf'])));
+                          && request.resource.data.diff(resource.data).affectedKeys()
+                               .hasOnly(['status', 'archived', 'archivedReason', 'archivedAt', 'reporterName'])
+                          && request.resource.data.status == 'archived'
+                          && request.resource.data.archivedReason == 'account_deleted');
         // Deletion goes ONLY through the deleteReportWithReason callable,
         // which checks the caller, requires a reason and records who did it.
         // (A client delete could not be attributed.)
@@ -458,10 +488,12 @@ service cloud.firestore {
       allow delete: if isProvincialAdmin();
     }
 
-    // ─── Audit logs (append-only for admins; only super_admin can delete) ────
+    // ─── Audit logs (written by Cloud Functions; only super_admin can delete) ─
     match /audit_logs/{logId} {
       allow read:   if isAdmin();
-      allow create: if isAdmin();
+      // No client writes entries: every audited action is logged server-side.
+      // Letting admins create them meant any admin could forge one.
+      allow create: if false;
       allow update, delete: if isSuperAdmin();
     }
 

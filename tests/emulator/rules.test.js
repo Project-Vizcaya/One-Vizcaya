@@ -438,6 +438,7 @@ test("moving back out of 'solved' is allowed, and the reporter cannot write a re
 const proxyReport = (uid, extra = {}) => ({
   userId: uid, userPhone: "+639111111111", isAnonymous: false,
   municipality: "Bambang", barangay: "Poblacion", category: "Flooding", status: "reported",
+  reportedAt: serverTimestamp(),
   onBehalfOf: { name: "Lola Maria Santos", contact: "Purok 2, near the chapel", relationship: "" },
   ...extra,
 });
@@ -498,4 +499,67 @@ test("a super admin can still approve an escalation in any town, attributed to t
     { escalatedToProvince: true, handlingLevel: "provincial", escalatedBy: "super" }));
   await env.withSecurityRulesDisabled((ctx) => updateDoc(doc(ctx.firestore(), REPORT), { escalatedToProvince: false }));
   await assertFails(updateDoc(doc(as("super"), REPORT), { escalatedToProvince: true, escalatedBy: "muni" }));
+});
+
+// ── security review fixes (Nov 2026) ───────────────────────────────────────
+
+const ownReport = (uid, extra = {}) => ({
+  userId: uid, userPhone: "+639111111111", isAnonymous: false, municipality: "Bambang",
+  category: "Flooding", status: "reported", reportedAt: serverTimestamp(), ...extra,
+});
+const daysAgo = (d) => Timestamp.fromMillis(Date.now() - d * 86400e3);
+
+test("a new report must start as 'reported' and be filed about now", async () => {
+  const c = as("citizen");
+  await assertSucceeds(setDoc(doc(c, "users/citizen/reports/n1"), ownReport("citizen")));
+  // A report saved offline keeps its real filing time.
+  await assertSucceeds(setDoc(doc(c, "users/citizen/reports/n2"), ownReport("citizen", { reportedAt: daysAgo(3) })));
+  await assertFails(setDoc(doc(c, "users/citizen/reports/n3"), ownReport("citizen", { status: "solved" })));
+  await assertFails(setDoc(doc(c, "users/citizen/reports/n4"), ownReport("citizen", { status: "archived" })));
+  await assertFails(setDoc(doc(c, "users/citizen/reports/n5"), ownReport("citizen", { reportedAt: daysAgo(900) })));
+  const noDate = ownReport("citizen"); delete noDate.reportedAt;
+  await assertFails(setDoc(doc(c, "users/citizen/reports/n6"), noDate));
+});
+
+test("the reporter cannot edit a filed report: not priority, town, escalation or dates", async () => {
+  const r = doc(as("citizen"), REPORT);
+  await assertFails(updateDoc(r, { priority: "critical" }));
+  await assertFails(updateDoc(r, { municipality: "Solano" }));
+  await assertFails(updateDoc(r, { escalatedToProvince: true, escalatedBy: "muni" }));
+  await assertFails(updateDoc(r, { reportedAt: daysAgo(900) }));
+  await assertFails(updateDoc(r, { imageUrl: "https://x/o/residency_proofs%2Fvictim_1.jpg" }));
+  await assertFails(updateDoc(r, { description: "edited" }));
+});
+
+test("account deletion can still archive the reporter's own reports", async () => {
+  // Exactly what app_settings_screen.dart writes before deleting the profile.
+  const archive = { archived: true, archivedReason: "account_deleted", archivedAt: serverTimestamp(),
+    status: "archived", reporterName: "Juan Dela Cruz" };
+  await assertFails(updateDoc(doc(as("citizen"), REPORT), { ...archive, archivedReason: "other" }));
+  await assertFails(updateDoc(doc(as("citizen"), REPORT), { ...archive, priority: "critical" }));
+  await assertFails(updateDoc(doc(as("muniOther"), REPORT), archive));
+  await assertSucceeds(updateDoc(doc(as("citizen"), REPORT), archive));
+});
+
+test("an admin cannot move themselves to another town or barangay", async () => {
+  await assertFails(updateDoc(doc(as("muni"), "users/muni"), { municipality: "Solano" }));
+  await assertFails(updateDoc(doc(as("muni"), "users/muni"), { barangay: "Poblacion" }));
+  await assertSucceeds(updateDoc(doc(as("muni"), "users/muni"), { name: "New Name", fcmToken: "t" }));
+  // A resident may still change the town on their own profile.
+  await assertSucceeds(updateDoc(doc(as("citizen"), "users/citizen"), { municipality: "Solano" }));
+});
+
+test("residency cannot be self-certified, on create or by removing the field", async () => {
+  await assertFails(setDoc(doc(as("fresh"), "users/fresh"), { role: "citizen", residencyStatus: "certified" }));
+  await assertSucceeds(setDoc(doc(as("fresh"), "users/fresh"), { role: "citizen", municipality: "Bambang" }));
+  await assertSucceeds(updateDoc(doc(as("fresh"), "users/fresh"), { residencyStatus: "unverified" }));
+  await assertFails(updateDoc(doc(as("fresh"), "users/fresh"), { residencyStatus: deleteField() }));
+  await assertFails(updateDoc(doc(as("fresh"), "users/fresh"), { residencyStatus: "certified" }));
+});
+
+test("no admin can forge an audit log entry", async () => {
+  const entry = { action: "role_assigned_direct", targetUid: "someone", at: serverTimestamp() };
+  await assertFails(setDoc(doc(as("muni"), "audit_logs/f1"), entry));
+  await assertFails(setDoc(doc(as("prov"), "audit_logs/f2"), entry));
+  await assertSucceeds(getDocs(collection(as("muni"), "audit_logs")));
 });

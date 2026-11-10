@@ -43,7 +43,8 @@ service firebase.storage {
       // The reporter may view their own evidence; admins view it to triage.
       // The citizen "Recently Resolved" community feed renders no photos
       // (community_feed.dart), so it is unaffected by this scoping.
-      allow read: if isOwner(imageId) || isAnyAdmin();
+      // `get`, not `read`: nobody may LIST the folder and enumerate files.
+      allow get: if isOwner(imageId) || isAnyAdmin();
 
       // Authenticated users may upload, but only JPEG/PNG images up to 10 MB
       // (client compresses to ~200 KB; this is a safety ceiling).
@@ -61,7 +62,8 @@ service firebase.storage {
     match /residency_proofs/{docId} {
       // Only the resident who uploaded it and the admins who review the
       // certification queue may read it.
-      allow read: if isOwner(docId) || isAnyAdmin();
+      // `get`, not `read`: nobody may LIST the folder and enumerate files.
+      allow get: if isOwner(docId) || isAnyAdmin();
 
       allow create: if isAuth()
         && request.resource.size < 10 * 1024 * 1024

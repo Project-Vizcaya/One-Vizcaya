@@ -36,4 +36,10 @@ function dueForDeletion(data, nowMs) {
   return data.status === "archived" && t !== null && t < monthsAgo(nowMs, DELETE_AFTER_MONTHS);
 }
 
-module.exports = { archiveUpdate, dueForDeletion, ARCHIVE_AFTER_MONTHS, DELETE_AFTER_MONTHS };
+/** True only for the report photo of this owner: "report_images/<uid>_...". */
+function reportPhotoPathOk(objectPath, ownerUid) {
+  return typeof objectPath === "string" && typeof ownerUid === "string" && ownerUid.length > 0 &&
+    !objectPath.includes("..") && objectPath.startsWith(`report_images/${ownerUid}_`);
+}
+
+module.exports = { archiveUpdate, dueForDeletion, reportPhotoPathOk, ARCHIVE_AFTER_MONTHS, DELETE_AFTER_MONTHS };

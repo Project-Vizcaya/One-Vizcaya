@@ -583,7 +583,7 @@ exports.migrateLegacyAdmins = onCall(async (request) => {
 // ── Auto-archive reports older than 12 months ───────────────────────────────
 // Runs daily at 2 AM Manila time. Marks reports with reportedAt > 12 months
 // as 'archived' so they no longer appear in active admin views.
-const { archiveUpdate, dueForDeletion } = require("./reports/retention");
+const { archiveUpdate, dueForDeletion, reportPhotoPathOk } = require("./reports/retention");
 
 exports.archiveOldReports = scheduled("archiveOldReports", 
   { schedule: "0 2 * * *", timeZone: "Asia/Manila" },
@@ -1020,26 +1020,46 @@ exports.onSosAlertUpdated = onDocumentUpdated(
  * official Page comes later, once the project has an approved government
  * contract and Page access.
  */
+const { previewUrlAllowed } = require("./links/preview");
+
 exports.fetchLinkPreview = onCall(async (request) => {
   if (!request.auth) {
     throw new HttpsError("unauthenticated", "Sign in required.");
   }
+  // Admins only (it serves the announcement composer), public https hosts
+  // only, with a time and size limit: otherwise any signed-in user could use
+  // the server to fetch arbitrary or internal addresses.
+  const callerRole = await resolveCallerRole(request);
+  if (!["municipal_admin", "admin", "provincial_admin", "super_admin"].includes(callerRole)) {
+    throw new HttpsError("permission-denied", "Only admins can fetch link previews.");
+  }
   const url = String(request.data?.url || "").trim();
-  if (!/^https?:\/\//i.test(url)) {
-    throw new HttpsError("invalid-argument", "Enter a valid http(s) link.");
+  if (!previewUrlAllowed(url)) {
+    throw new HttpsError("invalid-argument", "Enter a valid public https link.");
   }
 
   let html = "";
   try {
-    const resp = await fetch(url, {
-      redirect: "follow",
-      headers: {
-        "User-Agent":
-          "Mozilla/5.0 (compatible; OneVizcayaBot/1.0; +https://nuevavizcaya.gov.ph)",
-        Accept: "text/html,application/xhtml+xml",
-      },
-    });
-    html = await resp.text();
+    // Follow at most 3 redirects by hand, re-checking each hop, so a public
+    // page cannot redirect the server to an internal address.
+    let target = url;
+    let resp;
+    for (let hop = 0; ; hop++) {
+      resp = await fetch(target, {
+        redirect: "manual",
+        signal: AbortSignal.timeout(8000),
+        headers: {
+          "User-Agent":
+            "Mozilla/5.0 (compatible; OneVizcayaBot/1.0; +https://nuevavizcaya.gov.ph)",
+          Accept: "text/html,application/xhtml+xml",
+        },
+      });
+      if (resp.status < 300 || resp.status >= 400) break;
+      const next = new URL(resp.headers.get("location") || "", target).toString();
+      if (hop >= 3 || !previewUrlAllowed(next)) throw new Error("redirect not allowed");
+      target = next;
+    }
+    html = (await resp.text()).slice(0, 500000);
   } catch (e) {
     console.error("fetchLinkPreview error:", e);
     throw new HttpsError("unavailable", "Could not fetch that link.");
@@ -1717,7 +1737,7 @@ exports.windyWindWatch = scheduled("windyWindWatch",
 // Derives the Storage object path from a Firebase download URL and deletes it.
 // Used to guarantee no orphaned photo evidence (with embedded EXIF/location)
 // survives report or account deletion.
-async function deleteImageByUrl(imageUrl) {
+async function deleteImageByUrl(imageUrl, ownerUid) {
   if (!imageUrl || typeof imageUrl !== "string") return;
   try {
     // Download URLs look like:
@@ -1725,6 +1745,13 @@ async function deleteImageByUrl(imageUrl) {
     const match = imageUrl.match(/\/o\/([^?]+)/);
     if (!match) return;
     const objectPath = decodeURIComponent(match[1]);
+    // imageUrl is written by the reporter's client, so it is not trusted: only
+    // that reporter's own report photo ("report_images/<uid>_...") is ever
+    // deleted. Otherwise a crafted URL could make this delete any file.
+    if (!reportPhotoPathOk(objectPath, ownerUid)) {
+      console.warn(`deleteImageByUrl: refused path outside the owner's report photos: ${objectPath}`);
+      return;
+    }
     await admin.storage().bucket().file(objectPath).delete();
   } catch (e) {
     // Already deleted or unreadable — safe to ignore.
@@ -1741,7 +1768,7 @@ exports.cleanupReportImageOnDelete = onDocumentDeleted(
   async (event) => {
     const data = event.data?.data();
     if (!data) return;
-    await deleteImageByUrl(data.imageUrl);
+    await deleteImageByUrl(data.imageUrl, event.params.userId);
   }
 );
 
@@ -1864,7 +1891,7 @@ exports.deleteOldArchivedReports = scheduled("deleteOldArchivedReports",
     let count = 0;
     let deleted = 0;
     for (const doc of due) {
-      await deleteImageByUrl(doc.data().imageUrl);
+      await deleteImageByUrl(doc.data().imageUrl, doc.ref.parent.parent.id);
       batch.delete(doc.ref);
       count++;
       deleted++;
