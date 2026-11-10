@@ -229,8 +229,12 @@ service cloud.firestore {
       // [3] is the top-level collection. (Indexing the `document` wildcard
       // itself is an evaluation error — which denies EVERY write and would
       // silently remove the bypass; tests/emulator guards against that.)
+      // Report updates and deletes are excluded: a super admin goes through
+      // the report rules like every other admin, so the disposition, referral
+      // and lifecycle checks bind them too. (Those rules keep the one extra
+      // power a super admin had here: approving an escalation in any town.)
       allow write: if isSuperAdmin() && !(request.path[3] in serverOnlyCollections())
-                    && !(request.method == 'delete' && isReportPath())
+                    && !(request.method in ['update', 'delete'] && isReportPath())
                     // Broadcasts follow their own rule, so a super admin also
                     // needs a second approver for urgent/province-wide alerts.
                     && request.path[3] != 'broadcasts';
@@ -316,7 +320,7 @@ service cloud.firestore {
                          || (municipalScoped(resource.data) && !approvingEscalation())
                          || (barangayScoped(resource.data) && !approvingEscalation())
                          || (approvingEscalation()
-                             && municipalScoped(resource.data)
+                             && (municipalScoped(resource.data) || isSuperAdmin())
                              && request.resource.data.escalatedBy == request.auth.uid))
                          && validDisposition()
                          && validReferral()
@@ -384,7 +388,7 @@ service cloud.firestore {
                        || (municipalScoped(resource.data) && !approvingEscalation())
                        || (barangayScoped(resource.data) && !approvingEscalation())
                        || (approvingEscalation()
-                           && municipalScoped(resource.data)
+                           && (municipalScoped(resource.data) || isSuperAdmin())
                            && request.resource.data.escalatedBy == request.auth.uid))
                        && validDisposition()
                        && validReferral()

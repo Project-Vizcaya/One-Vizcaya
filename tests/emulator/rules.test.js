@@ -475,3 +475,27 @@ test("the filer cannot change who a report was filed for afterwards", async () =
   await assertFails(updateDoc(doc(as("citizen"), "users/citizen/reports/f9"),
     { onBehalfOf: { name: "Someone Else", contact: "", relationship: "" } }));
 });
+
+// ── super admins are bound by the report rules too ─────────────────────────
+
+test("a super admin cannot skip the lifecycle, referral or disposition checks", async () => {
+  // Solved straight from 'reported', or without a note: refused.
+  await assertFails(updateDoc(doc(as("super"), REPORT), { status: "solved" }));
+  await assertFails(updateDoc(doc(as("super"), REPORT),
+    { status: "solved", resolutionNote: "Fixed by the crew.", resolutionBy: "super" }));
+  // A referral stamped as someone else, or a bare 'closed': refused.
+  await assertFails(updateDoc(doc(as("super"), REPORT), referBy("muni")));
+  await assertFails(updateDoc(doc(as("super"), REPORT), { status: "closed" }));
+  // The proper way works.
+  await assertSucceeds(updateDoc(doc(as("super"), REPORT), { status: "ongoing" }));
+  await assertSucceeds(updateDoc(doc(as("super"), REPORT),
+    { status: "solved", resolutionNote: "Fixed by the crew.", resolutionBy: "super" }));
+  await assertSucceeds(updateDoc(doc(as("super"), REPORT), referBy("super")));
+});
+
+test("a super admin can still approve an escalation in any town, attributed to them", async () => {
+  await assertSucceeds(updateDoc(doc(as("super"), REPORT),
+    { escalatedToProvince: true, handlingLevel: "provincial", escalatedBy: "super" }));
+  await env.withSecurityRulesDisabled((ctx) => updateDoc(doc(ctx.firestore(), REPORT), { escalatedToProvince: false }));
+  await assertFails(updateDoc(doc(as("super"), REPORT), { escalatedToProvince: true, escalatedBy: "muni" }));
+});
