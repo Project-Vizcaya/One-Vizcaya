@@ -246,7 +246,8 @@ service cloud.firestore {
     }
 
     function serverOnlyCollections() {
-      return ['pagasa_products', 'alert_drafts', 'system_health'];
+      return ['pagasa_products', 'alert_drafts', 'system_health',
+              'weather_pagasa', 'weather_pagasa_points'];
     }
 
     // ─── User profiles ──────────────────────────────────────────────────────
@@ -513,6 +514,16 @@ service cloud.firestore {
       allow read:  if isAuth();
       allow write: if false;
     }
+
+    // ─── DOST-PAGASA forecasts, alerts and station readings ──────────────────
+    // Written only by pagasaMobileWatch (Cloud Functions). Public weather
+    // information: any signed-in user may read it. weather_pagasa_points (the
+    // per-cell cache behind getPagasaForecast) has no client access at all.
+    match /weather_pagasa/{docId} {
+      allow read:  if isAuth();
+      allow write: if false;
+    }
+
 
     // ─── App config ──────────────────────────────────────────────────────────
     match /config/{docId} {

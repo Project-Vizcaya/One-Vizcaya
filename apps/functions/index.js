@@ -1497,6 +1497,37 @@ async function fetchWindyPointForecast(lat, lon, apiKey) {
 // error is recorded alongside it, so the app can show how stale it is.
 const { parseNlprsd, SOURCE_URL: NLPRSD_URL } = require("./pagasa-public/regional");
 
+// ── DOST-PAGASA mobile API: barangay-level forecasts, alerts, stations ───────
+// Used with PAGASA's permission, on condition that the app discloses it is
+// not an official PAGASA app. All calls are made here, server-side, at fixed
+// intervals; phones read our stored copy. Off unless
+// config/weather.pagasaMobileEnabled is true. See docs/weather.md and
+// ./pagasa-mobile/service.js.
+const { PagasaService } = require("./pagasa-mobile/service");
+const pagasaService = () => new PagasaService(admin.firestore(), {
+  ts: (ms) => admin.firestore.Timestamp.fromMillis(ms),
+});
+
+exports.pagasaMobileWatch = scheduled("pagasaMobileWatch",
+  { schedule: "every 5 minutes", timeZone: "Asia/Manila", timeoutSeconds: 240 },
+  async () => {
+    const r = await pagasaService().refreshAll(NV_MUNICIPALITY_COORDS);
+    if (r.skipped !== "disabled") console.log("pagasaMobileWatch:", JSON.stringify(r));
+  }
+);
+
+// Barangay-level forecast for the caller's coordinates (inside Nueva Vizcaya
+// only), shared per ~1 km cell for 15 minutes so many users cost one request.
+exports.getPagasaForecast = onCall(async (request) => {
+  if (!request.auth) throw new HttpsError("unauthenticated", "Must be signed in.");
+  const lat = Number(request.data?.lat);
+  const lon = Number(request.data?.lon);
+  if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+    throw new HttpsError("invalid-argument", "lat and lon are required.");
+  }
+  return pagasaService().pointForecast(lat, lon);
+});
+
 exports.pagasaRegionalWatch = scheduled("pagasaRegionalWatch", 
   { schedule: "every 60 minutes", timeZone: "Asia/Manila", timeoutSeconds: 60 },
   async () => {

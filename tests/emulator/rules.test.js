@@ -587,3 +587,16 @@ test("only the owner can read or write their notification inbox", async () => {
   await assertSucceeds(getDoc(doc(as("citizen"), "users/citizen/notifications/n1")));
   await assertSucceeds(updateDoc(doc(as("citizen"), "users/citizen/notifications/n1"), { read: true }));
 });
+
+test("PAGASA weather data: any signed-in user reads it, nobody writes it, the cell cache is closed", async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    await setDoc(doc(ctx.firestore(), "weather_pagasa/alerts"), { active: [] });
+    await setDoc(doc(ctx.firestore(), "weather_pagasa_points/16.38_121.07"), { forecast: {} });
+  });
+  await assertSucceeds(getDoc(doc(as("citizen"), "weather_pagasa/alerts")));
+  await assertFails(getDoc(doc(env.unauthenticatedContext().firestore(), "weather_pagasa/alerts")));
+  await assertFails(setDoc(doc(as("prov"), "weather_pagasa/alerts"), { active: [{ title: "Fake warning" }] }));
+  await assertFails(setDoc(doc(as("super"), "weather_pagasa/alerts"), { active: [] }));
+  await assertFails(getDoc(doc(as("citizen"), "weather_pagasa_points/16.38_121.07")));
+  await assertFails(setDoc(doc(as("super"), "weather_pagasa_points/x"), { a: 1 }));
+});

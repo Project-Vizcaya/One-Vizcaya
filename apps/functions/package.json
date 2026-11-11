@@ -7,7 +7,7 @@
     "start": "npm run shell",
     "deploy": "firebase deploy --only functions",
     "logs": "firebase functions:log",
-    "test": "node --test \"pagasa/**/*.test.js\" \"pagasa-public/**/*.test.js\" \"reports/**/*.test.js\" \"messaging/**/*.test.js\" \"health/**/*.test.js\" \"alerts/**/*.test.js\" \"links/**/*.test.js\""
+    "test": "node --test \"pagasa/**/*.test.js\" \"pagasa-public/**/*.test.js\" \"reports/**/*.test.js\" \"messaging/**/*.test.js\" \"health/**/*.test.js\" \"alerts/**/*.test.js\" \"links/**/*.test.js\" \"pagasa-mobile/**/*.test.js\""
   },
   "engines": {
     "node": "22"
