@@ -438,6 +438,7 @@ test("moving back out of 'solved' is allowed, and the reporter cannot write a re
 const proxyReport = (uid, extra = {}) => ({
   userId: uid, userPhone: "+639111111111", isAnonymous: false,
   municipality: "Bambang", barangay: "Poblacion", category: "Flooding", status: "reported",
+  reportedAt: serverTimestamp(),
   onBehalfOf: { name: "Lola Maria Santos", contact: "Purok 2, near the chapel", relationship: "" },
   ...extra,
 });
@@ -474,4 +475,128 @@ test("the filer cannot change who a report was filed for afterwards", async () =
   await assertSucceeds(setDoc(doc(as("citizen"), "users/citizen/reports/f9"), proxyReport("citizen")));
   await assertFails(updateDoc(doc(as("citizen"), "users/citizen/reports/f9"),
     { onBehalfOf: { name: "Someone Else", contact: "", relationship: "" } }));
+});
+
+// ── super admins are bound by the report rules too ─────────────────────────
+
+test("a super admin cannot skip the lifecycle, referral or disposition checks", async () => {
+  // Solved straight from 'reported', or without a note: refused.
+  await assertFails(updateDoc(doc(as("super"), REPORT), { status: "solved" }));
+  await assertFails(updateDoc(doc(as("super"), REPORT),
+    { status: "solved", resolutionNote: "Fixed by the crew.", resolutionBy: "super" }));
+  // A referral stamped as someone else, or a bare 'closed': refused.
+  await assertFails(updateDoc(doc(as("super"), REPORT), referBy("muni")));
+  await assertFails(updateDoc(doc(as("super"), REPORT), { status: "closed" }));
+  // The proper way works.
+  await assertSucceeds(updateDoc(doc(as("super"), REPORT), { status: "ongoing" }));
+  await assertSucceeds(updateDoc(doc(as("super"), REPORT),
+    { status: "solved", resolutionNote: "Fixed by the crew.", resolutionBy: "super" }));
+  await assertSucceeds(updateDoc(doc(as("super"), REPORT), referBy("super")));
+});
+
+test("a super admin can still approve an escalation in any town, attributed to them", async () => {
+  await assertSucceeds(updateDoc(doc(as("super"), REPORT),
+    { escalatedToProvince: true, handlingLevel: "provincial", escalatedBy: "super" }));
+  await env.withSecurityRulesDisabled((ctx) => updateDoc(doc(ctx.firestore(), REPORT), { escalatedToProvince: false }));
+  await assertFails(updateDoc(doc(as("super"), REPORT), { escalatedToProvince: true, escalatedBy: "muni" }));
+});
+
+// ── security review fixes (Nov 2026) ───────────────────────────────────────
+
+const ownReport = (uid, extra = {}) => ({
+  userId: uid, userPhone: "+639111111111", isAnonymous: false, municipality: "Bambang",
+  category: "Flooding", status: "reported", reportedAt: serverTimestamp(), ...extra,
+});
+const daysAgo = (d) => Timestamp.fromMillis(Date.now() - d * 86400e3);
+
+test("a new report must start as 'reported' and be filed about now", async () => {
+  const c = as("citizen");
+  await assertSucceeds(setDoc(doc(c, "users/citizen/reports/n1"), ownReport("citizen")));
+  // A report saved offline keeps its real filing time.
+  await assertSucceeds(setDoc(doc(c, "users/citizen/reports/n2"), ownReport("citizen", { reportedAt: daysAgo(3) })));
+  await assertFails(setDoc(doc(c, "users/citizen/reports/n3"), ownReport("citizen", { status: "solved" })));
+  await assertFails(setDoc(doc(c, "users/citizen/reports/n4"), ownReport("citizen", { status: "archived" })));
+  await assertFails(setDoc(doc(c, "users/citizen/reports/n5"), ownReport("citizen", { reportedAt: daysAgo(900) })));
+  const noDate = ownReport("citizen"); delete noDate.reportedAt;
+  await assertFails(setDoc(doc(c, "users/citizen/reports/n6"), noDate));
+});
+
+test("the reporter cannot edit a filed report: not priority, town, escalation or dates", async () => {
+  const r = doc(as("citizen"), REPORT);
+  await assertFails(updateDoc(r, { priority: "critical" }));
+  await assertFails(updateDoc(r, { municipality: "Solano" }));
+  await assertFails(updateDoc(r, { escalatedToProvince: true, escalatedBy: "muni" }));
+  await assertFails(updateDoc(r, { reportedAt: daysAgo(900) }));
+  await assertFails(updateDoc(r, { imageUrl: "https://x/o/residency_proofs%2Fvictim_1.jpg" }));
+  await assertFails(updateDoc(r, { description: "edited" }));
+});
+
+test("account deletion can still archive the reporter's own reports", async () => {
+  // Exactly what app_settings_screen.dart writes before deleting the profile.
+  const archive = { archived: true, archivedReason: "account_deleted", archivedAt: serverTimestamp(),
+    status: "archived", reporterName: "Juan Dela Cruz" };
+  await assertFails(updateDoc(doc(as("citizen"), REPORT), { ...archive, archivedReason: "other" }));
+  await assertFails(updateDoc(doc(as("citizen"), REPORT), { ...archive, priority: "critical" }));
+  await assertFails(updateDoc(doc(as("muniOther"), REPORT), archive));
+  await assertSucceeds(updateDoc(doc(as("citizen"), REPORT), archive));
+});
+
+test("an admin cannot move themselves to another town or barangay", async () => {
+  await assertFails(updateDoc(doc(as("muni"), "users/muni"), { municipality: "Solano" }));
+  await assertFails(updateDoc(doc(as("muni"), "users/muni"), { barangay: "Poblacion" }));
+  await assertSucceeds(updateDoc(doc(as("muni"), "users/muni"), { name: "New Name", fcmToken: "t" }));
+  // A resident may still change the town on their own profile.
+  await assertSucceeds(updateDoc(doc(as("citizen"), "users/citizen"), { municipality: "Solano" }));
+});
+
+test("residency cannot be self-certified, on create or by removing the field", async () => {
+  await assertFails(setDoc(doc(as("fresh"), "users/fresh"), { role: "citizen", residencyStatus: "certified" }));
+  await assertSucceeds(setDoc(doc(as("fresh"), "users/fresh"), { role: "citizen", municipality: "Bambang" }));
+  await assertSucceeds(updateDoc(doc(as("fresh"), "users/fresh"), { residencyStatus: "unverified" }));
+  await assertFails(updateDoc(doc(as("fresh"), "users/fresh"), { residencyStatus: deleteField() }));
+  await assertFails(updateDoc(doc(as("fresh"), "users/fresh"), { residencyStatus: "certified" }));
+});
+
+test("no admin can forge an audit log entry", async () => {
+  const entry = { action: "role_assigned_direct", targetUid: "someone", at: serverTimestamp() };
+  await assertFails(setDoc(doc(as("muni"), "audit_logs/f1"), entry));
+  await assertFails(setDoc(doc(as("prov"), "audit_logs/f2"), entry));
+  await assertSucceeds(getDocs(collection(as("muni"), "audit_logs")));
+});
+
+// ── privacy and inbox tightening (Nov 2026) ────────────────────────────────
+
+test("a resident cannot read other people's reports, solved or not", async () => {
+  const { collectionGroup } = require("firebase/firestore");
+  await env.withSecurityRulesDisabled((ctx) => setDoc(doc(ctx.firestore(), "users/other/reports/s1"),
+    { userId: "other", userPhone: "+639222222222", municipality: "Bambang", status: "solved", reportedAt: Timestamp.now() }));
+  const c = as("citizen");
+  // The old community-feed query, and a direct read.
+  await assertFails(getDocs(query(collectionGroup(c, "reports"),
+    where("municipality", "==", "Bambang"), where("status", "==", "solved"))));
+  await assertFails(getDoc(doc(c, "users/other/reports/s1")));
+  // Their own reports, as the feed now reads them.
+  await assertSucceeds(getDocs(collection(c, "users/citizen/reports")));
+});
+
+test("only the owner can read or write their notification inbox", async () => {
+  await env.withSecurityRulesDisabled((ctx) => setDoc(doc(ctx.firestore(), "users/citizen/notifications/n1"), { title: "t" }));
+  await assertFails(setDoc(doc(as("muni"), "users/citizen/notifications/x"), { title: "Fake", body: "Send money" }));
+  await assertFails(setDoc(doc(as("prov"), "users/citizen/notifications/y"), { title: "Fake" }));
+  await assertFails(getDoc(doc(as("muni"), "users/citizen/notifications/n1")));
+  await assertSucceeds(getDoc(doc(as("citizen"), "users/citizen/notifications/n1")));
+  await assertSucceeds(updateDoc(doc(as("citizen"), "users/citizen/notifications/n1"), { read: true }));
+});
+
+test("PAGASA weather data: any signed-in user reads it, nobody writes it, the cell cache is closed", async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    await setDoc(doc(ctx.firestore(), "weather_pagasa/alerts"), { active: [] });
+    await setDoc(doc(ctx.firestore(), "weather_pagasa_points/16.38_121.07"), { forecast: {} });
+  });
+  await assertSucceeds(getDoc(doc(as("citizen"), "weather_pagasa/alerts")));
+  await assertFails(getDoc(doc(env.unauthenticatedContext().firestore(), "weather_pagasa/alerts")));
+  await assertFails(setDoc(doc(as("prov"), "weather_pagasa/alerts"), { active: [{ title: "Fake warning" }] }));
+  await assertFails(setDoc(doc(as("super"), "weather_pagasa/alerts"), { active: [] }));
+  await assertFails(getDoc(doc(as("citizen"), "weather_pagasa_points/16.38_121.07")));
+  await assertFails(setDoc(doc(as("super"), "weather_pagasa_points/x"), { a: 1 }));
 });

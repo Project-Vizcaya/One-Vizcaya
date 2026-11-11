@@ -229,8 +229,12 @@ service cloud.firestore {
       // [3] is the top-level collection. (Indexing the `document` wildcard
       // itself is an evaluation error — which denies EVERY write and would
       // silently remove the bypass; tests/emulator guards against that.)
+      // Report updates and deletes are excluded: a super admin goes through
+      // the report rules like every other admin, so the disposition, referral
+      // and lifecycle checks bind them too. (Those rules keep the one extra
+      // power a super admin had here: approving an escalation in any town.)
       allow write: if isSuperAdmin() && !(request.path[3] in serverOnlyCollections())
-                    && !(request.method == 'delete' && isReportPath())
+                    && !(request.method in ['update', 'delete'] && isReportPath())
                     // Broadcasts follow their own rule, so a super admin also
                     // needs a second approver for urgent/province-wide alerts.
                     && request.path[3] != 'broadcasts';
@@ -242,7 +246,8 @@ service cloud.firestore {
     }
 
     function serverOnlyCollections() {
-      return ['pagasa_products', 'alert_drafts', 'system_health'];
+      return ['pagasa_products', 'alert_drafts', 'system_health',
+              'weather_pagasa', 'weather_pagasa_points'];
     }
 
     // ─── User profiles ──────────────────────────────────────────────────────
@@ -253,7 +258,10 @@ service cloud.firestore {
       // super-admin power (or the nominate → approve workflow), never a direct
       // client write — role() falls back to this field, so it must be guarded.
       allow create: if (isOwner(userId)
-                        && request.resource.data.get('role', 'citizen') == 'citizen')
+                        && request.resource.data.get('role', 'citizen') == 'citizen'
+                        // Never self-certified: only an LGU approval sets it.
+                        && request.resource.data.get('residencyStatus', 'unverified')
+                             in ['unverified', 'gps_verified'])
                     || isSuperAdmin()
                     || (isProvincialAdmin()
                         && request.resource.data.get('role', 'citizen') == 'citizen');
@@ -270,7 +278,19 @@ service cloud.firestore {
                         && (request.resource.data.get('residencyStatus', 'unverified')
                               == resource.data.get('residencyStatus', 'unverified')
                             || request.resource.data.get('residencyStatus', 'unverified')
-                                 in ['unverified', 'gps_verified']))
+                                 in ['unverified', 'gps_verified'])
+                        // Removing the field would read as 'grandfathered' in
+                        // the report rule and skip the residency gate.
+                        && (!('residencyStatus' in resource.data)
+                            || 'residencyStatus' in request.resource.data)
+                        // An admin's town and barangay ARE their jurisdiction
+                        // (actorMunicipality / actorBarangay), so an admin may
+                        // not move themselves; only a role grant sets them.
+                        && (resource.data.get('role', 'citizen') == 'citizen'
+                            || (request.resource.data.get('municipality', '')
+                                  == resource.data.get('municipality', '')
+                                && request.resource.data.get('barangay', '')
+                                  == resource.data.get('barangay', ''))))
                     || (isProvincialAdmin()
                         && request.resource.data.get('role', 'citizen')
                            == resource.data.get('role', 'citizen'));
@@ -300,7 +320,16 @@ service cloud.firestore {
                       && get(/databases/$(database)/documents/users/$(userId))
                            .data.get('residencyStatus', 'grandfathered')
                            in ['gps_verified', 'certified', 'grandfathered']
-                      && validOnBehalf();
+                      && validOnBehalf()
+                      // A new report starts as 'reported', filed about now. (A
+                      // report saved offline keeps its real filing time, hence
+                      // the window.) Otherwise a reporter could create one
+                      // already 'solved' or 'archived', or back-date it into
+                      // the retention purge.
+                      && request.resource.data.status == 'reported'
+                      && request.resource.data.reportedAt is timestamp
+                      && request.resource.data.reportedAt > request.time - duration.value(60, 'd')
+                      && request.resource.data.reportedAt < request.time + duration.value(1, 'd');
         // Approval chain (Municipal → Provincial): an escalation (turning on
         // escalatedToProvince) may ONLY be approved by a Municipal admin of the
         // report's own municipality, and must stamp escalatedBy with their uid.
@@ -316,14 +345,20 @@ service cloud.firestore {
                          || (municipalScoped(resource.data) && !approvingEscalation())
                          || (barangayScoped(resource.data) && !approvingEscalation())
                          || (approvingEscalation()
-                             && municipalScoped(resource.data)
+                             && (municipalScoped(resource.data) || isSuperAdmin())
                              && request.resource.data.escalatedBy == request.auth.uid))
                          && validDisposition()
                          && validReferral()
                          && validLifecycle()
+                      // The reporter never edits a filed report (ratings go
+                      // to the feedback subcollection). The ONE owner write is
+                      // account deletion, which archives their reports so the
+                      // LGU keeps the record (app_settings_screen.dart).
                       || (isOwner(userId)
-                          && !request.resource.data.diff(resource.data)
-                               .affectedKeys().hasAny(dispositionFields().concat(['referral', 'resolutionNote', 'resolutionBy', 'onBehalfOf'])));
+                          && request.resource.data.diff(resource.data).affectedKeys()
+                               .hasOnly(['status', 'archived', 'archivedReason', 'archivedAt', 'reporterName'])
+                          && request.resource.data.status == 'archived'
+                          && request.resource.data.archivedReason == 'account_deleted');
         // Deletion goes ONLY through the deleteReportWithReason callable,
         // which checks the caller, requires a reason and records who did it.
         // (A client delete could not be attributed.)
@@ -332,9 +367,10 @@ service cloud.firestore {
 
       // Per-user notifications
       match /notifications/{notifId} {
+        // The owner only. Status updates are written by notifyOnStatusChange
+        // (Cloud Functions bypass rules). Admins used to be able to read and
+        // write every user's inbox, i.e. push arbitrary text to anyone.
         allow read, write: if isOwner(userId);
-        allow read:        if isAdmin();
-        allow write:       if isAdmin(); // Cloud Functions write here
       }
 
       // Per-user feedback on resolved reports
@@ -365,17 +401,14 @@ service cloud.firestore {
     }
 
     // ─── CollectionGroup query ───────────────────────────────────────────────
-    // Citizens need read access ONLY for the community "Recently Resolved" feed,
-    // which queries where status == 'solved'. Restricting the rule to solved
-    // reports forces that filter and stops citizens from reading other people's
-    // open reports (descriptions, phone, GPS) via a collectionGroup query.
-    // Owners still read their own reports through the users/{uid}/reports rule.
-    // Admins can read everything for triage.
+    // Residents get NO collection-group read. They read their own reports
+    // through users/{uid}/reports. (Until Nov 2026 any signed-in user could
+    // read every 'solved' report for a community feed — in full, including the
+    // reporter's phone and GPS. The feed now shows only the user's own.)
     match /{path=**}/reports/{reportId} {
       allow read:   if isProvincialAdmin()
                     || municipalScoped(resource.data)
-                    || barangayScoped(resource.data)
-                    || (isAuth() && resource.data.status == 'solved');
+                    || barangayScoped(resource.data);
       // NOTE: this collection-group match ALSO matches users/{uid}/reports/{id},
       // and Firestore ORs every matching rule. Any constraint on report updates
       // must therefore appear here as well as in the nested rule, or it is
@@ -384,7 +417,7 @@ service cloud.firestore {
                        || (municipalScoped(resource.data) && !approvingEscalation())
                        || (barangayScoped(resource.data) && !approvingEscalation())
                        || (approvingEscalation()
-                           && municipalScoped(resource.data)
+                           && (municipalScoped(resource.data) || isSuperAdmin())
                            && request.resource.data.escalatedBy == request.auth.uid))
                        && validDisposition()
                        && validReferral()
@@ -454,10 +487,12 @@ service cloud.firestore {
       allow delete: if isProvincialAdmin();
     }
 
-    // ─── Audit logs (append-only for admins; only super_admin can delete) ────
+    // ─── Audit logs (written by Cloud Functions; only super_admin can delete) ─
     match /audit_logs/{logId} {
       allow read:   if isAdmin();
-      allow create: if isAdmin();
+      // No client writes entries: every audited action is logged server-side.
+      // Letting admins create them meant any admin could forge one.
+      allow create: if false;
       allow update, delete: if isSuperAdmin();
     }
 
@@ -479,6 +514,16 @@ service cloud.firestore {
       allow read:  if isAuth();
       allow write: if false;
     }
+
+    // ─── DOST-PAGASA forecasts, alerts and station readings ──────────────────
+    // Written only by pagasaMobileWatch (Cloud Functions). Public weather
+    // information: any signed-in user may read it. weather_pagasa_points (the
+    // per-cell cache behind getPagasaForecast) has no client access at all.
+    match /weather_pagasa/{docId} {
+      allow read:  if isAuth();
+      allow write: if false;
+    }
+
 
     // ─── App config ──────────────────────────────────────────────────────────
     match /config/{docId} {

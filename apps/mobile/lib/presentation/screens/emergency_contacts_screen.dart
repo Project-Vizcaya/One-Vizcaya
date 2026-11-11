@@ -1,3 +1,4 @@
+import '../../features/weather/presentation/pagasa_alerts_live.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../core/l10n/app_strings.dart';
@@ -645,6 +646,8 @@ class EmergencyContactsScreen extends StatelessWidget {
             bottom: MediaQuery.of(context).padding.bottom + 32,
           ),
           children: [
+            // Official PAGASA alerts for Nueva Vizcaya, when any is active.
+            const PagasaAlertsLive(),
             // ── Local contacts (most relevant → expanded by default) ──
             if (localContacts.isNotEmpty)
               _collapsibleSection(

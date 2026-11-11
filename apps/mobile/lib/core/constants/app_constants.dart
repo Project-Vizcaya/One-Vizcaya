@@ -1,6 +1,10 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+/// SharedPreferences key (admins): when true, tapping an overdue-report alert
+/// opens that report; when false (default), the Admin Dashboard.
+const kAdminAlertOpensReportKey = 'admin_alert_opens_report';
+
 class AppConstants {
   /// Update this whenever you bump the version in pubspec.yaml.
   static const String appVersion = '1.8.0';
