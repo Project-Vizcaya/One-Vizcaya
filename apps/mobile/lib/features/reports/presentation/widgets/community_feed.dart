@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:timeago/timeago.dart' as timeago;
 
 class CommunityFeed extends StatelessWidget {
@@ -8,13 +9,20 @@ class CommunityFeed extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Privacy (RA 10173): this used to list every solved report in the town,
+    // which meant any signed-in user could read other residents' reports in
+    // full, phone number and GPS included. It now shows only the signed-in
+    // user's OWN resolved reports, and firestore.rules no longer let residents
+    // read anyone else's. Filtered in code so no extra index is needed.
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return const SizedBox.shrink();
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
-          .collectionGroup('reports')
-          .where('municipality', isEqualTo: municipality)
-          .where('status', isEqualTo: 'solved')
+          .collection('users')
+          .doc(uid)
+          .collection('reports')
           .orderBy('reportedAt', descending: true)
-          .limit(10)
+          .limit(50)
           .snapshots(),
       builder: (context, snapshot) {
         if (snapshot.hasError) {
@@ -29,33 +37,12 @@ class CommunityFeed extends StatelessWidget {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
         }
-        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-          return Padding(
-            padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 16),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.check_circle_outline,
-                    size: 48, color: Colors.green.shade200),
-                const SizedBox(height: 12),
-                const Text(
-                  'No resolved reports yet',
-                  style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.grey),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  'Reports marked as solved will appear here',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 13, color: Colors.grey.shade400),
-                ),
-              ],
-            ),
-          );
-        }
-        final docs = snapshot.data!.docs;
+        if (!snapshot.hasData) return _empty();
+        final docs = snapshot.data!.docs
+            .where((d) => (d.data() as Map<String, dynamic>)['status'] == 'solved')
+            .take(10)
+            .toList();
+        if (docs.isEmpty) return _empty();
         return ListView.separated(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
@@ -98,5 +85,32 @@ class CommunityFeed extends StatelessWidget {
         );
       },
     );
+  }
+
+  Widget _empty() {
+    return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.check_circle_outline,
+                  size: 48, color: Colors.green.shade200),
+              const SizedBox(height: 12),
+              const Text(
+                'None of your reports is resolved yet',
+                style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.grey),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'Your reports appear here once they are marked as solved',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 13, color: Colors.grey.shade400),
+              ),
+            ],
+          ),
+        );
   }
 }

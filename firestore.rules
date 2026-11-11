@@ -366,9 +366,10 @@ service cloud.firestore {
 
       // Per-user notifications
       match /notifications/{notifId} {
+        // The owner only. Status updates are written by notifyOnStatusChange
+        // (Cloud Functions bypass rules). Admins used to be able to read and
+        // write every user's inbox, i.e. push arbitrary text to anyone.
         allow read, write: if isOwner(userId);
-        allow read:        if isAdmin();
-        allow write:       if isAdmin(); // Cloud Functions write here
       }
 
       // Per-user feedback on resolved reports
@@ -399,17 +400,14 @@ service cloud.firestore {
     }
 
     // ─── CollectionGroup query ───────────────────────────────────────────────
-    // Citizens need read access ONLY for the community "Recently Resolved" feed,
-    // which queries where status == 'solved'. Restricting the rule to solved
-    // reports forces that filter and stops citizens from reading other people's
-    // open reports (descriptions, phone, GPS) via a collectionGroup query.
-    // Owners still read their own reports through the users/{uid}/reports rule.
-    // Admins can read everything for triage.
+    // Residents get NO collection-group read. They read their own reports
+    // through users/{uid}/reports. (Until Nov 2026 any signed-in user could
+    // read every 'solved' report for a community feed — in full, including the
+    // reporter's phone and GPS. The feed now shows only the user's own.)
     match /{path=**}/reports/{reportId} {
       allow read:   if isProvincialAdmin()
                     || municipalScoped(resource.data)
-                    || barangayScoped(resource.data)
-                    || (isAuth() && resource.data.status == 'solved');
+                    || barangayScoped(resource.data);
       // NOTE: this collection-group match ALSO matches users/{uid}/reports/{id},
       // and Firestore ORs every matching rule. Any constraint on report updates
       // must therefore appear here as well as in the nested rule, or it is

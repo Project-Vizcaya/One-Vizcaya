@@ -331,52 +331,40 @@ exports.notifyOnStatusChange = onDocumentUpdated(
     const isAnonymous = after.isAnonymous === true;
     if (isAnonymous) return; // no notification for anonymous reports
 
-    const userDoc = await admin.firestore().collection("users").doc(userId).get();
-    if (!userDoc.exists) return;
-
-    const fcmToken = userDoc.data().fcmToken;
-    if (!fcmToken) return;
-
-    const statusLabels = {
-      reported: "Reported",
-      acknowledged: "Acknowledged",
-      under_review: "Under Review",
-      ongoing: "In Progress",
-      solved: "Resolved",
-      closed: "Closed",
-    };
-
-    const newLabel = statusLabels[after.status] || after.status;
     const category = after.category || "Your report";
-    // A closed report tells the reporter WHY in plain terms (the category
-    // only — the admin's free-text reason may hold internal notes), and how
-    // to object, rather than implying it was resolved.
-    const body = after.status === "closed"
-      ? `${category} was closed without action (${DISPOSITION_LABELS[after.disposition] || "closed"}). ` +
-        "If you believe this is a mistake, contact your LGU."
-      : `${category} is now marked as "${newLabel}" by the LGU.`;
-
-    const message = {
-      token: fcmToken,
-      notification: {
-        title: `Report Status Updated: ${newLabel}`,
-        body,
-      },
-      data: {
-        reportId: event.params.reportId,
-        newStatus: after.status,
-      },
-      android: {
-        priority: "high",
-        notification: { channelId: "report_updates" },
-      },
+    const TEXT = {
+      acknowledged: ["Report Acknowledged", "The LGU has received and acknowledged your report."],
+      under_review: ["Report Under Review", "Your report is now being reviewed by the LGU."],
+      ongoing: ["Report In Progress", "Your report is now being acted upon by the LGU."],
+      solved: ["Report Resolved", "Your report has been resolved. Thank you for helping improve your community."],
+      reported: ["Report Reopened", "Your report has been reopened for further review."],
+      // A closed report tells the reporter WHY in plain terms (the category
+      // only — the admin's free-text reason may hold internal notes), and how
+      // to object, rather than implying it was resolved.
+      closed: ["Report Closed",
+        `${category} was closed without action (${DISPOSITION_LABELS[after.disposition] || "closed"}). ` +
+        "If you believe this is a mistake, contact your LGU."],
     };
+    const text = TEXT[after.status];
+    if (!text) return; // e.g. archived by retention: nothing to tell the reporter
 
-    try {
-      await admin.messaging().send(message);
-    } catch (err) {
-      console.error("FCM send failed:", err.message);
-    }
+    // Written HERE, server-side, for every client (web and mobile). Admin
+    // clients used to write into the reporter's inbox themselves, which meant
+    // the rules let any admin write a notification to any user. The inbox
+    // entry is the record; onNewNotification turns it into the one push.
+    // event.id makes a retried delivery overwrite, not duplicate.
+    await admin.firestore()
+      .collection("users").doc(userId).collection("notifications").doc(`status_${event.id}`)
+      .set({
+        type: "status_update",
+        title: text[0],
+        body: text[1],
+        status: after.status === "solved" ? "success" : after.status === "ongoing" ? "ongoing" : "info",
+        reportStatus: after.status,
+        reportId: event.params.reportId,
+        timestamp: admin.firestore.FieldValue.serverTimestamp(),
+        read: false,
+      });
   }
 );
 
@@ -668,6 +656,8 @@ exports.onNewNotification = onDocumentCreated(
         data: {
           type: data.type || "notification",
           reportId: data.reportId || "",
+          // The app's banner styles itself from the report's new status.
+          newStatus: data.reportStatus || "",
           click_action: "FLUTTER_NOTIFICATION_CLICK",
         },
       });

@@ -563,3 +563,27 @@ test("no admin can forge an audit log entry", async () => {
   await assertFails(setDoc(doc(as("prov"), "audit_logs/f2"), entry));
   await assertSucceeds(getDocs(collection(as("muni"), "audit_logs")));
 });
+
+// ── privacy and inbox tightening (Nov 2026) ────────────────────────────────
+
+test("a resident cannot read other people's reports, solved or not", async () => {
+  const { collectionGroup } = require("firebase/firestore");
+  await env.withSecurityRulesDisabled((ctx) => setDoc(doc(ctx.firestore(), "users/other/reports/s1"),
+    { userId: "other", userPhone: "+639222222222", municipality: "Bambang", status: "solved", reportedAt: Timestamp.now() }));
+  const c = as("citizen");
+  // The old community-feed query, and a direct read.
+  await assertFails(getDocs(query(collectionGroup(c, "reports"),
+    where("municipality", "==", "Bambang"), where("status", "==", "solved"))));
+  await assertFails(getDoc(doc(c, "users/other/reports/s1")));
+  // Their own reports, as the feed now reads them.
+  await assertSucceeds(getDocs(collection(c, "users/citizen/reports")));
+});
+
+test("only the owner can read or write their notification inbox", async () => {
+  await env.withSecurityRulesDisabled((ctx) => setDoc(doc(ctx.firestore(), "users/citizen/notifications/n1"), { title: "t" }));
+  await assertFails(setDoc(doc(as("muni"), "users/citizen/notifications/x"), { title: "Fake", body: "Send money" }));
+  await assertFails(setDoc(doc(as("prov"), "users/citizen/notifications/y"), { title: "Fake" }));
+  await assertFails(getDoc(doc(as("muni"), "users/citizen/notifications/n1")));
+  await assertSucceeds(getDoc(doc(as("citizen"), "users/citizen/notifications/n1")));
+  await assertSucceeds(updateDoc(doc(as("citizen"), "users/citizen/notifications/n1"), { read: true }));
+});
