@@ -247,7 +247,8 @@ service cloud.firestore {
 
     function serverOnlyCollections() {
       return ['pagasa_products', 'alert_drafts', 'system_health',
-              'weather_pagasa', 'weather_pagasa_points'];
+              'weather_pagasa', 'weather_pagasa_points',
+              'hazard_signals', 'hazard_feed_status'];
     }
 
     // ─── User profiles ──────────────────────────────────────────────────────
@@ -519,6 +520,18 @@ service cloud.firestore {
     // Written only by pagasaMobileWatch (Cloud Functions). Public weather
     // information: any signed-in user may read it. weather_pagasa_points (the
     // per-cell cache behind getPagasaForecast) has no client access at all.
+    // ─── Hazard Watch earthquake feeds (written only by hazardWatch) ─────────
+    // Public earthquake information (USGS, PHIVOLCS): any signed-in user may
+    // read it. Feed status (errors, switches) is for admins.
+    match /hazard_signals/{docId} {
+      allow read:  if isAuth();
+      allow write: if false;
+    }
+    match /hazard_feed_status/{docId} {
+      allow read:  if isAdmin();
+      allow write: if false;
+    }
+
     match /weather_pagasa/{docId} {
       allow read:  if isAuth();
       allow write: if false;

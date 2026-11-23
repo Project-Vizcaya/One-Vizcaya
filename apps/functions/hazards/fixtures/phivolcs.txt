@@ -1,0 +1,9 @@
+HTTP/1.1 200 OK
+content-type: text/html
+x-fixture: SYNTHETIC - written by hand from the documented format, NOT a saved response
+
+<html><body><table class='MsoNormalTable'><tr><td><b>Date - Time</b><br>(Philippine Time)</td><td>Latitude<br>(&ordm;N)</td><td>Longitude<br>(&ordm;E)</td><td>Depth<br>(km)</td><td>Mag</td><td>Location</td></tr>
+<tr><td class='auto-style91'><span><a href="2026_Earthquake_Information\November\2026_1123_0.html">23 November 2026 - 10:00 AM</a></span></td><td>16.61</td><td>121.21</td><td>012</td><td>4.7</td><td>006 km N 45&deg; E of Solano (Nueva Vizcaya)</td></tr>
+<tr><td class='auto-style91'><span><a href="2026_Earthquake_Information\November\2026_1123_1.html">23 November 2026 - 02:00 PM</a></span></td><td>16.12</td><td>120.98</td><td>010</td><td>2.9</td><td>004 km S 10&deg; W of Kayapa (Nueva Vizcaya)</td></tr>
+<tr><td class='auto-style91'><span><a href="2026_Earthquake_Information\November\2026_1123_2.html">23 November 2026 - 06:00 AM</a></span></td><td>15.48</td><td>119.90</td><td>033</td><td>3.4</td><td>021 km N 80&deg; W of Masinloc (Zambales)</td></tr>
+<tr><td>not a row</td></tr><tr><td>garbage</td><td>x</td><td>y</td><td>z</td><td>m</td><td>loc</td></tr></table></body></html>

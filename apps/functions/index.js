@@ -1508,6 +1508,21 @@ const pagasaService = () => new PagasaService(admin.firestore(), {
   ts: (ms) => admin.firestore.Timestamp.fromMillis(ms),
 });
 
+// ── Hazard Watch: earthquakes near Nueva Vizcaya (docs/hazards.md) ───────────
+// USGS public feed (on by default) and PHIVOLCS (off until permission is in
+// hand: config/hazards.phivolcsEnabled). Stored in hazard_signals for the
+// console's Hazard Watch page, which puts the province's own reports, SOS and
+// PAGASA information first.
+const { HazardService } = require("./hazards/service");
+
+exports.hazardWatch = scheduled("hazardWatch",
+  { schedule: "every 10 minutes", timeZone: "Asia/Manila", timeoutSeconds: 120 },
+  async () => {
+    const r = await new HazardService(admin.firestore()).refresh();
+    if (r.errors.length) console.warn("hazardWatch:", JSON.stringify(r));
+  }
+);
+
 exports.pagasaMobileWatch = scheduled("pagasaMobileWatch",
   { schedule: "every 5 minutes", timeZone: "Asia/Manila", timeoutSeconds: 240 },
   async () => {

@@ -600,3 +600,16 @@ test("PAGASA weather data: any signed-in user reads it, nobody writes it, the ce
   await assertFails(getDoc(doc(as("citizen"), "weather_pagasa_points/16.38_121.07")));
   await assertFails(setDoc(doc(as("super"), "weather_pagasa_points/x"), { a: 1 }));
 });
+
+test("Hazard Watch data: signed-in users read signals, admins read feed status, nobody writes", async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    await setDoc(doc(ctx.firestore(), "hazard_signals/usgs_x"), { source: "usgs" });
+    await setDoc(doc(ctx.firestore(), "hazard_feed_status/usgs"), { lastError: null });
+  });
+  await assertSucceeds(getDoc(doc(as("citizen"), "hazard_signals/usgs_x")));
+  await assertFails(getDoc(doc(env.unauthenticatedContext().firestore(), "hazard_signals/usgs_x")));
+  await assertFails(setDoc(doc(as("super"), "hazard_signals/fake"), { source: "phivolcs", magnitude: 7.9 }));
+  await assertSucceeds(getDoc(doc(as("muni"), "hazard_feed_status/usgs")));
+  await assertFails(getDoc(doc(as("citizen"), "hazard_feed_status/usgs")));
+  await assertFails(setDoc(doc(as("prov"), "hazard_feed_status/usgs"), { enabled: true }));
+});

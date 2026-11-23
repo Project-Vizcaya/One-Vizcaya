@@ -16,6 +16,7 @@ const JOB_INTERVAL_MIN = {
   escalateOverdueReports: 15,
   pagasaRegionalWatch: 60,
   pagasaMobileWatch: 5,
+  hazardWatch: 10,
   rainfallWatch: 180,
   windyWindWatch: 180,
   resetRateLimits: 1440,
