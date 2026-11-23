@@ -32,6 +32,14 @@ to the province. They are not an official intensity. The rules
 | Watch | M3.5+ within 150 km |
 | Info | anything else in range |
 
+## What residents see (mobile app)
+
+The **Emergency Contacts** screen shows up to five **recent earthquakes near
+Nueva Vizcaya**: only the last 48 hours, only "watch" level and above (about
+M3.5+ within 150 km), PHIVOLCS's report whenever it has one, each labelled with
+its source. Minor quakes are left out so residents are not alarmed by every
+tremor. Residents do not see the reports, SOS or triage list.
+
 ## Earthquake feeds
 
 `hazardWatch` (Cloud Function, every 10 minutes) writes to `hazard_signals`.

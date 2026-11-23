@@ -66,6 +66,14 @@ Shown when a resident or official files a report for a person without a phone.
 | `proxyRelationship` | Your relationship to them (optional) | Kaugnayan mo sa kanila (opsyonal) | Relasionmo kadakuada (saan a nasken) | ☐ | |
 | `proxyNotAllowed` | Only officials and residents with certified residency can file for someone else. | Ang mga opisyal at residenteng may sertipikadong paninirahan lamang ang maaaring mag-ulat para sa iba. | Dagiti opisyal ken residente nga addaan sertipikado a panagnaed laeng ti mabalin nga agreport para iti sabali. | ☐ | |
 
+### A7. Recent earthquakes (Emergency Contacts screen)
+
+| Key | English (source) | Tagalog | Ilocano | OK | Correction |
+|---|---|---|---|:-:|---|
+| `recentQuakes` | Recent earthquakes near Nueva Vizcaya | Mga kamakailang lindol malapit sa Nueva Vizcaya | Dagiti kabarbaro a gingined iti asideg ti Nueva Vizcaya | ☐ | |
+| `kmFromProvince` | km from the province | km mula sa probinsya | km manipud iti probinsia | ☐ | |
+| `quakeSourceNote` | PHIVOLCS is the official source for Philippine earthquakes. USGS readings are international and shown only when PHIVOLCS has no report. | Ang PHIVOLCS ang opisyal na pinagmumulan ng impormasyon sa lindol sa Pilipinas. Ang USGS ay pandaigdigan at ipinapakita lamang kung walang ulat ang PHIVOLCS. | Ti PHIVOLCS ti opisial a pagtaudan ti impormasion maipapan iti gingined ditoy Filipinas. Ti USGS ket internasional ken maipakita laeng no awan ti report ti PHIVOLCS. | ☐ | |
+
 ---
 
 ## B. English only — needs translating
