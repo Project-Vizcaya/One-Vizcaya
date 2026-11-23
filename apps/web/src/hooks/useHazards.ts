@@ -59,3 +59,12 @@ export function usePagasaMobileAlerts() {
   }, [on]);
   return alerts;
 }
+
+/** Switches the resident app reads (public_settings/transparency). */
+export function useTransparencySettings() {
+  const [floodControlPublic, setFloodControlPublic] = useState<boolean | null>(null);
+  useEffect(() => onSnapshot(doc(db, "public_settings/transparency"),
+    (snap) => setFloodControlPublic(snap.get("floodControlPublic") === true),
+    () => setFloodControlPublic(null)), []);
+  return { floodControlPublic };
+}

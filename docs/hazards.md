@@ -32,6 +32,11 @@ to the province. They are not an official intensity. The rules
 | Watch | M3.5+ within 150 km |
 | Info | anything else in range |
 
+Below the map: an optional **DPWH flood-control structures** layer and links
+to the **official hazard services** (PHIVOLCS, PAGASA flood information,
+PhilSensors, HazardHunterPH, UP NOAH, DSWD DROMIC). See
+[flood-control.md](flood-control.md).
+
 ## What residents see (mobile app)
 
 The **Emergency Contacts** screen shows up to five **recent earthquakes near

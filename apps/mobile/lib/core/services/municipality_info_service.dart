@@ -17,6 +17,25 @@ class MunicipalityInfo {
 }
 
 class MunicipalityInfoService {
+  // PHLPost ZIP codes, from BetterGov.ph's LGU directory (v1, CC0).
+  static const Map<String, String> zipCodes = {
+    'Alfonso Castañeda': '3714',
+    'Ambaguio': '3701',
+    'Aritao': '3704',
+    'Bagabag': '3711',
+    'Bambang': '3702',
+    'Bayombong': '3700',
+    'Diadi': '3712',
+    'Dupax del Norte': '3706',
+    'Dupax del Sur': '3707',
+    'Kasibu': '3703',
+    'Kayapa': '3708',
+    'Quezon': '3713',
+    'Santa Fe': '3705',
+    'Solano': '3709',
+    'Villaverde': '3710',
+  };
+
   // Compiled from public sources (incl. Wikipedia). Founding notes are kept
   // conservative; the live Wikipedia summary provides authoritative detail.
   static const Map<String, MunicipalityInfo> curated = {

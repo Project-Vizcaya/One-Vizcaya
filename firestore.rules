@@ -544,6 +544,14 @@ service cloud.firestore {
       allow write: if isProvincialAdmin();
     }
 
+    // ─── Switches the resident app reads (docs/flood-control.md) ─────────────
+    // e.g. public_settings/transparency.floodControlPublic. Only switches,
+    // nothing private: any signed-in user may read; provincial admins set.
+    match /public_settings/{docId} {
+      allow read:  if isAuth();
+      allow write: if isProvincialAdmin();
+    }
+
     // ─── Rate limit counters ─────────────────────────────────────────────────
     match /rate_limits/{userId} {
       allow read, write: if isOwner(userId) || isAdmin();

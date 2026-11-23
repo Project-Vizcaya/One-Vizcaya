@@ -74,6 +74,16 @@ Shown when a resident or official files a report for a person without a phone.
 | `kmFromProvince` | km from the province | km mula sa probinsya | km manipud iti probinsia | ☐ | |
 | `quakeSourceNote` | PHIVOLCS is the official source for Philippine earthquakes. USGS readings are international and shown only when PHIVOLCS has no report. | Ang PHIVOLCS ang opisyal na pinagmumulan ng impormasyon sa lindol sa Pilipinas. Ang USGS ay pandaigdigan at ipinapakita lamang kung walang ulat ang PHIVOLCS. | Ti PHIVOLCS ti opisial a pagtaudan ti impormasion maipapan iti gingined ditoy Filipinas. Ti USGS ket internasional ken maipakita laeng no awan ti report ti PHIVOLCS. | ☐ | |
 
+### A8. Official hazard links, ZIP code, DPWH flood control (Emergency Contacts, town info sheet)
+
+| Key | English (source) | Tagalog | Ilocano | OK | Correction |
+|---|---|---|---|:-:|---|
+| `officialHazardServices` | Official hazard services | Mga opisyal na serbisyo sa panganib | Dagiti opisial a serbisio maipapan iti peggad | ☐ | |
+| `floodControlTitle` | Flood-control projects (DPWH) | Mga proyektong flood control (DPWH) | Dagiti proyekto a flood control (DPWH) | ☐ | |
+| `floodControlNote` | From DPWH records as published in August 2025, through BetterGov.ph. Amounts are contract costs. Ask your DPWH district office or barangay for updates. | Mula sa mga rekord ng DPWH na inilathala noong Agosto 2025, sa pamamagitan ng BetterGov.ph. Ang mga halaga ay halaga ng kontrata. Magtanong sa inyong DPWH district office o barangay para sa mga update. | Manipud kadagiti rekord ti DPWH a naipablaak idi Agosto 2025, babaen ti BetterGov.ph. Dagiti bilang ket gatad ti kontrata. Damagenyo iti DPWH district office wenno barangay para kadagiti update. | ☐ | |
+| `floodControlNone` | No DPWH flood-control projects recorded for this town in 2021–2024. | Walang naitalang proyektong flood control ng DPWH sa bayang ito noong 2021–2024. | Awan ti nairekord a proyekto a flood control ti DPWH iti daytoy nga ili idi 2021–2024. | ☐ | |
+| `contractor` / `started` / `completed` | Contractor / Started / Completed | Kontratista / Sinimulan / Natapos | Kontratista / Nangrugi / Nalpas | ☐ | |
+
 ---
 
 ## B. English only — needs translating

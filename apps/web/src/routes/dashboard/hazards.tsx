@@ -2,19 +2,23 @@ import { useEffect, useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { APIProvider, Map, AdvancedMarker, useMap } from "@vis.gl/react-google-maps";
 import { formatDistanceToNowStrict } from "date-fns";
+import { doc, setDoc } from "firebase/firestore";
 import {
-  Activity, CloudLightning, Waves, Mountain, Siren, Wind, FileText, ExternalLink, Phone, Info,
+  Activity, CloudLightning, Waves, Mountain, Siren, Wind, FileText, ExternalLink, Phone, Info, Construction,
 } from "lucide-react";
-import { MAPS_API_KEY, NV_CENTER, NV_ZOOM } from "@/lib/firebase";
+import { db, MAPS_API_KEY, NV_CENTER, NV_ZOOM } from "@/lib/firebase";
 import { useAuthStore } from "@/stores/authStore";
 import { useReports } from "@/hooks/useReports";
 import { useSosAlerts } from "@/hooks/useSosAlerts";
 import { usePagasaProduct } from "@/hooks/usePagasaProduct";
 import { useResponders } from "@/hooks/useResponders";
-import { useQuakeSignals, useHazardFeedStatus, usePagasaMobileAlerts } from "@/hooks/useHazards";
+import { useQuakeSignals, useHazardFeedStatus, usePagasaMobileAlerts, useTransparencySettings } from "@/hooks/useHazards";
+import { FLOOD_CONTROL_META, FLOOD_CONTROL_PROJECTS } from "@/data/floodControl";
+import { OFFICIAL_HAZARD_LINKS } from "@/data/officialHazardLinks";
 import { buildHazardItems, hazardCounts, SOURCE_LABEL, type HazardItem, type HazardKind, type HazardLevel } from "@/lib/hazards";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { toast } from "@/hooks/useToast";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/dashboard/hazards")({ component: HazardWatchPage });
@@ -51,7 +55,8 @@ function Pan({ to }: { to: { lat: number; lng: number } | null }) {
 const ago = (d: Date | null) => (d ? `${formatDistanceToNowStrict(d)} ago` : "");
 
 function HazardWatchPage() {
-  const { getEffectiveMunicipality } = useAuthStore();
+  const { getEffectiveMunicipality, user } = useAuthStore();
+  const isProvincialAdmin = ["provincial_admin", "admin", "super_admin"].includes(user?.role ?? "");
   const municipality = getEffectiveMunicipality();
   const { reports } = useReports(municipality);
   const { alerts: sos } = useSosAlerts();
@@ -63,6 +68,25 @@ function HazardWatchPage() {
   const [filter, setFilter] = useState("all");
   const [focus, setFocus] = useState<{ lat: number; lng: number } | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
+  const [showStructures, setShowStructures] = useState(false);
+  const { floodControlPublic } = useTransparencySettings();
+  const [savingSwitch, setSavingSwitch] = useState(false);
+  // DPWH flood-control structures (docs/flood-control.md). Contractor and cost
+  // are left out here; they are for the resident list once it is switched on.
+  const structures = FLOOD_CONTROL_PROJECTS.filter((p) => !municipality || p.town === municipality);
+  const project = structures.find((p) => `dpwh_${p.id}` === selected) ?? null;
+
+  const setResidentList = async (on: boolean) => {
+    setSavingSwitch(true);
+    try {
+      await setDoc(doc(db, "public_settings/transparency"), { floodControlPublic: on }, { merge: true });
+      toast({ title: on ? "Residents can now see the flood-control list" : "Flood-control list hidden from residents" });
+    } catch {
+      toast({ title: "Could not change the setting", variant: "destructive" });
+    } finally {
+      setSavingSwitch(false);
+    }
+  };
 
   const items = useMemo(
     () => buildHazardItems({ reports, sos, pagasa, pagasaAlerts, quakes, now: new Date() }),
@@ -129,6 +153,13 @@ function HazardWatchPage() {
                   </div>
                 </AdvancedMarker>
               ))}
+              {showStructures && structures.map((p) => (
+                <AdvancedMarker key={p.id} position={{ lat: p.lat, lng: p.lng }} zIndex={0}
+                  title={`DPWH flood control: ${p.description}`} onClick={() => setSelected(`dpwh_${p.id}`)}>
+                  <div className={cn("h-3.5 w-3.5 rotate-45 border-2 border-white bg-sky-700 shadow",
+                    selected === `dpwh_${p.id}` && "ring-4 ring-sky-400")} />
+                </AdvancedMarker>
+              ))}
             </Map>
           </APIProvider>
         </div>
@@ -172,6 +203,57 @@ function HazardWatchPage() {
             </ul>
           </CardContent>
         </Card>
+      </div>
+
+      <div className="rounded-lg border p-3 space-y-2">
+        <label className="flex items-center gap-2 text-sm font-semibold min-h-[24px]">
+          <input type="checkbox" checked={showStructures} onChange={(e) => setShowStructures(e.target.checked)} className="h-4 w-4" />
+          <Construction aria-hidden="true" className="h-4 w-4 text-sky-700" />
+          Show DPWH flood-control structures ({structures.length})
+        </label>
+        {showStructures && project && (
+          <div className="rounded-md bg-accent/50 p-2 text-sm space-y-0.5">
+            <p className="font-semibold break-words">{project.description}</p>
+            <p className="text-xs text-muted-foreground">
+              {[project.town ?? "Town not stated", project.typeOfWork, `${project.year} programme`,
+                project.completedDate ? `completed ${project.completedDate}` : "no completion date",
+                project.office].join(" · ")}
+            </p>
+          </div>
+        )}
+        <p className="text-xs text-muted-foreground">
+          {FLOOD_CONTROL_META.source}, snapshot {FLOOD_CONTROL_META.snapshot}. Locations are as DPWH recorded them.
+          Use it to see whether a flood report is near a structure.
+        </p>
+        {isProvincialAdmin && (
+          <div className="flex flex-wrap items-center gap-2 border-t pt-2 text-xs">
+            <span>
+              Resident app list ("Flood control in your town", with contractors and costs):{" "}
+              <strong>{floodControlPublic === null ? "…" : floodControlPublic ? "shown" : "hidden"}</strong>
+            </span>
+            {floodControlPublic !== null && (
+              <button disabled={savingSwitch} onClick={() => setResidentList(!floodControlPublic)}
+                className="h-8 rounded-md border px-2 hover:bg-accent disabled:opacity-50">
+                {floodControlPublic ? "Hide from residents" : "Show to residents"}
+              </button>
+            )}
+            <span className="text-muted-foreground">Turn on only with the Governor's office's approval.</span>
+          </div>
+        )}
+      </div>
+
+      <div className="rounded-lg border p-3">
+        <p className="text-xs font-bold uppercase tracking-widest mb-2">Official hazard services</p>
+        <ul className="grid gap-1 sm:grid-cols-2 lg:grid-cols-3">
+          {OFFICIAL_HAZARD_LINKS.map((l) => (
+            <li key={l.url}>
+              <a href={l.url} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline inline-flex items-center gap-1">
+                {l.name} <ExternalLink aria-hidden="true" className="h-3 w-3" />
+              </a>
+              <span className="text-xs text-muted-foreground"> · {l.agency}</span>
+            </li>
+          ))}
+        </ul>
       </div>
 
       <div className="rounded-lg border p-3 text-xs text-muted-foreground space-y-1">

@@ -67,6 +67,7 @@ flutter:
   assets:
     - assets/images/Seal_of_Nueva_Vizcaya.svg.png
     - assets/images/seals/
+    - assets/data/flood_control.json
 
 flutter_launcher_icons:
   android: true

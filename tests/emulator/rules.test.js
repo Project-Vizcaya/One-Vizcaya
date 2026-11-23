@@ -614,6 +614,15 @@ test("Hazard Watch data: signed-in users read signals, admins read feed status, 
   await assertFails(setDoc(doc(as("prov"), "hazard_feed_status/usgs"), { enabled: true }));
 });
 
+test("Public settings: signed-in users read, only provincial admins set", async () => {
+  const PATH = "public_settings/transparency";
+  await assertSucceeds(setDoc(doc(as("prov"), PATH), { floodControlPublic: false }));
+  await assertSucceeds(getDoc(doc(as("citizen"), PATH)));
+  await assertFails(getDoc(doc(env.unauthenticatedContext().firestore(), PATH)));
+  await assertFails(setDoc(doc(as("muni"), PATH), { floodControlPublic: true }));
+  await assertFails(setDoc(doc(as("citizen"), PATH), { floodControlPublic: true }));
+});
+
 test("AI usage counters are server-only", async () => {
   await assertFails(getDoc(doc(as("muni"), "ai_usage/muni_2026-11-23")));
   await assertFails(setDoc(doc(as("super"), "ai_usage/muni_2026-11-23"), { count: 0 }));
