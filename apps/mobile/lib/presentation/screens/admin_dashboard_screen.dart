@@ -41,6 +41,23 @@ class AdminDashboardScreen extends StatefulWidget {
 
 class _AdminDashboardScreenState extends State<AdminDashboardScreen>
     with SingleTickerProviderStateMixin {
+  bool _handledRouteArgs = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_handledRouteArgs) return;
+    _handledRouteArgs = true;
+    final args = ModalRoute.of(context)?.settings.arguments;
+    if (args is Map && args['openReportId'] is String) {
+      final id = args['openReportId'] as String;
+      final owner = args['openReportOwner'] as String?;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && id.isNotEmpty) _openReportByPath(owner, id);
+      });
+    }
+  }
+
   final ReportRepository _reportRepository = FirebaseReportRepository();
 
   UserRole _currentUserRole = UserRole.citizen;
@@ -462,9 +479,12 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
       ToastUtils.showError(AppStrings.get('invalidQr'));
       return;
     }
-    final reportId = parsed['reportId']!;
-    final owner = parsed['owner'];
+    await _openReportByPath(parsed['owner'], parsed['reportId']!);
+  }
 
+  // Opens one report's detail sheet: from a scanned QR, or from an
+  // overdue-report alert when the admin chose "open the report" in Settings.
+  Future<void> _openReportByPath(String? owner, String reportId) async {
     ToastUtils.showInfo('Looking up report…');
     try {
       DocumentSnapshot<Map<String, dynamic>>? doc;

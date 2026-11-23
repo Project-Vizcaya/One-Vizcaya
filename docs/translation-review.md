@@ -89,6 +89,24 @@ Shown when a resident or official files a report for a person without a phone.
 | `proxyRelationship` | Your relationship to them (optional) | Kaugnayan mo sa kanila (opsyonal) | Relasionmo kadakuada (saan a nasken) | ☐ | |
 | `proxyNotAllowed` | Only officials and residents with certified residency can file for someone else. | Ang mga opisyal at residenteng may sertipikadong paninirahan lamang ang maaaring mag-ulat para sa iba. | Dagiti opisyal ken residente nga addaan sertipikado a panagnaed laeng ti mabalin nga agreport para iti sabali. | ☐ | |
 
+### A7. Recent earthquakes (Emergency Contacts screen)
+
+| Key | English (source) | Tagalog | Ilocano | OK | Correction |
+|---|---|---|---|:-:|---|
+| `recentQuakes` | Recent earthquakes near Nueva Vizcaya | Mga kamakailang lindol malapit sa Nueva Vizcaya | Dagiti kabarbaro a gingined iti asideg ti Nueva Vizcaya | ☐ | |
+| `kmFromProvince` | km from the province | km mula sa probinsya | km manipud iti probinsia | ☐ | |
+| `quakeSourceNote` | PHIVOLCS is the official source for Philippine earthquakes. USGS readings are international and shown only when PHIVOLCS has no report. | Ang PHIVOLCS ang opisyal na pinagmumulan ng impormasyon sa lindol sa Pilipinas. Ang USGS ay pandaigdigan at ipinapakita lamang kung walang ulat ang PHIVOLCS. | Ti PHIVOLCS ti opisial a pagtaudan ti impormasion maipapan iti gingined ditoy Filipinas. Ti USGS ket internasional ken maipakita laeng no awan ti report ti PHIVOLCS. | ☐ | |
+
+### A8. Official hazard links, ZIP code, DPWH flood control (Emergency Contacts, town info sheet)
+
+| Key | English (source) | Tagalog | Ilocano | OK | Correction |
+|---|---|---|---|:-:|---|
+| `officialHazardServices` | Official hazard services | Mga opisyal na serbisyo sa panganib | Dagiti opisial a serbisio maipapan iti peggad | ☐ | |
+| `floodControlTitle` | Flood-control projects (DPWH) | Mga proyektong flood control (DPWH) | Dagiti proyekto a flood control (DPWH) | ☐ | |
+| `floodControlNote` | From DPWH records as published in August 2025, through BetterGov.ph. Amounts are contract costs. Ask your DPWH district office or barangay for updates. | Mula sa mga rekord ng DPWH na inilathala noong Agosto 2025, sa pamamagitan ng BetterGov.ph. Ang mga halaga ay halaga ng kontrata. Magtanong sa inyong DPWH district office o barangay para sa mga update. | Manipud kadagiti rekord ti DPWH a naipablaak idi Agosto 2025, babaen ti BetterGov.ph. Dagiti bilang ket gatad ti kontrata. Damagenyo iti DPWH district office wenno barangay para kadagiti update. | ☐ | |
+| `floodControlNone` | No DPWH flood-control projects recorded for this town in 2021–2024. | Walang naitalang proyektong flood control ng DPWH sa bayang ito noong 2021–2024. | Awan ti nairekord a proyekto a flood control ti DPWH iti daytoy nga ili idi 2021–2024. | ☐ | |
+| `contractor` / `started` / `completed` | Contractor / Started / Completed | Kontratista / Sinimulan / Natapos | Kontratista / Nangrugi / Nalpas | ☐ | |
+
 ---
 
 ## B. English only — needs translating
@@ -118,6 +136,18 @@ coverage line should be translated:
 |---|---|---|---|---|
 | B10 | Weather screen, PAGASA section | Provincial forecast covering Nueva Vizcaya. It is not a reading from a weather station in *[town]*. | | |
 | B11 | Weather screen, when PAGASA data cannot be loaded | Official PAGASA data is temporarily unavailable. | | |
+
+## C. Post Maker caption phrases (web console)
+
+Fixed phrases the console adds to social media captions. Source:
+`apps/web/src/lib/postCaption.ts`.
+
+| Key | English (source) | Tagalog | Ilocano | OK | Correction |
+|---|---|---|---|:-:|---|
+| C1 `details` | For details, contact | Para sa detalye, makipag-ugnayan sa | Para kadagiti detalye, kontaken ti | ☐ | |
+| C2 `hotline` | In an emergency, call | Sa emergency, tumawag sa | No adda emergency, tawagan ti | ☐ | |
+| C3 `share` | Please share with your family and neighbours. | Pakibahagi sa inyong pamilya at mga kapitbahay. | Pangngaasiyo ta ibingayyo iti pamiliayo ken kaarrubayo. | ☐ | |
+| C4 `source` | Source | Pinagmulan | Naggapuan | ☐ | |
 
 ---
 

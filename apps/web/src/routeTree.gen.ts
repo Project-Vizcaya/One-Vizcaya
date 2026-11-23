@@ -18,7 +18,9 @@ import { Route as DashboardVerificationsRouteImport } from './routes/dashboard/v
 import { Route as DashboardUsersRouteImport } from './routes/dashboard/users'
 import { Route as DashboardRespondersRouteImport } from './routes/dashboard/responders'
 import { Route as DashboardReportsRouteImport } from './routes/dashboard/reports'
+import { Route as DashboardPostMakerRouteImport } from './routes/dashboard/post-maker'
 import { Route as DashboardMapRouteImport } from './routes/dashboard/map'
+import { Route as DashboardHazardsRouteImport } from './routes/dashboard/hazards'
 import { Route as DashboardEmergenciesRouteImport } from './routes/dashboard/emergencies'
 import { Route as DashboardBroadcastsRouteImport } from './routes/dashboard/broadcasts'
 import { Route as DashboardAuditRouteImport } from './routes/dashboard/audit'
@@ -45,14 +47,14 @@ const DashboardIndexRoute = DashboardIndexRouteImport.update({
   path: '/',
   getParentRoute: () => DashboardRouteRoute,
 } as any)
-const DashboardVerificationsRoute = DashboardVerificationsRouteImport.update({
-  id: '/verifications',
-  path: '/verifications',
-  getParentRoute: () => DashboardRouteRoute,
-} as any)
 const DashboardWeatherRoute = DashboardWeatherRouteImport.update({
   id: '/weather',
   path: '/weather',
+  getParentRoute: () => DashboardRouteRoute,
+} as any)
+const DashboardVerificationsRoute = DashboardVerificationsRouteImport.update({
+  id: '/verifications',
+  path: '/verifications',
   getParentRoute: () => DashboardRouteRoute,
 } as any)
 const DashboardUsersRoute = DashboardUsersRouteImport.update({
@@ -70,9 +72,19 @@ const DashboardReportsRoute = DashboardReportsRouteImport.update({
   path: '/reports',
   getParentRoute: () => DashboardRouteRoute,
 } as any)
+const DashboardPostMakerRoute = DashboardPostMakerRouteImport.update({
+  id: '/post-maker',
+  path: '/post-maker',
+  getParentRoute: () => DashboardRouteRoute,
+} as any)
 const DashboardMapRoute = DashboardMapRouteImport.update({
   id: '/map',
   path: '/map',
+  getParentRoute: () => DashboardRouteRoute,
+} as any)
+const DashboardHazardsRoute = DashboardHazardsRouteImport.update({
+  id: '/hazards',
+  path: '/hazards',
   getParentRoute: () => DashboardRouteRoute,
 } as any)
 const DashboardEmergenciesRoute = DashboardEmergenciesRouteImport.update({
@@ -110,7 +122,9 @@ export interface FileRoutesByFullPath {
   '/dashboard/audit': typeof DashboardAuditRoute
   '/dashboard/broadcasts': typeof DashboardBroadcastsRoute
   '/dashboard/emergencies': typeof DashboardEmergenciesRoute
+  '/dashboard/hazards': typeof DashboardHazardsRoute
   '/dashboard/map': typeof DashboardMapRoute
+  '/dashboard/post-maker': typeof DashboardPostMakerRoute
   '/dashboard/reports': typeof DashboardReportsRoute
   '/dashboard/responders': typeof DashboardRespondersRoute
   '/dashboard/users': typeof DashboardUsersRoute
@@ -126,7 +140,9 @@ export interface FileRoutesByTo {
   '/dashboard/audit': typeof DashboardAuditRoute
   '/dashboard/broadcasts': typeof DashboardBroadcastsRoute
   '/dashboard/emergencies': typeof DashboardEmergenciesRoute
+  '/dashboard/hazards': typeof DashboardHazardsRoute
   '/dashboard/map': typeof DashboardMapRoute
+  '/dashboard/post-maker': typeof DashboardPostMakerRoute
   '/dashboard/reports': typeof DashboardReportsRoute
   '/dashboard/responders': typeof DashboardRespondersRoute
   '/dashboard/users': typeof DashboardUsersRoute
@@ -144,7 +160,9 @@ export interface FileRoutesById {
   '/dashboard/audit': typeof DashboardAuditRoute
   '/dashboard/broadcasts': typeof DashboardBroadcastsRoute
   '/dashboard/emergencies': typeof DashboardEmergenciesRoute
+  '/dashboard/hazards': typeof DashboardHazardsRoute
   '/dashboard/map': typeof DashboardMapRoute
+  '/dashboard/post-maker': typeof DashboardPostMakerRoute
   '/dashboard/reports': typeof DashboardReportsRoute
   '/dashboard/responders': typeof DashboardRespondersRoute
   '/dashboard/users': typeof DashboardUsersRoute
@@ -163,7 +181,9 @@ export interface FileRouteTypes {
     | '/dashboard/audit'
     | '/dashboard/broadcasts'
     | '/dashboard/emergencies'
+    | '/dashboard/hazards'
     | '/dashboard/map'
+    | '/dashboard/post-maker'
     | '/dashboard/reports'
     | '/dashboard/responders'
     | '/dashboard/users'
@@ -179,7 +199,9 @@ export interface FileRouteTypes {
     | '/dashboard/audit'
     | '/dashboard/broadcasts'
     | '/dashboard/emergencies'
+    | '/dashboard/hazards'
     | '/dashboard/map'
+    | '/dashboard/post-maker'
     | '/dashboard/reports'
     | '/dashboard/responders'
     | '/dashboard/users'
@@ -196,7 +218,9 @@ export interface FileRouteTypes {
     | '/dashboard/audit'
     | '/dashboard/broadcasts'
     | '/dashboard/emergencies'
+    | '/dashboard/hazards'
     | '/dashboard/map'
+    | '/dashboard/post-maker'
     | '/dashboard/reports'
     | '/dashboard/responders'
     | '/dashboard/users'
@@ -241,18 +265,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardIndexRouteImport
       parentRoute: typeof DashboardRouteRoute
     }
-    '/dashboard/verifications': {
-      id: '/dashboard/verifications'
-      path: '/verifications'
-      fullPath: '/dashboard/verifications'
-      preLoaderRoute: typeof DashboardVerificationsRouteImport
-      parentRoute: typeof DashboardRouteRoute
-    }
     '/dashboard/weather': {
       id: '/dashboard/weather'
       path: '/weather'
       fullPath: '/dashboard/weather'
       preLoaderRoute: typeof DashboardWeatherRouteImport
+      parentRoute: typeof DashboardRouteRoute
+    }
+    '/dashboard/verifications': {
+      id: '/dashboard/verifications'
+      path: '/verifications'
+      fullPath: '/dashboard/verifications'
+      preLoaderRoute: typeof DashboardVerificationsRouteImport
       parentRoute: typeof DashboardRouteRoute
     }
     '/dashboard/users': {
@@ -276,11 +300,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardReportsRouteImport
       parentRoute: typeof DashboardRouteRoute
     }
+    '/dashboard/post-maker': {
+      id: '/dashboard/post-maker'
+      path: '/post-maker'
+      fullPath: '/dashboard/post-maker'
+      preLoaderRoute: typeof DashboardPostMakerRouteImport
+      parentRoute: typeof DashboardRouteRoute
+    }
     '/dashboard/map': {
       id: '/dashboard/map'
       path: '/map'
       fullPath: '/dashboard/map'
       preLoaderRoute: typeof DashboardMapRouteImport
+      parentRoute: typeof DashboardRouteRoute
+    }
+    '/dashboard/hazards': {
+      id: '/dashboard/hazards'
+      path: '/hazards'
+      fullPath: '/dashboard/hazards'
+      preLoaderRoute: typeof DashboardHazardsRouteImport
       parentRoute: typeof DashboardRouteRoute
     }
     '/dashboard/emergencies': {
@@ -327,7 +365,9 @@ interface DashboardRouteRouteChildren {
   DashboardAuditRoute: typeof DashboardAuditRoute
   DashboardBroadcastsRoute: typeof DashboardBroadcastsRoute
   DashboardEmergenciesRoute: typeof DashboardEmergenciesRoute
+  DashboardHazardsRoute: typeof DashboardHazardsRoute
   DashboardMapRoute: typeof DashboardMapRoute
+  DashboardPostMakerRoute: typeof DashboardPostMakerRoute
   DashboardReportsRoute: typeof DashboardReportsRoute
   DashboardRespondersRoute: typeof DashboardRespondersRoute
   DashboardUsersRoute: typeof DashboardUsersRoute
@@ -342,7 +382,9 @@ const DashboardRouteRouteChildren: DashboardRouteRouteChildren = {
   DashboardAuditRoute: DashboardAuditRoute,
   DashboardBroadcastsRoute: DashboardBroadcastsRoute,
   DashboardEmergenciesRoute: DashboardEmergenciesRoute,
+  DashboardHazardsRoute: DashboardHazardsRoute,
   DashboardMapRoute: DashboardMapRoute,
+  DashboardPostMakerRoute: DashboardPostMakerRoute,
   DashboardReportsRoute: DashboardReportsRoute,
   DashboardRespondersRoute: DashboardRespondersRoute,
   DashboardUsersRoute: DashboardUsersRoute,

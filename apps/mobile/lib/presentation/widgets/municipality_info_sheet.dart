@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../core/constants/app_constants.dart';
 import '../../core/services/municipality_info_service.dart';
+import '../../core/l10n/app_strings.dart';
 import '../../core/utils/toast_utils.dart';
+import '../../features/transparency/presentation/flood_control_section.dart';
 
 /// Opens the municipality information sheet from the home header. Shows curated
 /// offline facts immediately and enriches them with a live Wikipedia summary.
@@ -71,6 +73,7 @@ class _MunicipalityInfoSheetState extends State<_MunicipalityInfoSheet> {
     final barangays =
         AppConstants.municipalityBarangays[widget.municipality] ?? const [];
     final info = MunicipalityInfoService.infoFor(widget.municipality);
+    final zip = MunicipalityInfoService.zipCodes[widget.municipality];
 
     return DraggableScrollableSheet(
       initialChildSize: 0.78,
@@ -139,6 +142,11 @@ class _MunicipalityInfoSheetState extends State<_MunicipalityInfoSheet> {
                                       .withValues(alpha: 0.7),
                                 ),
                               ),
+                              if (zip != null)
+                                Text(
+                                  '${AppStrings.get('zipCode')} $zip',
+                                  style: const TextStyle(fontSize: 13),
+                                ),
                             ],
                           ),
                         ),
@@ -223,6 +231,10 @@ class _MunicipalityInfoSheetState extends State<_MunicipalityInfoSheet> {
                               .toList(),
                         ),
                       ),
+
+                    // ── DPWH flood control (hidden until switched on) ──
+                    FloodControlSection(
+                        municipality: widget.municipality, color: primary),
 
                     // ── Live Wikipedia summary ──
                     _Section(

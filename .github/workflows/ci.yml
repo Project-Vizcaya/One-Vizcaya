@@ -1,0 +1,76 @@
+# Runs on every pull request and on pushes to main. A red check means a test
+# failed: do not merge until it is green. Nothing here deploys or needs secrets.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  functions-and-web:
+    name: Functions tests, web build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Cloud Functions unit tests
+        run: npm test --workspace apps/functions
+      - name: Web category list matches the mobile enum
+        run: node scripts/gen-report-categories.mjs --check
+      - name: Web console type-check and build
+        run: npm run build --workspace apps/web
+
+  rules-and-integration:
+    name: Security rules and function integration (emulator)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - run: npm ci
+      - run: npm ci
+        working-directory: tests/emulator
+      - name: Rules + integration tests
+        run: npm test
+        working-directory: tests/emulator
+      - name: Load and failover tests (emulator)
+        run: npm run test:load
+        working-directory: tests/emulator
+
+  mobile:
+    name: Mobile tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.44.0
+          cache: true
+      - run: flutter pub get
+        working-directory: apps/mobile
+      # `flutter analyze` is not run: firebase_options.dart is gitignored, so
+      # main.dart cannot resolve here. The tests do not need it.
+      - run: flutter test
+        working-directory: apps/mobile

@@ -331,52 +331,40 @@ exports.notifyOnStatusChange = onDocumentUpdated(
     const isAnonymous = after.isAnonymous === true;
     if (isAnonymous) return; // no notification for anonymous reports
 
-    const userDoc = await admin.firestore().collection("users").doc(userId).get();
-    if (!userDoc.exists) return;
-
-    const fcmToken = userDoc.data().fcmToken;
-    if (!fcmToken) return;
-
-    const statusLabels = {
-      reported: "Reported",
-      acknowledged: "Acknowledged",
-      under_review: "Under Review",
-      ongoing: "In Progress",
-      solved: "Resolved",
-      closed: "Closed",
-    };
-
-    const newLabel = statusLabels[after.status] || after.status;
     const category = after.category || "Your report";
-    // A closed report tells the reporter WHY in plain terms (the category
-    // only — the admin's free-text reason may hold internal notes), and how
-    // to object, rather than implying it was resolved.
-    const body = after.status === "closed"
-      ? `${category} was closed without action (${DISPOSITION_LABELS[after.disposition] || "closed"}). ` +
-        "If you believe this is a mistake, contact your LGU."
-      : `${category} is now marked as "${newLabel}" by the LGU.`;
-
-    const message = {
-      token: fcmToken,
-      notification: {
-        title: `Report Status Updated: ${newLabel}`,
-        body,
-      },
-      data: {
-        reportId: event.params.reportId,
-        newStatus: after.status,
-      },
-      android: {
-        priority: "high",
-        notification: { channelId: "report_updates" },
-      },
+    const TEXT = {
+      acknowledged: ["Report Acknowledged", "The LGU has received and acknowledged your report."],
+      under_review: ["Report Under Review", "Your report is now being reviewed by the LGU."],
+      ongoing: ["Report In Progress", "Your report is now being acted upon by the LGU."],
+      solved: ["Report Resolved", "Your report has been resolved. Thank you for helping improve your community."],
+      reported: ["Report Reopened", "Your report has been reopened for further review."],
+      // A closed report tells the reporter WHY in plain terms (the category
+      // only — the admin's free-text reason may hold internal notes), and how
+      // to object, rather than implying it was resolved.
+      closed: ["Report Closed",
+        `${category} was closed without action (${DISPOSITION_LABELS[after.disposition] || "closed"}). ` +
+        "If you believe this is a mistake, contact your LGU."],
     };
+    const text = TEXT[after.status];
+    if (!text) return; // e.g. archived by retention: nothing to tell the reporter
 
-    try {
-      await admin.messaging().send(message);
-    } catch (err) {
-      console.error("FCM send failed:", err.message);
-    }
+    // Written HERE, server-side, for every client (web and mobile). Admin
+    // clients used to write into the reporter's inbox themselves, which meant
+    // the rules let any admin write a notification to any user. The inbox
+    // entry is the record; onNewNotification turns it into the one push.
+    // event.id makes a retried delivery overwrite, not duplicate.
+    await admin.firestore()
+      .collection("users").doc(userId).collection("notifications").doc(`status_${event.id}`)
+      .set({
+        type: "status_update",
+        title: text[0],
+        body: text[1],
+        status: after.status === "solved" ? "success" : after.status === "ongoing" ? "ongoing" : "info",
+        reportStatus: after.status,
+        reportId: event.params.reportId,
+        timestamp: admin.firestore.FieldValue.serverTimestamp(),
+        read: false,
+      });
   }
 );
 
@@ -583,7 +571,7 @@ exports.migrateLegacyAdmins = onCall(async (request) => {
 // ── Auto-archive reports older than 12 months ───────────────────────────────
 // Runs daily at 2 AM Manila time. Marks reports with reportedAt > 12 months
 // as 'archived' so they no longer appear in active admin views.
-const { archiveUpdate, dueForDeletion } = require("./reports/retention");
+const { archiveUpdate, dueForDeletion, reportPhotoPathOk } = require("./reports/retention");
 
 exports.archiveOldReports = scheduled("archiveOldReports", 
   { schedule: "0 2 * * *", timeZone: "Asia/Manila" },
@@ -668,6 +656,8 @@ exports.onNewNotification = onDocumentCreated(
         data: {
           type: data.type || "notification",
           reportId: data.reportId || "",
+          // The app's banner styles itself from the report's new status.
+          newStatus: data.reportStatus || "",
           click_action: "FLUTTER_NOTIFICATION_CLICK",
         },
       });
@@ -1020,26 +1010,46 @@ exports.onSosAlertUpdated = onDocumentUpdated(
  * official Page comes later, once the project has an approved government
  * contract and Page access.
  */
+const { previewUrlAllowed } = require("./links/preview");
+
 exports.fetchLinkPreview = onCall(async (request) => {
   if (!request.auth) {
     throw new HttpsError("unauthenticated", "Sign in required.");
   }
+  // Admins only (it serves the announcement composer), public https hosts
+  // only, with a time and size limit: otherwise any signed-in user could use
+  // the server to fetch arbitrary or internal addresses.
+  const callerRole = await resolveCallerRole(request);
+  if (!["municipal_admin", "admin", "provincial_admin", "super_admin"].includes(callerRole)) {
+    throw new HttpsError("permission-denied", "Only admins can fetch link previews.");
+  }
   const url = String(request.data?.url || "").trim();
-  if (!/^https?:\/\//i.test(url)) {
-    throw new HttpsError("invalid-argument", "Enter a valid http(s) link.");
+  if (!previewUrlAllowed(url)) {
+    throw new HttpsError("invalid-argument", "Enter a valid public https link.");
   }
 
   let html = "";
   try {
-    const resp = await fetch(url, {
-      redirect: "follow",
-      headers: {
-        "User-Agent":
-          "Mozilla/5.0 (compatible; OneVizcayaBot/1.0; +https://nuevavizcaya.gov.ph)",
-        Accept: "text/html,application/xhtml+xml",
-      },
-    });
-    html = await resp.text();
+    // Follow at most 3 redirects by hand, re-checking each hop, so a public
+    // page cannot redirect the server to an internal address.
+    let target = url;
+    let resp;
+    for (let hop = 0; ; hop++) {
+      resp = await fetch(target, {
+        redirect: "manual",
+        signal: AbortSignal.timeout(8000),
+        headers: {
+          "User-Agent":
+            "Mozilla/5.0 (compatible; OneVizcayaBot/1.0; +https://nuevavizcaya.gov.ph)",
+          Accept: "text/html,application/xhtml+xml",
+        },
+      });
+      if (resp.status < 300 || resp.status >= 400) break;
+      const next = new URL(resp.headers.get("location") || "", target).toString();
+      if (hop >= 3 || !previewUrlAllowed(next)) throw new Error("redirect not allowed");
+      target = next;
+    }
+    html = (await resp.text()).slice(0, 500000);
   } catch (e) {
     console.error("fetchLinkPreview error:", e);
     throw new HttpsError("unavailable", "Could not fetch that link.");
@@ -1487,6 +1497,87 @@ async function fetchWindyPointForecast(lat, lon, apiKey) {
 // error is recorded alongside it, so the app can show how stale it is.
 const { parseNlprsd, SOURCE_URL: NLPRSD_URL } = require("./pagasa-public/regional");
 
+// ── DOST-PAGASA mobile API: barangay-level forecasts, alerts, stations ───────
+// Used with PAGASA's permission, on condition that the app discloses it is
+// not an official PAGASA app. All calls are made here, server-side, at fixed
+// intervals; phones read our stored copy. Off unless
+// config/weather.pagasaMobileEnabled is true. See docs/weather.md and
+// ./pagasa-mobile/service.js.
+const { PagasaService } = require("./pagasa-mobile/service");
+const pagasaService = () => new PagasaService(admin.firestore(), {
+  ts: (ms) => admin.firestore.Timestamp.fromMillis(ms),
+});
+
+// ── Post Maker AI helper (optional; docs/post-maker.md) ─────────────────────
+// Drafts a headline and caption with Claude from what the admin wrote. Off
+// unless the ANTHROPIC_API_KEY secret exists (read at call time) and
+// config/ai.postAssistEnabled is not false. Admin-only, 30 drafts per admin
+// per day, every draft audited.
+const Anthropic = require("@anthropic-ai/sdk");
+const { PostAssistService } = require("./ai/service");
+const { readSecret } = require("./ai/secret");
+const AnthropicClient = Anthropic.default || Anthropic;
+const postAssist = () => new PostAssistService(admin.firestore(), {
+  readKey: () => readSecret("ANTHROPIC_API_KEY"),
+  makeClient: (apiKey) => new AnthropicClient({ apiKey, timeout: 60000, maxRetries: 2 }),
+  serverTimestamp: () => admin.firestore.FieldValue.serverTimestamp(),
+  isRetryable: (e) => e instanceof AnthropicClient.RateLimitError || e instanceof AnthropicClient.InternalServerError ||
+    e instanceof AnthropicClient.APIConnectionError,
+});
+
+exports.postAssistStatus = onCall(async (request) => {
+  if (!request.auth) throw new HttpsError("unauthenticated", "Must be signed in.");
+  const role = await resolveCallerRole(request);
+  if (!["municipal_admin", "admin", "provincial_admin", "super_admin"].includes(role)) return { available: false };
+  return { available: await postAssist().available() };
+});
+
+exports.draftPostText = onCall({ timeoutSeconds: 120 }, async (request) => {
+  if (!request.auth) throw new HttpsError("unauthenticated", "Must be signed in.");
+  const role = await resolveCallerRole(request);
+  try {
+    return await postAssist().draft(request.auth.uid, role, request.data);
+  } catch (e) {
+    if (e && e.code && typeof e.message === "string" && !(e instanceof HttpsError)) throw new HttpsError(e.code, e.message);
+    throw e;
+  }
+});
+
+// ── Hazard Watch: earthquakes near Nueva Vizcaya (docs/hazards.md) ───────────
+// USGS public feed (on by default) and PHIVOLCS (off until permission is in
+// hand: config/hazards.phivolcsEnabled). Stored in hazard_signals for the
+// console's Hazard Watch page, which puts the province's own reports, SOS and
+// PAGASA information first.
+const { HazardService } = require("./hazards/service");
+
+exports.hazardWatch = scheduled("hazardWatch",
+  { schedule: "every 10 minutes", timeZone: "Asia/Manila", timeoutSeconds: 120 },
+  async () => {
+    const r = await new HazardService(admin.firestore()).refresh();
+    if (r.errors.length) console.warn("hazardWatch:", JSON.stringify(r));
+  }
+);
+
+exports.pagasaMobileWatch = scheduled("pagasaMobileWatch",
+  { schedule: "every 5 minutes", timeZone: "Asia/Manila", timeoutSeconds: 240 },
+  async () => {
+    const r = await pagasaService().refreshAll(NV_MUNICIPALITY_COORDS);
+    if (r.skipped !== "disabled") console.log("pagasaMobileWatch:", JSON.stringify(r));
+  }
+);
+
+// Barangay-level forecast for the caller's coordinates (inside Nueva Vizcaya
+// only), shared per ~1 km cell for 15 minutes so many users cost one request.
+exports.getPagasaForecast = onCall(async (request) => {
+  if (!request.auth) throw new HttpsError("unauthenticated", "Must be signed in.");
+  const lat = Number(request.data?.lat);
+  const lon = Number(request.data?.lon);
+  if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+    throw new HttpsError("invalid-argument", "lat and lon are required.");
+  }
+  return pagasaService().pointForecast(lat, lon);
+});
+
 exports.pagasaRegionalWatch = scheduled("pagasaRegionalWatch", 
   { schedule: "every 60 minutes", timeZone: "Asia/Manila", timeoutSeconds: 60 },
   async () => {
@@ -1717,7 +1808,7 @@ exports.windyWindWatch = scheduled("windyWindWatch",
 // Derives the Storage object path from a Firebase download URL and deletes it.
 // Used to guarantee no orphaned photo evidence (with embedded EXIF/location)
 // survives report or account deletion.
-async function deleteImageByUrl(imageUrl) {
+async function deleteImageByUrl(imageUrl, ownerUid) {
   if (!imageUrl || typeof imageUrl !== "string") return;
   try {
     // Download URLs look like:
@@ -1725,6 +1816,13 @@ async function deleteImageByUrl(imageUrl) {
     const match = imageUrl.match(/\/o\/([^?]+)/);
     if (!match) return;
     const objectPath = decodeURIComponent(match[1]);
+    // imageUrl is written by the reporter's client, so it is not trusted: only
+    // that reporter's own report photo ("report_images/<uid>_...") is ever
+    // deleted. Otherwise a crafted URL could make this delete any file.
+    if (!reportPhotoPathOk(objectPath, ownerUid)) {
+      console.warn(`deleteImageByUrl: refused path outside the owner's report photos: ${objectPath}`);
+      return;
+    }
     await admin.storage().bucket().file(objectPath).delete();
   } catch (e) {
     // Already deleted or unreadable — safe to ignore.
@@ -1741,7 +1839,7 @@ exports.cleanupReportImageOnDelete = onDocumentDeleted(
   async (event) => {
     const data = event.data?.data();
     if (!data) return;
-    await deleteImageByUrl(data.imageUrl);
+    await deleteImageByUrl(data.imageUrl, event.params.userId);
   }
 );
 
@@ -1864,7 +1962,7 @@ exports.deleteOldArchivedReports = scheduled("deleteOldArchivedReports",
     let count = 0;
     let deleted = 0;
     for (const doc of due) {
-      await deleteImageByUrl(doc.data().imageUrl);
+      await deleteImageByUrl(doc.data().imageUrl, doc.ref.parent.parent.id);
       batch.delete(doc.ref);
       count++;
       deleted++;

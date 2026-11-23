@@ -3,7 +3,7 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import {
   LayoutDashboard, Map, FileText, BarChart3, Users, Megaphone,
   Radio, Menu, LogOut, ChevronDown, Shield, Building2, ClipboardList,
-  AlertCircle, X, BadgeCheck, Siren, CloudSun,
+  AlertCircle, X, BadgeCheck, Siren, CloudSun, Activity, Image as ImageIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -40,6 +40,7 @@ const NAV_GROUPS = [
     items: [
       { path: "/dashboard", label: "Overview", icon: LayoutDashboard, exact: true, minRank: 1 },
       { path: "/dashboard/emergencies", label: "Emergencies", icon: Siren, minRank: 1 },
+      { path: "/dashboard/hazards", label: "Hazard Watch", icon: Activity, minRank: 1 },
       { path: "/dashboard/reports", label: "Live Reports", icon: FileText, badge: true, minRank: 1 },
       { path: "/dashboard/map", label: "Incident Map", icon: Map, minRank: 1 },
       { path: "/dashboard/weather", label: "Weather", icon: CloudSun, minRank: 1 },
@@ -59,6 +60,7 @@ const NAV_GROUPS = [
     items: [
       { path: "/dashboard/announcements", label: "Announcements", icon: Megaphone, minRank: 2 },
       { path: "/dashboard/broadcasts", label: "Broadcast Alert", icon: Radio, minRank: 2 },
+      { path: "/dashboard/post-maker", label: "Post Maker", icon: ImageIcon, minRank: 2 },
     ],
   },
   {

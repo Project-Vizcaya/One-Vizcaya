@@ -380,7 +380,7 @@ does today rather than on intent. Each item is tracked for the pre-pilot work.
 - Connectivity is detected by a real reachability probe, not by the OS network state, so detection can lag by up to a minute.
 
 **Report workflow**
-- The status lifecycle is enforced in `firestore.rules` at its key step: a report becomes `solved` **only from `ongoing`, with a resolution note** attributed to the admin. Earlier steps may be skipped. Super admins' general rules override is not bound by this check.
+- The status lifecycle is enforced in `firestore.rules` at its key step: a report becomes `solved` **only from `ongoing`, with a resolution note** attributed to the admin. Earlier steps may be skipped. This binds every admin, super admins included.
 - Routing targets an administrative **tier**; separately, the web console can record a **referral to a named office** (MDRRMO, BDRRMC, BFP, PNP and others), attributed and audited. Recording a referral **does not notify the office**. Referrals can be recorded from the web console and the mobile admin app.
 - Reports can be deleted only through a server function that requires a reason and records **who deleted** the report; direct deletes are refused by `firestore.rules`. Closing a report *without action* remains the recommended route for false, duplicate, incomplete or unverifiable reports.
 

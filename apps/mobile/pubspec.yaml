@@ -67,6 +67,7 @@ flutter:
   assets:
     - assets/images/Seal_of_Nueva_Vizcaya.svg.png
     - assets/images/seals/
+    - assets/data/flood_control.json
 
   # Atkinson Hyperlegible Next (SIL OFL 1.1, see assets/fonts/OFL.txt):
   # designed for low-vision readers; matches the web console.

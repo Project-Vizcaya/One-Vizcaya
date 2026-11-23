@@ -1,3 +1,8 @@
+import '../../features/weather/data/international/openweather_source.dart';
+import '../../features/weather/data/pagasa/firebase_pagasa_source.dart';
+import '../../features/weather/data/weather_repository.dart';
+import '../../features/weather/domain/weather_models.dart';
+import '../../features/weather/presentation/pagasa_forecast_section.dart';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart' hide TextDirection;
@@ -27,6 +32,13 @@ class _WeatherDetailScreenState extends State<WeatherDetailScreen> {
   bool _loading = true;
   String? _error;
 
+  // Official (PAGASA) + international, combined by mode: docs/weather.md.
+  final _repository = WeatherRepository<WeatherData>(
+    pagasa: FirebasePagasaSource(),
+    international: const OpenWeatherSource(),
+  );
+  WeatherSnapshot<WeatherData>? _snapshot;
+
   @override
   void initState() {
     super.initState();
@@ -39,15 +51,20 @@ class _WeatherDetailScreenState extends State<WeatherDetailScreen> {
       _error = null;
     });
     try {
-      final data = await WeatherService.fetch(
-        widget.municipality,
+      final snapshot = await _repository.load(
+        municipality: widget.municipality,
         lat: widget.lat,
         lon: widget.lon,
       );
       if (mounted) {
         setState(() {
-          _data = data;
+          _snapshot = snapshot;
+          _data = snapshot.international;
           _loading = false;
+          // Neither source has anything to show.
+          if (snapshot.international == null && snapshot.pagasa == null) {
+            _error = 'No weather data available';
+          }
         });
       }
     } catch (e) {
@@ -1307,6 +1324,28 @@ class _WeatherDetailScreenState extends State<WeatherDetailScreen> {
       );
     }
 
+    // PAGASA only (mode pagasaOnly, or the international source failed): the
+    // official forecast on its own, without the third-party sections.
+    if (_data == null && _snapshot?.pagasa != null) {
+      return Scaffold(
+        backgroundColor: const Color(0xFF0B1E3B),
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          foregroundColor: Colors.white,
+          title: Text(widget.municipality),
+          actions: [IconButton(onPressed: _fetch, icon: const Icon(Icons.refresh), tooltip: 'Refresh')],
+        ),
+        body: ListView(
+          children: [
+            PagasaForecastSection(snapshot: _snapshot!, card: _frostedCard, title: _sectionTitle),
+            PagasaWeatherPanel(municipality: widget.municipality, card: _frostedCard, title: _sectionTitle),
+            const SizedBox(height: 24),
+          ],
+        ),
+      );
+    }
+
     if (_error != null && _data == null) {
       return Scaffold(
         backgroundColor: const Color(0xFF0B1E3B),
@@ -1469,6 +1508,11 @@ class _WeatherDetailScreenState extends State<WeatherDetailScreen> {
                 child: Column(
                   children: [
                     const SizedBox(height: 8),
+                    // PAGASA's forecast for the user's barangay/town, alerts
+                    // and nearest station (or a notice when unavailable).
+                    if (_snapshot != null)
+                      PagasaForecastSection(
+                          snapshot: _snapshot!, card: _frostedCard, title: _sectionTitle),
                     // Official PAGASA products come first (provincial
                     // forecast, outlook, warnings, synopsis).
                     PagasaWeatherPanel(

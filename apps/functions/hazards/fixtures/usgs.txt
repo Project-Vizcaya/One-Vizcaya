@@ -1,0 +1,136 @@
+HTTP/1.1 200 OK
+content-type: application/geo+json
+x-fixture: SYNTHETIC - written by hand from the documented format, NOT a saved response
+
+{
+ "type": "FeatureCollection",
+ "metadata": {
+  "generated": 1795420800000,
+  "title": "USGS Earthquakes"
+ },
+ "features": [
+  {
+   "type": "Feature",
+   "id": "us7000aaa1",
+   "properties": {
+    "mag": 5.2,
+    "place": "12 km SSW of Kayapa, Philippines",
+    "time": 1795410000000,
+    "url": "https://earthquake.usgs.gov/earthquakes/eventpage/us7000aaa1"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     121.05,
+     16.2,
+     10
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "id": "us7000aaa2",
+   "properties": {
+    "mag": 4.3,
+    "place": "8 km E of Maddela, Philippines",
+    "time": 1795312800000,
+    "url": "https://earthquake.usgs.gov/earthquakes/eventpage/us7000aaa2"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     121.68,
+     16.3,
+     35
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "id": "us7000aaa3",
+   "properties": {
+    "mag": 3.6,
+    "place": "5 km W of Baguio, Philippines",
+    "time": 1795240800000,
+    "url": "https://earthquake.usgs.gov/earthquakes/eventpage/us7000aaa3"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     120.6,
+     16.41,
+     15
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "id": "us7000aaa4",
+   "properties": {
+    "mag": 6.1,
+    "place": "Mindanao, Philippines",
+    "time": 1795402800000,
+    "url": "https://earthquake.usgs.gov/earthquakes/eventpage/us7000aaa4"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     125.2,
+     7.9,
+     40
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "id": "us7000aaa5",
+   "properties": {
+    "mag": 4.0,
+    "place": "old one",
+    "time": 1794643200000,
+    "url": "https://earthquake.usgs.gov/earthquakes/eventpage/us7000aaa5"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     121.1,
+     16.5,
+     10
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "id": "bad",
+   "properties": {
+    "mag": null
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     121,
+     16,
+     1
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "id": "us7000aaa6",
+   "properties": {
+    "mag": 4.8,
+    "place": "Duplicate of a PHIVOLCS event",
+    "time": 1795399200000,
+    "url": "https://earthquake.usgs.gov/earthquakes/eventpage/us7000aaa6"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     121.2,
+     16.6,
+     12
+    ]
+   }
+  }
+ ]
+}

@@ -5,7 +5,10 @@ import path from "path";
 
 export default defineConfig({
   plugins: [
-    TanStackRouterVite({ routesDirectory: "./src/routes", generatedRouteTree: "./src/routeTree.gen.ts" }),
+    // autoCodeSplitting: each page is its own chunk, loaded when first opened,
+    // so a slow connection does not download the charts, map and every other
+    // page just to show the first screen.
+    TanStackRouterVite({ routesDirectory: "./src/routes", generatedRouteTree: "./src/routeTree.gen.ts", autoCodeSplitting: true }),
     react(),
   ],
   resolve: {
@@ -22,8 +25,9 @@ export default defineConfig({
           "react-vendor": ["react", "react-dom"],
           "firebase-vendor": ["firebase/app", "firebase/auth", "firebase/firestore"],
           "router-vendor": ["@tanstack/react-router", "@tanstack/react-query"],
-          "charts-vendor": ["recharts"],
-          "maps-vendor": ["@vis.gl/react-google-maps"],
+          // recharts and the maps library are NOT listed: naming them here
+          // made the entry page preload them. Left alone, they are fetched only
+          // by the pages that use them.
         },
       },
     },

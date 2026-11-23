@@ -28,6 +28,10 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
   String _selectedLanguage = 'English';
   // Internal sort order key stored in prefs (language-independent)
   String _reportSortKey = 'newestFirst';
+  // Admins: what tapping an overdue-report alert opens (see
+  // NotificationService._handleNotificationTap).
+  bool _isAdmin = false;
+  bool _adminAlertOpensReport = false;
 
   @override
   void initState() {
@@ -49,7 +53,16 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
       _biometricLock = prefs.getBool(kBiometricAppLockKey) ?? false;
       _selectedLanguage = prefs.getString('language') ?? 'English';
       _reportSortKey = prefs.getString('report_sort') ?? 'newestFirst';
+      _adminAlertOpensReport = prefs.getBool(kAdminAlertOpensReportKey) ?? false;
     });
+    // Show the admin-only setting to admins.
+    try {
+      final uid = FirebaseAuth.instance.currentUser?.uid;
+      if (uid == null) return;
+      final role = (await FirebaseFirestore.instance.collection('users').doc(uid).get())
+              .data()?['role'] as String? ?? 'citizen';
+      if (mounted) setState(() => _isAdmin = role != 'citizen' && role.isNotEmpty);
+    } catch (_) {/* offline: keep it hidden */}
   }
 
   Future<void> _saveSetting(String key, dynamic value) async {
@@ -126,6 +139,20 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
                     _saveSetting('notifications_enabled', val);
                   },
                 ),
+                if (_isAdmin)
+                  _ToggleTile(
+                    icon: Icons.open_in_new_rounded,
+                    iconColor: Colors.indigo,
+                    title: 'Overdue alerts open the report',
+                    subtitle: _adminAlertOpensReport
+                        ? 'On: tapping an overdue-report alert opens that report.'
+                        : 'Off: tapping an overdue-report alert opens the Admin Dashboard.',
+                    value: _adminAlertOpensReport,
+                    onChanged: (val) {
+                      setState(() => _adminAlertOpensReport = val);
+                      _saveSetting(kAdminAlertOpensReportKey, val);
+                    },
+                  ),
               ],
             ),
 
