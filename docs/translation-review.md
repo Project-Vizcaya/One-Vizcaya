@@ -96,6 +96,18 @@ coverage line should be translated:
 | B10 | Weather screen, PAGASA section | Provincial forecast covering Nueva Vizcaya. It is not a reading from a weather station in *[town]*. | | |
 | B11 | Weather screen, when PAGASA data cannot be loaded | Official PAGASA data is temporarily unavailable. | | |
 
+## C. Post Maker caption phrases (web console)
+
+Fixed phrases the console adds to social media captions. Source:
+`apps/web/src/lib/postCaption.ts`.
+
+| Key | English (source) | Tagalog | Ilocano | OK | Correction |
+|---|---|---|---|:-:|---|
+| C1 `details` | For details, contact | Para sa detalye, makipag-ugnayan sa | Para kadagiti detalye, kontaken ti | ☐ | |
+| C2 `hotline` | In an emergency, call | Sa emergency, tumawag sa | No adda emergency, tawagan ti | ☐ | |
+| C3 `share` | Please share with your family and neighbours. | Pakibahagi sa inyong pamilya at mga kapitbahay. | Pangngaasiyo ta ibingayyo iti pamiliayo ken kaarrubayo. | ☐ | |
+| C4 `source` | Source | Pinagmulan | Naggapuan | ☐ | |
+
 ---
 
 *Return the completed sheet to the development team. Tracked in issue #134.*

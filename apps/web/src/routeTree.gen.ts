@@ -18,6 +18,7 @@ import { Route as DashboardVerificationsRouteImport } from './routes/dashboard/v
 import { Route as DashboardUsersRouteImport } from './routes/dashboard/users'
 import { Route as DashboardRespondersRouteImport } from './routes/dashboard/responders'
 import { Route as DashboardReportsRouteImport } from './routes/dashboard/reports'
+import { Route as DashboardPostMakerRouteImport } from './routes/dashboard/post-maker'
 import { Route as DashboardMapRouteImport } from './routes/dashboard/map'
 import { Route as DashboardHazardsRouteImport } from './routes/dashboard/hazards'
 import { Route as DashboardEmergenciesRouteImport } from './routes/dashboard/emergencies'
@@ -71,6 +72,11 @@ const DashboardReportsRoute = DashboardReportsRouteImport.update({
   path: '/reports',
   getParentRoute: () => DashboardRouteRoute,
 } as any)
+const DashboardPostMakerRoute = DashboardPostMakerRouteImport.update({
+  id: '/post-maker',
+  path: '/post-maker',
+  getParentRoute: () => DashboardRouteRoute,
+} as any)
 const DashboardMapRoute = DashboardMapRouteImport.update({
   id: '/map',
   path: '/map',
@@ -118,6 +124,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/emergencies': typeof DashboardEmergenciesRoute
   '/dashboard/hazards': typeof DashboardHazardsRoute
   '/dashboard/map': typeof DashboardMapRoute
+  '/dashboard/post-maker': typeof DashboardPostMakerRoute
   '/dashboard/reports': typeof DashboardReportsRoute
   '/dashboard/responders': typeof DashboardRespondersRoute
   '/dashboard/users': typeof DashboardUsersRoute
@@ -135,6 +142,7 @@ export interface FileRoutesByTo {
   '/dashboard/emergencies': typeof DashboardEmergenciesRoute
   '/dashboard/hazards': typeof DashboardHazardsRoute
   '/dashboard/map': typeof DashboardMapRoute
+  '/dashboard/post-maker': typeof DashboardPostMakerRoute
   '/dashboard/reports': typeof DashboardReportsRoute
   '/dashboard/responders': typeof DashboardRespondersRoute
   '/dashboard/users': typeof DashboardUsersRoute
@@ -154,6 +162,7 @@ export interface FileRoutesById {
   '/dashboard/emergencies': typeof DashboardEmergenciesRoute
   '/dashboard/hazards': typeof DashboardHazardsRoute
   '/dashboard/map': typeof DashboardMapRoute
+  '/dashboard/post-maker': typeof DashboardPostMakerRoute
   '/dashboard/reports': typeof DashboardReportsRoute
   '/dashboard/responders': typeof DashboardRespondersRoute
   '/dashboard/users': typeof DashboardUsersRoute
@@ -174,6 +183,7 @@ export interface FileRouteTypes {
     | '/dashboard/emergencies'
     | '/dashboard/hazards'
     | '/dashboard/map'
+    | '/dashboard/post-maker'
     | '/dashboard/reports'
     | '/dashboard/responders'
     | '/dashboard/users'
@@ -191,6 +201,7 @@ export interface FileRouteTypes {
     | '/dashboard/emergencies'
     | '/dashboard/hazards'
     | '/dashboard/map'
+    | '/dashboard/post-maker'
     | '/dashboard/reports'
     | '/dashboard/responders'
     | '/dashboard/users'
@@ -209,6 +220,7 @@ export interface FileRouteTypes {
     | '/dashboard/emergencies'
     | '/dashboard/hazards'
     | '/dashboard/map'
+    | '/dashboard/post-maker'
     | '/dashboard/reports'
     | '/dashboard/responders'
     | '/dashboard/users'
@@ -288,6 +300,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardReportsRouteImport
       parentRoute: typeof DashboardRouteRoute
     }
+    '/dashboard/post-maker': {
+      id: '/dashboard/post-maker'
+      path: '/post-maker'
+      fullPath: '/dashboard/post-maker'
+      preLoaderRoute: typeof DashboardPostMakerRouteImport
+      parentRoute: typeof DashboardRouteRoute
+    }
     '/dashboard/map': {
       id: '/dashboard/map'
       path: '/map'
@@ -348,6 +367,7 @@ interface DashboardRouteRouteChildren {
   DashboardEmergenciesRoute: typeof DashboardEmergenciesRoute
   DashboardHazardsRoute: typeof DashboardHazardsRoute
   DashboardMapRoute: typeof DashboardMapRoute
+  DashboardPostMakerRoute: typeof DashboardPostMakerRoute
   DashboardReportsRoute: typeof DashboardReportsRoute
   DashboardRespondersRoute: typeof DashboardRespondersRoute
   DashboardUsersRoute: typeof DashboardUsersRoute
@@ -364,6 +384,7 @@ const DashboardRouteRouteChildren: DashboardRouteRouteChildren = {
   DashboardEmergenciesRoute: DashboardEmergenciesRoute,
   DashboardHazardsRoute: DashboardHazardsRoute,
   DashboardMapRoute: DashboardMapRoute,
+  DashboardPostMakerRoute: DashboardPostMakerRoute,
   DashboardReportsRoute: DashboardReportsRoute,
   DashboardRespondersRoute: DashboardRespondersRoute,
   DashboardUsersRoute: DashboardUsersRoute,
