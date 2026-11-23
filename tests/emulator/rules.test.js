@@ -613,3 +613,8 @@ test("Hazard Watch data: signed-in users read signals, admins read feed status, 
   await assertFails(getDoc(doc(as("citizen"), "hazard_feed_status/usgs")));
   await assertFails(setDoc(doc(as("prov"), "hazard_feed_status/usgs"), { enabled: true }));
 });
+
+test("AI usage counters are server-only", async () => {
+  await assertFails(getDoc(doc(as("muni"), "ai_usage/muni_2026-11-23")));
+  await assertFails(setDoc(doc(as("super"), "ai_usage/muni_2026-11-23"), { count: 0 }));
+});

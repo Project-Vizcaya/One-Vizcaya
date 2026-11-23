@@ -248,7 +248,7 @@ service cloud.firestore {
     function serverOnlyCollections() {
       return ['pagasa_products', 'alert_drafts', 'system_health',
               'weather_pagasa', 'weather_pagasa_points',
-              'hazard_signals', 'hazard_feed_status'];
+              'hazard_signals', 'hazard_feed_status', 'ai_usage'];
     }
 
     // ─── User profiles ──────────────────────────────────────────────────────

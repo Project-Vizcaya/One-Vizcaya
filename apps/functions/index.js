@@ -1508,6 +1508,41 @@ const pagasaService = () => new PagasaService(admin.firestore(), {
   ts: (ms) => admin.firestore.Timestamp.fromMillis(ms),
 });
 
+// ── Post Maker AI helper (optional; docs/post-maker.md) ─────────────────────
+// Drafts a headline and caption with Claude from what the admin wrote. Off
+// unless the ANTHROPIC_API_KEY secret exists (read at call time) and
+// config/ai.postAssistEnabled is not false. Admin-only, 30 drafts per admin
+// per day, every draft audited.
+const Anthropic = require("@anthropic-ai/sdk");
+const { PostAssistService } = require("./ai/service");
+const { readSecret } = require("./ai/secret");
+const AnthropicClient = Anthropic.default || Anthropic;
+const postAssist = () => new PostAssistService(admin.firestore(), {
+  readKey: () => readSecret("ANTHROPIC_API_KEY"),
+  makeClient: (apiKey) => new AnthropicClient({ apiKey, timeout: 60000, maxRetries: 2 }),
+  serverTimestamp: () => admin.firestore.FieldValue.serverTimestamp(),
+  isRetryable: (e) => e instanceof AnthropicClient.RateLimitError || e instanceof AnthropicClient.InternalServerError ||
+    e instanceof AnthropicClient.APIConnectionError,
+});
+
+exports.postAssistStatus = onCall(async (request) => {
+  if (!request.auth) throw new HttpsError("unauthenticated", "Must be signed in.");
+  const role = await resolveCallerRole(request);
+  if (!["municipal_admin", "admin", "provincial_admin", "super_admin"].includes(role)) return { available: false };
+  return { available: await postAssist().available() };
+});
+
+exports.draftPostText = onCall({ timeoutSeconds: 120 }, async (request) => {
+  if (!request.auth) throw new HttpsError("unauthenticated", "Must be signed in.");
+  const role = await resolveCallerRole(request);
+  try {
+    return await postAssist().draft(request.auth.uid, role, request.data);
+  } catch (e) {
+    if (e && e.code && typeof e.message === "string" && !(e instanceof HttpsError)) throw new HttpsError(e.code, e.message);
+    throw e;
+  }
+});
+
 // ── Hazard Watch: earthquakes near Nueva Vizcaya (docs/hazards.md) ───────────
 // USGS public feed (on by default) and PHIVOLCS (off until permission is in
 // hand: config/hazards.phivolcsEnabled). Stored in hazard_signals for the
