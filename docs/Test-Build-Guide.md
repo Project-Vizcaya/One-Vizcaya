@@ -5,8 +5,9 @@ What you are testing: **branch `claude/test-build-combined`**, which is everythi
 | Part | What | Status |
 |---|---|---|
 | P1–P3 | PDRRMO response work (alerts approval, lifecycle, proxy reporting, offline delivery…) | On `main` (PR #135) |
-| PR #137 | Privacy fix, Hazard Watch, Post Maker, PAGASA source, earthquakes, DPWH data | Draft PR, not on `main` yet |
+| PR #137 | Privacy fix, Hazard Watch, Post Maker, PAGASA source, earthquakes, DPWH data, **incident IDs**, **"Call first" on Report a Problem** | Draft PR, not on `main` yet |
 | UI/UX | Experimental redesign (typeface, bottom bar, SOS layout, console contrast) | Only on this branch |
+| Command Hub | PDRRMO Command Hub + responder site prototype (`command-hub/`, mock data) | Runs on your laptop only (§8) |
 
 After your feedback: PR #137 is merged to `main`, then the redesign goes to `main` as its own PR.
 
@@ -14,13 +15,15 @@ After your feedback: PR #137 is merged to `main`, then the redesign goes to `mai
 > 1. **Never approve an urgent or province-wide alert** unless every user in that town is a
 >    test account. Approving sends a real push to real residents. Approve, then **Reject**
 >    or **Withdraw**.
-> 2. **Start every test report's description with "TEST –"** and close them at the end (§8).
+> 2. **Start every test report's description with "TEST –"** and close them at the end (§9).
 > 3. **The production website stays on `main`.** The test console is on a temporary preview
 >    link (§3.4), so real admins never see unreviewed screens.
 > 4. **Don't press "Show to residents"** (flood-control list, Hazard Watch) until the
 >    Governor's office approves. Real residents would see it immediately.
+> 5. **Don't actually call** from the new "Call first" buttons: they dial the real PDRRMO
+>    hotline and 911. Check that the dialer opens with the number, then back out.
 
-Tick each box as you go. Write down anything odd (screen, steps, what you expected) for §9.
+Tick each box as you go. Write down anything odd (screen, steps, what you expected) for §10.
 Budget: about 30 min setup the night before, 1 hour deploy and build, 2–3 hours testing.
 
 ---
@@ -68,9 +71,10 @@ git pull
 - [ ] Copy the files from §1.1 into place.
 - [ ] Optional, about 5 minutes: run the tests.
   ```bash
-  cd apps/functions && npm install && npm test             # expect 120 pass
-  cd ../../tests/emulator && npm install && npm test       # expect 113 pass (needs Java)
-  cd ../../apps/mobile && flutter pub get && flutter test  # expect 72 pass
+  cd apps/functions && npm install && npm test             # expect 130 pass
+  cd ../../tests/emulator && npm install && npm test       # expect 121 pass (needs Java)
+  cd ../../apps/mobile && flutter pub get && flutter test  # expect 77 pass
+  cd ../../command-hub && npm install && npm test          # expect 44 pass
   cd ../..
   ```
 
@@ -98,7 +102,9 @@ firebase deploy --only functions
 ```
 - [ ] New functions appear, including `health`, `proposeAdminAlert`, `auditReportReferral`,
       `hazardWatch`, `pagasaMobileWatch`, `getPagasaForecast`, `postAssistStatus`,
-      `draftPostText` (some may already exist if you deployed `main` before).
+      `draftPostText`, `onReportCreated`, `incidentStatusUpdate` (some may already exist if
+      you deployed `main` before). `incidentStatusUpdate` stays unused: the Command Hub
+      link is off (`config/hub`), and only a super admin can switch it on.
 - [ ] If asked to **delete** a function, answer **No** and write down its name.
 
 ### 3.3 Production website (from `main`)
@@ -182,9 +188,10 @@ Follow **`docs/experimental-uiux-test-checklist.md`**. The most important checks
 - [ ] Page loads; counts and filters work. Your area's open SOS and hazard reports come **first**.
 - [ ] Bottom line: "USGS: updated … ago" within 10 minutes of deploying; "PHIVOLCS: off".
 - [ ] Recent earthquakes within 400 km appear (usually a few). "Show on map" pans to them.
-- [ ] Tick **Show DPWH flood-control structures**: about 85 blue diamonds (fewer as Admin A).
-      Clicking one shows description, town, type, year, completion, with **no** contractor or cost.
-- [ ] As Admin P: "Resident app list … **hidden**" appears. **Don't press it.**
+- [ ] **DPWH flood-control structures** → switch **Show on map**: about 85 grey squares (fewer
+      as Admin A). Clicking one shows description, town, type, year, completion, with **no**
+      contractor or cost.
+- [ ] As Admin P: "Resident app list · **Hidden**" appears. **Don't press "Show to residents".**
       As Admin A: the line is absent.
 - [ ] "Official hazard services": all six links open the right agency site.
 - [ ] Hotlines bar: 911 and your town's MDRRMO.
@@ -216,6 +223,21 @@ international forecast as before.
       is the first run against the real PAGASA service).
 
 ---
+
+### 6.8 Incident IDs and "Call first" (new)
+- [ ] Resident C files a "TEST –" report. Within a few seconds the report card shows
+      **Incident ID: NV-<TOWN>-<date>-<6 characters>** (e.g. `NV-BAM-20261125-3F9A2C`); the
+      copy button says "Incident ID copied".
+- [ ] File one in another town too: the town part differs (`BAM` Bambang, `BYB` Bayombong,
+      `SOL` Solano…, full list in `docs/command-hub.md`).
+- [ ] Preview console → Live Reports: the ID is under the category; typing part of it in
+      the search box finds the report; the report detail's title is the ID.
+- [ ] Mobile admin → report detail: an **Incident ID** row.
+- [ ] Report a Problem opens with **"Emergency? Call first."**: a big **Call PDRRMO**, then
+      **Call 911** and **SOS**. Tap Call PDRRMO: the dialer opens with the number. **Back out,
+      don't call.** Tap SOS: the "Send Emergency SOS?" dialog appears. **Press Cancel.**
+- [ ] Small phone with large text: the three buttons fit, nothing is cut off.
+- [ ] Tagalog and Ilocano: the box is translated.
 
 ## 7. Test — P1 to P3 (never tested on a device yet)
 
@@ -266,7 +288,42 @@ international forecast as before.
 
 ---
 
-## 8. Clean up the same day
+## 8. Command Hub prototype (laptop, optional, about 30 min)
+
+Runs on your laptop with **invented data**; it is **not** connected to One Vizcaya on
+Wednesday (the link stays off). Nothing you do here reaches real residents.
+
+```bash
+cd command-hub
+npm install
+cat > .env.local <<'ENV'
+HUB_SESSION_SECRET=any-long-random-text-1234567890
+HUB_SIMULATOR_TOKEN=demo-simulator-token-123456
+ENV
+npm run build && npm start        # http://localhost:3100
+```
+- [ ] Laptop browser: sign in as **PDRRMO EOC operator**. Live map shows 5 units on duty and
+      the incident list; status colours have icons and labels.
+- [ ] Second browser window (or a private window): sign in as **BAM-AMB-01** → the responder
+      screen. Allow location. (Phones need HTTPS for location: for a phone test, run a tunnel
+      such as `cloudflared tunnel --url http://localhost:3100` and open the https address it
+      prints.)
+- [ ] Operator → **Incidents** → pick the Bambang flooding → **Assign** BAM-AMB-01. The
+      responder screen shows **Confirm dispatch**; tap it → **En route**. The operator sees the
+      ETA; the citizen-facing line says what the reporter would see.
+- [ ] Responder: **Google Maps** / **Waze** open navigation to the pin.
+- [ ] Operator → **Hotline call log**: type your **practice number** in Number, a nature, the
+      town and a location. A matching open incident is offered under "Already reported?".
+      Plain Enter does nothing; **Ctrl+Enter** saves. Try both "attach" and "new incident".
+- [ ] Movement without driving (second terminal):
+      `HUB_SIMULATOR_TOKEN=demo-simulator-token-123456 npm run replay -- --unit u-nv-amb-01 --speed 10`
+      → NV-AMB-01 moves on the live map; **Replay** plays its track back.
+- [ ] Sign in as **MDRRMO Solano operator**: only Solano's units and incidents.
+- [ ] Operator → **Audit log**: assignments, calls and "view_citizen_location…" rows.
+- [ ] Phone width and dark mode look right (no cut-off text, readable contrast).
+- [ ] Stop with Ctrl+C. Data is in memory only and disappears.
+
+## 9. Clean up the same day
 - [ ] Close every "TEST –" report: **Close without action → Incomplete**, reason
       "Wednesday test build".
 - [ ] No test alert left under **Alerts awaiting approval**.
@@ -281,18 +338,19 @@ international forecast as before.
 
 ---
 
-## 9. Report back
+## 10. Report back
 
 Tell me directly or post on tracker #134:
 - ✅ / ❌ for each section, especially §6.1 privacy, §7.1 background delivery and the SOS screen;
 - for each problem: phone model, Android version, screen, steps, expected vs actual, screenshot;
-- your verdict on the UI redesign: keep, change specific things, or drop parts.
+- your verdict on the UI redesign: keep, change specific things, or drop parts;
+- for the Command Hub (§8): what PDRRMO would need changed before showing it to Sir Robert.
 
 **Then:** I fix what you found, PR #137 goes to `main`, and the redesign follows as its own PR.
 
 ---
 
-## 10. If something goes badly wrong
+## 11. If something goes badly wrong
 
 | Problem | What to do |
 |---|---|
