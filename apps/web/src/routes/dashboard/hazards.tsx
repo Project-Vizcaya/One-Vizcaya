@@ -18,6 +18,7 @@ import { OFFICIAL_HAZARD_LINKS } from "@/data/officialHazardLinks";
 import { buildHazardItems, hazardCounts, SOURCE_LABEL, type HazardItem, type HazardKind, type HazardLevel } from "@/lib/hazards";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "@/hooks/useToast";
 import { cn } from "@/lib/utils";
 
@@ -156,8 +157,8 @@ function HazardWatchPage() {
               {showStructures && structures.map((p) => (
                 <AdvancedMarker key={p.id} position={{ lat: p.lat, lng: p.lng }} zIndex={0}
                   title={`DPWH flood control: ${p.description}`} onClick={() => setSelected(`dpwh_${p.id}`)}>
-                  <div className={cn("h-3.5 w-3.5 rotate-45 border-2 border-white bg-sky-700 shadow",
-                    selected === `dpwh_${p.id}` && "ring-4 ring-sky-400")} />
+                  <div className={cn("h-3.5 w-3.5 rounded-[2px] border-2 border-white bg-slate-600 shadow",
+                    selected === `dpwh_${p.id}` && "ring-4 ring-amber-400")} />
                 </AdvancedMarker>
               ))}
             </Map>
@@ -205,45 +206,57 @@ function HazardWatchPage() {
         </Card>
       </div>
 
-      <div className="rounded-lg border p-3 space-y-2">
-        <label className="flex items-center gap-2 text-sm font-semibold min-h-[24px]">
-          <input type="checkbox" checked={showStructures} onChange={(e) => setShowStructures(e.target.checked)} className="h-4 w-4" />
-          <Construction aria-hidden="true" className="h-4 w-4 text-sky-700" />
-          Show DPWH flood-control structures ({structures.length})
-        </label>
-        {showStructures && project && (
-          <div className="rounded-md bg-accent/50 p-2 text-sm space-y-0.5">
-            <p className="font-semibold break-words">{project.description}</p>
+      <section className="rounded-lg border bg-card" aria-labelledby="dpwh-title">
+        <div className="flex flex-wrap items-center gap-3 p-3">
+          <Construction aria-hidden="true" className="h-5 w-5 text-slate-600 dark:text-slate-300" />
+          <div className="min-w-0 flex-1">
+            <h2 id="dpwh-title" className="text-sm font-bold">DPWH flood-control structures</h2>
             <p className="text-xs text-muted-foreground">
-              {[project.town ?? "Town not stated", project.typeOfWork, `${project.year} programme`,
-                project.completedDate ? `completed ${project.completedDate}` : "no completion date",
-                project.office].join(" · ")}
+              {structures.length} in {municipality ?? "the province"} · {FLOOD_CONTROL_META.source}, snapshot {FLOOD_CONTROL_META.snapshot}
             </p>
           </div>
+          <label className="flex items-center gap-2 text-sm font-semibold cursor-pointer">
+            <Switch checked={showStructures} onCheckedChange={setShowStructures} aria-label="Show DPWH flood-control structures on the map" />
+            Show on map
+          </label>
+        </div>
+        {showStructures && (
+          <div className="border-t px-3 py-2 text-sm">
+            {project ? (
+              <div className="space-y-0.5">
+                <p className="font-semibold break-words">{project.description}</p>
+                <p className="text-xs text-muted-foreground">
+                  {[project.town ?? "Town not stated", project.typeOfWork, `${project.year} programme`,
+                    project.completedDate ? `completed ${project.completedDate}` : "no completion date",
+                    project.office].join(" · ")}
+                </p>
+              </div>
+            ) : (
+              <p className="text-xs text-muted-foreground">Click a grey square on the map to see that structure. Locations are as DPWH recorded them.</p>
+            )}
+          </div>
         )}
-        <p className="text-xs text-muted-foreground">
-          {FLOOD_CONTROL_META.source}, snapshot {FLOOD_CONTROL_META.snapshot}. Locations are as DPWH recorded them.
-          Use it to see whether a flood report is near a structure.
-        </p>
         {isProvincialAdmin && (
-          <div className="flex flex-wrap items-center gap-2 border-t pt-2 text-xs">
-            <span>
-              Resident app list ("Flood control in your town", with contractors and costs):{" "}
-              <strong>{floodControlPublic === null ? "…" : floodControlPublic ? "shown" : "hidden"}</strong>
+          <div className="border-t px-3 py-2.5 flex flex-wrap items-center gap-x-3 gap-y-2 text-sm">
+            <span className="font-semibold">Resident app list</span>
+            <span className="text-xs text-muted-foreground">"Flood-control projects" per town, with contractors and costs</span>
+            <span className={cn("rounded-full px-2 py-0.5 text-xs font-bold",
+              floodControlPublic ? "bg-amber-100 text-amber-900 dark:bg-amber-900/40 dark:text-amber-100" : "bg-muted text-muted-foreground")}>
+              {floodControlPublic === null ? "…" : floodControlPublic ? "Shown to residents" : "Hidden"}
             </span>
             {floodControlPublic !== null && (
               <button disabled={savingSwitch} onClick={() => setResidentList(!floodControlPublic)}
-                className="h-8 rounded-md border px-2 hover:bg-accent disabled:opacity-50">
+                className="ml-auto h-8 rounded-md border px-3 text-xs font-semibold hover:bg-accent disabled:opacity-50">
                 {floodControlPublic ? "Hide from residents" : "Show to residents"}
               </button>
             )}
-            <span className="text-muted-foreground">Turn on only with the Governor's office's approval.</span>
+            <span className="w-full text-xs text-muted-foreground">Turn on only with the Governor's office's approval.</span>
           </div>
         )}
-      </div>
+      </section>
 
-      <div className="rounded-lg border p-3">
-        <p className="text-xs font-bold uppercase tracking-widest mb-2">Official hazard services</p>
+      <section className="rounded-lg border bg-card p-3" aria-labelledby="official-title">
+        <h2 id="official-title" className="text-sm font-bold mb-2">Official hazard services</h2>
         <ul className="grid gap-1 sm:grid-cols-2 lg:grid-cols-3">
           {OFFICIAL_HAZARD_LINKS.map((l) => (
             <li key={l.url}>
@@ -254,7 +267,7 @@ function HazardWatchPage() {
             </li>
           ))}
         </ul>
-      </div>
+      </section>
 
       <div className="rounded-lg border p-3 text-xs text-muted-foreground space-y-1">
         <p className="flex items-start gap-1.5"><Info aria-hidden="true" className="h-3.5 w-3.5 mt-0.5 shrink-0" />
