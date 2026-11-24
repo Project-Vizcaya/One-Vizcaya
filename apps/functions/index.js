@@ -410,15 +410,20 @@ const { idsForReport } = require("./reports/incidentId");
 const hubBridge = require("./hub/bridge");
 
 exports.onReportCreated = onDocumentCreated(
-  "users/{userId}/reports/{reportId}",
+  // retry: a forward that fails for a temporary reason (network, Hub 5xx) is
+  // retried by Cloud Functions with back-off. Everything before it is
+  // idempotent, and the Hub's ingest is idempotent on incident_id.
+  { document: "users/{userId}/reports/{reportId}", retry: true },
   async (event) => {
     const snap = event.data;
     if (!snap) return;
     const data = snap.data();
-    const ids = data.incidentUuid && data.incidentId
-      ? { incidentUuid: data.incidentUuid, incidentId: data.incidentId }
-      : idsForReport(snap.ref.path, data);
-    if (!data.incidentUuid) await snap.ref.update(ids);
+    // Always derived from the path, never taken from the document: a client
+    // (or the super-admin rules bypass) can't choose its own IDs.
+    const ids = idsForReport(snap.ref.path, data);
+    if (data.incidentUuid !== ids.incidentUuid || data.incidentId !== ids.incidentId || data.hub !== undefined) {
+      await snap.ref.update({ ...ids, hub: admin.firestore.FieldValue.delete() });
+    }
 
     const cfg = (await admin.firestore().doc("config/hub").get()).data() || {};
     if (cfg.forwardReports !== true || typeof cfg.hubUrl !== "string" || !cfg.hubUrl.startsWith("https://")) return;
@@ -428,6 +433,9 @@ exports.onReportCreated = onDocumentCreated(
       await hubBridge.forwardReport({ hubUrl: cfg.hubUrl, secret, payload: hubBridge.ingestPayload(snap.ref.path, data, ids) });
     } catch (e) {
       console.error(`onReportCreated: forwarding ${ids.incidentId} failed:`, e.message);
+      // Temporary failures are retried; a refusal (4xx: bad secret, bad
+      // payload) would fail the same way every time, so it is only logged.
+      if (!(e.status >= 400 && e.status < 500)) throw e;
     }
   }
 );

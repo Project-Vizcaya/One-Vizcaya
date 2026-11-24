@@ -40,11 +40,11 @@ export const MOCK_UNITS: Unit[] = [
 
 /** Units on duty at start-up, with a position near their town (offset in metres). */
 export const MOCK_ON_DUTY: { unitId: string; status: "available" | "on_scene"; dLat: number; dLng: number }[] = [
-  { unitId: "u-nv-amb-01", status: "available", dLat: 0.002, dLng: -0.003 },
-  { unitId: "u-bam-amb-01", status: "available", dLat: -0.001, dLng: 0.002 },
-  { unitId: "u-sol-amb-01", status: "available", dLat: 0.001, dLng: 0.001 },
-  { unitId: "u-byb-fire-01", status: "available", dLat: -0.002, dLng: 0.001 },
-  { unitId: "u-ari-res-01", status: "on_scene", dLat: 0.004, dLng: 0.002 },
+  { unitId: "u-nv-amb-01", status: "available", dLat: 0.012, dLng: -0.018 },
+  { unitId: "u-bam-amb-01", status: "available", dLat: -0.004, dLng: 0.004 },
+  { unitId: "u-sol-amb-01", status: "available", dLat: 0.012, dLng: 0.014 },
+  { unitId: "u-byb-fire-01", status: "available", dLat: -0.014, dLng: 0.012 },
+  { unitId: "u-ari-res-01", status: "on_scene", dLat: 0.004, dLng: 0.003 },
 ];
 
 export const MOCK_INCIDENTS: Omit<Incident, "id" | "code" | "created_at">[] = [

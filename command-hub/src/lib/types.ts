@@ -36,6 +36,9 @@ export interface UnitState {
   received_at: string | null;
   source: "phone" | "hardware" | null;
   current_incident_id: string | null;
+  /** Start of the current duty period. Not in the handoff schema: fixes taken
+   *  before it (e.g. a tracker's buffer from off-duty time) are refused. */
+  duty_started_at: string | null;
 }
 
 export interface LocationPoint {

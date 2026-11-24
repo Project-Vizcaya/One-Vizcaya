@@ -554,7 +554,9 @@ service cloud.firestore {
     // ─── App config ──────────────────────────────────────────────────────────
     match /config/{docId} {
       allow read:  if isAdmin();
-      allow write: if isProvincialAdmin();
+      // config/hub says where citizen reports are sent (the Command Hub
+      // bridge): only a super admin may change it.
+      allow write: if isProvincialAdmin() && docId != 'hub';
     }
 
     // ─── Switches the resident app reads (docs/flood-control.md) ─────────────

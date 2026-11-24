@@ -2,66 +2,114 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Same tokens as the One Vizcaya admin console (apps/web/src/index.css). */
+/* Design contract: docs/design-system.md. Same brand tokens as the admin
+   console (apps/web/src/index.css). */
 @layer base {
   :root {
-    --background: 0 0% 98%;
-    --foreground: 215 25% 15%;
+    --background: 210 20% 98%;
+    --foreground: 215 28% 14%;
     --card: 0 0% 100%;
-    --card-foreground: 215 25% 15%;
+    --card-foreground: 215 28% 14%;
     --primary: 152 73% 17%;
-    --primary-foreground: 0 0% 98%;
-    --muted: 215 20% 95%;
-    --muted-foreground: 215 15% 40%;
-    --accent: 152 30% 92%;
+    --primary-hover: 152 70% 22%;
+    --primary-foreground: 0 0% 100%;
+    --muted: 210 18% 95%;
+    --muted-foreground: 215 16% 38%;
+    --accent: 152 30% 93%;
     --accent-foreground: 152 73% 17%;
-    --destructive: 0 72% 51%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 215 15% 87%;
+    --destructive: 0 72% 42%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 214 18% 86%;
+    --ring: 152 60% 30%;
     --radius: 0.375rem;
     --gov-green-900: 152 73% 12%;
     --gov-green-800: 152 73% 17%;
     --gov-green-700: 152 65% 22%;
     --gov-green-50: 152 40% 96%;
-    --gov-gold: 43 85% 48%;
+    --gold: 43 85% 48%;
+    --gold-soft: 43 90% 93%;
+    --warning-bg: 43 90% 95%;
+    --warning-border: 38 80% 60%;
+    --warning-foreground: 30 80% 22%;
   }
   @media (prefers-color-scheme: dark) {
     :root {
-      --background: 215 28% 9%;
+      --background: 215 30% 8%;
       --foreground: 210 20% 94%;
-      --card: 215 25% 13%;
+      --card: 215 26% 12%;
       --card-foreground: 210 20% 94%;
-      --primary: 152 55% 42%;
+      --primary: 152 50% 40%;
+      --primary-hover: 152 50% 46%;
       --primary-foreground: 0 0% 100%;
-      --muted: 215 20% 18%;
+      --muted: 215 22% 17%;
       --muted-foreground: 215 15% 70%;
-      --accent: 152 25% 20%;
-      --accent-foreground: 152 60% 80%;
-      --border: 215 15% 24%;
-      --gov-green-50: 152 25% 14%;
+      --accent: 152 25% 18%;
+      --accent-foreground: 152 55% 82%;
+      --destructive: 0 70% 58%;
+      --border: 215 18% 24%;
+      --ring: 152 55% 55%;
+      --gov-green-50: 152 25% 13%;
+      --gold-soft: 43 40% 16%;
+      --warning-bg: 38 40% 13%;
+      --warning-border: 38 60% 40%;
+      --warning-foreground: 43 90% 80%;
     }
   }
   * { @apply border-border; box-sizing: border-box; }
-  html { font-size: 15px; -webkit-text-size-adjust: 100%; }
-  body { @apply bg-background text-foreground antialiased; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
-  :focus-visible { outline: 2px solid hsl(var(--primary)); outline-offset: 2px; }
+  html { font-size: 16px; -webkit-text-size-adjust: 100%; }
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: "Atkinson Hyperlegible Next", system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  h1, h2, h3 { letter-spacing: -0.01em; }
+  :focus-visible { outline: 3px solid hsl(var(--ring)); outline-offset: 2px; border-radius: 4px; }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+  }
 }
 
 @layer components {
+  .font-code { font-family: "Atkinson Hyperlegible Mono", ui-monospace, "SFMono-Regular", Menlo, monospace; letter-spacing: 0; }
   .card { @apply rounded-lg border bg-card text-card-foreground; }
-  .btn { @apply inline-flex items-center justify-center gap-1.5 rounded-md border px-3 text-sm font-medium min-h-[36px] hover:bg-accent disabled:opacity-50 disabled:pointer-events-none; }
-  .btn-primary { @apply btn border-transparent bg-primary text-primary-foreground hover:opacity-90 hover:bg-primary; }
-  .btn-danger { @apply btn border-transparent bg-destructive text-destructive-foreground hover:opacity-90 hover:bg-destructive; }
-  .input { @apply w-full rounded-md border bg-background px-2.5 py-1.5 text-sm min-h-[36px]; }
-  .label { @apply text-xs font-semibold text-muted-foreground; }
+  .btn {
+    @apply inline-flex items-center justify-center gap-1.5 rounded-md border bg-card px-3 text-sm font-semibold min-h-[40px]
+      transition-colors duration-150 hover:bg-accent hover:text-accent-foreground cursor-pointer
+      disabled:opacity-50 disabled:pointer-events-none;
+  }
+  .btn-primary { @apply btn border-transparent bg-primary text-primary-foreground hover:bg-[hsl(var(--primary-hover))] hover:text-primary-foreground; }
+  .btn-danger { @apply btn border-transparent bg-destructive text-destructive-foreground hover:opacity-90 hover:bg-destructive hover:text-destructive-foreground; }
+  .btn-sm { @apply min-h-[32px] px-2.5 text-xs; }
+  .input {
+    @apply w-full rounded-md border bg-card px-3 py-2 text-sm min-h-[40px] text-foreground placeholder:text-muted-foreground
+      transition-colors duration-150 hover:border-[hsl(var(--ring)/0.5)];
+  }
+  .label { @apply text-[13px] font-semibold text-foreground; }
+  .hint { @apply text-[13px] text-muted-foreground; }
+  .page-title { @apply text-xl font-bold tracking-tight; }
+  .section-title { @apply text-sm font-bold; }
+  .notice-warning { @apply rounded-lg border p-3; background: hsl(var(--warning-bg)); border-color: hsl(var(--warning-border)); color: hsl(var(--warning-foreground)); }
 }
 
-/* Unit markers on the map */
-.unit-marker { display: flex; flex-direction: column; align-items: center; }
-.unit-marker .dot { width: 18px; height: 18px; border-radius: 9999px; border: 3px solid #fff; box-shadow: 0 1px 3px rgba(0,0,0,.4); }
-.unit-marker .tag { margin-top: 2px; font: 600 11px/1.2 system-ui, sans-serif; background: rgba(255,255,255,.92); color: #111; padding: 1px 4px; border-radius: 3px; white-space: nowrap; }
-.unit-marker.fading { opacity: .5; }
-.unit-marker.lost .dot { background: transparent !important; border: 3px solid #6b7280; box-shadow: none; }
-.unit-marker.lost .tag { color: #6b7280; }
-.incident-marker { width: 22px; height: 22px; transform: rotate(45deg); border: 3px solid #fff; box-shadow: 0 1px 3px rgba(0,0,0,.45); }
-.leaflet-container { font: inherit; }
+/* Map markers (Leaflet divIcons). Status colours: docs/design-system.md. */
+.unit-marker { display: flex; flex-direction: column; align-items: center; pointer-events: auto; }
+.unit-marker .dot {
+  width: 26px; height: 26px; border-radius: 9999px; border: 2.5px solid #fff; display: grid; place-items: center;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, .35), 0 0 0 1px rgba(15, 23, 42, .15);
+}
+.unit-marker .dot svg { width: 14px; height: 14px; }
+.unit-marker .tag {
+  margin-top: 3px; font: 700 11px/1.25 "Atkinson Hyperlegible Mono", ui-monospace, monospace; background: #fff; color: #0f172a;
+  padding: 1px 5px; border-radius: 4px; white-space: nowrap; box-shadow: 0 0 0 1px rgba(15, 23, 42, .18);
+}
+.unit-marker.selected .dot { outline: 3px solid #FACC15; outline-offset: 2px; }
+.unit-marker.fading { opacity: .55; }
+.unit-marker.lost .dot { background: #fff !important; border: 2.5px dashed #64748B; box-shadow: none; }
+.unit-marker.lost .dot svg { color: #64748B !important; }
+.unit-marker.lost .tag { color: #475569; }
+.incident-marker {
+  width: 22px; height: 22px; transform: rotate(45deg); border: 2.5px solid #fff; border-radius: 3px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, .35), 0 0 0 1px rgba(15, 23, 42, .15);
+}
+.incident-marker.selected { outline: 3px solid #FACC15; outline-offset: 2px; }
+.leaflet-container { font: inherit; background: hsl(var(--muted)); }
+.leaflet-tooltip { font: 600 12px/1.35 "Atkinson Hyperlegible Next", system-ui, sans-serif; }

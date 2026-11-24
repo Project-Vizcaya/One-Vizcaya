@@ -35,25 +35,26 @@ async function appReport() {
 
 describe("duty and location", () => {
   it("rejects fixes while off duty (server-side)", async () => {
-    const r = await store.reportLocation(BAM_RES, "u-bam-res-01", [{ lat: 16.38, lng: 121.06, fix_time: iso() }], "phone");
+    const r = await store.reportLocation(BAM_RES, "u-bam-res-01", [{ lat: 16.38, lng: 121.06, fix_time: iso() }]);
     expect(r).toEqual({ accepted: 0, rejected: 1, reason: "off_duty" });
     const now = await store.history(EOC, "u-bam-res-01", iso(-60e3), iso(60e3));
     expect(now).toHaveLength(0);
   });
 
   it("a responder can report only their own unit", async () => {
-    await expect(store.reportLocation(BAM_AMB, "u-bam-res-01", [], "phone")).rejects.toThrow(/own unit/);
+    await expect(store.reportLocation(BAM_AMB, "u-bam-res-01", [])).rejects.toThrow(/own unit/);
   });
 
   it("offline batch: history complete and in order; live dot keeps the newest fix", async () => {
     await store.startDuty(BAM_RES);
-    await store.reportLocation(BAM_RES, "u-bam-res-01", [{ lat: 16.40, lng: 121.10, fix_time: iso() }], "phone");
+    tick(10 * 60e3);
+    await store.reportLocation(BAM_RES, "u-bam-res-01", [{ lat: 16.40, lng: 121.10, fix_time: iso() }]);
     // A late batch from 5 minutes ago, out of order.
     await store.reportLocation(BAM_RES, "u-bam-res-01", [
       { lat: 16.38, lng: 121.07, fix_time: iso(-120e3) },
       { lat: 16.37, lng: 121.06, fix_time: iso(-300e3) },
       { lat: 16.39, lng: 121.08, fix_time: iso(-60e3) },
-    ], "phone");
+    ]);
     const snap = await store.snapshot(EOC);
     const st = snap.states.find((s) => s.unit_id === "u-bam-res-01")!;
     expect([st.lat, st.lng]).toEqual([16.40, 121.10]);
@@ -67,7 +68,7 @@ describe("duty and location", () => {
       { lat: 95, lng: 121, fix_time: iso() },
       { lat: 16.4, lng: 121.1, fix_time: iso(10 * 60e3) },
       { lat: 16.4, lng: 121.1, fix_time: "yesterday" },
-    ], "phone");
+    ]);
     expect(r.accepted).toBe(0);
     expect(r.rejected).toBe(3);
   });
@@ -80,9 +81,9 @@ describe("duty and location", () => {
 
   it("history not linked to an incident is purged after 30 days; linked history is kept", async () => {
     const inc = await appReport();
-    await store.reportLocation(BAM_AMB, "u-bam-amb-01", [{ lat: 16.38, lng: 121.06, fix_time: iso() }], "phone");
+    await store.reportLocation(BAM_AMB, "u-bam-amb-01", [{ lat: 16.38, lng: 121.06, fix_time: iso(-1000) }]);
     await store.assign(BAM_OP, inc.id, "u-bam-amb-01");
-    await store.reportLocation(BAM_AMB, "u-bam-amb-01", [{ lat: 16.385, lng: 121.065, fix_time: iso(1000) }], "phone");
+    await store.reportLocation(BAM_AMB, "u-bam-amb-01", [{ lat: 16.385, lng: 121.065, fix_time: iso(1000) }]);
     const removed = await store.purgeHistory(new Date(clock + 31 * 86400e3));
     expect(removed).toBe(1);
   });
@@ -95,7 +96,7 @@ describe("dispatch and the citizen", () => {
     expect(again.created).toBe(false);
     expect(again.incident.id).toBe(a.id);
     expect(a.code).toBe("NV-BAM-20261124-3F9A2C");
-    expect(updates).toEqual([{ incident_id: UUID, external_ref: "users/c1/reports/r1", stage: "received" }]);
+    expect(updates).toEqual([{ incident_id: UUID, external_ref: "users/c1/reports/r1", stage: "received", at: iso() }]);
   });
 
   it("assign → en route (with ETA) → on scene; citizen gets stages and agency, never a position", async () => {
@@ -110,7 +111,7 @@ describe("dispatch and the citizen", () => {
     const enRoute = updates.find((u) => u.stage === "en_route")!;
     expect(enRoute.eta_seconds).toBeGreaterThan(0);
     expect(enRoute.agency).toBe("MDRRMO-Bambang");
-    for (const u of updates) expect(Object.keys(u).sort()).not.toContain("lat");
+    for (const u of updates) expect(Object.keys(u).sort()).toEqual(expect.not.arrayContaining(["lat", "lng", "unit_id", "call_sign"]));
     snap = await store.snapshot(EOC);
     expect(snap.incidents.find((i) => i.id === inc.id)?.status).toBe("in_progress");
   });
@@ -121,10 +122,10 @@ describe("dispatch and the citizen", () => {
     await store.setStatus(BAM_AMB, "u-bam-amb-01", "en_route");
     const n = updates.length;
     tick(10_000);
-    await store.reportLocation(BAM_AMB, "u-bam-amb-01", [{ lat: 16.3826, lng: 121.0688, fix_time: iso() }], "phone");
+    await store.reportLocation(BAM_AMB, "u-bam-amb-01", [{ lat: 16.3826, lng: 121.0688, fix_time: iso() }]);
     expect(updates.length).toBe(n);
     tick(2_000);
-    await store.reportLocation(BAM_AMB, "u-bam-amb-01", [{ lat: 16.388, lng: 121.076, fix_time: iso() }], "phone");
+    await store.reportLocation(BAM_AMB, "u-bam-amb-01", [{ lat: 16.388, lng: 121.076, fix_time: iso() }]);
     expect(updates.length).toBe(n + 1);
   });
 
@@ -232,7 +233,7 @@ describe("hotline intake and merging", () => {
     updates = [];
     await store.assign(EOC, call.id, "u-bam-amb-01");
     // The citizen's report (original UUID and path) still hears about the response.
-    expect(updates).toEqual([{ incident_id: UUID, external_ref: "users/c1/reports/r1", stage: "dispatched", agency: "MDRRMO-Bambang" }]);
+    expect(updates).toEqual([{ incident_id: UUID, external_ref: "users/c1/reports/r1", stage: "dispatched", agency: "MDRRMO-Bambang", at: iso() }]);
   });
 });
 
@@ -241,5 +242,115 @@ describe("hardware trackers", () => {
     const u = await store.unitByDevice("MOCK-IMEI-000000000000001");
     expect(u?.call_sign).toBe("NV-TRK-01");
     expect(await store.unitByDevice("nope")).toBeNull();
+  });
+});
+
+describe("review fixes (Nov 24)", () => {
+  it("a responder never sees other units' assignment rows; nobody sees the ETA anchor position", async () => {
+    const inc = await appReport();
+    await store.assign(EOC, inc.id, "u-bam-amb-01");
+    await store.startDuty(BAM_RES);
+    await store.assign(EOC, inc.id, "u-bam-res-01");
+    const mine = await store.snapshot(BAM_RES);
+    expect(mine.assignments).toHaveLength(0);
+    expect(mine.myAssignment?.assignment.unit_id).toBe("u-bam-res-01");
+    const d = await store.incidentDetail(BAM_RES, inc.id);
+    expect(d.assignments.map((a) => a.unit_id)).toEqual(["u-bam-res-01"]);
+    const ops = await store.snapshot(EOC);
+    for (const a of ops.assignments) expect([a.eta_from_lat, a.eta_from_lng]).toEqual([null, null]);
+  });
+
+  it("fixes taken before this duty period are refused", async () => {
+    tick(60e3);
+    await store.startDuty(BAM_RES);
+    const r = await store.reportLocation(BAM_RES, "u-bam-res-01", [
+      { lat: 16.38, lng: 121.06, fix_time: iso(-30e3) },
+      { lat: 16.38, lng: 121.06, fix_time: iso(1000) },
+    ]);
+    expect(r).toEqual({ accepted: 1, rejected: 1 });
+  });
+
+  it("trackers move only tracker units; phones can't report for a tracker unit; the simulator can move any unit", async () => {
+    await expect(store.reportLocation({ device: "hardware" }, "u-bam-amb-01", [])).rejects.toThrow(/no GPS tracker/);
+    const trk: Session = { role: "responder", userId: "trk", name: "TRK", unitId: "u-nv-trk-01" };
+    await expect(store.reportLocation(trk, "u-nv-trk-01", [])).rejects.toThrow(/GPS tracker/);
+    const r = await store.reportLocation({ device: "simulator" }, "u-bam-amb-01", [{ lat: 16.38, lng: 121.06, fix_time: iso() }]);
+    expect(r.accepted).toBe(1);
+  });
+
+  it("the same fix sent twice (retry, second tab) is stored once", async () => {
+    const f = { lat: 16.381, lng: 121.061, fix_time: iso() };
+    await store.reportLocation(BAM_AMB, "u-bam-amb-01", [f]);
+    await store.reportLocation(BAM_AMB, "u-bam-amb-01", [f, f]);
+    expect(await store.history(EOC, "u-bam-amb-01", iso(-1), iso(1))).toHaveLength(1);
+  });
+
+  it("a late batch keeps its incident link by the time each fix was taken", async () => {
+    const inc = await appReport();
+    tick(1000);
+    const a = await store.assign(EOC, inc.id, "u-bam-amb-01");
+    tick(60e3);
+    await store.release(EOC, a.id);
+    tick(60e3);
+    // Uploaded after release, taken during the assignment.
+    await store.reportLocation(BAM_AMB, "u-bam-amb-01", [{ lat: 16.385, lng: 121.065, fix_time: iso(-90e3) }]);
+    const h = await store.history(EOC, "u-bam-amb-01", iso(-200e3), iso(1));
+    expect(h.at(-1)?.incident_id).toBe(inc.id);
+  });
+
+  it("the citizen's timeline never goes backwards (two units, late validation)", async () => {
+    const inc = await appReport();
+    await store.assign(EOC, inc.id, "u-bam-amb-01");
+    await store.setStatus(BAM_AMB, "u-bam-amb-01", "en_route");
+    await store.startDuty(BAM_RES);
+    await store.assign(EOC, inc.id, "u-bam-res-01"); // second unit: still "on the way" for the citizen
+    await store.setIncidentStatus(EOC, inc.id, "validated");
+    expect(updates.map((u) => u.stage)).toEqual(["received", "dispatched", "en_route"]);
+  });
+
+  it("closed counts as resolved for the citizen; invalid sends nothing", async () => {
+    const inc = await appReport();
+    await store.setIncidentStatus(EOC, inc.id, "closed");
+    expect(updates.at(-1)?.stage).toBe("resolved");
+    const other = (await store.ingestAppReport({ incident_id: "3f9a2c11-0000-5000-8000-000000000002", external_ref: "users/c2/reports/r2", municipality: "Bambang" })).incident;
+    const n = updates.length;
+    await store.setIncidentStatus(EOC, other.id, "invalid");
+    expect(updates.length).toBe(n);
+  });
+
+  it("can't merge into a closed incident; a merged reporter catches up with the survivor", async () => {
+    const app = await appReport();
+    const { incident: call } = await store.createCall(EOC, { nature: "Flood", municipality: "Bambang", lat: 16.3905, lng: 121.0805 });
+    await store.setIncidentStatus(EOC, call.id, "resolved");
+    await expect(store.merge(EOC, app.id, call.id)).rejects.toThrow(/open incident/);
+    await store.setIncidentStatus(EOC, call.id, "in_progress");
+    await store.assign(EOC, call.id, "u-bam-amb-01");
+    await store.setStatus(BAM_AMB, "u-bam-amb-01", "on_scene");
+    updates = [];
+    await store.merge(EOC, app.id, call.id);
+    expect(updates.map((u) => [u.incident_id, u.stage])).toEqual([[UUID, "on_scene"]]);
+  });
+
+  it("an MDRRMO call can't reach another town's incident through a merge chain", async () => {
+    const { incident: bam } = await store.createCall(BAM_OP, { nature: "Flood" });
+    const { incident: sol } = await store.createCall(SOL_OP, { nature: "Flood" });
+    await store.merge(EOC, bam.id, sol.id); // province merges Bambang's call into Solano's
+    await expect(store.createCall(BAM_OP, { caller_number: "0917", attach_to: bam.id })).rejects.toThrow(/No such incident/);
+  });
+
+  it("operators' map views of citizen locations are audited, once per 5 minutes", async () => {
+    await appReport();
+    await store.snapshot(BAM_OP);
+    await store.snapshot(BAM_OP);
+    const rows = (await store.audit(EOC)).filter((a) => a.action === "view_citizen_locations_map" && a.actor_id === "bam-op");
+    expect(rows).toHaveLength(1);
+    expect((rows[0].details.codes as string[])).toContain("NV-BAM-20261124-3F9A2C");
+  });
+
+  it("ETA is held, not recalculated, when the unit's position is stale", async () => {
+    const inc = await appReport();
+    tick(10 * 60e3); // seeded position is now 10 min old
+    const a = await store.assign(EOC, inc.id, "u-bam-amb-01");
+    expect(a.eta_seconds).toBeNull();
   });
 });

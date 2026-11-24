@@ -636,6 +636,13 @@ test("Public settings: signed-in users read, only provincial admins set", async 
   await assertFails(setDoc(doc(as("citizen"), PATH), { floodControlPublic: true }));
 });
 
+test("config/hub (where reports are sent) is super-admin only; other config stays provincial", async () => {
+  await assertFails(setDoc(doc(as("prov"), "config/hub"), { forwardReports: true, hubUrl: "https://evil.example" }));
+  await assertSucceeds(setDoc(doc(as("super"), "config/hub"), { forwardReports: false }));
+  await assertSucceeds(getDoc(doc(as("prov"), "config/hub")));
+  await assertSucceeds(setDoc(doc(as("prov"), "config/sla"), { provisional: true }));
+});
+
 test("AI usage counters are server-only", async () => {
   await assertFails(getDoc(doc(as("muni"), "ai_usage/muni_2026-11-23")));
   await assertFails(setDoc(doc(as("super"), "ai_usage/muni_2026-11-23"), { count: 0 }));

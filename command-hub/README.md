@@ -38,7 +38,7 @@ Production-style: `npm run build && npm start` (needs `HUB_SESSION_SECRET`).
 
 ### Demo without driving
 ```bash
-HUB_DEVICE_TOKEN=<from .env.local> npm run replay -- --unit u-nv-amb-01 --speed 10
+HUB_SIMULATOR_TOKEN=<from .env.local> npm run replay -- --unit u-nv-amb-01 --speed 10
 # --offline 60   holds 60 s of fixes, then sends them in one batch (offline test)
 ```
 The unit must be on duty (the five seeded units already are). Track:

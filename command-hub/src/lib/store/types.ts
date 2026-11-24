@@ -54,7 +54,13 @@ export interface CitizenUpdate {
   stage: "received" | "validated" | "dispatched" | "en_route" | "on_scene" | "resolved";
   eta_seconds?: number;
   agency?: string;
+  /** When the change happened (ISO); One Vizcaya ignores anything older. */
+  at: string;
 }
+
+/** Who is posting positions: a signed-in responder, a GPS tracker (Traccar),
+ *  or the replay simulator (demos only). */
+export type LocationActor = Session | { device: "hardware" } | { device: "simulator" };
 
 export class HubError extends Error {
   constructor(public status: number, message: string) {
@@ -75,7 +81,7 @@ export interface HubStore {
   endDuty(s: Session): Promise<UnitState>;
   setStatus(s: Session, unitId: string, status: UnitStatus): Promise<UnitState>;
   /** Phone fixes (responder session) or hardware fixes (device token). */
-  reportLocation(actor: Session | { device: true }, unitId: string, fixes: Fix[], source: "phone" | "hardware"):
+  reportLocation(actor: LocationActor, unitId: string, fixes: Fix[]):
     Promise<{ accepted: number; rejected: number; reason?: string }>;
   unitByDevice(deviceId: string): Promise<Unit | null>;
   ingestAppReport(p: AppReportPayload): Promise<{ incident: Incident; created: boolean }>;

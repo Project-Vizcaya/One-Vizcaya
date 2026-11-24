@@ -36,16 +36,21 @@ describe("adaptive reporting", () => {
   it("off duty never sends", () => {
     expect(shouldSend("off_duty", null, { ...BAYOMBONG, atMs: 0 })).toBe(false);
   });
-  it("en route: every ~7 s or 20 m", () => {
+  it("en route: not before 5 s even when moving; after 5 s if moved 20 m; always by 10 s", () => {
     const last = { ...BAYOMBONG, atMs: 0 };
-    expect(shouldSend("en_route", last, { ...BAYOMBONG, atMs: 3000 })).toBe(false);
-    expect(shouldSend("en_route", last, { ...BAYOMBONG, atMs: 7000 })).toBe(true);
-    expect(shouldSend("en_route", last, { lat: BAYOMBONG.lat + 0.0003, lng: BAYOMBONG.lng, atMs: 1000 })).toBe(true);
+    const far = { lat: BAYOMBONG.lat + 0.001, lng: BAYOMBONG.lng };
+    expect(shouldSend("en_route", last, { ...far, atMs: 1000 })).toBe(false);
+    expect(shouldSend("en_route", last, { ...far, atMs: 5000 })).toBe(true);
+    expect(shouldSend("en_route", last, { ...BAYOMBONG, atMs: 7000 })).toBe(false);
+    expect(shouldSend("en_route", last, { ...BAYOMBONG, atMs: 10_000 })).toBe(true);
   });
-  it("available: minutes apart unless it moved 100 m", () => {
+  it("available: 2 to 5 minutes apart", () => {
     const last = { ...BAYOMBONG, atMs: 0 };
-    expect(shouldSend("available", last, { ...BAYOMBONG, atMs: 60_000 })).toBe(false);
-    expect(shouldSend("available", last, { lat: BAYOMBONG.lat + 0.001, lng: BAYOMBONG.lng, atMs: 60_000 })).toBe(true);
+    const moved = { lat: BAYOMBONG.lat + 0.002, lng: BAYOMBONG.lng };
+    expect(shouldSend("available", last, { ...moved, atMs: 60_000 })).toBe(false);
+    expect(shouldSend("available", last, { ...moved, atMs: 120_000 })).toBe(true);
+    expect(shouldSend("available", last, { ...BAYOMBONG, atMs: 200_000 })).toBe(false);
+    expect(shouldSend("available", last, { ...BAYOMBONG, atMs: 300_000 })).toBe(true);
   });
 });
 
@@ -112,5 +117,13 @@ describe("possible duplicates: 300 m, 30 min, compatible category", () => {
     expect(compatibleCategory("Flooding", "Flash flood")).toBe(true);
     expect(compatibleCategory("Flooding", "Landslide")).toBe(false);
     expect(compatibleCategory(null, "Landslide")).toBe(true);
+    // One Vizcaya's own category names against hotline natures.
+    expect(compatibleCategory("Flooding / Severe Drainage Issue", "Flooding")).toBe(true);
+    expect(compatibleCategory("Vehicular Accident / Road Crash", "Vehicular Accident")).toBe(true);
+    expect(compatibleCategory("Landslide / Soil Erosion", "Road Blocked")).toBe(true);
+    expect(compatibleCategory("Landslide / Soil Erosion", "Structure Fire")).toBe(false);
+    expect(compatibleCategory("Disaster & Risk Management", "Structure Fire")).toBe(true);
+    expect(compatibleCategory("Others (Not Listed)", "Landslide")).toBe(true);
+    expect(compatibleCategory("Health & Public Safety", "Medical Emergency")).toBe(true);
   });
 });

@@ -40,13 +40,18 @@ export default function ReplayPage() {
   }, [playing, i, points, speed]);
 
   const track = useMemo(() => points.slice(0, i + 1).map((p) => [p.lat, p.lng] as [number, number]), [points, i]);
+  // Centre on the track once per load, not on every re-render.
+  const start = useMemo<[number, number] | null>(() => (points[0] ? [points[0].lat, points[0].lng] : null), [points]);
   const head = points[i];
   const unit = snap?.units.find((u) => u.id === unitId);
 
   return (
-    <div className="p-3 sm:p-4 space-y-3">
-      <h1 className="text-lg font-bold">Replay</h1>
-      <div className="card p-3 flex flex-wrap items-end gap-2">
+    <div className="p-3 sm:p-5 space-y-4">
+      <header>
+        <h1 className="page-title">Replay</h1>
+        <p className="hint mt-0.5">Play back a unit&apos;s recorded track for after-action review.</p>
+      </header>
+      <div className="card p-4 flex flex-wrap items-end gap-3">
         <label className="space-y-1"><span className="label">Unit</span>
           <select className="input" value={unitId} onChange={(e) => setUnitId(e.target.value)}>
             <option value="">Pick…</option>{snap?.units.map((u) => <option key={u.id} value={u.id}>{u.call_sign}</option>)}
@@ -69,9 +74,9 @@ export default function ReplayPage() {
       {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
       <div className="card overflow-hidden" style={{ height: "clamp(360px, 65vh, 720px)" }}>
         <MapClient nowMs={now} track={track} trackHead={head ? { lat: head.lat, lng: head.lng, label: `${unit?.call_sign ?? ""} ${fmtTime(head.fix_time)}` } : null}
-          focus={head && i === 0 ? [head.lat, head.lng] : null} />
+          focus={start} />
       </div>
-      <p className="text-xs text-muted-foreground">Positions not linked to an incident are deleted after 30 days; positions recorded during an assignment are kept with the incident.</p>
+      <p className="hint">Positions not linked to an incident are deleted after 30 days; positions recorded during an assignment are kept with the incident.</p>
     </div>
   );
 }

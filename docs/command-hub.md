@@ -66,6 +66,11 @@ report.hub ◄─ incidentStatusUpdate ◄─ signed POST ── stage / ETA cha
 
 - **Switches** (Firestore `config/hub`, both off by default):
   `forwardReports: true`, `hubUrl: "https://…"`, `citizenEtaUpdates: true`.
+  Only a **super admin** can change `config/hub` (it decides where citizen
+  reports go); other `config/*` documents stay provincial-admin.
+- **Retries:** a forward that fails for a temporary reason (no network, Hub
+  error 5xx) is retried by Cloud Functions with back-off. A refusal (4xx, e.g.
+  wrong secret) is logged and not retried.
 - **Secret:** `HUB_BRIDGE_SECRET` in Secret Manager (same value in the Hub's
   `.env.local`):
   ```bash
@@ -85,6 +90,14 @@ report.hub ◄─ incidentStatusUpdate ◄─ signed POST ── stage / ETA cha
   minutes", only while on the way) and the agency's name. **Never** the
   responder's position or identity. One inbox entry and push per stage, not per
   ETA change.
+- **Never backwards:** every update carries the time of the change (`at`); One
+  Vizcaya ignores anything older than what it already shows. The Hub also only
+  moves a resident forward: a second unit dispatched later, or a late
+  "validated", does not send them back a step. With several units on the way,
+  the resident hears the nearest one's ETA. "Closed" in the Hub counts as
+  Completed; "Invalid" sends nothing (the LGU closes the report in One Vizcaya).
+- **IDs can't be forged:** `onReportCreated` always derives the incident ID and
+  UUID from the report's path and removes any `hub` field a client wrote.
 - Tested end to end: the Hub accepted One Vizcaya's signed report, refused a
   wrong secret, accepted a retry without duplicating, and sent Received,
   Dispatched and On the way (ETA, agency) back, verified by One Vizcaya's own code.
@@ -125,6 +138,13 @@ See `command-hub/README.md` to run it. In short:
 
 **ETA** is a stub: straight-line distance × 1.4 at 35 km/h, recalculated every
 90 s or after 500 m. Replace with OpenRouteService or a self-hosted OSRM.
+
+**Security of the prototype** (until real sign-in): writes must be same-origin
+JSON (no cross-site forms); GPS trackers use `HUB_DEVICE_TOKEN` and can move
+only tracker units; the replay simulator uses a separate `HUB_SIMULATOR_TOKEN`
+(leave it empty outside demos); a responder never receives another unit's
+assignment rows; operators' map views of citizen locations are audited once
+per 5 minutes per operator.
 
 **Feature flags** (`.env.local`): `FEATURE_RESPONDER_TRACKING`,
 `FEATURE_HOTLINE_INTAKE`, `FEATURE_CITIZEN_ETA_UPDATES` (`0` = off).

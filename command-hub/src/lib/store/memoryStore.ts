@@ -5,7 +5,7 @@ import {
 } from "../types";
 import { distanceM, etaDue, etaSeconds, possibleDuplicates } from "../geo";
 import { incidentCode, INCIDENT_CODE_RE } from "../incidentId";
-import { HubError, type AppReportPayload, type CallInput, type CitizenUpdate, type HubStore, type Snapshot } from "./types";
+import { HubError, type AppReportPayload, type CallInput, type CitizenUpdate, type HubStore, type LocationActor, type Snapshot } from "./types";
 import { MOCK_INCIDENTS, MOCK_ON_DUTY, MOCK_UNITS, TOWN_CENTRES } from "./mockData";
 
 /** Source row that also remembers which incident it first belonged to. */
@@ -24,6 +24,12 @@ const MAX_FIX_FUTURE_MS = 2 * 60e3;
 const CITIZEN_VIEW_AUDIT_MS = 5 * 60e3;
 
 const ACTIVE: UnitStatus[] = ["dispatched", "en_route", "on_scene"];
+const POSITION_STALE_MS = 5 * 60e3;
+// The resident's timeline, in order. Updates only ever move forward.
+const CITIZEN_STAGES: CitizenUpdate["stage"][] = ["received", "validated", "dispatched", "en_route", "on_scene", "resolved"];
+
+/** Assignment rows as other people see them: without the unit position kept for the ETA rule. */
+const view = (a: Assignment): Assignment => ({ ...a, eta_from_lat: null, eta_from_lng: null });
 
 /**
  * In-memory Command Hub store for the prototype. Data is lost on restart.
@@ -42,6 +48,9 @@ export class MemoryStore implements HubStore {
   private listeners = new Set<(e: { type: string; at: string }) => void>();
   private seq = { history: 1, source: 1, assignment: 1, audit: 1 };
   private citizenViews = new Map<string, number>();
+  /** Last stage (and ETA) each One Vizcaya reporter was told, by their report's UUID. */
+  private citizenSeen = new Map<string, { rank: number; eta: number | null }>();
+  private fixKeys = new Set<string>();
   private now: () => Date;
   private onCitizenUpdate: (u: CitizenUpdate) => void;
 
@@ -52,7 +61,7 @@ export class MemoryStore implements HubStore {
       this.units.set(unit.id, unit);
       this.states.set(unit.id, {
         unit_id: unit.id, status: "off_duty", lat: null, lng: null, accuracy_m: null, heading: null, speed_mps: null,
-        fix_time: null, received_at: null, source: null, current_incident_id: null,
+        fix_time: null, received_at: null, source: null, current_incident_id: null, duty_started_at: null,
       });
     }
     if (opts.seed !== false) this.seed();
@@ -67,6 +76,7 @@ export class MemoryStore implements HubStore {
       const [lat, lng] = TOWN_CENTRES[unit.municipality];
       Object.assign(this.states.get(d.unitId)!, {
         status: d.status, lat: lat + d.dLat, lng: lng + d.dLng, accuracy_m: 15, fix_time: at, received_at: at, source: "phone",
+        duty_started_at: new Date(this.now().getTime() - 3600e3).toISOString(),
       });
     }
     MOCK_INCIDENTS.forEach((m, i) => {
@@ -129,10 +139,44 @@ export class MemoryStore implements HubStore {
     return this.assignments.find((a) => a.unit_id === unitId && !a.released_at) ?? null;
   }
 
-  private notifyCitizens(incidentId: string, stage: CitizenUpdate["stage"], extra: { eta_seconds?: number; agency?: string } = {}) {
+  /** What the resident should see now, from the incident and its units. */
+  private currentStage(incidentId: string): { stage: CitizenUpdate["stage"]; eta_seconds?: number; agency?: string } | null {
+    const inc = this.incident(incidentId);
+    if (inc.status === "resolved" || inc.status === "closed") return { stage: "resolved" };
+    if (inc.status === "invalid" || inc.status === "duplicate") return null; // One Vizcaya admins close the report there
+    const active = this.assignments
+      .filter((a) => a.incident_id === incidentId && !a.released_at)
+      .map((a) => ({ a, st: this.states.get(a.unit_id)!, u: this.unit(a.unit_id) }));
+    const onScene = active.find((x) => x.st.status === "on_scene");
+    if (onScene) return { stage: "on_scene", agency: onScene.u.agency };
+    const moving = active.filter((x) => x.st.status === "en_route");
+    if (moving.length) {
+      // Several units on the way: the resident hears about the nearest one.
+      const best = [...moving].sort((p, q) => (p.a.eta_seconds ?? Infinity) - (q.a.eta_seconds ?? Infinity))[0];
+      return { stage: "en_route", agency: best.u.agency, ...(best.a.eta_seconds !== null ? { eta_seconds: best.a.eta_seconds } : {}) };
+    }
+    const dispatched = active.find((x) => x.st.status === "dispatched");
+    if (dispatched) return { stage: "dispatched", agency: dispatched.u.agency };
+    if (inc.status !== "received") return { stage: "validated" };
+    return { stage: "received" };
+  }
+
+  /**
+   * Tells every One Vizcaya reporter of this incident (including reports
+   * merged into it) its current stage, if it is news to them. The timeline
+   * never goes backwards, and an ETA is re-sent only when it changed.
+   */
+  private syncCitizens(incidentId: string) {
+    const now = this.currentStage(incidentId);
+    if (!now) return;
+    const rank = CITIZEN_STAGES.indexOf(now.stage);
     for (const src of this.sources) {
       if (src.incident_id !== incidentId || src.source !== "app_report" || !src.external_ref) continue;
-      this.onCitizenUpdate({ incident_id: src.origin_incident_id, external_ref: src.external_ref, stage, ...extra });
+      const seen = this.citizenSeen.get(src.origin_incident_id);
+      const eta = now.eta_seconds ?? null;
+      if (seen && (rank < seen.rank || (rank === seen.rank && (now.stage !== "en_route" || eta === seen.eta)))) continue;
+      this.citizenSeen.set(src.origin_incident_id, { rank, eta });
+      this.onCitizenUpdate({ incident_id: src.origin_incident_id, external_ref: src.external_ref, ...now, at: this.iso() });
     }
   }
 
@@ -151,9 +195,12 @@ export class MemoryStore implements HubStore {
     if (s.role === "responder") {
       const a = this.activeAssignmentOf(s.unitId);
       if (a) {
-        myAssignment = { assignment: a, incident: this.incident(a.incident_id) };
+        myAssignment = { assignment: view(a), incident: this.incident(a.incident_id) };
         this.auditCitizenView(s, a.incident_id);
       }
+    } else {
+      // Operators see every open incident's location on the map.
+      this.auditMapView(s, incidents.filter((i) => i.lat !== null && OPEN_INCIDENT_STATUSES.includes(i.status)));
     }
     return {
       now: this.iso(),
@@ -161,7 +208,9 @@ export class MemoryStore implements HubStore {
       units,
       states: [...this.states.values()].filter((st) => ids.has(st.unit_id)),
       incidents,
-      assignments: this.assignments.filter((a) => !a.released_at && (incIds.has(a.incident_id) || ids.has(a.unit_id))),
+      // A responder sees only its own assignment (myAssignment), never other units'.
+      assignments: s.role === "responder" ? [] :
+        this.assignments.filter((a) => !a.released_at && (incIds.has(a.incident_id) || ids.has(a.unit_id))).map(view),
       calls: s.role === "responder" ? [] : this.calls
         .filter((c) => s.role === "pdrrmo" || c.operator_id === s.userId || (c.incident_id && incIds.has(c.incident_id)))
         .slice(-50).reverse(),
@@ -178,6 +227,16 @@ export class MemoryStore implements HubStore {
     this.log(s.userId, "view_citizen_location", "incident", incidentId);
   }
 
+  /** The live map shows citizens' locations too: one audit row per operator per 5 min, listing them. */
+  private auditMapView(s: Session, shown: Incident[]) {
+    if (shown.length === 0) return;
+    const key = `${s.userId}:map`;
+    const last = this.citizenViews.get(key) ?? 0;
+    if (this.now().getTime() - last < CITIZEN_VIEW_AUDIT_MS) return;
+    this.citizenViews.set(key, this.now().getTime());
+    this.log(s.userId, "view_citizen_locations_map", "incident", `${shown.length} incidents`, { codes: shown.map((i) => i.code) });
+  }
+
   async incidentDetail(s: Session, incidentId: string) {
     const incident = this.incident(incidentId);
     if (!this.canSeeIncident(s, incident)) throw new HubError(404, "No such incident.");
@@ -186,7 +245,9 @@ export class MemoryStore implements HubStore {
       incident,
       sources: this.sources.filter((x) => x.incident_id === incidentId).map(({ origin_incident_id: _o, ...r }) => r),
       calls: this.calls.filter((c) => c.incident_id === incidentId),
-      assignments: this.assignments.filter((a) => a.incident_id === incidentId),
+      assignments: this.assignments
+        .filter((a) => a.incident_id === incidentId && (s.role !== "responder" || a.unit_id === s.unitId))
+        .map(view),
       duplicates: possibleDuplicates(incident, [...this.incidents.values()].filter((i) => this.canSeeIncident(s, i))),
     };
   }
@@ -221,6 +282,7 @@ export class MemoryStore implements HubStore {
     const st = this.states.get(u.id)!;
     if (st.status === "off_duty") {
       st.status = "available";
+      st.duty_started_at = this.iso();
       this.log(s.userId, "start_duty", "unit", u.id);
       this.emit("unit");
     }
@@ -232,6 +294,7 @@ export class MemoryStore implements HubStore {
     if (this.activeAssignmentOf(u.id)) throw new HubError(409, "You are still assigned to an incident. Ask the dispatcher to release your unit first.");
     const st = this.states.get(u.id)!;
     st.status = "off_duty";
+    st.duty_started_at = null;
     this.log(s.userId, "end_duty", "unit", u.id);
     this.emit("unit");
     return st;
@@ -251,40 +314,51 @@ export class MemoryStore implements HubStore {
     st.status = status;
     this.log(s.userId, "set_status", "unit", unitId, { status });
     if (assignment && (status === "en_route" || status === "on_scene")) {
-      const inc = this.incident(assignment.incident_id);
       if (status === "en_route") this.updateEta(assignment, st, true);
-      this.notifyCitizens(inc.id, status, {
-        ...(status === "en_route" && assignment.eta_seconds !== null ? { eta_seconds: assignment.eta_seconds } : {}),
-        agency: u.agency,
-      });
+      this.syncCitizens(assignment.incident_id);
     }
     this.emit("unit");
     return st;
   }
 
-  async reportLocation(actor: Session | { device: true }, unitId: string, fixes: Fix[], source: "phone" | "hardware") {
+  async reportLocation(actor: LocationActor, unitId: string, fixes: Fix[]) {
     const u = this.unit(unitId);
-    if (!("device" in actor) && (actor.role !== "responder" || actor.unitId !== unitId)) {
+    let source: "phone" | "hardware" = "phone";
+    if ("device" in actor) {
+      if (actor.device === "hardware") {
+        if (u.tracker_source !== "hardware") throw new HubError(403, "This unit has no GPS tracker.");
+        source = "hardware";
+      }
+    } else if (actor.role !== "responder" || actor.unitId !== unitId) {
       throw new HubError(403, "A responder can report only their own unit's location.");
+    } else if (u.tracker_source === "hardware") {
+      throw new HubError(409, "This unit's position comes from its GPS tracker.");
     }
     const st = this.states.get(unitId)!;
-    // Enforced here, not only in the app: nothing is recorded off duty.
-    if (st.status === "off_duty") return { accepted: 0, rejected: fixes.length, reason: "off_duty" };
+    // Enforced here, not only in the app: nothing is recorded off duty, and
+    // nothing taken before this duty period started.
+    if (st.status === "off_duty" || !st.duty_started_at) return { accepted: 0, rejected: fixes.length, reason: "off_duty" };
+    const dutyStart = Date.parse(st.duty_started_at);
     const nowMs = this.now().getTime();
-    const assignment = this.activeAssignmentOf(unitId);
-    let accepted = 0, rejected = 0;
+    let accepted = 0, rejected = 0, moved = false;
     const sorted = [...fixes].sort((a, b) => Date.parse(a.fix_time) - Date.parse(b.fix_time));
     for (const f of sorted) {
       const t = Date.parse(f.fix_time);
       const valid = Number.isFinite(f.lat) && Number.isFinite(f.lng) && Math.abs(f.lat) <= 90 && Math.abs(f.lng) <= 180 &&
-        Number.isFinite(t) && t <= nowMs + MAX_FIX_FUTURE_MS && t >= nowMs - MAX_FIX_AGE_MS;
+        Number.isFinite(t) && t <= nowMs + MAX_FIX_FUTURE_MS && t >= nowMs - MAX_FIX_AGE_MS && t >= dutyStart;
       if (!valid) { rejected++; continue; }
       const fixIso = new Date(t).toISOString();
-      // History: always appended, for replay and after-action review.
+      const key = `${unitId}|${fixIso}`;
+      if (this.fixKeys.has(key)) { accepted++; continue; } // sent twice (retry, second tab): keep one
+      this.fixKeys.add(key);
+      // History: always appended, linked to the assignment active WHEN the fix
+      // was taken (a late offline batch keeps its incident link).
+      const during = this.assignments.find((a) => a.unit_id === unitId && Date.parse(a.assigned_at) <= t &&
+        (!a.released_at || t <= Date.parse(a.released_at)));
       this.points.push({
         id: this.seq.history++, unit_id: unitId, lat: f.lat, lng: f.lng, accuracy_m: f.accuracy_m ?? null,
         speed_mps: f.speed_mps ?? null, heading: f.heading ?? null, fix_time: fixIso, received_at: this.iso(), source,
-        incident_id: assignment?.incident_id ?? null,
+        incident_id: during?.incident_id ?? null,
       });
       // Live state: only a NEWER fix wins (a late offline batch never moves the dot back).
       if (!st.fix_time || t > Date.parse(st.fix_time)) {
@@ -292,14 +366,13 @@ export class MemoryStore implements HubStore {
           lat: f.lat, lng: f.lng, accuracy_m: f.accuracy_m ?? null, heading: f.heading ?? null, speed_mps: f.speed_mps ?? null,
           fix_time: fixIso, received_at: this.iso(), source,
         });
+        moved = true;
       }
       accepted++;
     }
-    if (accepted && assignment && (st.status === "en_route" || st.status === "dispatched")) {
-      const before = assignment.eta_seconds;
-      if (this.updateEta(assignment, st, false) && st.status === "en_route" && before !== assignment.eta_seconds) {
-        this.notifyCitizens(assignment.incident_id, "en_route", { eta_seconds: assignment.eta_seconds!, agency: u.agency });
-      }
+    const assignment = this.activeAssignmentOf(unitId);
+    if (moved && assignment && (st.status === "en_route" || st.status === "dispatched")) {
+      if (this.updateEta(assignment, st, false) && st.status === "en_route") this.syncCitizens(assignment.incident_id);
     }
     if (accepted) this.emit("location");
     return { accepted, rejected };
@@ -309,6 +382,8 @@ export class MemoryStore implements HubStore {
   private updateEta(a: Assignment, st: UnitState, force: boolean) {
     const inc = this.incident(a.incident_id);
     if (st.lat === null || st.lng === null || inc.lat === null || inc.lng === null) return false;
+    // A stale position gives a wrong ETA: hold the last one instead (handoff 7.6).
+    if (!st.fix_time || this.now().getTime() - Date.parse(st.fix_time) > POSITION_STALE_MS) return false;
     const now = { atMs: this.now().getTime(), lat: st.lat, lng: st.lng };
     const last = a.eta_updated_at && a.eta_from_lat !== null && a.eta_from_lng !== null
       ? { atMs: Date.parse(a.eta_updated_at), lat: a.eta_from_lat, lng: a.eta_from_lng } : null;
@@ -347,7 +422,7 @@ export class MemoryStore implements HubStore {
     this.incidents.set(incident.id, incident);
     this.sources.push({ id: this.seq.source++, incident_id: incident.id, origin_incident_id: incident.id, source: "app_report", external_ref: p.external_ref, received_at: this.iso() });
     this.log("one-vizcaya", "ingest_app_report", "incident", incident.id, { code: incident.code });
-    this.notifyCitizens(incident.id, "received");
+    this.syncCitizens(incident.id);
     this.emit("incident");
     return { incident, created: true };
   }
@@ -363,8 +438,7 @@ export class MemoryStore implements HubStore {
     }
     inc.status = status;
     this.log(s.userId, "set_incident_status", "incident", incidentId, { status });
-    if (status === "validated") this.notifyCitizens(incidentId, "validated");
-    if (status === "resolved") this.notifyCitizens(incidentId, "resolved");
+    this.syncCitizens(incidentId);
     this.emit("incident");
     return inc;
   }
@@ -388,7 +462,7 @@ export class MemoryStore implements HubStore {
     if (inc.status === "received" || inc.status === "validated") inc.status = "in_progress";
     this.updateEta(a, st, true);
     this.log(s.userId, "assign_unit", "incident", incidentId, { unit_id: unitId, call_sign: u.call_sign });
-    this.notifyCitizens(incidentId, "dispatched", { agency: u.agency });
+    this.syncCitizens(incidentId);
     this.emit("assignment");
     return a;
   }
@@ -414,6 +488,9 @@ export class MemoryStore implements HubStore {
     const dup = this.incident(duplicateId), keep = this.incident(survivorId);
     if (!this.canSeeIncident(s, dup) || !this.canSeeIncident(s, keep)) throw new HubError(404, "No such incident.");
     if (dup.merged_into || keep.merged_into) throw new HubError(409, "One of these is already merged.");
+    if (!OPEN_INCIDENT_STATUSES.includes(keep.status)) {
+      throw new HubError(409, `${keep.code} is ${keep.status}. Merge into an open incident, or reopen it first.`);
+    }
     if (this.assignments.some((a) => a.incident_id === duplicateId && !a.released_at)) {
       throw new HubError(409, "Release the units assigned to the duplicate first.");
     }
@@ -423,6 +500,8 @@ export class MemoryStore implements HubStore {
     for (const c of this.calls) if (c.incident_id === duplicateId) c.incident_id = survivorId;
     if (keep.lat === null && dup.lat !== null) { keep.lat = dup.lat; keep.lng = dup.lng; }
     this.log(s.userId, "merge_incident", "incident", survivorId, { merged: duplicateId, merged_code: dup.code });
+    // The duplicate's reporters catch up with where the response now is.
+    this.syncCitizens(survivorId);
     this.emit("incident");
     return keep;
   }
@@ -442,8 +521,9 @@ export class MemoryStore implements HubStore {
     let incident: Incident;
     if (input.attach_to) {
       incident = this.incident(input.attach_to);
+      // Follow merges to the surviving incident, then check the caller may see THAT one.
+      for (let hops = 0; incident.merged_into && hops < 20; hops++) incident = this.incident(incident.merged_into);
       if (!this.canSeeIncident(s, incident)) throw new HubError(404, "No such incident.");
-      if (incident.merged_into) incident = this.incident(incident.merged_into);
     } else {
       const id = crypto.randomUUID();
       incident = {
@@ -479,6 +559,7 @@ export class MemoryStore implements HubStore {
     const cutoff = now.getTime() - HISTORY_KEEP_MS;
     const before = this.points.length;
     this.points = this.points.filter((p) => p.incident_id !== null || Date.parse(p.fix_time) >= cutoff);
+    this.fixKeys = new Set(this.points.map((p) => `${p.unit_id}|${p.fix_time}`));
     return before - this.points.length;
   }
 

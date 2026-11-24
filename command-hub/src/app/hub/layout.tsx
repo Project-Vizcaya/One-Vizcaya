@@ -8,7 +8,7 @@ export default async function HubLayout({ children }: { children: React.ReactNod
   if (!s) redirect("/login");
   if (s.role === "responder") redirect("/responder");
   return (
-    <div className="min-h-[calc(100vh-24px)] lg:flex">
+    <div className="min-h-[calc(100vh-24px)] lg:flex bg-background">
       <HubNav
         name={s.name}
         scope={s.role === "mdrrmo" ? `MDRRMO ${s.municipality}` : "Province of Nueva Vizcaya"}

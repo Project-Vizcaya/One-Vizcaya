@@ -9,7 +9,13 @@ function loadQueue(key: string): Fix[] {
   try { const v = JSON.parse(localStorage.getItem(key) ?? "[]"); return Array.isArray(v) ? v : []; } catch { return []; }
 }
 function saveQueue(key: string, q: Fix[]) {
-  try { localStorage.setItem(key, JSON.stringify(q)); } catch { /* storage full or blocked: keep in memory */ }
+  try { localStorage.setItem(key, JSON.stringify(q)); } catch { /* storage full or blocked */ }
+}
+
+/** One tab at a time touches the saved queue (Web Locks; falls back to running directly). */
+function withQueueLock<T>(key: string, fn: () => Promise<T>): Promise<T> {
+  const locks = (navigator as Navigator & { locks?: { request: (n: string, f: () => Promise<T>) => Promise<T> } }).locks;
+  return locks ? locks.request(key, fn) : fn();
 }
 
 export interface SharingState {
@@ -32,33 +38,43 @@ export function useLocationSharing(unitId: string | null, status: UnitStatus | n
   const statusRef = useRef(status);
   statusRef.current = status;
   const lastQueued = useRef<{ lat: number; lng: number; atMs: number } | null>(null);
-  const flushing = useRef(false);
+  const alive = useRef(true);
   const key = unitId ? `hub-fix-queue-${unitId}` : null;
 
-  const flush = useCallback(async () => {
-    if (!key || flushing.current) return;
-    const q = loadQueue(key);
-    if (q.length === 0) return;
-    flushing.current = true;
-    try {
-      const batch = q.slice(0, 200);
-      const res = await fetch("/api/report-location", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ fixes: batch }) });
-      if (res.ok) {
-        const rest = loadQueue(key).slice(batch.length);
-        saveQueue(key, rest);
-        setState((s) => ({ ...s, lastSentAt: Date.now(), queued: rest.length, error: null }));
-        if (rest.length) setTimeout(flush, 100);
-      } else if (res.status === 401 || res.status === 403) {
-        setState((s) => ({ ...s, error: "Signed out. Sign in again to keep sharing." }));
-      } else {
-        setState((s) => ({ ...s, queued: q.length, error: `Not sent (${res.status}); will retry.` }));
+  useEffect(() => { alive.current = true; return () => { alive.current = false; }; }, []);
+
+  /** Sends saved fixes, oldest first, 200 at a time. Resolves when the queue is empty or sending failed. */
+  const flush = useCallback(async (): Promise<boolean> => {
+    if (!key || !unitId) return true;
+    return withQueueLock(key, async () => {
+      for (;;) {
+        if (!alive.current) return false;
+        const q = loadQueue(key);
+        if (q.length === 0) { setState((s) => ({ ...s, queued: 0 })); return true; }
+        const batch = q.slice(0, 200);
+        let res: Response;
+        try {
+          res = await fetch("/api/report-location", {
+            method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ unitId, fixes: batch }),
+          });
+        } catch {
+          setState((s) => ({ ...s, queued: q.length, error: "No signal. Positions are saved and will be sent when the signal returns." }));
+          return false;
+        }
+        if (res.ok) {
+          saveQueue(key, loadQueue(key).slice(batch.length));
+          if (alive.current) setState((s) => ({ ...s, lastSentAt: Date.now(), error: null }));
+          continue;
+        }
+        if (res.status === 401) {
+          setState((s) => ({ ...s, error: "Signed out. Sign in again to keep sharing." }));
+          return false;
+        }
+        setState((s) => ({ ...s, queued: q.length, error: `Not sent (${res.status}). Will retry.` }));
+        return false;
       }
-    } catch {
-      setState((s) => ({ ...s, queued: loadQueue(key).length, error: "Offline: positions are saved and will be sent when the signal returns." }));
-    } finally {
-      flushing.current = false;
-    }
-  }, [key]);
+    });
+  }, [key, unitId]);
 
   const onDuty = !!status && status !== "off_duty";
 
@@ -69,7 +85,7 @@ export function useLocationSharing(unitId: string | null, status: UnitStatus | n
     const watch = navigator.geolocation.watchPosition(
       (p) => {
         const next = { lat: p.coords.latitude, lng: p.coords.longitude, atMs: p.timestamp || Date.now() };
-        setState((s) => ({ ...s, lastFix: { lat: next.lat, lng: next.lng, accuracy: p.coords.accuracy ?? null, at: next.atMs }, error: null }));
+        setState((s) => ({ ...s, lastFix: { lat: next.lat, lng: next.lng, accuracy: p.coords.accuracy ?? null, at: next.atMs } }));
         const st = statusRef.current;
         if (!st || !shouldSend(st, lastQueued.current, next)) return;
         lastQueued.current = next;
@@ -77,18 +93,20 @@ export function useLocationSharing(unitId: string | null, status: UnitStatus | n
           lat: next.lat, lng: next.lng, accuracy_m: p.coords.accuracy ?? null, heading: p.coords.heading ?? null,
           speed_mps: p.coords.speed ?? null, fix_time: new Date(next.atMs).toISOString(),
         };
-        const q = [...loadQueue(key), fix].slice(-MAX_QUEUE);
-        saveQueue(key, q);
-        setState((s) => ({ ...s, queued: q.length }));
-        void flush();
+        void withQueueLock(key, async () => {
+          const q = [...loadQueue(key), fix].slice(-MAX_QUEUE);
+          saveQueue(key, q);
+          setState((s) => ({ ...s, queued: q.length }));
+        }).then(() => flush());
       },
       (err) => setState((s) => ({ ...s, error: err.code === err.PERMISSION_DENIED
-        ? "Location permission is off. Allow location for this site to share your position."
+        ? "Location is blocked for this site. Allow it in the browser's site settings."
         : "Can't get a GPS fix right now." })),
       { enableHighAccuracy: true, maximumAge: 5000, timeout: 30000 },
     );
-    const retry = setInterval(flush, 15_000);
-    window.addEventListener("online", flush);
+    const retry = setInterval(() => { void flush(); }, 15_000);
+    const online = () => { void flush(); };
+    window.addEventListener("online", online);
 
     // Keep the screen on while on duty, so the browser keeps reporting.
     let lock: { release: () => Promise<void> } | null = null;
@@ -102,12 +120,12 @@ export function useLocationSharing(unitId: string | null, status: UnitStatus | n
     return () => {
       navigator.geolocation.clearWatch(watch);
       clearInterval(retry);
-      window.removeEventListener("online", flush);
+      window.removeEventListener("online", online);
       document.removeEventListener("visibilitychange", onVisible);
       void lock?.release().catch(() => {});
       lastQueued.current = null;
     };
   }, [key, onDuty, flush]);
 
-  return state;
+  return { ...state, flush };
 }

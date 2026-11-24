@@ -59,7 +59,7 @@ async function forwardReport({ hubUrl, secret, payload, fetchImpl = fetch }) {
     body,
     signal: AbortSignal.timeout(10000),
   });
-  if (!res.ok) throw new Error(`Hub answered ${res.status}`);
+  if (!res.ok) throw Object.assign(new Error(`Hub answered ${res.status}`), { status: res.status });
 }
 
 // The citizen's timeline, in order.
@@ -86,11 +86,15 @@ const STAGE_TEXT = {
 
 /**
  * Checks an update from the Hub. Returns { ok, error, update } where update is
- * { path, stage, eta, agency }.
+ * { id, path, stage, eta, agency, atMs }. `at` is when the change happened in
+ * the Hub (ISO time); an update older than the last one applied is ignored, so
+ * a delayed or replayed message can't move the resident's timeline backwards.
  */
 function parseStatusUpdate(body) {
   if (!body || typeof body !== "object") return { ok: false, error: "Body must be JSON." };
-  const { incident_id: id, external_ref: path, stage, eta_seconds: eta, agency } = body;
+  const { incident_id: id, external_ref: path, stage, eta_seconds: eta, agency, at } = body;
+  const atMs = typeof at === "string" ? Date.parse(at) : NaN;
+  if (!Number.isFinite(atMs)) return { ok: false, error: "at must be the ISO time of the change." };
   if (typeof id !== "string" || !/^[0-9a-f-]{36}$/.test(id)) return { ok: false, error: "incident_id must be a UUID." };
   if (typeof path !== "string" || !/^users\/[^/]+\/reports\/[^/]+$/.test(path)) return { ok: false, error: "external_ref must be a report path." };
   if (!STAGES.includes(stage)) return { ok: false, error: `stage must be one of ${STAGES.join(", ")}.` };
@@ -103,6 +107,7 @@ function parseStatusUpdate(body) {
       id, path, stage,
       eta: stage === "en_route" ? etaRange(eta) : null,
       agency: typeof agency === "string" && agency.trim() ? agency.trim() : null,
+      atMs,
     },
   };
 }
@@ -120,6 +125,7 @@ async function applyStatusUpdate(db, u, { serverTimestamp }) {
     const data = snap.data();
     if (data.incidentUuid !== u.id) return "mismatch";
     const prev = data.hub || {};
+    if (typeof prev.atMs === "number" && u.atMs <= prev.atMs) return "stale";
     const stageChanged = prev.stage !== u.stage;
     tx.update(ref, {
       hub: {
@@ -127,6 +133,7 @@ async function applyStatusUpdate(db, u, { serverTimestamp }) {
         etaMin: u.eta ? u.eta[0] : null,
         etaMax: u.eta ? u.eta[1] : null,
         agency: u.agency,
+        atMs: u.atMs,
         updatedAt: serverTimestamp(),
       },
     });

@@ -51,6 +51,13 @@ test("a re-delivered event keeps the same IDs", async () => {
   assert.equal(again.incidentUuid, first.incidentUuid);
 });
 
+test("IDs or Hub fields written by a client are replaced (super-admin bypass)", async () => {
+  const d = await fireCreated(PATH, report({ incidentId: "NV-SOL-20200101-AAAAAA", incidentUuid: "x", hub: { stage: "resolved" } }));
+  assert.match(d.incidentId, /^NV-BAM-20261124-/);
+  assert.equal(d.incidentUuid, incidentUuidFor(PATH));
+  assert.equal(d.hub, undefined);
+});
+
 test("forwarding is off by default: no Hub call, no error", async () => {
   const d = await fireCreated(PATH, report());
   assert.ok(d.incidentId);
@@ -58,7 +65,10 @@ test("forwarding is off by default: no Hub call, no error", async () => {
 
 test("Hub update: stage, rounded arrival time, one inbox entry per stage", async () => {
   const d = await fireCreated(PATH, report());
-  const u = (stage, extra = {}) => parseStatusUpdate({ incident_id: d.incidentUuid, external_ref: PATH, stage, ...extra }).update;
+  let t = Date.parse("2026-11-24T02:00:00Z");
+  const u = (stage, extra = {}) => parseStatusUpdate({
+    incident_id: d.incidentUuid, external_ref: PATH, stage, at: new Date((t += 1000)).toISOString(), ...extra,
+  }).update;
 
   assert.equal(await applyStatusUpdate(db, u("en_route", { eta_seconds: 700, agency: "PDRRMO" }), { serverTimestamp: ts }), "stage_changed");
   let r = (await db.doc(PATH).get()).data();
@@ -73,6 +83,10 @@ test("Hub update: stage, rounded arrival time, one inbox entry per stage", async
   assert.equal(r.hub.etaMax, 5);
 
   await applyStatusUpdate(db, u("on_scene"), { serverTimestamp: ts });
+  // A delayed "en route" sent before "on scene" arrives late: ignored.
+  const late = u("en_route", { eta_seconds: 900, at: "2026-11-24T02:00:01.500Z" });
+  assert.equal(await applyStatusUpdate(db, late, { serverTimestamp: ts }), "stale");
+  assert.equal((await db.doc(PATH).get()).data().hub.stage, "on_scene");
   const inbox = (await db.collection("users/citizen/notifications").get()).docs.map((x) => x.data());
   assert.equal(inbox.length, 2);
   assert.ok(inbox.some((n) => n.title === "Responder on the way" && n.body.includes("10 to 15 minutes") && n.body.startsWith(d.incidentId)));
@@ -83,9 +97,10 @@ test("Hub update: stage, rounded arrival time, one inbox entry per stage", async
 
 test("Hub update for the wrong UUID or a missing report changes nothing", async () => {
   await fireCreated(PATH, report());
-  const wrong = parseStatusUpdate({ incident_id: "00000000-0000-5000-8000-000000000000", external_ref: PATH, stage: "resolved" }).update;
+  const at = "2026-11-24T03:00:00.000Z";
+  const wrong = parseStatusUpdate({ incident_id: "00000000-0000-5000-8000-000000000000", external_ref: PATH, stage: "resolved", at }).update;
   assert.equal(await applyStatusUpdate(db, wrong, { serverTimestamp: ts }), "mismatch");
   assert.equal((await db.doc(PATH).get()).data().hub, undefined);
-  const missing = parseStatusUpdate({ incident_id: "00000000-0000-5000-8000-000000000000", external_ref: "users/citizen/reports/nope", stage: "resolved" }).update;
+  const missing = parseStatusUpdate({ incident_id: "00000000-0000-5000-8000-000000000000", external_ref: "users/citizen/reports/nope", stage: "resolved", at }).update;
   assert.equal(await applyStatusUpdate(db, missing, { serverTimestamp: ts }), "not_found");
 });

@@ -12,14 +12,16 @@ export function distanceM(a: { lat: number; lng: number }, b: { lat: number; lng
 }
 
 // ── Adaptive location reporting (handoff §4.1) ─────────────────────────────
-// Shortest wait between fixes and the distance that also triggers a send.
-export const REPORTING: Record<UnitStatus, { intervalMs: number; distanceM: number } | null> = {
+// A fix is sent once at least `minMs` has passed AND the unit moved
+// `distanceM`, or once `maxMs` has passed (a heartbeat, so a parked unit
+// never looks stale on the map). Distance never beats the minimum interval.
+export const REPORTING: Record<UnitStatus, { minMs: number; maxMs: number; distanceM: number } | null> = {
   off_duty: null,
-  available: { intervalMs: 3 * 60_000, distanceM: 100 },
-  dispatched: { intervalMs: 7_000, distanceM: 20 },
-  en_route: { intervalMs: 7_000, distanceM: 20 },
-  on_scene: { intervalMs: 45_000, distanceM: 25 },
-  returning: { intervalMs: 30_000, distanceM: 50 },
+  available: { minMs: 2 * 60_000, maxMs: 5 * 60_000, distanceM: 100 },
+  dispatched: { minMs: 5_000, maxMs: 10_000, distanceM: 20 },
+  en_route: { minMs: 5_000, maxMs: 10_000, distanceM: 20 },
+  on_scene: { minMs: 30_000, maxMs: 60_000, distanceM: 25 },
+  returning: { minMs: 30_000, maxMs: 30_000, distanceM: 50 },
 };
 
 /** Should the responder site send this fix, given the last one sent? */
@@ -31,7 +33,9 @@ export function shouldSend(
   const rule = REPORTING[status];
   if (!rule) return false;
   if (!last) return true;
-  return next.atMs - last.atMs >= rule.intervalMs || distanceM(last, next) >= rule.distanceM;
+  const elapsed = next.atMs - last.atMs;
+  if (elapsed < rule.minMs) return false;
+  return elapsed >= rule.maxMs || distanceM(last, next) >= rule.distanceM;
 }
 
 // ── Staleness: never show a stale dot as live (handoff §4.2) ───────────────
@@ -89,18 +93,25 @@ export function etaRange(seconds: number): [number, number] {
 export const DUP_RADIUS_M = 300;
 export const DUP_WINDOW_MS = 30 * 60_000;
 
-// Categories that describe the same kind of event. Anything else only matches
-// its own category, or a hotline call with no category yet.
+// Categories that describe the same kind of event, covering One Vizcaya's
+// report categories (apps/web/src/data/reportCategories.ts) and the hotline
+// natures (src/config/callForm.ts). A broad category ("Disaster & Risk
+// Management", "Others") or none at all matches anything.
 const FAMILIES: string[][] = [
-  ["flood", "flooding", "flash flood", "rising water"],
-  ["fire", "structure fire", "grass fire", "vehicle fire"],
-  ["landslide", "rockslide", "road blocked", "road obstruction"],
-  ["vehicular accident", "road accident", "collision", "accident"],
-  ["medical", "medical emergency", "injury"],
+  ["flood", "drainage", "rising water"],
+  ["fire"],
+  ["landslide", "soil erosion", "rockslide", "road blocked"],
+  ["vehicular", "road crash", "collision", "accident"],
+  ["medical", "health", "injury"],
+  ["blockage", "obstruction", "road damage", "bridge", "infrastructure & roads"],
+  ["hazardous", "chemical", "spill"],
+  ["peace & order", "crime", "disturbance"],
+  ["missing person"],
 ];
+const BROAD = ["disaster & risk management", "others", "general inquiries", "other"];
 const family = (c: string | null) => {
   const x = (c ?? "").trim().toLowerCase();
-  if (!x) return null;
+  if (!x || BROAD.some((b) => x === b || x.startsWith(`${b} `))) return null;
   return FAMILIES.find((f) => f.some((w) => x.includes(w)))?.[0] ?? x;
 };
 

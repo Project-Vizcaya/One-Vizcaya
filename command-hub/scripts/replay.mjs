@@ -2,7 +2,7 @@
 // GPS replay simulator (handoff §9): posts a recorded track to the Hub as a
 // fake unit, at real time or faster. For demos and tests without driving.
 //
-//   HUB_DEVICE_TOKEN=... node scripts/replay.mjs --unit u-nv-amb-01 \
+//   HUB_SIMULATOR_TOKEN=... node scripts/replay.mjs --unit u-nv-amb-01 \
 //     [--track scripts/tracks/bayombong-to-solano.csv] [--speed 5] [--hub http://localhost:3100]
 //     [--offline 60]   # hold fixes for 60 s of track time, then send them in one batch
 //
@@ -11,6 +11,7 @@
 // assign it); the Hub rejects positions from off-duty units.
 
 import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 
 const arg = (name, dflt) => {
   const i = process.argv.indexOf(`--${name}`);
@@ -20,10 +21,10 @@ const hub = arg("hub", "http://localhost:3100").replace(/\/$/, "");
 const unit = arg("unit");
 const speed = Number(arg("speed", "1"));
 const offline = Number(arg("offline", "0"));
-const trackPath = arg("track", new URL("./tracks/bayombong-to-solano.csv", import.meta.url).pathname);
-const token = process.env.HUB_DEVICE_TOKEN;
+const trackPath = arg("track", fileURLToPath(new URL("./tracks/bayombong-to-solano.csv", import.meta.url)));
+const token = process.env.HUB_SIMULATOR_TOKEN;
 if (!unit || !token) {
-  console.error("Usage: HUB_DEVICE_TOKEN=... node scripts/replay.mjs --unit <unit id> [--speed 5] [--offline 60]");
+  console.error("Usage: HUB_SIMULATOR_TOKEN=... node scripts/replay.mjs --unit <unit id> [--speed 5] [--offline 60]");
   process.exit(1);
 }
 

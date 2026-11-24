@@ -33,13 +33,25 @@ export function useSnapshot() {
 
   useEffect(() => {
     void load();
-    const es = new EventSource("/api/events");
-    es.onopen = () => setConnected(true);
-    es.onerror = () => setConnected(false);
-    es.onmessage = () => reload();
+    // One live connection per VISIBLE tab: hidden tabs close theirs (browsers
+    // allow only ~6 connections per site over HTTP/1.1) and rely on polling.
+    let es: EventSource | null = null;
+    const open = () => {
+      if (es) return;
+      es = new EventSource("/api/events");
+      es.onopen = () => setConnected(true);
+      es.onerror = () => setConnected(false);
+      es.onmessage = () => reload();
+    };
+    const close = () => { es?.close(); es = null; setConnected(false); };
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") { open(); void load(); } else close();
+    };
+    if (document.visibilityState === "visible") open();
+    document.addEventListener("visibilitychange", onVisibility);
     const poll = setInterval(load, 15_000);
     const tick = setInterval(() => setNow(Date.now()), 2_000);
-    return () => { es.close(); clearInterval(poll); clearInterval(tick); };
+    return () => { close(); document.removeEventListener("visibilitychange", onVisibility); clearInterval(poll); clearInterval(tick); };
   }, [load, reload]);
 
   return { snap, error, connected, now, reload: load };

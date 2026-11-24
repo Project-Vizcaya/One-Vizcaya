@@ -5,6 +5,7 @@ const { sign, verify, ingestPayload, forwardReport, etaRange, parseStatusUpdate 
 
 const SECRET = "test-secret";
 const UUID = "3f9a2c11-0000-5000-8000-000000000000";
+const AT = "2026-11-24T10:00:00.000Z";
 
 test("signature: valid, tampered, stale, missing", () => {
   const body = '{"a":1}';
@@ -56,13 +57,15 @@ test("arrival time is a rounded range, never exact", () => {
 });
 
 test("status update validation", () => {
-  const ok = parseStatusUpdate({ incident_id: UUID, external_ref: "users/u1/reports/r1", stage: "en_route", eta_seconds: 700, agency: "PDRRMO" });
+  const ok = parseStatusUpdate({ incident_id: UUID, external_ref: "users/u1/reports/r1", stage: "en_route", eta_seconds: 700, agency: "PDRRMO", at: AT });
   assert.equal(ok.ok, true);
   assert.deepEqual(ok.update.eta, [10, 15]);
   // ETA only while on the way.
-  assert.equal(parseStatusUpdate({ incident_id: UUID, external_ref: "users/u1/reports/r1", stage: "on_scene", eta_seconds: 700 }).update.eta, null);
-  assert.equal(parseStatusUpdate({ incident_id: UUID, external_ref: "users/u1/reports/r1", stage: "teleported" }).ok, false);
-  assert.equal(parseStatusUpdate({ incident_id: "x", external_ref: "users/u1/reports/r1", stage: "received" }).ok, false);
-  assert.equal(parseStatusUpdate({ incident_id: UUID, external_ref: "broadcasts/x", stage: "received" }).ok, false);
-  assert.equal(parseStatusUpdate({ incident_id: UUID, external_ref: "users/u1/reports/r1", stage: "received", agency: "x".repeat(61) }).ok, false);
+  assert.equal(parseStatusUpdate({ incident_id: UUID, external_ref: "users/u1/reports/r1", stage: "on_scene", eta_seconds: 700, at: AT }).update.eta, null);
+  assert.equal(parseStatusUpdate({ incident_id: UUID, external_ref: "users/u1/reports/r1", stage: "teleported", at: AT }).ok, false);
+  assert.equal(parseStatusUpdate({ incident_id: "x", external_ref: "users/u1/reports/r1", stage: "received", at: AT }).ok, false);
+  assert.equal(parseStatusUpdate({ incident_id: UUID, external_ref: "broadcasts/x", stage: "received", at: AT }).ok, false);
+  assert.equal(parseStatusUpdate({ incident_id: UUID, external_ref: "users/u1/reports/r1", stage: "received", agency: "x".repeat(61), at: AT }).ok, false);
+  // The time of the change is required (ordering).
+  assert.equal(parseStatusUpdate({ incident_id: UUID, external_ref: "users/u1/reports/r1", stage: "received" }).ok, false);
 });
