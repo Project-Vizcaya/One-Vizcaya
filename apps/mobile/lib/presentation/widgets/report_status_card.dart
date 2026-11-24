@@ -14,6 +14,7 @@ import '../../domain/models/problem_report.dart';
 import '../../domain/enums/report_status.dart';
 import '../../core/utils/toast_utils.dart';
 import '../../core/utils/color_utils.dart';
+import '../../features/reports/presentation/widgets/hub_progress_view.dart';
 
 class ReportStatusCard extends StatefulWidget {
   final ProblemReport report;
@@ -831,6 +832,15 @@ class _ReportStatusCardState extends State<ReportStatusCard>
                 widget.report.status == ReportStatus.closed
                     ? _buildClosedNotice()
                     : _buildStepTracker(),
+                // PDRRMO Command Hub progress, when the Hub has sent any.
+                if (widget.report.hub != null) ...[
+                  const SizedBox(height: 10),
+                  HubProgressView(hub: widget.report.hub!, accent: accent),
+                ],
+                if (widget.report.incidentId != null) ...[
+                  const SizedBox(height: 6),
+                  IncidentIdLine(incidentId: widget.report.incidentId!),
+                ],
                 const SizedBox(height: 8),
                 const Divider(),
                 const SizedBox(height: 8),

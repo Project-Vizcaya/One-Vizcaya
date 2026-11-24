@@ -1943,6 +1943,16 @@ class _ReportDetailSheet extends StatelessWidget {
                       lguColor: lguColor,
                     ),
 
+                  if (report.incidentId != null) ...[
+                    const SizedBox(height: 12),
+                    _DetailSection(
+                      icon: Icons.tag,
+                      label: 'Incident ID',
+                      content: report.incidentId!,
+                      lguColor: lguColor,
+                    ),
+                  ],
+
                   // Proxy reporting (P3): the filer above is an official or a
                   // family member; this is the resident it was filed for.
                   if (report.onBehalfOf != null) ...[

@@ -521,6 +521,19 @@ test("a new report must start as 'reported' and be filed about now", async () =>
   await assertFails(setDoc(doc(c, "users/citizen/reports/n6"), noDate));
 });
 
+test("incident IDs and Command Hub updates are server-only", async () => {
+  const c = as("citizen");
+  await assertSucceeds(setDoc(doc(c, "users/citizen/reports/i1"), ownReport("citizen")));
+  await assertFails(setDoc(doc(c, "users/citizen/reports/i2"), ownReport("citizen", { incidentId: "NV-BAM-20261124-AAAAAA" })));
+  await assertFails(setDoc(doc(c, "users/citizen/reports/i3"), ownReport("citizen", { incidentUuid: "x" })));
+  await assertFails(setDoc(doc(c, "users/citizen/reports/i4"), ownReport("citizen", { hub: { stage: "en_route" } })));
+  // Admins can't change them either, even alongside a legitimate update.
+  await assertSucceeds(updateDoc(doc(as("muni"), REPORT), { status: "acknowledged" }));
+  await assertFails(updateDoc(doc(as("muni"), REPORT), { incidentId: "NV-SOL-20261124-BBBBBB" }));
+  await assertFails(updateDoc(doc(as("prov"), REPORT), { status: "under_review", hub: { stage: "resolved" } }));
+  await assertFails(updateDoc(doc(as("super"), REPORT), { incidentUuid: "y" }));
+});
+
 test("the reporter cannot edit a filed report: not priority, town, escalation or dates", async () => {
   const r = doc(as("citizen"), REPORT);
   await assertFails(updateDoc(r, { priority: "critical" }));

@@ -59,6 +59,12 @@ service cloud.firestore {
       return isAuth() && role() == 'super_admin';
     }
 
+    // Report fields only Cloud Functions write: the incident ID, the shared
+    // Command Hub UUID, and the Hub's status/arrival-time updates.
+    function serverReportFields() {
+      return ['incidentId', 'incidentUuid', 'hub'];
+    }
+
     function isProvincialAdmin() {
       return isAuth() && role() in ['provincial_admin', 'admin', 'super_admin'];
     }
@@ -322,6 +328,9 @@ service cloud.firestore {
                            .data.get('residencyStatus', 'grandfathered')
                            in ['gps_verified', 'certified', 'grandfathered']
                       && validOnBehalf()
+                      // Incident IDs and Command Hub updates are written
+                      // only by Cloud Functions (docs/command-hub.md).
+                      && !request.resource.data.keys().hasAny(serverReportFields())
                       // A new report starts as 'reported', filed about now. (A
                       // report saved offline keeps its real filing time, hence
                       // the window.) Otherwise a reporter could create one
@@ -351,6 +360,8 @@ service cloud.firestore {
                          && validDisposition()
                          && validReferral()
                          && validLifecycle()
+                         && !request.resource.data.diff(resource.data).affectedKeys()
+                              .hasAny(serverReportFields())
                       // The reporter never edits a filed report (ratings go
                       // to the feedback subcollection). The ONE owner write is
                       // account deletion, which archives their reports so the
@@ -422,7 +433,9 @@ service cloud.firestore {
                            && request.resource.data.escalatedBy == request.auth.uid))
                        && validDisposition()
                        && validReferral()
-                       && validLifecycle();
+                       && validLifecycle()
+                       && !request.resource.data.diff(resource.data).affectedKeys()
+                            .hasAny(serverReportFields());
       allow delete: if false; // see the nested reports rule
     }
 
