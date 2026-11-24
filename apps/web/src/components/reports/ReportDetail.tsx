@@ -212,7 +212,7 @@ export function ReportDetail({ report, open, onClose, allReports = [] }: ReportD
         <DialogContent className="w-[min(42rem,95vw)] max-w-none">
           <DialogHeader>
             <DialogTitle className="flex flex-wrap items-center gap-2 text-base">
-              Report #{report.id.slice(-6).toUpperCase()}
+              {report.incidentId ? <span className="font-mono">{report.incidentId}</span> : <>Report #{report.id.slice(-6).toUpperCase()}</>}
               <Badge variant={PRIORITY_VARIANT[report.priority] ?? "low"} className="text-xs uppercase tracking-wide">
                 {report.priority}
               </Badge>
@@ -542,7 +542,7 @@ export function ReportDetail({ report, open, onClose, allReports = [] }: ReportD
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Report?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete report #{report.id.slice(-6).toUpperCase()}. This action cannot be undone.
+              This will permanently delete report {report.incidentId ?? `#${report.id.slice(-6).toUpperCase()}`}. This action cannot be undone.
               To record a false, duplicate, incomplete or unverifiable report, use
               "Close without action" instead — it keeps a record of why.
             </AlertDialogDescription>

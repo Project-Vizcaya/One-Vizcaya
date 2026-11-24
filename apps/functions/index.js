@@ -401,6 +401,66 @@ exports.trackSubReportRate = onDocumentCreated(
   }
 );
 
+// ── Incident IDs and the Command Hub bridge (docs/command-hub.md) ──────────
+// Every new report gets its incident ID (NV-<TOWN>-<YYYYMMDD>-<hex>) and the
+// shared UUID, here and only here, so all apps and versions get the same
+// format. If config/hub.forwardReports is on, the report is then sent to the
+// PDRRMO Command Hub. A failed send is logged; the report itself is unaffected.
+const { idsForReport } = require("./reports/incidentId");
+const hubBridge = require("./hub/bridge");
+
+exports.onReportCreated = onDocumentCreated(
+  // retry: a forward that fails for a temporary reason (network, Hub 5xx) is
+  // retried by Cloud Functions with back-off. Everything before it is
+  // idempotent, and the Hub's ingest is idempotent on incident_id.
+  { document: "users/{userId}/reports/{reportId}", retry: true },
+  async (event) => {
+    const snap = event.data;
+    if (!snap) return;
+    const data = snap.data();
+    // Always derived from the path, never taken from the document: a client
+    // (or the super-admin rules bypass) can't choose its own IDs.
+    const ids = idsForReport(snap.ref.path, data);
+    if (data.incidentUuid !== ids.incidentUuid || data.incidentId !== ids.incidentId || data.hub !== undefined) {
+      await snap.ref.update({ ...ids, hub: admin.firestore.FieldValue.delete() });
+    }
+
+    const cfg = (await admin.firestore().doc("config/hub").get()).data() || {};
+    if (cfg.forwardReports !== true || typeof cfg.hubUrl !== "string" || !cfg.hubUrl.startsWith("https://")) return;
+    const secret = await readSecret("HUB_BRIDGE_SECRET");
+    if (!secret) { console.error("onReportCreated: HUB_BRIDGE_SECRET is not set; report not forwarded."); return; }
+    try {
+      await hubBridge.forwardReport({ hubUrl: cfg.hubUrl, secret, payload: hubBridge.ingestPayload(snap.ref.path, data, ids) });
+    } catch (e) {
+      console.error(`onReportCreated: forwarding ${ids.incidentId} failed:`, e.message);
+      // Temporary failures are retried; a refusal (4xx: bad secret, bad
+      // payload) would fail the same way every time, so it is only logged.
+      if (!(e.status >= 400 && e.status < 500)) throw e;
+    }
+  }
+);
+
+// The Command Hub calls this when an incident's stage or arrival time
+// changes. Signed with HUB_BRIDGE_SECRET; refused unless
+// config/hub.citizenEtaUpdates is on.
+exports.incidentStatusUpdate = onRequest({ cors: false }, async (req, res) => {
+  if (req.method !== "POST") { res.status(405).send("POST only"); return; }
+  const cfg = (await admin.firestore().doc("config/hub").get()).data() || {};
+  if (cfg.citizenEtaUpdates !== true) { res.status(503).json({ error: "Updates from the Command Hub are switched off." }); return; }
+  const secret = await readSecret("HUB_BRIDGE_SECRET");
+  const raw = req.rawBody ? req.rawBody.toString("utf8") : "";
+  if (!hubBridge.verify(secret, raw, req.get(hubBridge.SIGNATURE_HEADER))) { res.status(401).json({ error: "Bad signature." }); return; }
+  let body;
+  try { body = JSON.parse(raw); } catch { res.status(400).json({ error: "Body must be JSON." }); return; }
+  const parsed = hubBridge.parseStatusUpdate(body);
+  if (!parsed.ok) { res.status(400).json({ error: parsed.error }); return; }
+  const result = await hubBridge.applyStatusUpdate(admin.firestore(), parsed.update, {
+    serverTimestamp: () => admin.firestore.FieldValue.serverTimestamp(),
+  });
+  if (result === "not_found" || result === "mismatch") { res.status(404).json({ error: "No such report." }); return; }
+  res.json({ ok: true, result });
+});
+
 // ── Reset rate limits daily at midnight Manila time ──────────────────────────
 exports.resetRateLimits = scheduled("resetRateLimits", 
   { schedule: "0 0 * * *", timeZone: "Asia/Manila" },

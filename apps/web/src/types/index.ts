@@ -77,6 +77,8 @@ export interface Report {
   resolutionNote?: string;
   resolutionBy?: string;
   onBehalfOf?: { name: string; contact?: string; relationship?: string };
+  /** NV-<TOWN>-<YYYYMMDD>-<hex>, set by onReportCreated (docs/command-hub.md). */
+  incidentId?: string;
 }
 
 export interface Responder {

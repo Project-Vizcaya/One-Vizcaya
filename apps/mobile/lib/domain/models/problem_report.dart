@@ -4,6 +4,7 @@ import '../enums/report_category.dart';
 import '../enums/report_status.dart';
 import '../enums/report_priority.dart';
 import '../enums/handling_level.dart';
+import 'hub_progress.dart';
 
 /// The office a report was handed to (P2). Must match firestore.rules
 /// validReferral() and the web console's REFERRAL_OFFICE_TYPES.
@@ -113,6 +114,12 @@ class ProblemReport {
   // relationship. firestore.rules check who may set it and its shape.
   final Map<String, String>? onBehalfOf;
 
+  // Set server-side by onReportCreated (docs/command-hub.md): the incident ID
+  // people read (NV-<TOWN>-<YYYYMMDD>-<hex>) and the PDRRMO Command Hub's
+  // progress for the reporter. Read-only, absent from toMap().
+  final String? incidentId;
+  final HubProgress? hub;
+
   static const dispositionLabels = {
     'false_report': 'False report',
     'duplicate': 'Duplicate',
@@ -157,6 +164,8 @@ class ProblemReport {
     this.duplicateOf,
     this.referral,
     this.onBehalfOf,
+    this.incidentId,
+    this.hub,
   });
 
   factory ProblemReport.fromFirestore(DocumentSnapshot doc) {
@@ -234,6 +243,8 @@ class ProblemReport {
       onBehalfOf: data['onBehalfOf'] is Map
           ? (data['onBehalfOf'] as Map).map((k, v) => MapEntry('$k', '${v ?? ''}'))
           : null,
+      incidentId: data['incidentId'] is String ? data['incidentId'] as String : null,
+      hub: HubProgress.fromMap(data['hub']),
     );
   }
 

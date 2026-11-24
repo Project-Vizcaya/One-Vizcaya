@@ -107,6 +107,19 @@ Shown when a resident or official files a report for a person without a phone.
 | `floodControlNone` | No DPWH flood-control projects recorded for this town in 2021–2024. | Walang naitalang proyektong flood control ng DPWH sa bayang ito noong 2021–2024. | Awan ti nairekord a proyekto a flood control ti DPWH iti daytoy nga ili idi 2021–2024. | ☐ | |
 | `contractor` / `started` / `completed` | Contractor / Started / Completed | Kontratista / Sinimulan / Natapos | Kontratista / Nangrugi / Nalpas | ☐ | |
 
+### A9. Call first, PDRRMO response (Report a Problem, report card)
+
+| Key | English (source) | Tagalog | Ilocano | OK | Correction |
+|---|---|---|---|:-:|---|
+| `callFirstTitle` | Emergency? Call first. | Emergency? Tumawag muna. | Emergency? Umuna ti agtawag. | ☐ | |
+| `callFirstBody` | If a life or property is in danger right now, call. You can report here afterwards. | Kung may buhay o ari-ariang nasa panganib ngayon, tumawag. Maaari kang mag-ulat dito pagkatapos. | No adda biag wenno sanikua a peligro ita, agtawag. Mabalinmo ti agreport ditoy kalpasanna. | ☐ | |
+| `callPdrrmo / call911` | Call PDRRMO / Call 911 | Tawagan ang PDRRMO / Tumawag sa 911 | Tawagan ti PDRRMO / Tawagan ti 911 | ☐ | |
+| `hubTitle` | PDRRMO response | Tugon ng PDRRMO | Sungbat ti PDRRMO | ☐ | |
+| `hubStage_*` | Received / Validated / Responder assigned / On the way / On scene / Completed | Natanggap / Napatunayan / May nakatalagang responder / Papunta na / Nasa lugar na / Tapos na | Naawat / Napaneknekan / Adda naitudingan a responder / Agturturong / Adda iti lugar / Nalpasen | ☐ | |
+| `hubEta / hubEtaSoon` | About {lo} to {hi} minutes / Less than 5 minutes | Mga {lo} hanggang {hi} minuto / Wala pang 5 minuto | Agarup {lo} agingga {hi} a minuto / Kurang a 5 a minuto | ☐ | |
+| `hubAgency` | Responding agency | Tumutugong ahensya | Ahensia a sumungbat | ☐ | |
+| `hubPrivacyNote` | For the responders' safety, their exact location is not shown. | Para sa kaligtasan ng mga responder, hindi ipinapakita ang eksaktong lokasyon nila. | Para iti talged dagiti responder, saan a maipakita ti eksakto a lokasionda. | ☐ | |
+
 ---
 
 ## B. English only — needs translating

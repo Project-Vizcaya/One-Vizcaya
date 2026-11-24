@@ -20,6 +20,7 @@ import '../../data/services/report_submitter.dart';
 import '../../core/utils/connectivity_probe.dart';
 import '../state/municipality_state.dart';
 import '../../core/utils/color_utils.dart';
+import '../widgets/call_first_strip.dart';
 
 class ReportProblemScreen extends StatefulWidget {
   const ReportProblemScreen({super.key});
@@ -473,6 +474,10 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  // Call first, post later (PDRRMO): calling and SOS come
+                  // before the form.
+                  const CallFirstStrip(),
+                  const SizedBox(height: 16),
                   if (_residencyBlocked) ...[
                     Container(
                       padding: const EdgeInsets.all(14),

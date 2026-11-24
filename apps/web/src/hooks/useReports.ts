@@ -65,6 +65,7 @@ function toReport(d: {
     resolutionBy:      data.resolutionBy as string | undefined,
     onBehalfOf:        data.onBehalfOf && typeof data.onBehalfOf === "object"
       ? (data.onBehalfOf as Report["onBehalfOf"]) : undefined,
+    incidentId:        typeof data.incidentId === "string" ? data.incidentId : undefined,
   };
 }
 

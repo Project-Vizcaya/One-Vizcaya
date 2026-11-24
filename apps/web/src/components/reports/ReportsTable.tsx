@@ -74,7 +74,8 @@ export function ReportsTable({ reports, loading, initialFilter = "all" }: Report
           r.category.toLowerCase().includes(q) ||
           r.municipality.toLowerCase().includes(q) ||
           r.description.toLowerCase().includes(q) ||
-          r.location.toLowerCase().includes(q)
+          r.location.toLowerCase().includes(q) ||
+          (r.incidentId ?? "").toLowerCase().includes(q)
       );
     }
     if (dateFrom) list = list.filter((r) => r.reportedAt >= new Date(dateFrom));
@@ -199,7 +200,7 @@ export function ReportsTable({ reports, loading, initialFilter = "all" }: Report
         <div className="relative flex-1">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden />
           <Input
-            placeholder="Search category, location, description…"
+            placeholder="Search incident ID, category, location, description…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-8 h-8 text-sm"
@@ -348,6 +349,7 @@ export function ReportsTable({ reports, loading, initialFilter = "all" }: Report
                       </td>
                       <td className="px-3 py-2.5">
                         <p className="font-medium text-sm truncate max-w-[140px] sm:max-w-[180px]">{r.category}</p>
+                        {r.incidentId && <p className="font-mono text-xs text-muted-foreground">{r.incidentId}</p>}
                         <p className="text-xs text-muted-foreground truncate max-w-[140px] sm:max-w-[180px]">
                           {r.location || r.municipality}
                           {overdue && <span className="ml-1 text-amber-600 font-semibold" aria-label="Overdue">⏰</span>}
