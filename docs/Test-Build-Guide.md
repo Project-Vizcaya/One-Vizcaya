@@ -24,59 +24,157 @@ After your feedback: PR #137 is merged to `main`, then the redesign goes to `mai
 >    hotline and 911. Check that the dialer opens with the number, then back out.
 
 Tick each box as you go. Write down anything odd (screen, steps, what you expected) for §10.
-Budget: about 30 min setup the night before, 1 hour deploy and build, 2–3 hours testing.
+
+**The day at a glance**
+
+| When | What | Time |
+|---|---|---|
+| Tonight | §1: tools, downloads, secret files, test numbers, accounts, dry-run build | ~1 h |
+| Morning | §2 pull → §3 deploy backend → §4 build and install the app | ~1 h |
+| Midday | §5 redesign → §6 PR #137 → §7 P1–P3 (→ §8 Command Hub, optional) | 2–3 h |
+| Same day | §9 clean up → §10 send me the results | 20 min |
 
 ---
 
-## 1. Prepare (Tuesday night)
+## 1. Prepare tonight (about 1 hour, all of it checkable)
 
-### 1.1 Files (gitignored, never committed; runbook §1)
-- [ ] `apps/mobile/lib/firebase_options.dart`
-- [ ] `apps/mobile/android/app/google-services.json`
-- [ ] `apps/mobile/android/key.properties` and the release keystore it points to
+**Why tonight:** installs, downloads, account approvals and a first build are what eat a
+test morning. Do them now; tomorrow is only *pull → deploy → build → test*.
 
-### 1.2 Test accounts
-Use Firebase **test phone numbers** (runbook §3) so you are not limited by the SMS quota.
+**Use Git Bash on Windows** (it comes with Git for Windows). Every command in this guide is
+written for it. In Windows PowerShell 5 or plain `cmd`, some lines (`&&` chains, `cat`,
+`VAR=value command`) fail.
+
+### 1.1 Tools — install, then confirm each one
+
+| Run this | You should see | If not |
+|---|---|---|
+| `git --version` | any version | install Git for Windows |
+| `node -v` | `v22.x` | install Node 22 LTS (nodejs.org) |
+| `firebase --version` | `13.x` or newer | `npm install -g firebase-tools` |
+| `flutter --version` | `3.44` or newer | `flutter upgrade` |
+| `flutter doctor` | ✓ for Flutter and **Android toolchain** | follow its hints; `flutter doctor --android-licenses` |
+| `adb version` | any version | comes with Android Studio's platform-tools |
+| `java -version` | `21` (only for the emulator tests in §2) | Temurin 21; skip if you won't run them |
+
+- [ ] All rows above checked.
+- [ ] `firebase login` (as the project owner account), then `firebase use one-vizcaya-app`.
+      `firebase projects:list` shows `one-vizcaya-app` with **(current)**.
+
+### 1.2 Code and downloads (so tomorrow doesn't wait on the internet)
+
+```bash
+git clone https://github.com/Project-Vizcaya/One-Vizcaya.git   # skip if you already have it
+cd One-Vizcaya
+git fetch origin
+git checkout claude/test-build-combined
+git pull
+
+(cd apps/functions && npm install)
+(cd apps/web && npm install)
+(cd command-hub && npm install)
+(cd tests/emulator && npm install)      # only if you will run the emulator tests
+(cd apps/mobile && flutter pub get)
+```
+- [ ] All finished without errors. (`npm` warnings are fine; errors are not.)
+- [ ] `git log --oneline -1` — write the commit here: `__________`. Tomorrow `git pull`
+      picks up anything I push overnight.
+
+### 1.3 Secret files (gitignored; runbook §1)
+
+Copy them from your USB / `one-vizcaya-secrets.zip`:
+
+| File | Goes in | Check |
+|---|---|---|
+| `firebase_options.dart` | `apps/mobile/lib/` | `ls apps/mobile/lib/firebase_options.dart` |
+| `google-services.json` | `apps/mobile/android/app/` | `ls apps/mobile/android/app/google-services.json` |
+| `key.properties` + the upload keystore it names | `apps/mobile/android/` (+ `app/`) | optional: without it the APK is signed with your debug keystore |
+| your **stable** `debug.keystore` | `~/.android/debug.keystore` (Windows: `C:\Users\<you>\.android\`) | the same one since day one |
+
+- [ ] Files in place. **Never `git add` them.** `git status` must not list any of them.
+
+### 1.4 Firebase Console (10 minutes)
+
+- [ ] Authentication → Sign-in method → Phone → **Phone numbers for testing**: one number +
+      6-digit code per test account in §1.5. Test numbers skip SMS, reCAPTCHA and the daily
+      quota (runbook §3). Write them down.
+- [ ] You can open Authentication → Settings → **Authorized domains** (you'll add the
+      preview link there tomorrow, §3.4).
+- [ ] Usage and billing shows the **Blaze** plan (functions deploys need it).
+
+### 1.5 Test accounts — create and approve tonight
+
+Approvals take several steps, so finish them now.
 
 | Account | Role | Needed for |
 |---|---|---|
 | Admin A | `municipal_admin` of your test town | proposing alerts, lifecycle, referrals |
 | Admin B | `municipal_admin` of **the same** town | approving A's alert (second approver) |
 | Admin P | `provincial_admin` | province-wide approval, Hazard Watch switch, filing anywhere |
-| Resident C | citizen, residency **certified**, in the test town | reporting, proxy, inbox, privacy |
+| Resident C | citizen, residency **certified**, in the test town | reporting, proxy, inbox, privacy, incident IDs |
 | Resident U | citizen, residency **not** certified | checking proxy reporting is refused |
 | Resident D | throwaway citizen | account deletion (§6.3) |
 
-- [ ] All accounts exist, with roles granted through the normal nominate → approve flow.
-- [ ] Pick a **test town** and note how many real users it has. If any, never approve an
-      alert for it.
+- [ ] Each account signs in on the **current** app and has its role (nominate → approve).
+- [ ] Pick a **test town**: ________. Real users in it: ____. If any, **never approve an
+      alert** for it tomorrow.
 
-### 1.3 Devices
-- [ ] Two Android phones if possible: one small screen, one normal.
-- [ ] A laptop with Chrome for the console.
+### 1.6 Phones and laptop
 
-### 1.4 Tools on your PC
-- [ ] Flutter 3.44+, Node 22, Firebase CLI, Java 21 (only for the emulator tests).
-- [ ] `firebase login`, then `firebase use one-vizcaya-app`.
+- [ ] Two Android phones (one small screen if possible), **charged**, cables/charger packed.
+- [ ] On each: Settings → allow installing apps from your file manager or Chrome
+      ("Install unknown apps"); Location **on**; Chrome up to date.
+- [ ] Write down each phone's model and Android version (for the report, §10):
+      ______________________
+- [ ] Laptop with Chrome, on the same Wi-Fi as the phones.
+- [ ] Optional, for the Command Hub on a phone (§8): install `cloudflared`
+      (`winget install Cloudflare.cloudflared`). Not needed for the main test.
+
+### 1.7 Dry-run build (catches Android problems while there is time to fix them)
+
+```bash
+cd apps/mobile
+flutter build apk --release --dart-define=FORCE_RECAPTCHA=true
+```
+- [ ] It ends with `✓ Built build/app/outputs/flutter-apk/app-release.apk`. Don't install
+      it yet: tomorrow you pull and rebuild with the version bump (§4).
+- [ ] The key that signed it is one Firebase knows (phone sign-in on a sideloaded APK needs
+      this): `cd android && ./gradlew signingReport` (the build created `gradlew`) → the
+      **SHA-1** under `Variant: release` → Firebase Console → Project settings → the Android
+      app → it is in the SHA fingerprint list. Then `cd ..`.
+- [ ] Optional, 1 minute: `cd command-hub && npm run build` ends with
+      `✓ Compiled successfully`.
+
+### 1.8 Note the way back
+
+- [ ] `git rev-parse origin/main` → write it here: `__________`. That is what production
+      runs today; §11 uses it if you need to undo.
+
+### Ready?
+
+All boxes in §1 ticked = tomorrow is about 1 hour of deploy and build, then testing. If
+anything in §1 failed and you can't fix it, tell me tonight with the exact error text.
 
 ---
 
-## 2. Get the code (Wednesday morning)
+## 2. Get the latest code (Wednesday morning, 5 minutes)
 
 ```bash
-git fetch origin
 git checkout claude/test-build-combined
 git pull
 ```
-- [ ] Copy the files from §1.1 into place.
+- [ ] The secret files from §1.3 are still in place (`git pull` never touches them).
+- [ ] If `git pull` brought new commits, re-run the installs from §1.2 for the folders that
+      changed (`git diff --stat HEAD@{1}` shows which).
 - [ ] Optional, about 5 minutes: run the tests.
   ```bash
-  cd apps/functions && npm install && npm test             # expect 130 pass
-  cd ../../tests/emulator && npm install && npm test       # expect 121 pass (needs Java)
-  cd ../../apps/mobile && flutter pub get && flutter test  # expect 77 pass
-  cd ../../command-hub && npm install && npm test          # expect 44 pass
-  cd ../..
+  (cd apps/functions && npm test)          # expect 130 pass
+  (cd tests/emulator && npm test)          # expect 121 pass (needs Java)
+  (cd apps/mobile && flutter test)         # expect 77 pass
+  (cd command-hub && npm test)             # expect 44 pass
   ```
+  If I fixed something overnight the counts may be slightly higher; any **fail** = stop and
+  tell me.
 
 ---
 
@@ -293,14 +391,15 @@ international forecast as before.
 Runs on your laptop with **invented data**; it is **not** connected to One Vizcaya on
 Wednesday (the link stays off). Nothing you do here reaches real residents.
 
-```bash
-cd command-hub
-npm install
-cat > .env.local <<'ENV'
+Create a file `command-hub/.env.local` (Notepad is fine; no `.txt` at the end) with:
+```
 HUB_SESSION_SECRET=any-long-random-text-1234567890
 HUB_SIMULATOR_TOKEN=demo-simulator-token-123456
-ENV
-npm run build && npm start        # http://localhost:3100
+```
+Then, in Git Bash:
+```bash
+cd command-hub
+npm run build && npm start        # leave it running; open http://localhost:3100
 ```
 - [ ] Laptop browser: sign in as **PDRRMO EOC operator**. Live map shows 5 units on duty and
       the incident list; status colours have icons and labels.
