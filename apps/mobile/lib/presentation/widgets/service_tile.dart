@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/theme/app_colors.dart';
 import '../../core/utils/color_utils.dart';
 
 /// How loudly a service tile speaks. Colour carries meaning here: the town's
@@ -37,19 +38,18 @@ class ServiceTile extends StatelessWidget {
     this.iconContainerSize = 52.0,
   });
 
-  static const _emergencyRed = Color(0xFFC62828);
-  static const _hairline = Color(0xFFE2E7E1);
-
   @override
   Widget build(BuildContext context) {
     final dark = Theme.of(context).brightness == Brightness.dark;
     final surface = dark ? Theme.of(context).colorScheme.surface : Colors.white;
-    final hue = tone == ServiceTileTone.emergency ? _emergencyRed : accent;
+    final hue = tone == ServiceTileTone.emergency
+        ? AppColors.emergency
+        : accent;
     final Color fill, iconColor, border;
     switch (tone) {
       case ServiceTileTone.primary:
-        // Darkened only as far as a white icon needs (Villaverde, Kasibu).
-        fill = ColorUtils.textSafeAccent(hue, Colors.white);
+        // The town colour, or its dark companion where white would not pass.
+        fill = ColorUtils.readableAccent(hue, Brightness.light);
         iconColor = Colors.white;
         border = fill;
       case ServiceTileTone.emergency:
@@ -62,8 +62,8 @@ class ServiceTile extends StatelessWidget {
         border = iconColor.withValues(alpha: 0.28);
       case ServiceTileTone.neutral:
         fill = surface;
-        iconColor = ColorUtils.textSafeAccent(hue, surface);
-        border = dark ? Colors.white.withValues(alpha: 0.12) : _hairline;
+        iconColor = ColorUtils.readableAccentOf(context, hue);
+        border = dark ? Colors.white.withValues(alpha: 0.12) : AppColors.line;
     }
 
     // Ripple feedback and button semantics (the visible label is read as

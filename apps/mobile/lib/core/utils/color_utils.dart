@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../constants/app_constants.dart';
+import '../theme/app_colors.dart';
+
 /// Colour-contrast helpers for the municipality theming.
 ///
 /// Each municipality has an accent (`appBarColor`) that ranges from very dark
@@ -11,38 +14,38 @@ import 'package:flutter/material.dart';
 class ColorUtils {
   ColorUtils._();
 
-  /// Black or white — whichever is readable **on top of** [background].
-  /// Use for text/icons drawn over a municipality-coloured fill (app bars,
-  /// filled buttons, chips).
-  static Color readableTextOn(Color background) {
-    return ThemeData.estimateBrightnessForColor(background) == Brightness.dark
-        ? Colors.white
-        : Colors.black;
+  /// Black or white — whichever has more contrast **on top of**
+  /// [background]. Use for text/icons drawn over a municipality-coloured fill
+  /// (app bars, filled buttons, chips). Picks by WCAG contrast, not by a
+  /// brightness guess: Aritao coral now gets black (5.4:1, white was 2.9:1).
+  static Color readableTextOn(Color background) =>
+      contrast(Colors.white, background) >= contrast(Colors.black, background)
+      ? Colors.white
+      : Colors.black;
+
+  /// Returns [accent] adjusted so it is legible (4.5:1, WCAG AA) when used
+  /// **as** a font/icon colour on the app's surfaces for [brightness].
+  ///
+  /// - **Light**: the town colour itself when it passes on the shared
+  ///   background; otherwise the town's `darkColor` from
+  ///   AppConstants.municipalityThemes (so headings and the selected nav item
+  ///   use the same shade), or a darkened shade for any other colour.
+  /// - **Dark**: lifted and softened until it passes on the lightest dark
+  ///   surface (maroon becomes rose rather than alarm red).
+  static Color readableAccent(Color accent, Brightness brightness) {
+    if (brightness == Brightness.dark) {
+      return textSafeAccent(accent, AppColors.darkSurfaceHigh);
+    }
+    if (contrast(accent, AppColors.background) >= 4.5) return accent;
+    return townDarkOf(accent) ?? textSafeAccent(accent, AppColors.background);
   }
 
-  /// Returns [accent] adjusted so it is legible when used **as** a font/icon
-  /// colour on the current surface [brightness].
-  ///
-  /// - On a **dark** surface a too-dark accent is lightened (maroon → soft red,
-  ///   dark green → soft green) so it no longer disappears into the background.
-  /// - On a **light** surface a too-light accent is darkened so it does not wash
-  ///   out. Accents already in the legible range are returned unchanged, so the
-  ///   municipality's colour identity is preserved wherever possible.
-  static Color readableAccent(Color accent, Brightness brightness) {
-    final hsl = HSLColor.fromColor(accent);
-    if (brightness == Brightness.dark) {
-      if (hsl.lightness < 0.62) {
-        return hsl
-            .withLightness(0.72)
-            .withSaturation((hsl.saturation * 0.85).clamp(0.0, 1.0))
-            .toColor();
-      }
-    } else {
-      if (hsl.lightness > 0.62) {
-        return hsl.withLightness(0.34).toColor();
-      }
+  /// The configured `darkColor` of the town whose primary is [primary].
+  static Color? townDarkOf(Color primary) {
+    for (final t in AppConstants.municipalityThemes.values) {
+      if (t['appBarColor'] == primary) return t['darkColor'] as Color?;
     }
-    return accent;
+    return null;
   }
 
   /// Convenience: [readableAccent] resolved from a [BuildContext]'s theme.

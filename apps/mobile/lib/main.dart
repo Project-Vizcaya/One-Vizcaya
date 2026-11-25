@@ -32,6 +32,7 @@ import 'features/auth/presentation/screens/privacy_policy_screen.dart';
 import 'presentation/widgets/auth_gate.dart';
 import 'presentation/widgets/biometric_lock.dart';
 import 'presentation/state/municipality_state.dart';
+import 'core/theme/app_colors.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -198,12 +199,13 @@ class _OneVizcayaAppState extends State<OneVizcayaApp> {
           theme: ThemeData(
             brightness: Brightness.light,
             primarySwatch: Colors.green,
-            scaffoldBackgroundColor: const Color(0xFFF5F5F5),
+            // Shared neutral background (municipal colour guide).
+            scaffoldBackgroundColor: AppColors.background,
             fontFamily: kAppFontFamily,
             iconTheme: const IconThemeData(color: Color(0xFF333333)),
             appBarTheme: const AppBarTheme(
               elevation: 0,
-              backgroundColor: Color(0xFFF5F5F5),
+              backgroundColor: AppColors.background,
               foregroundColor: Color(0xFF333333),
               titleTextStyle: TextStyle(
                 fontFamily: kAppFontFamily,

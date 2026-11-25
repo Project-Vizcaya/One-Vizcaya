@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/l10n/app_strings.dart';
+import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/color_utils.dart';
 import '../../../../presentation/state/municipality_state.dart';
 
@@ -17,13 +18,9 @@ DateTime? _postedAt(Map<String, dynamic> data) {
   return t is Timestamp ? t.toDate() : null;
 }
 
-// Shared neutrals from the municipal colour guide (light) and the app's dark
+// Neutrals come from AppColors (the municipal colour guide) and the app's dark
 // theme. The town colour is only an accent: the left bar, the label, NEW.
-const _inkLight = Color(0xFF202522);
-const _mutedLight = Color(0xFF68716B);
-const _lineLight = Color(0xFFE2E7E1);
 const _mutedDark = Color(0xFFA8ADB5);
-const _emergencyRed = Color(0xFFC62828);
 
 /// Card height that fits the label, a two-line headline, the summary and the
 /// source at the user's text size.
@@ -165,8 +162,12 @@ Color _surfaceOf(BuildContext context) =>
     ? Theme.of(context).colorScheme.surface
     : Colors.white;
 
+/// The town colour as text: the same shade headings use (its dark companion
+/// where the primary is too light). Urgent red stays a true red in dark mode.
 Color _textSafe(BuildContext context, Color accent) =>
-    ColorUtils.textSafeAccent(accent, _surfaceOf(context));
+    accent == AppColors.emergency
+    ? ColorUtils.textSafeAccent(accent, _surfaceOf(context), darkSaturation: 1)
+    : ColorUtils.readableAccentOf(context, accent);
 
 /// White card, a narrow bar in the town's colour, a small label, a dark
 /// headline and a muted summary. New posts get a NEW tag and a town-tinted
@@ -204,14 +205,14 @@ class AnnouncementCard extends StatelessWidget {
     final isNew = isNewAnnouncement(_postedAt(data), now);
 
     final surface = _surfaceOf(context);
-    final ink = dark ? theme.colorScheme.onSurface : _inkLight;
-    final muted = dark ? _mutedDark : _mutedLight;
-    final tone = isUrgent ? _emergencyRed : accent;
+    final ink = dark ? theme.colorScheme.onSurface : AppColors.ink;
+    final muted = dark ? _mutedDark : AppColors.muted;
+    final tone = isUrgent ? AppColors.emergency : accent;
     final toneText = _textSafe(context, tone);
     // The bar is decoration, so light mode keeps the town's own colour; on a
     // dark surface it uses the lifted shade so maroon or navy stays visible.
     final bar = dark ? toneText : tone;
-    final line = dark ? Colors.white.withValues(alpha: 0.12) : _lineLight;
+    final line = dark ? Colors.white.withValues(alpha: 0.12) : AppColors.line;
     final label = AppStrings.get(
       isUrgent
           ? 'urgentBadge'

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:one_vizcaya/core/services/weather_service.dart';
 import 'package:one_vizcaya/presentation/screens/weather_detail_screen.dart';
+import 'package:one_vizcaya/core/theme/app_colors.dart';
 
 /// Home weather card, laid out like the DOST PANaHON "Locations" card:
 /// a large current temperature + condition icon, the current-location label,
@@ -171,7 +172,7 @@ class _WeatherWidgetState extends State<WeatherWidget> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final cardBg = isDark ? const Color(0xFF1B2A33) : const Color(0xFFE9F1F7);
+    final cardBg = isDark ? const Color(0xFF1B2A33) : AppColors.weatherSurface;
     final cardBorder = isDark ? const Color(0xFF2E4450) : const Color(0xFFCFE0EC);
     final titleColor = isDark ? const Color(0xFFECF3F8) : const Color(0xFF1B2A33);
     final subColor = isDark ? const Color(0xFF9FB3BF) : const Color(0xFF546E7A);

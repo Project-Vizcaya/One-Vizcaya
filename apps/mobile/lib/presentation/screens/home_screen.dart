@@ -18,6 +18,8 @@ import '../widgets/notification_bell.dart';
 import '../widgets/whats_new_dialog.dart';
 import '../widgets/call_first_strip.dart';
 import '../widgets/service_tile.dart';
+import '../../core/theme/app_colors.dart';
+import '../../core/utils/color_utils.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -166,11 +168,11 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color.lerp(
-        Theme.of(context).scaffoldBackgroundColor,
-        _appBarColor,
-        0.10,
-      )!,
+      // Shared neutral page (colour guide): the town colour is an accent,
+      // not a wash over the whole screen.
+      backgroundColor: Theme.of(context).brightness == Brightness.dark
+          ? Theme.of(context).scaffoldBackgroundColor
+          : AppColors.background,
       body: SafeArea(
         child: Column(
           children: [
@@ -178,7 +180,8 @@ class _HomeScreenState extends State<HomeScreen> {
             if (_isOffline)
               Container(
                 width: double.infinity,
-                color: const Color(0xFFF57F17),
+                // Warning tone; white text on the old #F57F17 was 2.9:1.
+                color: AppColors.warning,
                 padding: const EdgeInsets.symmetric(
                   vertical: 8,
                   horizontal: 16,
@@ -275,6 +278,9 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildHomePage(BuildContext context) {
     final municipality = _municipality;
     final appBarColor = _appBarColor;
+    // The town colour as text: itself where it passes 4.5:1, else its
+    // darker companion (Villaverde, Kasibu, Bagabag, Aritao, Diadi, Kayapa…).
+    final accentText = ColorUtils.readableAccentOf(context, appBarColor);
     final secondaryColor = _secondaryColor;
     final welcomeMsg = _welcomeMsg;
     const double iconSize = 52.0;
@@ -363,9 +369,9 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                         ],
                       ),
-                      child: const Icon(
+                      child: Icon(
                         Icons.person,
-                        color: Colors.white,
+                        color: ColorUtils.readableTextOn(appBarColor),
                         size: 20,
                       ),
                     ),
@@ -382,11 +388,10 @@ class _HomeScreenState extends State<HomeScreen> {
               onTap: () => showMunicipalityInfoSheet(context, municipality),
               child: Container(
               decoration: BoxDecoration(
-                color: Color.lerp(
-                  Theme.of(context).cardColor,
-                  appBarColor,
-                  0.03,
-                ),
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Theme.of(context).cardColor
+                    : (oneVizcayaState.activeTheme['tertiaryColor'] as Color?) ??
+                        AppColors.surface,
                 borderRadius: BorderRadius.circular(20),
                 boxShadow: [
                   BoxShadow(
@@ -421,7 +426,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
-                            color: appBarColor,
+                            color: accentText,
                             letterSpacing: 0.5,
                           ),
                           textAlign: TextAlign.center,
@@ -432,13 +437,13 @@ class _HomeScreenState extends State<HomeScreen> {
                           children: [
                             Icon(Icons.info_outline,
                                 size: 13,
-                                color: appBarColor.withValues(alpha: 0.7)),
+                                color: accentText),
                             const SizedBox(width: 4),
                             Text(
                               'Tap to learn about this municipality',
                               style: TextStyle(
                                 fontSize: 12,
-                                color: appBarColor.withValues(alpha: 0.7),
+                                color: accentText,
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
@@ -613,7 +618,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
-                    color: appBarColor,
+                    color: accentText,
                   ),
                 ),
                 GestureDetector(
@@ -623,7 +628,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     AppStrings.get('seeAll'),
                     style: TextStyle(
                       fontSize: 13,
-                      color: appBarColor.withValues(alpha: 0.7),
+                      color: accentText,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -648,7 +653,7 @@ class _HomeScreenState extends State<HomeScreen> {
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
-                color: appBarColor,
+                color: accentText,
               ),
             ),
           ),
@@ -709,7 +714,7 @@ class _HomeScreenState extends State<HomeScreen> {
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
-                color: appBarColor,
+                color: accentText,
               ),
             ),
           ),
@@ -798,14 +803,15 @@ class _HomeScreenState extends State<HomeScreen> {
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
-                    color: appBarColor,
+                    color: accentText,
                   ),
                 ),
                 Text(
                   AppStrings.get('liveLabel'),
                   style: TextStyle(
                     fontSize: 13,
-                    color: Colors.green.shade600,
+                    color: ColorUtils.readableAccentOf(
+                        context, AppColors.success),
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -817,11 +823,7 @@ class _HomeScreenState extends State<HomeScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Container(
               decoration: BoxDecoration(
-                color: Color.lerp(
-                  Theme.of(context).cardColor,
-                  appBarColor,
-                  0.03,
-                ),
+                color: Theme.of(context).cardColor,
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
@@ -1013,6 +1015,9 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildBottomNav(Color appBarColor) {
+    // Primary where white text passes on it, else the town's dark shade
+    // (white on Villaverde lime was 2.1:1).
+    final selected = ColorUtils.readableAccent(appBarColor, Brightness.light);
     return Container(
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
@@ -1050,7 +1055,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           label: AppStrings.get('home'),
                           isSelected: _selectedNavIndex == 0,
                           onTap: () => setState(() => _selectedNavIndex = 0),
-                          selectedColor: appBarColor,
+                          selectedColor: selected,
                         ),
                         _BottomNavItem(
                           icon: Icons.camera_alt_rounded,
@@ -1058,14 +1063,14 @@ class _HomeScreenState extends State<HomeScreen> {
                           isSelected: false,
                           onTap: () =>
                               Navigator.of(context).pushNamed('/report'),
-                          selectedColor: appBarColor,
+                          selectedColor: selected,
                         ),
                         _BottomNavItem(
                           icon: Icons.person_rounded,
                           label: AppStrings.get('profile'),
                           isSelected: _selectedNavIndex == 2,
                           onTap: () => setState(() => _selectedNavIndex = 2),
-                          selectedColor: appBarColor,
+                          selectedColor: selected,
                         ),
                       ],
                     ),

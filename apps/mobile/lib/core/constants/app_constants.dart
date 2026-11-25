@@ -404,12 +404,17 @@ class AppConstants {
   static const String npcWebsite = 'https://privacy.gov.ph';
   static const String npcHotline = '1-866-NPC-9993';
 
+  /// Per-town identity colours (municipal colour guide): `appBarColor` is the
+  /// town's primary, `darkColor` its text-safe companion (4.5:1 on the shared
+  /// background, and with white text on it), `tertiaryColor` its light tint.
+  /// Shared colours (background, text, status) live in AppColors.
   static const Map<String, dynamic> municipalityThemes = {
     'Alfonso Castañeda': {
       'title': 'The Hydroelectric Powerhouse',
       'appBarColor': Color(0xFF8B0000), // Deep Red
       'secondaryColor': Color(0xFFFFD700), // Gold
-      'tertiaryColor': Color(0xFFF8EBEB), // Soft Red Tint
+      'tertiaryColor': Color(0xFFF5E5E5), // light: tints, info panels
+      'darkColor': Color(0xFF650000), // text on light, selected states
       'welcomeMsg':
           'Welcome to Alfonso Castañeda, The Hydroelectric Powerhouse!',
     },
@@ -417,35 +422,40 @@ class AppConstants {
       'title': 'The Gateway to Mount Pulag',
       'appBarColor': Color(0xFF008080), // Teal
       'secondaryColor': Color(0xFFFFA500), // Orange Accent
-      'tertiaryColor': Color(0xFFE5F2F2), // Soft Teal Tint
+      'tertiaryColor': Color(0xFFE3F0F0), // light: tints, info panels
+      'darkColor': Color(0xFF005F5F), // text on light, selected states
       'welcomeMsg': 'Welcome to Ambaguio, The Gateway to Mount Pulag!',
     },
     'Aritao': {
       'title': 'The Onion Capital',
       'appBarColor': Color(0xFFE27D60), // Onion Coral
       'secondaryColor': Color(0xFF85DCBA), // Leaf Green
-      'tertiaryColor': Color(0xFFFCEEEA), // Soft Coral Tint
+      'tertiaryColor': Color(0xFFFBECE7), // light: tints, info panels
+      'darkColor': Color(0xFFAB563E), // guide #B85D43, darkened to 4.5:1
       'welcomeMsg': 'Welcome to Aritao, The Onion Capital!',
     },
     'Bagabag': {
       'title': 'The Pineapple Haven',
       'appBarColor': Color(0xFFF4A460), // Goldenrod
       'secondaryColor': Color(0xFF228B22), // Pineapple Green
-      'tertiaryColor': Color(0xFFFDF6E3), // Warm Yellow Tint
+      'tertiaryColor': Color(0xFFFCF0E2), // light: tints, info panels
+      'darkColor': Color(0xFFA05E25), // guide #B96D2B, darkened to 4.5:1
       'welcomeMsg': 'Welcome to Bagabag, The Pineapple Haven!',
     },
     'Bambang': {
       'title': 'The Agricultural Hub',
       'appBarColor': Color(0xFF800000), // Maroon
       'secondaryColor': Color(0xFFFFFFFF), // White
-      'tertiaryColor': Color(0xFFFDF5F5), // Soft Maroon Tint
+      'tertiaryColor': Color(0xFFF5E5E5), // light: tints, info panels
+      'darkColor': Color(0xFF5C0000), // text on light, selected states
       'welcomeMsg': 'Welcome to Bambang, The Agricultural Hub!',
     },
     'Bayombong': {
       'title': 'The Educational and Institutional Capital',
       'appBarColor': Color(0xFF006400), // Dark Green
       'secondaryColor': Color(0xFFFFD700), // Gold
-      'tertiaryColor': Color(0xFFE6EFE6), // Soft Green Tint
+      'tertiaryColor': Color(0xFFE5F0E5), // light: tints, info panels
+      'darkColor': Color(0xFF004B00), // text on light, selected states
       'welcomeMsg':
           'Welcome to Bayombong, The Educational and Institutional Capital!',
     },
@@ -453,70 +463,80 @@ class AppConstants {
       'title': 'The Eco-Tourism Sanctuary',
       'appBarColor': Color(0xFF2E8B57), // Sea Green
       'secondaryColor': Color(0xFFD2691E), // Earth Brown
-      'tertiaryColor': Color(0xFFEAF3EE), // Light Sea Green
+      'tertiaryColor': Color(0xFFE6F2EA), // light: tints, info panels
+      'darkColor': Color(0xFF216640), // text on light, selected states
       'welcomeMsg': 'Welcome to Diadi, The Eco-Tourism Sanctuary!',
     },
     'Dupax del Norte': {
       'title': 'The Agro-Forestry Frontier',
       'appBarColor': Color(0xFF8B4513), // Saddle Brown
       'secondaryColor': Color(0xFF556B2F), // Olive Green
-      'tertiaryColor': Color(0xFFF3EBE6), // Light Earth Tint
+      'tertiaryColor': Color(0xFFF3E9E1), // light: tints, info panels
+      'darkColor': Color(0xFF65320E), // text on light, selected states
       'welcomeMsg': 'Welcome to Dupax del Norte, The Agro-Forestry Frontier!',
     },
     'Dupax del Sur': {
       'title': 'The Heritage Capital',
       'appBarColor': Color(0xFFA52A2A), // Burgundy
       'secondaryColor': Color(0xFFDAA520), // Antique Gold
-      'tertiaryColor': Color(0xFFF6EAEA), // Soft Burgundy Tint
+      'tertiaryColor': Color(0xFFF5E8E8), // light: tints, info panels
+      'darkColor': Color(0xFF7D2020), // text on light, selected states
       'welcomeMsg': 'Welcome to Dupax del Sur, The Heritage Capital!',
     },
     'Kasibu': {
       'title': 'The Citrus Capital of the Philippines',
       'appBarColor': Color(0xFFFF8C00), // Citrus Orange
       'secondaryColor': Color(0xFF32CD32), // Lime Green
-      'tertiaryColor': Color(0xFFFFF4E6), // Light Orange Tint
+      'tertiaryColor': Color(0xFFFFF0DB), // light: tints, info panels
+      'darkColor': Color(0xFFA75B00), // guide #B96500, darkened to 4.5:1
       'welcomeMsg': 'Welcome to Kasibu, The Citrus Capital of the Philippines!',
     },
     'Kayapa': {
       'title': 'The Summer Capital of Nueva Vizcaya',
       'appBarColor': Color(0xFF4682B4), // Steel Blue
       'secondaryColor': Color(0xFF228B22), // Forest Green
-      'tertiaryColor': Color(0xFFEDF2F6), // Soft Blue Tint
+      'tertiaryColor': Color(0xFFE8F0F7), // light: tints, info panels
+      'darkColor': Color(0xFF315D82), // text on light, selected states
       'welcomeMsg': 'Welcome to Kayapa, The Summer Capital of Nueva Vizcaya!',
     },
     'Quezon': {
       'title': 'The Mineral Outpost',
       'appBarColor': Color(0xFF4169E1), // Royal Blue
       'secondaryColor': Color(0xFFFFD700), // Gold
-      'tertiaryColor': Color(0xFFEAEFFC), // Light Blue Tint
+      'tertiaryColor': Color(0xFFE9EDFA), // light: tints, info panels
+      'darkColor': Color(0xFF2D4BA5), // text on light, selected states
       'welcomeMsg': 'Welcome to Quezon, The Mineral Outpost!',
     },
     'Santa Fe': {
       'title': 'The Gateway to Cagayan Valley',
       'appBarColor': Color(0xFF556B2F), // Dark Olive
       'secondaryColor': Color(0xFF8B0000), // Brick Red
-      'tertiaryColor': Color(0xFFEEF0EA), // Light Olive Tint
+      'tertiaryColor': Color(0xFFEEF0E4), // light: tints, info panels
+      'darkColor': Color(0xFF3D4D22), // text on light, selected states
       'welcomeMsg': 'Welcome to Santa Fe, The Gateway to Cagayan Valley!',
     },
     'Solano': {
       'title': 'The Premier Commercial Core',
       'appBarColor': Color(0xFF0A369D), // Deep Blue
       'secondaryColor': Color(0xFFFFC107), // Amber
-      'tertiaryColor': Color(0xFFE6EBF5), // Soft Blue Tint
+      'tertiaryColor': Color(0xFFE7ECF7), // light: tints, info panels
+      'darkColor': Color(0xFF07266E), // text on light, selected states
       'welcomeMsg': 'Welcome to Solano, The Premier Commercial Core!',
     },
     'Villaverde': {
       'title': "The Trailblazer's Sanctuary",
       'appBarColor': Color(0xFF32CD32), // Lime Green
       'secondaryColor': Color(0xFFFFA500), // Sun Orange
-      'tertiaryColor': Color(0xFFEAFCEA), // Light Lime Tint
+      'tertiaryColor': Color(0xFFEAF7E5), // light: tints, info panels
+      'darkColor': Color(0xFF207F20), // guide #238B23, darkened to 4.5:1
       'welcomeMsg': "Welcome to Villaverde, The Trailblazer's Sanctuary!",
     },
     'Generic': {
       'title': 'Nueva Vizcaya',
       'appBarColor': Color(0xFF616161),
       'secondaryColor': Color(0xFF9E9E9E),
-      'tertiaryColor': Color(0xFFF2F2F2),
+      'tertiaryColor': Color(0xFFF2F2F2), // light: tints, info panels
+      'darkColor': Color(0xFF424242), // text on light, selected states
       'welcomeMsg': 'Welcome to your Municipality Connect!',
     },
   };
