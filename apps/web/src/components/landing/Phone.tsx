@@ -136,11 +136,10 @@ export function SosScreen() {
             <p className="mt-1 text-base font-extrabold">SOS</p>
           </div>
         </div>
-        <p className="mt-5 font-semibold text-slate-900">Calling PDRRMO · 0917 122 7150</p>
-        <p className="mt-1 text-slate-500">Your live location is shared with responders until you turn SOS off.</p>
-        <div className="mt-6 w-full space-y-2 text-left">
-          <div className="rounded-xl border px-3 py-2">I'm safe · turn off SOS</div>
-          <div className="rounded-xl border px-3 py-2">Other emergency hotlines</div>
+        <p className="mt-5 font-semibold text-slate-900">Your live location is being shared with responders</p>
+        <div className="mt-5 w-full space-y-2 text-left">
+          <div className="rounded-xl bg-red-700 px-3 py-2 text-center font-semibold text-white">Call PDRRMO · 0917 122 7150</div>
+          <div className="rounded-xl border px-3 py-2 text-center">I'm safe now — end emergency</div>
         </div>
       </div>
     </>

@@ -35,21 +35,21 @@ const PROBLEMS = [
 const STEPS = [
   { who: "You", title: "You send a report", body: "With a photo, your location and the type of problem. Your account is verified, so the LGU knows the report is real." },
   { who: "Your municipality", title: "Your town hall checks it", body: "The municipal LGU reviews every report first. It acts on it, or forwards it to the Province when provincial help is needed.", gate: true },
-  { who: "Province · PDRRMO", title: "The Province steps in if needed", body: "The Provincial Government and the PDRRMO (Provincial Disaster Risk Reduction and Management Office) receive only the reports your municipality forwards." },
+  { who: "Province · PDRRMO", title: "The Province steps in if needed", body: "The Provincial Government and the PDRRMO (Provincial Disaster Risk Reduction and Management Office) act on the reports your municipality forwards to them." },
   { who: "You", title: "You get updates", body: "A notification each time the status changes, from Reported to Resolved." },
 ];
 
 const FEATURES = [
   {
     id: "alerts", label: "Alerts", title: "Advisories for your town, pushed to you",
-    body: "Approved advisories from the Province, like rainfall warnings and road closures, arrive as notifications for the municipalities they affect.",
-    points: ["Only for the towns an advisory covers", "Every alert is approved before it is sent", "Status updates on your own reports"],
+    body: "Official advisories from your municipality or the Province, like rainfall warnings and road closures, arrive as notifications for the towns they affect.",
+    points: ["Only for the towns an advisory covers", "Urgent and province-wide alerts need a second official's approval", "Status updates on your own reports"],
     screen: <AlertsScreen />,
   },
   {
     id: "sos", label: "Emergency SOS", title: "One tap to call PDRRMO",
-    body: `Press the red SOS button on the app's home screen. Your phone calls the PDRRMO hotline (${PDRRMO_HOTLINE}) and shares your live location with responders until you turn SOS off.`,
-    points: ["It is a normal phone call, so you need signal and load", "Your live location is shared only while SOS is on", "Other emergency hotlines are listed in the app"],
+    body: `Press the red SOS button on the app's home screen. The app shares your live location with responders and gives you a one-tap call to the PDRRMO hotline (${PDRRMO_HOTLINE}). Tap "I'm safe now" to stop sharing.`,
+    points: ["The call is a normal phone call, so you need signal and load", "Your live location is shared only while SOS is on", "Other emergency hotlines are listed in the app"],
     note: "One Vizcaya does not replace 911, the PDRRMO hotline, radio, or your barangay officials. In a real emergency, still call them.",
     screen: <SosScreen />,
   },
@@ -64,7 +64,7 @@ const FEATURES = [
 const ROLES = [
   { role: "You (resident)", sees: "Your own reports and their status, plus public advisories." },
   { role: "Your barangay or municipal LGU", sees: "Reports filed in their own barangay or municipality only." },
-  { role: "Provincial Government (Provincial Administrator's Office, PDRRMO)", sees: "Only reports your municipality has forwarded to the Province." },
+  { role: "Provincial Government (Provincial Administrator's Office, PDRRMO)", sees: "Reports from every municipality, to keep watch across the province. They act on the ones your municipality forwards to them." },
 ];
 
 export function LandingPage() {
@@ -238,7 +238,7 @@ export function LandingPage() {
         <Section id="privacy" eyebrow="Privacy" title="Accountable reporting, protected data">
           <div className="mt-8 grid gap-4 md:grid-cols-3">
             <Card icon={UserCheck} title="Verified, not anonymous">Every report is tied to a verified Nueva Vizcaya resident. This keeps false and prank reports out, so LGUs can act with confidence.</Card>
-            <Card icon={ShieldCheck} title="Built for the Data Privacy Act">Made to follow the Data Privacy Act of 2012 (RA 10173). Photos are stripped of hidden metadata before upload, and you can request or download your data from the app.</Card>
+            <Card icon={ShieldCheck} title="Built for the Data Privacy Act">Made to follow the Data Privacy Act of 2012 (RA 10173). Photos are stripped of hidden metadata before upload, and you can ask for a copy of your data, a correction or its deletion from the app.</Card>
             <Card icon={Archive} title="Archived, not erased">Reports are official LGU records. If you delete your account, your personal profile is removed and your reports are archived, not silently deleted.</Card>
           </div>
           <div className="mt-6 overflow-hidden rounded-md border border-[var(--site-line)]">
