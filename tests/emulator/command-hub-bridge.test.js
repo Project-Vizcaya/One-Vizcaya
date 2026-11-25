@@ -58,6 +58,23 @@ test("IDs or Hub fields written by a client are replaced (super-admin bypass)", 
   assert.equal(d.hub, undefined);
 });
 
+test("a retried or duplicate creation event keeps Hub progress written since", async () => {
+  const first = await fireCreated(PATH, report());
+  const creation = fft.firestore.makeDocumentSnapshot(report(), PATH); // the original snapshot, without IDs
+  const u = parseStatusUpdate({ incident_id: first.incidentUuid, external_ref: PATH, stage: "received", at: "2026-11-24T02:00:00.000Z" }).update;
+  await applyStatusUpdate(db, u, { serverTimestamp: ts });
+  await created({ params: { userId: "citizen", reportId: "r1" }, data: creation });
+  const d = (await db.doc(PATH).get()).data();
+  assert.equal(d.hub.stage, "received");
+  assert.equal(d.incidentId, first.incidentId);
+});
+
+test("an event for a report deleted meanwhile does nothing (no endless retries)", async () => {
+  const creation = fft.firestore.makeDocumentSnapshot(report(), "users/citizen/reports/gone");
+  await created({ params: { userId: "citizen", reportId: "gone" }, data: creation });
+  assert.equal((await db.doc("users/citizen/reports/gone").get()).exists, false);
+});
+
 test("forwarding is off by default: no Hub call, no error", async () => {
   const d = await fireCreated(PATH, report());
   assert.ok(d.incidentId);

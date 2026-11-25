@@ -436,8 +436,14 @@ export class MemoryStore implements HubStore {
     if (closing && this.assignments.some((a) => a.incident_id === incidentId && !a.released_at)) {
       throw new HubError(409, "Release the assigned units first.");
     }
+    const reopening = (inc.status === "resolved" || inc.status === "closed") && OPEN_INCIDENT_STATUSES.includes(status);
     inc.status = status;
     this.log(s.userId, "set_incident_status", "incident", incidentId, { status });
+    // Reopened (closed by mistake, or it flared up again): the reporters were
+    // told "Completed", so their timeline starts over from the current stage.
+    if (reopening) {
+      for (const src of this.sources) if (src.incident_id === incidentId) this.citizenSeen.delete(src.origin_incident_id);
+    }
     this.syncCitizens(incidentId);
     this.emit("incident");
     return inc;
