@@ -5,7 +5,7 @@ import { functions } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/useToast";
 
-// Optional AI helper (docs/post-maker.md). Hidden unless the server says it is
+// Optional AI helper (docs/4-app-and-website/post-maker.md). Hidden unless the server says it is
 // set up. The draft replaces the headline and caption in the editor; the admin
 // checks and edits it before anything is posted.
 

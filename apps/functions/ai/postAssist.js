@@ -1,6 +1,6 @@
 "use strict";
 
-// Optional AI helper for Post Maker (docs/post-maker.md): drafts a tidier
+// Optional AI helper for Post Maker (docs/4-app-and-website/post-maker.md): drafts a tidier
 // headline and a caption from what the admin already wrote. Claude (Anthropic)
 // via the official SDK. Every draft is shown to the admin to edit; nothing is
 // posted automatically.

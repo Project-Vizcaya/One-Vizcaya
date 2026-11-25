@@ -11,7 +11,7 @@ import { Phone, ReportScreen, MapScreen, AlertsScreen, SosScreen } from "./Phone
 import { MunicipalityMap, townLabel } from "./MunicipalityMap";
 import { APK_AVAILABLE, APK_SIZE_MB, APK_URL, PDRRMO_HOTLINE, PDRRMO_TEL, SiteFooter, SiteHeader } from "./SiteChrome";
 
-// Design contract: docs/design-system.md. Provincial green, gold as the one
+// Design contract: docs/4-app-and-website/design-system.md. Provincial green, gold as the one
 // accent (the approval step, the capital on the map, the download button on
 // green, the active nav link), red only for emergency calls.
 

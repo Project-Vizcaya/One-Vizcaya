@@ -2,7 +2,7 @@
 
 For the PDRRMO, MDRRMO and LGU staff who run the **admin console**. For
 building and deploying the apps, see
-[`Computer-Shop-Runbook.md`](Computer-Shop-Runbook.md).
+[`Computer-Shop-Runbook.md`](../1-build-and-test/Computer-Shop-Runbook.md).
 
 > **One Vizcaya is an additional channel.** It does not replace 911, the
 > PDRRMO hotline, radio or barangay officials. For a life-threatening warning,
@@ -211,10 +211,10 @@ cd apps/mobile && flutter test
 
 - Recording a referral does not notify the office.
 - Load testing has been done on the local emulator only
-  ([`tests/emulator/load/README.md`](../tests/emulator/load/README.md)). A staging
+  ([`tests/emulator/load/README.md`](../../tests/emulator/load/README.md)). A staging
   load test is ready but has not been run: create a staging Firebase project,
-  deploy to it, and follow [`tests/staging-load/README.md`](../tests/staging-load/README.md).
+  deploy to it, and follow [`tests/staging-load/README.md`](../../tests/staging-load/README.md).
 - Several BFP and office numbers are still placeholders, shown as unverified and
-  not dialable. Confirm them using [`hotline-verification.md`](hotline-verification.md).
+  not dialable. Confirm them using [`hotline-verification.md`](../2-fill-in/hotline-verification.md).
 - The Tagalog and Ilocano safety wording still awaits a native speaker's review
-  ([`translation-review.md`](translation-review.md)).
+  ([`translation-review.md`](../2-fill-in/translation-review.md)).

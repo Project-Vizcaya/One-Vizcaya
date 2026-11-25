@@ -1,5 +1,5 @@
-// Captions for Post Maker (docs/post-maker.md): built from fixed phrases, no AI.
-// The Tagalog and Ilocano phrases are in docs/translation-review.md (C1) for a
+// Captions for Post Maker (docs/4-app-and-website/post-maker.md): built from fixed phrases, no AI.
+// The Tagalog and Ilocano phrases are in docs/2-fill-in/translation-review.md (C1) for a
 // native speaker to check.
 
 export type CaptionLang = "en" | "tl" | "il";

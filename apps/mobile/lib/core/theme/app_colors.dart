@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 /// Shared colours from the municipal colour guide
-/// (docs/municipal-color-guide.md). They are the same in every
+/// (docs/4-app-and-website/municipal-color-guide.md). They are the same in every
 /// municipality: the town colour is an identity accent, never a status.
 ///
 /// Status colours are the guide's, darkened where needed so each reaches

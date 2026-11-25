@@ -114,7 +114,7 @@ class ProblemReport {
   // relationship. firestore.rules check who may set it and its shape.
   final Map<String, String>? onBehalfOf;
 
-  // Set server-side by onReportCreated (docs/command-hub.md): the incident ID
+  // Set server-side by onReportCreated (docs/4-app-and-website/command-hub.md): the incident ID
   // people read (NV-<TOWN>-<YYYYMMDD>-<hex>) and the PDRRMO Command Hub's
   // progress for the reporter. Read-only, absent from toMap().
   final String? incidentId;

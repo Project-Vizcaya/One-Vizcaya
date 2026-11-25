@@ -1,6 +1,6 @@
 "use strict";
 
-// Firebase ↔ PDRRMO Command Hub bridge (docs/command-hub.md). Both switches
+// Firebase ↔ PDRRMO Command Hub bridge (docs/4-app-and-website/command-hub.md). Both switches
 // live in Firestore config/hub and are OFF by default:
 //   forwardReports      new citizen reports are sent to the Hub
 //   citizenEtaUpdates   the Hub may send status and arrival-time updates back

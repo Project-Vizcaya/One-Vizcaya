@@ -1,4 +1,4 @@
-/// Source-neutral weather models (docs/weather.md). Every value carries the
+/// Source-neutral weather models (docs/4-app-and-website/weather.md). Every value carries the
 /// source it came from; the two sources are never averaged or blended.
 library;
 

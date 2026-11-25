@@ -21,7 +21,7 @@ import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/dashboard/post-maker")({ component: PostMakerPage });
 
-// Post Maker (docs/post-maker.md): branded images and captions for LGU
+// Post Maker (docs/4-app-and-website/post-maker.md): branded images and captions for LGU
 // announcements, made in the browser. Nothing is posted anywhere: the admin
 // downloads the image and copies the caption into the LGU's own page.
 

@@ -3,8 +3,8 @@ rules_version = '2';
 //  One Vizcaya — Governance enforced at the database layer (not just the UI)
 //  ---------------------------------------------------------------------------
 //  This file is the TECHNICAL LAYER of the architecture documented in
-//    docs/Architecture-Governance-Design.md   (committee-facing, four layers)
-//    docs/Governance-Architecture.md           (condensed Barangay→Region II)
+//    docs/3-agencies-and-legal/Architecture-Governance-Design.md   (committee-facing, four layers)
+//    docs/3-agencies-and-legal/Governance-Architecture.md           (condensed Barangay→Region II)
 //  It mirrors the real government hierarchy:
 //    Barangay → City/Municipality → Province → Region II
 //
@@ -329,7 +329,7 @@ service cloud.firestore {
                            in ['gps_verified', 'certified', 'grandfathered']
                       && validOnBehalf()
                       // Incident IDs and Command Hub updates are written
-                      // only by Cloud Functions (docs/command-hub.md).
+                      // only by Cloud Functions (docs/4-app-and-website/command-hub.md).
                       && !request.resource.data.keys().hasAny(serverReportFields())
                       // A new report starts as 'reported', filed about now. (A
                       // report saved offline keeps its real filing time, hence
@@ -559,7 +559,7 @@ service cloud.firestore {
       allow write: if isProvincialAdmin() && docId != 'hub';
     }
 
-    // ─── Switches the resident app reads (docs/flood-control.md) ─────────────
+    // ─── Switches the resident app reads (docs/4-app-and-website/flood-control.md) ─────────────
     // e.g. public_settings/transparency.floodControlPublic. Only switches,
     // nothing private: any signed-in user may read; provincial admins set.
     match /public_settings/{docId} {

@@ -1,9 +1,8 @@
 # Experimental UI/UX — test checklist
 
-Branch: `claude/experimental-uiux` (not merged; for review only).
-
-Build: `cd apps/mobile && flutter run` (needs your local `firebase_options.dart`
-and `google-services.json`); web: `cd apps/web && npm run dev`.
+The Nov 4 redesign, now tested on `claude/test-build-combined`. Build, install and the
+preview console: [Test Build Guide](Test-Build-Guide.md) §3.4 and §4 (this list is its §5.1
+in detail; the Nov 25 home redesign is §5.2 there).
 
 Test on the **smallest phone you have**, then again with the phone's text size
 set to **large** (Settings → Display → Font size). Tick each item or note what
@@ -56,5 +55,4 @@ looked wrong.
 - [ ] With the OS "reduce motion" setting on, animations stop (spinners still turn, slower).
 
 ## Still pending (not part of this branch's test)
-- Native-speaker review of Tagalog/Ilocano safety copy (`docs/translation-review.md`).
-- P2 items 5–12 and P3, paused while this branch is reviewed.
+- Native-speaker review of Tagalog/Ilocano safety copy (`docs/2-fill-in/translation-review.md`).

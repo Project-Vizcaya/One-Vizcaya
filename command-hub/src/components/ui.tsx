@@ -1,7 +1,7 @@
 import { BellRing, Check, MapPin, Moon, Navigation, Undo2, type LucideIcon } from "lucide-react";
 import type { IncidentStatus, UnitStatus } from "@/lib/types";
 
-// Status colours: a warmth scale that follows urgency (docs/design-system.md).
+// Status colours: a warmth scale that follows urgency (docs/4-app-and-website/design-system.md).
 // Each status also has a glyph and a label, so colour is never the only cue.
 export const STATUS: Record<UnitStatus, { label: string; bg: string; fg: string; icon: LucideIcon; svg: string }> = {
   off_duty: { label: "Off duty", bg: "#64748B", fg: "#FFFFFF", icon: Moon, svg: '<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>' },

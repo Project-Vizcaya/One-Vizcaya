@@ -4,7 +4,7 @@
 // binding it at deploy time (a bound secret that does not exist yet makes
 // every `firebase deploy` fail or stop to ask for it). Requires the functions'
 // runtime service account to have "Secret Manager Secret Accessor" on the
-// secret; docs/post-maker.md has the command. Cached for 10 minutes.
+// secret; docs/4-app-and-website/post-maker.md has the command. Cached for 10 minutes.
 
 const { GoogleAuth } = require("google-auth-library");
 

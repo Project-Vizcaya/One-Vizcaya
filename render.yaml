@@ -1,6 +1,6 @@
 # Render Blueprint: the Command Hub demo (command-hub/), so PDRRMO can open it
 # on any phone or office PC with nothing installed. Setup steps:
-# docs/command-hub.md, "Hosting the demo on Render".
+# docs/4-app-and-website/command-hub.md, "Hosting the demo on Render".
 #
 # Free plan: no card needed, HTTPS included (phones need HTTPS for location).
 # It sleeps after 15 minutes without visitors and takes about a minute to wake,

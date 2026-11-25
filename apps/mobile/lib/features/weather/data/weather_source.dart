@@ -9,7 +9,7 @@ class PagasaStatus {
 }
 
 /// The official source. Implementations never contact PAGASA directly: they
-/// read One Vizcaya's server copy (see docs/weather.md).
+/// read One Vizcaya's server copy (see docs/4-app-and-website/weather.md).
 abstract class PagasaSource {
   Future<PagasaStatus> status();
 
