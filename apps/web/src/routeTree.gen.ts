@@ -19,6 +19,7 @@ import { Route as DashboardVerificationsRouteImport } from './routes/dashboard/v
 import { Route as DashboardUsersRouteImport } from './routes/dashboard/users'
 import { Route as DashboardRespondersRouteImport } from './routes/dashboard/responders'
 import { Route as DashboardReportsRouteImport } from './routes/dashboard/reports'
+import { Route as DashboardPrivacyRequestsRouteImport } from './routes/dashboard/privacy-requests'
 import { Route as DashboardPostMakerRouteImport } from './routes/dashboard/post-maker'
 import { Route as DashboardMapRouteImport } from './routes/dashboard/map'
 import { Route as DashboardHazardsRouteImport } from './routes/dashboard/hazards'
@@ -78,6 +79,12 @@ const DashboardReportsRoute = DashboardReportsRouteImport.update({
   path: '/reports',
   getParentRoute: () => DashboardRouteRoute,
 } as any)
+const DashboardPrivacyRequestsRoute =
+  DashboardPrivacyRequestsRouteImport.update({
+    id: '/privacy-requests',
+    path: '/privacy-requests',
+    getParentRoute: () => DashboardRouteRoute,
+  } as any)
 const DashboardPostMakerRoute = DashboardPostMakerRouteImport.update({
   id: '/post-maker',
   path: '/post-maker',
@@ -132,6 +139,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/hazards': typeof DashboardHazardsRoute
   '/dashboard/map': typeof DashboardMapRoute
   '/dashboard/post-maker': typeof DashboardPostMakerRoute
+  '/dashboard/privacy-requests': typeof DashboardPrivacyRequestsRoute
   '/dashboard/reports': typeof DashboardReportsRoute
   '/dashboard/responders': typeof DashboardRespondersRoute
   '/dashboard/users': typeof DashboardUsersRoute
@@ -151,6 +159,7 @@ export interface FileRoutesByTo {
   '/dashboard/hazards': typeof DashboardHazardsRoute
   '/dashboard/map': typeof DashboardMapRoute
   '/dashboard/post-maker': typeof DashboardPostMakerRoute
+  '/dashboard/privacy-requests': typeof DashboardPrivacyRequestsRoute
   '/dashboard/reports': typeof DashboardReportsRoute
   '/dashboard/responders': typeof DashboardRespondersRoute
   '/dashboard/users': typeof DashboardUsersRoute
@@ -172,6 +181,7 @@ export interface FileRoutesById {
   '/dashboard/hazards': typeof DashboardHazardsRoute
   '/dashboard/map': typeof DashboardMapRoute
   '/dashboard/post-maker': typeof DashboardPostMakerRoute
+  '/dashboard/privacy-requests': typeof DashboardPrivacyRequestsRoute
   '/dashboard/reports': typeof DashboardReportsRoute
   '/dashboard/responders': typeof DashboardRespondersRoute
   '/dashboard/users': typeof DashboardUsersRoute
@@ -194,6 +204,7 @@ export interface FileRouteTypes {
     | '/dashboard/hazards'
     | '/dashboard/map'
     | '/dashboard/post-maker'
+    | '/dashboard/privacy-requests'
     | '/dashboard/reports'
     | '/dashboard/responders'
     | '/dashboard/users'
@@ -213,6 +224,7 @@ export interface FileRouteTypes {
     | '/dashboard/hazards'
     | '/dashboard/map'
     | '/dashboard/post-maker'
+    | '/dashboard/privacy-requests'
     | '/dashboard/reports'
     | '/dashboard/responders'
     | '/dashboard/users'
@@ -233,6 +245,7 @@ export interface FileRouteTypes {
     | '/dashboard/hazards'
     | '/dashboard/map'
     | '/dashboard/post-maker'
+    | '/dashboard/privacy-requests'
     | '/dashboard/reports'
     | '/dashboard/responders'
     | '/dashboard/users'
@@ -320,6 +333,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardReportsRouteImport
       parentRoute: typeof DashboardRouteRoute
     }
+    '/dashboard/privacy-requests': {
+      id: '/dashboard/privacy-requests'
+      path: '/privacy-requests'
+      fullPath: '/dashboard/privacy-requests'
+      preLoaderRoute: typeof DashboardPrivacyRequestsRouteImport
+      parentRoute: typeof DashboardRouteRoute
+    }
     '/dashboard/post-maker': {
       id: '/dashboard/post-maker'
       path: '/post-maker'
@@ -388,6 +408,7 @@ interface DashboardRouteRouteChildren {
   DashboardHazardsRoute: typeof DashboardHazardsRoute
   DashboardMapRoute: typeof DashboardMapRoute
   DashboardPostMakerRoute: typeof DashboardPostMakerRoute
+  DashboardPrivacyRequestsRoute: typeof DashboardPrivacyRequestsRoute
   DashboardReportsRoute: typeof DashboardReportsRoute
   DashboardRespondersRoute: typeof DashboardRespondersRoute
   DashboardUsersRoute: typeof DashboardUsersRoute
@@ -405,6 +426,7 @@ const DashboardRouteRouteChildren: DashboardRouteRouteChildren = {
   DashboardHazardsRoute: DashboardHazardsRoute,
   DashboardMapRoute: DashboardMapRoute,
   DashboardPostMakerRoute: DashboardPostMakerRoute,
+  DashboardPrivacyRequestsRoute: DashboardPrivacyRequestsRoute,
   DashboardReportsRoute: DashboardReportsRoute,
   DashboardRespondersRoute: DashboardRespondersRoute,
   DashboardUsersRoute: DashboardUsersRoute,

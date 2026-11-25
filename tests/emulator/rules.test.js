@@ -647,3 +647,26 @@ test("AI usage counters are server-only", async () => {
   await assertFails(getDoc(doc(as("muni"), "ai_usage/muni_2026-11-23")));
   await assertFails(setDoc(doc(as("super"), "ai_usage/muni_2026-11-23"), { count: 0 }));
 });
+
+// ─── Privacy requests console page (apps/web/src/hooks/useDataRequests.ts) ───
+// Same shape as the page: a collection-group listing with no orderBy (so no
+// index), then an update that records the decision on the request.
+test("privacy requests: provincial admin lists every request and records a decision", async () => {
+  const { collectionGroup } = require("firebase/firestore");
+  await env.withSecurityRulesDisabled((ctx) =>
+    setDoc(doc(ctx.firestore(), "users/citizen/dataRequests/q1"), {
+      type: "reqAccess", details: "Copy of my data", status: "pending", userId: "citizen", requestedAt: serverTimestamp(),
+    }));
+  const snap = await assertSucceeds(getDocs(collectionGroup(as("prov"), "dataRequests")));
+  assert.equal(snap.size, 1);
+  await assertSucceeds(updateDoc(doc(as("prov"), "users/citizen/dataRequests/q1"), {
+    status: "completed", responseNote: "Sent by email", handledBy: "prov", handledByName: "DPO", handledAt: serverTimestamp(),
+  }));
+  // The resident's name for the card comes from their profile.
+  await assertSucceeds(getDoc(doc(as("prov"), "users/citizen")));
+});
+
+test("privacy requests: a citizen cannot list other residents' requests", async () => {
+  const { collectionGroup } = require("firebase/firestore");
+  await assertFails(getDocs(collectionGroup(as("citizen"), "dataRequests")));
+});
