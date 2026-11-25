@@ -9,6 +9,7 @@ import '../../core/utils/toast_utils.dart';
 import '../../presentation/widgets/broadcast_presenter.dart';
 import 'report_submitter.dart';
 import 'citizen_broadcasts.dart';
+import '../../core/constants/app_constants.dart';
 
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -158,6 +159,27 @@ class NotificationService {
     // banner lists the alerts awaiting approval.
     if (data['type'] == 'alert_draft') {
       navigatorKey?.currentState?.pushNamed('/admin');
+      return;
+    }
+
+    // Overdue-report alerts go to admins. A summary ("12 reports overdue in
+    // Bambang") always opens the Admin Dashboard. A single-report alert opens
+    // the dashboard too, or that report itself if the admin chose so in
+    // Settings ("Overdue alerts open the report").
+    if (data['type'] == 'report_overdue_summary') {
+      navigatorKey?.currentState?.pushNamed('/admin');
+      return;
+    }
+    if (data['type'] == 'report_overdue') {
+      SharedPreferences.getInstance().then((prefs) {
+        final openReport = prefs.getBool(kAdminAlertOpensReportKey) ?? false;
+        navigatorKey?.currentState?.pushNamed(
+          '/admin',
+          arguments: openReport
+              ? {'openReportId': data['reportId'], 'openReportOwner': data['userId']}
+              : null,
+        );
+      });
       return;
     }
 

@@ -1,0 +1,90 @@
+HTTP/2 200
+content-type: application/json
+etag: W/"synthetic-1"
+x-fixture: SYNTHETIC - written by hand from the shapes in the integration brief, NOT a saved PAGASA response
+
+{
+ "success": true,
+ "meta": {
+  "locations": [
+   "Nueva Vizcaya",
+   "Quirino",
+   "Metro Manila"
+  ]
+ },
+ "data": [
+  {
+   "alert_id": "a1",
+   "title": "Thunderstorm Advisory",
+   "icon": "https://api.mobile.panahon.gov.ph/icons/ts.png",
+   "issued_by": "NLPRSD",
+   "issued_at": "October 10, 2026 10:00 PM",
+   "issued_at_timestamp": 1791640800,
+   "valid_until_at": "October 11, 2026 1:00 AM",
+   "type": "Thunderstorm Advisory",
+   "locations": [
+    "  nueva vizcaya ",
+    "Quirino"
+   ],
+   "message": "Moderate to heavy rainshowers with lightning are expected over Nueva Vizcaya within 2 hours.",
+   "priority": 2
+  },
+  {
+   "alert_id": "a2",
+   "title": "General Flood Advisory",
+   "icon": "",
+   "issued_by": "PAGASA",
+   "issued_at": "October 10, 2026 6:00 PM",
+   "issued_at_timestamp": 1791626400,
+   "valid_until_at": "October 11, 2026 6:00 PM",
+   "type": "General Flood Advisory",
+   "locations": [
+    "Cagayan Valley"
+   ],
+   "message": "Watercourses likely to be affected in Region II.",
+   "priority": 3
+  },
+  {
+   "alert_id": "a3",
+   "title": "Rainfall Advisory",
+   "issued_by": "NCR-PRSD",
+   "issued_at": "October 10, 2026 9:00 PM",
+   "issued_at_timestamp": 1791637200,
+   "valid_until_at": "October 11, 2026 12:00 AM",
+   "type": "Rainfall Advisory",
+   "locations": [
+    "Metro Manila"
+   ],
+   "message": "Light to moderate rains over Metro Manila.",
+   "priority": 1
+  },
+  {
+   "alert_id": "a4",
+   "title": "Thunderstorm Watch",
+   "issued_by": "NLPRSD",
+   "issued_at": "October 10, 2026 8:00 AM",
+   "issued_at_timestamp": 1791590400,
+   "valid_until_at": "October 10, 2026 8:00 PM",
+   "type": "Thunderstorm Watch",
+   "locations": [
+    "Isabela"
+   ],
+   "message": "Thunderstorms likely over Isabela and Nueva Vizcaya this afternoon. #NLPRSD",
+   "priority": 1
+  },
+  {
+   "alert_id": "a5",
+   "title": "New Advisory Kind",
+   "issued_by": "NLPRSD",
+   "issued_at": "",
+   "valid_until_at": "-",
+   "type": "Something New",
+   "locations": [
+    "Isabela"
+   ],
+   "message": "Advisory for Northern Luzon provinces #NLPRSD",
+   "priority": "1",
+   "image": "https://api.mobile.panahon.gov.ph/img/x.png"
+  }
+ ]
+}

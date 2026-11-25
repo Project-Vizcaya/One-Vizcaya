@@ -1,15 +1,15 @@
-# Privacy Policy — One Vizcaya
+# Data Privacy Notice — One Vizcaya
 
-**Effective Date:** May 27, 2026
-**App Version:** 1.1.10
+**Effective Date:** May 27, 2026 · **Last updated:** November 25, 2026
+**App Version:** 1.8.0
 
 ---
 
 ## 1. Introduction
 
-One Vizcaya ("the App") is a civic reporting platform developed for the citizens and Local Government Units (LGUs) of Nueva Vizcaya, Philippines. This Privacy Policy explains how we collect, use, store, and protect your personal data in accordance with the **Data Privacy Act of 2012 (Republic Act No. 10173)** and its Implementing Rules and Regulations.
+One Vizcaya ("the App") is a civic reporting platform developed for the citizens and Local Government Units (LGUs) of Nueva Vizcaya, Philippines. This Data Privacy Notice explains how we collect, use, store, and protect your personal data in accordance with the **Data Privacy Act of 2012 (Republic Act No. 10173)** and its Implementing Rules and Regulations.
 
-By using One Vizcaya and completing the setup screen, you explicitly consent to this policy.
+By using One Vizcaya and completing the setup screen, you explicitly consent to this notice.
 
 ---
 
@@ -17,7 +17,7 @@ By using One Vizcaya and completing the setup screen, you explicitly consent to 
 
 **Provincial Government of Nueva Vizcaya**
 Capitol Compound, Bayombong, Nueva Vizcaya, Philippines
-Contact: *[official LGU email — fill in before production launch]*
+Contact: send a Data Privacy Request in the app (Settings → Location & Privacy → Data Privacy Request).
 
 ---
 
@@ -31,15 +31,17 @@ Contact: *[official LGU email — fill in before production launch]*
 | Problem Reports (text, photos, GPS) | Civic reporting | Consent |
 | Device FCM Token | Push notifications | Consent |
 | Privacy Consent Timestamp | Legal compliance | Legal obligation |
-| Usage analytics (anonymised) | App improvement | Legitimate interest |
+| Your location when you register (checked against the province boundary) | Confirm that you are in Nueva Vizcaya | Consent |
+| Live location, name and mobile number while Emergency SOS is on | Let responders find and call you | Consent |
+| Proof of residency (photo of a Barangay Certificate of Residency or a government ID), only if you choose this way to verify | Confirm that you live in Nueva Vizcaya | Consent |
 
-We do **not** collect national ID numbers, financial information, or biometric data.
+We do **not** record national ID numbers as data, and we do not collect financial information or biometric data. A residency photo you choose to upload is seen only by the LGU staff who review residency.
 
 ---
 
-## 4. Anonymous Reporting
+## 4. Verified, Identified Reporting
 
-You may submit reports anonymously. Anonymous reports exclude your name, phone number, and user ID from the report document. You will not receive status update notifications for anonymous reports.
+Every report is tied to your verified account (name, phone number, and user ID). Anonymous reporting is not available. This keeps civic data accountable and lets the LGU follow up with you on your report. Your name and phone number are seen only by authorised LGU staff: barangay and municipal officials for reports in their area, and provincial administrators (Provincial Administrator's Office, PDRRMO) for reports anywhere in the province.
 
 ---
 
@@ -58,7 +60,7 @@ You may submit reports anonymously. Anonymous reports exclude your name, phone n
 Your data is shared only with:
 - **Firebase (Google Cloud)** — authentication and database hosting (under Google's Data Processing Addendum)
 - **OpenWeatherMap** — weather data retrieval (no personal data is shared)
-- **Authorised LGU staff** — municipal and provincial administrators who review reports within your municipality
+- **Authorised LGU staff** — barangay and municipal officials for reports in their area, and provincial administrators for the whole province
 
 We do **not** sell your data to third parties.
 
@@ -71,7 +73,9 @@ We do **not** sell your data to third parties.
 | Active reports | Until resolved or archived (12 months after submission) |
 | Archived reports | Deleted or anonymised after 24 months |
 | User profiles | Until account deletion request |
-| Notification logs | 90 days |
+| Reports of a deleted account | Archived; deleted 24 months after filing |
+| Notification history | Kept; a retention period is still to be set |
+| Emergency SOS location records | Kept; a retention period is still to be set |
 
 Reports older than **12 months** are automatically archived by the system and no longer appear in active views. Reports older than **24 months** are automatically and permanently deleted — including their photo evidence — by a scheduled retention job.
 
@@ -88,7 +92,7 @@ Under the Data Privacy Act of 2012, you have the right to:
 5. **Data Portability** — receive your data in a structured format
 6. **Complaint** — lodge a complaint with the National Privacy Commission (NPC)
 
-You can exercise these rights directly in the app: **Settings → Location & Privacy → Data Privacy Request** lets you file an access, correction, erasure, objection, portability, or complaint request, which is logged for the Data Protection Officer to act on. You may also download a structured copy of your data at any time via **Settings → Location & Privacy → Download My Data** (JSON or PDF). Alternatively, contact the LGU Data Protection Officer at the address above.
+You can exercise these rights directly in the app: **Settings → Location & Privacy → Data Privacy Request** lets you file an access, correction, erasure, objection, portability, or complaint request, which is recorded for the Provincial Government's Data Protection Officer. You can also write to the Data Protection Officer at the Capitol address above. You may also download a structured copy of your data at any time via **Settings → Location & Privacy → Download My Data** (JSON or PDF). You can also delete your account yourself under **Settings**.
 
 ---
 
@@ -98,9 +102,9 @@ You can exercise these rights directly in the app: **Settings → Location & Pri
 - Firebase Security Rules restrict read/write access to authenticated users and authorised admins
 - Firebase App Check is enabled to block unauthorised API calls
 - Passwords are not stored (the App uses phone-number OTP via Firebase Auth)
-- Sensitive fields (FCM tokens, phone numbers) are not exposed in client-side queries outside the user's own document
-- **Photos are stripped of EXIF metadata** (hidden GPS, camera serial, original timestamp) before upload, so no incidental personal data is stored in images
-- **Account deletion is complete:** deleting your account also removes your uploaded photos from storage — no orphaned media is left behind
+- Phone numbers and notification tokens can be read only by you and by authorised LGU administrators
+- **Photos are stripped of EXIF metadata** (hidden GPS, camera serial, original timestamp) before upload. Camera photos carry a visible stamp with the place, coordinates and time so the LGU can confirm where they were taken
+- **Deleting your account removes your profile and sign-in.** Your reports, with their photos, are kept as archived LGU records and deleted 24 months after filing (Section 7). A residency photo you uploaded is also kept
 
 ---
 
@@ -112,7 +116,7 @@ One Vizcaya is not directed to children under 18. We do not knowingly collect da
 
 ## 11. Changes to This Policy
 
-We may update this policy when the app is updated. The current version will always be available within the app and in this file. Continued use of the app after changes constitutes acceptance of the updated policy.
+We may update this policy when the app is updated. A summary is shown in the app; this page is the full notice. Continued use of the app after changes constitutes acceptance of the updated policy.
 
 ---
 
@@ -123,7 +127,7 @@ For privacy concerns or data subject requests:
 **Data Protection Officer**
 Provincial Government of Nueva Vizcaya
 Capitol Compound, Bayombong, 3700 Nueva Vizcaya
-*[dpo@nueva-vizcaya.gov.ph — update before production launch]*
+Send a Data Privacy Request in the app (Settings → Location & Privacy → Data Privacy Request).
 
 **National Privacy Commission (NPC)**
 5th Floor Delegation Building, PICC Complex, Pasay City

@@ -1,0 +1,53 @@
+HTTP/2 200
+content-type: application/json
+etag: W/"synthetic-1"
+x-fixture: SYNTHETIC - written by hand from the shapes in the integration brief, NOT a saved PAGASA response
+
+{
+ "data": [
+  {
+   "obs": {
+    "site_id": 5076,
+    "observed_at": "2026-10-10 21:40:00",
+    "loc": "Maddela, Quirino",
+    "icon": "https://api.mobile.panahon.gov.ph/icons/pc.png",
+    "desc": "Cloudy",
+    "temp": "26.14°C",
+    "hum": "89.2%",
+    "ws": "0.2 km/h",
+    "wd": "NE",
+    "precip_1h": "0 mm/hr",
+    "mslp": "1005.6 hPa",
+    "sr": "0",
+    "heat_index": "28 °C"
+   }
+  },
+  {
+   "obs": {
+    "site_id": 5026,
+    "observed_at": "2026-10-10 21:40:00",
+    "loc": "Echague, Isabela",
+    "desc": "-",
+    "temp": "-",
+    "hum": "",
+    "ws": null,
+    "wd": "-",
+    "precip_1h": "0 mm/hr",
+    "mslp": "1006.1 hPa",
+    "heat_index": "-"
+   }
+  },
+  {
+   "obs": {
+    "site_id": 1,
+    "observed_at": "2026-10-10 21:40:00",
+    "loc": "Science Garden",
+    "temp": "27 °C"
+   }
+  },
+  {
+   "obs": null
+  },
+  {}
+ ]
+}

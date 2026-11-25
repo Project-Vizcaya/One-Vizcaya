@@ -1,5 +1,8 @@
+import '../../features/weather/presentation/pagasa_alerts_live.dart';
+import '../../features/weather/presentation/recent_quakes.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../../core/constants/official_hazard_links.dart';
 import '../../core/l10n/app_strings.dart';
 import '../../core/utils/toast_utils.dart';
 import '../../core/utils/color_utils.dart';
@@ -451,6 +454,16 @@ class EmergencyContactsScreen extends StatelessWidget {
 
   // A collapsible group of contacts. Keeps the screen compact — the user
   // expands only the section they need instead of scrolling one long list.
+  Future<void> _openLink(String url) async {
+    try {
+      final ok = await launchUrl(Uri.parse(url),
+          mode: LaunchMode.externalApplication);
+      if (!ok) ToastUtils.showError('Could not open the link');
+    } catch (_) {
+      ToastUtils.showError('Could not open the link');
+    }
+  }
+
   Widget _collapsibleSection({
     required String title,
     required int count,
@@ -645,6 +658,10 @@ class EmergencyContactsScreen extends StatelessWidget {
             bottom: MediaQuery.of(context).padding.bottom + 32,
           ),
           children: [
+            // Official PAGASA alerts for Nueva Vizcaya, when any is active.
+            const PagasaAlertsLive(),
+            // Recent earthquakes near the province (PHIVOLCS first).
+            const RecentQuakes(),
             // ── Local contacts (most relevant → expanded by default) ──
             if (localContacts.isNotEmpty)
               _collapsibleSection(
@@ -679,6 +696,23 @@ class EmergencyContactsScreen extends StatelessWidget {
               icon: Icons.public_outlined,
               initiallyExpanded: false,
               children: nationalChildren,
+            ),
+
+            // ── Official hazard services (links to the agencies) ──
+            _collapsibleSection(
+              title: AppStrings.get('officialHazardServices'),
+              count: officialHazardLinks.length,
+              accent: accent,
+              icon: Icons.travel_explore_outlined,
+              initiallyExpanded: false,
+              children: officialHazardLinks
+                  .map((l) => ListTile(
+                        leading: Icon(Icons.open_in_new, color: accent),
+                        title: Text(l.name),
+                        subtitle: Text(l.agency),
+                        onTap: () => _openLink(l.url),
+                      ))
+                  .toList(),
             ),
           ],
         ),

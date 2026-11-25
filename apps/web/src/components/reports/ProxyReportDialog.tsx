@@ -6,6 +6,7 @@ import { useAuthStore } from "@/stores/authStore";
 import { toast } from "@/hooks/useToast";
 import { barangaysOf } from "@/data/barangays";
 import { MUNICIPALITIES } from "@/data/municipalities";
+import { REPORT_CATEGORIES } from "@/data/reportCategories";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -19,17 +20,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 // with `onBehalfOf` naming the resident. firestore.rules limit barangay and
 // municipal admins to their own area; provincial admins may file anywhere.
 
-// Must match the mobile app's ReportCategory display names.
-const CATEGORIES = [
-  "Disaster & Risk Management", "Health & Public Safety", "Vehicular Accident / Road Crash",
-  "Hazardous / Chemical Spill", "Landslide / Soil Erosion", "Flooding / Severe Drainage Issue",
-  "Bridge Damage / Blockage", "Provincial Road Damage", "Peace & Order Disturbance",
-  "Water & Sewage Systems", "Online Scam / Cyber Fraud", "Stray / Loose Animals on Road",
-  "Infrastructure & Roads", "Public Lighting & Utilities", "Environmental & Sanitation",
-  "Traffic Obstruction / Illegal Parking", "Internet / Telecom Connectivity",
-  "Social & Community Services", "Lost & Found / Document Request",
-  "Digital Services / App Feedback", "General Inquiries & Others", "Others (Not Listed)",
-];
 const PRIORITIES = ["critical", "high", "medium", "low"] as const;
 
 export function ProxyReportDialog() {
@@ -133,9 +123,14 @@ export function ProxyReportDialog() {
             <div className="grid sm:grid-cols-2 gap-3">
               <div className="space-y-1">
                 <Label className="text-xs">Category *</Label>
-                <Select value={category} onValueChange={setCategory}>
+                {/* Choosing a category suggests its usual priority, as the app does. */}
+                <Select value={category} onValueChange={(v) => {
+                  setCategory(v);
+                  const c = REPORT_CATEGORIES.find((x) => x.name === v);
+                  if (c) setPriority(c.basePriority);
+                }}>
                   <SelectTrigger className="text-sm" aria-label="Category"><SelectValue placeholder="Choose…" /></SelectTrigger>
-                  <SelectContent>{CATEGORIES.map((c) => <SelectItem key={c} value={c} className="text-sm">{c}</SelectItem>)}</SelectContent>
+                  <SelectContent>{REPORT_CATEGORIES.map((c) => <SelectItem key={c.name} value={c.name} className="text-sm">{c.name}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
               <div className="space-y-1">

@@ -7,15 +7,17 @@
     "start": "npm run shell",
     "deploy": "firebase deploy --only functions",
     "logs": "firebase functions:log",
-    "test": "node --test \"pagasa/**/*.test.js\" \"pagasa-public/**/*.test.js\" \"reports/**/*.test.js\" \"messaging/**/*.test.js\" \"health/**/*.test.js\" \"alerts/**/*.test.js\""
+    "test": "node --test \"pagasa/**/*.test.js\" \"pagasa-public/**/*.test.js\" \"reports/**/*.test.js\" \"messaging/**/*.test.js\" \"health/**/*.test.js\" \"alerts/**/*.test.js\" \"links/**/*.test.js\" \"pagasa-mobile/**/*.test.js\" \"hazards/**/*.test.js\" \"ai/**/*.test.js\" \"hub/**/*.test.js\""
   },
   "engines": {
     "node": "22"
   },
   "main": "index.js",
   "dependencies": {
+    "@anthropic-ai/sdk": "^1.12.0",
     "firebase-admin": "^12.0.0",
-    "firebase-functions": "^6.0.0"
+    "firebase-functions": "^6.0.0",
+    "google-auth-library": "^11.3.4"
   },
   "devDependencies": {
     "firebase-functions-test": "^3.4.1"

@@ -13,12 +13,11 @@ import '../../core/widgets/weather_widget.dart';
 import '../../data/services/offline_queue_service.dart';
 import '../../data/services/report_submitter.dart';
 import '../../core/utils/connectivity_probe.dart';
-import '../../data/services/sos_service.dart';
-import '../../core/utils/toast_utils.dart';
-import 'sos_active_screen.dart';
 import '../widgets/municipality_info_sheet.dart';
 import '../widgets/notification_bell.dart';
 import '../widgets/whats_new_dialog.dart';
+import '../widgets/call_first_strip.dart';
+import '../widgets/service_tile.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -89,47 +88,8 @@ class _HomeScreenState extends State<HomeScreen> {
     super.dispose();
   }
 
-  // One-tap Emergency SOS: shares the user's LIVE location with responders (so
-  // they can be dispatched to the exact spot even if the call conveys none),
-  // then takes them to the active-emergency screen to also place the call.
-  Future<void> _triggerSos() async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Row(children: [
-          Icon(Icons.sos_rounded, color: Color(0xFFC62828)),
-          SizedBox(width: 8),
-          Text('Send Emergency SOS?'),
-        ]),
-        content: const Text(
-            'This shares your LIVE location with emergency responders so they can '
-            'reach you fast, and lets you call the hotline. Use only for real '
-            'emergencies.'),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancel')),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFC62828)),
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Send SOS'),
-          ),
-        ],
-      ),
-    );
-    if (confirm != true) return;
-    ToastUtils.showInfo('Sending your location to responders…');
-    final id = await sosService.startEmergency();
-    if (!mounted) return;
-    if (id == null) {
-      ToastUtils.showError('Please sign in to send an SOS.');
-      return;
-    }
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => SosActiveScreen(alertId: id)),
-    );
-  }
+  // One-tap Emergency SOS (shared with Report a Problem).
+  Future<void> _triggerSos() => startSosFlow(context);
 
   Future<void> _loadResidencyNudge() async {
     final uid = FirebaseAuth.instance.currentUser?.uid;
@@ -690,39 +650,41 @@ class _HomeScreenState extends State<HomeScreen> {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Row(
+              // Top-aligned so a tile with a two-line label doesn't sit higher.
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(
                   child: Center(
-                    child: _ServiceGridItem(
+                    child: ServiceTile(
                       iconContainerSize: iconSize,
                       icon: Icons.report_problem_rounded,
                       label: AppStrings.get('reportProblemLabel'),
-                      iconColor: Colors.white,
-                      bgColor: const Color(0xFF4CAF50),
+                      tone: ServiceTileTone.primary,
+                      accent: appBarColor,
                       onTap: () => Navigator.of(context).pushNamed('/report'),
                     ),
                   ),
                 ),
                 Expanded(
                   child: Center(
-                    child: _ServiceGridItem(
+                    child: ServiceTile(
                       iconContainerSize: iconSize,
                       icon: Icons.history_rounded,
                       label: AppStrings.get('myReportsLabel'),
-                      iconColor: Colors.white,
-                      bgColor: const Color(0xFFFF9800),
+                      tone: ServiceTileTone.neutral,
+                      accent: appBarColor,
                       onTap: () => Navigator.of(context).pushNamed('/status'),
                     ),
                   ),
                 ),
                 Expanded(
                   child: Center(
-                    child: _ServiceGridItem(
+                    child: ServiceTile(
                       iconContainerSize: iconSize,
                       icon: Icons.local_hospital_rounded,
                       label: AppStrings.get('emergencyContactsLabel'),
-                      iconColor: Colors.white,
-                      bgColor: const Color(0xFFE53935),
+                      tone: ServiceTileTone.emergency,
+                      accent: appBarColor,
                       onTap: () => Navigator.of(context).pushNamed('/contacts'),
                     ),
                   ),
@@ -749,15 +711,17 @@ class _HomeScreenState extends State<HomeScreen> {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Row(
+              // Top-aligned so a tile with a two-line label doesn't sit higher.
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(
                   child: Center(
-                    child: _ServiceGridItem(
+                    child: ServiceTile(
                       iconContainerSize: iconSize,
                       icon: Icons.campaign_rounded,
                       label: AppStrings.get('announcementsLabel'),
-                      iconColor: Colors.white,
-                      bgColor: const Color(0xFF1565C0),
+                      tone: ServiceTileTone.neutral,
+                      accent: appBarColor,
                       onTap: () =>
                           Navigator.of(context).pushNamed('/announcements'),
                     ),
@@ -765,24 +729,24 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 Expanded(
                   child: Center(
-                    child: _ServiceGridItem(
+                    child: ServiceTile(
                       iconContainerSize: iconSize,
                       icon: Icons.help_outline_rounded,
                       label: AppStrings.get('supportFaqsLabel'),
-                      iconColor: Colors.white,
-                      bgColor: const Color(0xFF00897B),
+                      tone: ServiceTileTone.neutral,
+                      accent: appBarColor,
                       onTap: () => Navigator.of(context).pushNamed('/support'),
                     ),
                   ),
                 ),
                 Expanded(
                   child: Center(
-                    child: _ServiceGridItem(
+                    child: ServiceTile(
                       iconContainerSize: iconSize,
                       icon: Icons.settings_rounded,
                       label: AppStrings.get('appSettingsLabel'),
-                      iconColor: Colors.white,
-                      bgColor: const Color(0xFF546E7A),
+                      tone: ServiceTileTone.neutral,
+                      accent: appBarColor,
                       onTap: () => Navigator.of(context).pushNamed('/settings'),
                     ),
                   ),
@@ -794,15 +758,17 @@ class _HomeScreenState extends State<HomeScreen> {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Row(
+              // Top-aligned so a tile with a two-line label doesn't sit higher.
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(
                   child: Center(
-                    child: _ServiceGridItem(
+                    child: ServiceTile(
                       iconContainerSize: iconSize,
                       icon: Icons.location_city_rounded,
                       label: 'Citizen Guide',
-                      iconColor: Colors.white,
-                      bgColor: const Color(0xFF6A1B9A),
+                      tone: ServiceTileTone.neutral,
+                      accent: appBarColor,
                       onTap: () => Navigator.of(context).pushNamed('/guide'),
                     ),
                   ),
@@ -1265,74 +1231,6 @@ class _QueueBottomSheet extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _ServiceGridItem extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final Color iconColor;
-  final Color bgColor;
-  final VoidCallback onTap;
-  final double iconContainerSize;
-
-  const _ServiceGridItem({
-    required this.icon,
-    required this.label,
-    required this.iconColor,
-    required this.bgColor,
-    required this.onTap,
-    this.iconContainerSize = 52.0,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 92),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: iconContainerSize,
-              height: iconContainerSize,
-              decoration: BoxDecoration(
-                color: bgColor,
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: bgColor.withValues(alpha: 0.3),
-                    blurRadius: 8,
-                    offset: const Offset(0, 3),
-                  ),
-                ],
-              ),
-              child: ExcludeSemantics(
-                child: Icon(
-                  icon,
-                  color: iconColor,
-                  size: iconContainerSize * 0.46,
-                ),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              label,
-              textAlign: TextAlign.center,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w500,
-                color: Theme.of(context).textTheme.bodySmall?.color,
-                height: 1.2,
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }

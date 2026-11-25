@@ -28,6 +28,10 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
   String _selectedLanguage = 'English';
   // Internal sort order key stored in prefs (language-independent)
   String _reportSortKey = 'newestFirst';
+  // Admins: what tapping an overdue-report alert opens (see
+  // NotificationService._handleNotificationTap).
+  bool _isAdmin = false;
+  bool _adminAlertOpensReport = false;
 
   @override
   void initState() {
@@ -49,7 +53,16 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
       _biometricLock = prefs.getBool(kBiometricAppLockKey) ?? false;
       _selectedLanguage = prefs.getString('language') ?? 'English';
       _reportSortKey = prefs.getString('report_sort') ?? 'newestFirst';
+      _adminAlertOpensReport = prefs.getBool(kAdminAlertOpensReportKey) ?? false;
     });
+    // Show the admin-only setting to admins.
+    try {
+      final uid = FirebaseAuth.instance.currentUser?.uid;
+      if (uid == null) return;
+      final role = (await FirebaseFirestore.instance.collection('users').doc(uid).get())
+              .data()?['role'] as String? ?? 'citizen';
+      if (mounted) setState(() => _isAdmin = role != 'citizen' && role.isNotEmpty);
+    } catch (_) {/* offline: keep it hidden */}
   }
 
   Future<void> _saveSetting(String key, dynamic value) async {
@@ -126,6 +139,20 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
                     _saveSetting('notifications_enabled', val);
                   },
                 ),
+                if (_isAdmin)
+                  _ToggleTile(
+                    icon: Icons.open_in_new_rounded,
+                    iconColor: Colors.indigo,
+                    title: 'Overdue alerts open the report',
+                    subtitle: _adminAlertOpensReport
+                        ? 'On: tapping an overdue-report alert opens that report.'
+                        : 'Off: tapping an overdue-report alert opens the Admin Dashboard.',
+                    value: _adminAlertOpensReport,
+                    onChanged: (val) {
+                      setState(() => _adminAlertOpensReport = val);
+                      _saveSetting(kAdminAlertOpensReportKey, val);
+                    },
+                  ),
               ],
             ),
 
@@ -479,7 +506,6 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
             ...[
               AppStrings.get('deleteItem1'),
               AppStrings.get('deleteItem2'),
-              AppStrings.get('deleteItem3'),
             ].map((item) => Padding(
                   padding: const EdgeInsets.symmetric(vertical: 2),
                   child: Row(children: [
@@ -488,6 +514,36 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
                     Flexible(child: Text(item)),
                   ]),
                 )),
+            const SizedBox(height: 12),
+            // Reports are not deleted: the LGU keeps them as archived records
+            // (PPDO requirement), so say so instead of listing them above.
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Theme.of(ctx).colorScheme.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Icon(Icons.inventory_2_outlined, size: 18),
+                  const SizedBox(width: 8),
+                  Flexible(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(AppStrings.get('deleteKeptTitle'),
+                            style:
+                                const TextStyle(fontWeight: FontWeight.w600)),
+                        const SizedBox(height: 2),
+                        Text(AppStrings.get('deleteKeptBody'),
+                            style: const TextStyle(fontSize: 13)),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
             const SizedBox(height: 12),
             Text(AppStrings.get('deleteCannotUndo'),
                 style: TextStyle(

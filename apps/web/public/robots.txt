@@ -1,0 +1,4 @@
+# One Vizcaya public site. The staff console is private and not indexed.
+User-agent: *
+Allow: /
+Disallow: /dashboard

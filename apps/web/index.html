@@ -3,15 +3,27 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#166534" />
-    <title>One Vizcaya — Admin Portal</title>
-    <link rel="icon" type="image/png" href="/img/seals/nv-seal.png" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <meta name="theme-color" content="#0B4B2E" />
+    <title>One Vizcaya: report hazards to your municipality in Nueva Vizcaya</title>
+    <meta name="description" content="Report flooding, landslides and road damage with a photo and your location. Android app for residents of Nueva Vizcaya. Emergency? Call 911 or PDRRMO 0917 122 7150." />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="One Vizcaya" />
+    <meta property="og:title" content="One Vizcaya: report hazards to your municipality" />
+    <meta property="og:description" content="Report flooding, landslides and road damage with a photo and your location. For residents of Nueva Vizcaya. Emergency? Call 911 or PDRRMO 0917 122 7150." />
+    <!-- Absolute URLs: Facebook and Messenger don't resolve relative image paths.
+         Change both if the site moves to its own domain. -->
+    <meta property="og:url" content="https://one-vizcaya-app.web.app/" />
+    <meta property="og:image" content="https://one-vizcaya-app.web.app/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="One Vizcaya: See a hazard? Report it to your municipality." />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   </head>
   <body>
-    <div id="root"></div>
+    <!-- Shown until the app loads (or if JavaScript fails on a weak connection):
+         the emergency numbers must never depend on the app. React replaces it. -->
+    <div id="root"><div style="font:17px/1.5 system-ui,sans-serif;max-width:40rem;margin:0 auto;padding:16px;color:#13202B"><p style="margin:0;font-weight:800;color:#0B4B2E;font-size:20px">One Vizcaya</p><p style="margin:12px 0 0;font-weight:700">Emergency? Call <a href="tel:911" style="color:#B91C1C">911</a> or PDRRMO <a href="tel:+639171227150" style="color:#B91C1C">0917 122 7150</a>.</p><p style="margin:8px 0 0;color:#4A5866">Loading…</p></div></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

@@ -135,3 +135,59 @@
   body { background: white; }
   .gov-card { box-shadow: none; border: 1px solid #ccc; }
 }
+
+/* Public pages: landing (/) and privacy (/privacy). Design contract:
+   docs/4-app-and-website/design-system.md — provincial green, a gold accent used sparingly, red
+   only for emergencies, Atkinson Hyperlegible Next. Scoped to .site so the
+   console is unaffected. */
+@media (prefers-reduced-motion: no-preference) {
+  html { scroll-behavior: smooth; }
+}
+
+.site {
+  --site-green: #0B4B2E;       /* hsl(152 73% 17%), the console's brand green */
+  --site-green-700: #0F5F3B;
+  --site-green-600: #15803D;
+  --site-green-50: #EEF6F1;
+  --site-gold: #E2A713;        /* hsl(43 85% 48%) */
+  --site-gold-soft: #FCF3DC;
+  --site-ink: #13202B;
+  --site-muted: #4A5866;       /* 7.0:1 on white */
+  --site-line: #DCE3E8;
+  --site-paper: #F7F8F6;
+  font-family: "Atkinson Hyperlegible Next", system-ui, -apple-system, "Segoe UI", sans-serif;
+  color: var(--site-ink);
+  color-scheme: light;
+}
+.site .font-code { font-family: "Atkinson Hyperlegible Mono", ui-monospace, monospace; }
+.site :focus-visible { outline: 3px solid var(--site-green-600); outline-offset: 3px; border-radius: 4px; }
+.site .on-dark :focus-visible { outline-color: var(--site-gold); }
+@media (prefers-reduced-motion: reduce) {
+  .site *, .site *::before, .site *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
+
+@layer components {
+  .btn-primary,
+  .btn-gold,
+  .btn-ghost,
+  .btn-emergency,
+  .btn-emergency-outline {
+    /* Sizes in px, not rem: the console sets a 15px root, which would shrink
+       44px touch targets to 41px on the public pages. */
+    @apply inline-flex min-h-[46px] cursor-pointer items-center justify-center gap-2 whitespace-nowrap rounded-md px-4 py-2 text-[15px] font-bold transition-colors duration-150 focus-visible:outline-none;
+  }
+  /* Fallback colours: the tokens live on .site, the buttons must still work outside it. */
+  .btn-primary { background: var(--site-green, #0B4B2E); color: #fff; }
+  .btn-primary:hover { background: var(--site-green-700, #0F5F3B); }
+  /* Gold is the one accent: the main action on a green background. */
+  .btn-gold { background: var(--site-gold, #E2A713); color: #1F1600; }
+  .btn-gold:hover { background: #F0B72A; }
+  .btn-ghost { @apply border; border-color: var(--site-line, #DCE3E8); background: #fff; color: var(--site-ink, #13202B); }
+  .btn-ghost:hover { border-color: var(--site-green-600, #15803D); color: var(--site-green, #0B4B2E); }
+  /* Red is reserved for emergency actions only. */
+  .btn-emergency { @apply bg-red-700 text-white hover:bg-red-800; }
+  .btn-emergency-outline { @apply border-2 border-red-700 bg-white text-red-700 hover:bg-red-50; }
+  .btn-lg { @apply min-h-[52px] px-6 text-[16px]; }
+}
+.btn-primary:focus-visible, .btn-gold:focus-visible, .btn-ghost:focus-visible,
+.btn-emergency:focus-visible, .btn-emergency-outline:focus-visible { outline: 3px solid #15803D; outline-offset: 3px; }

@@ -164,63 +164,13 @@ class FirebaseReportRepository implements ReportRepository {
           .doc(reportId)
           .update(update);
 
-      final notif = _statusNotification(newStatus, reportId);
-      if (notif != null) {
-        try {
-          await _firestore
-              .collection('users')
-              .doc(userId)
-              .collection('notifications')
-              .add(notif);
-        } catch (e) {
-          debugPrint('Failed to write status notification: $e');
-        }
-      }
-
+      // The reporter's inbox entry and push are written server-side by
+      // notifyOnStatusChange, for web and mobile alike.
       ToastUtils.showSuccess('Status updated');
     } catch (e) {
       ToastUtils.showError('Failed to update status: $e');
       rethrow;
     }
-  }
-
-  Map<String, dynamic>? _statusNotification(String status, String reportId) {
-    String title;
-    String body;
-    switch (status) {
-      case 'ongoing':
-        title = 'Report In Progress';
-        body = 'Your report is now being acted upon by the LGU.';
-        break;
-      case 'solved':
-        title = 'Report Resolved ✓';
-        body =
-            'Great news! Your report has been resolved. Thank you for helping improve your community.';
-        break;
-      case 'acknowledged':
-        title = 'Report Acknowledged';
-        body = 'The LGU has received and acknowledged your report.';
-        break;
-      case 'under_review':
-        title = 'Report Under Review';
-        body = 'Your report is now being reviewed by the LGU.';
-        break;
-      case 'reported':
-        title = 'Report Reopened';
-        body = 'Your report has been reopened for further review.';
-        break;
-      default:
-        return null;
-    }
-    return {
-      'type': 'status_update',
-      'title': title,
-      'body': body,
-      'status': status == 'solved' ? 'success' : 'info',
-      'reportId': reportId,
-      'timestamp': FieldValue.serverTimestamp(),
-      'read': false,
-    };
   }
 
   @override
