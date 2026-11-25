@@ -1,4 +1,4 @@
-import { defineConfig } from "vite";
+import { defineConfig, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
 import { TanStackRouterVite } from "@tanstack/router-plugin/vite";
 import path from "path";
@@ -11,6 +11,27 @@ const APK = path.resolve(__dirname, "public/downloads/One-Vizcaya.apk");
 const apkAvailable = fs.existsSync(APK);
 const apkSizeMb = apkAvailable ? Math.round(fs.statSync(APK).size / 1e6) : 0;
 
+// Preloads the public site's first-screen font weights (Atkinson Hyperlegible
+// Next, latin: body 400, buttons 700, headings 800) so they arrive with the
+// page code instead of after it. Without this the text first paints in the
+// fallback font and reflows when Atkinson loads (layout shift 0.15 on /privacy).
+const preloadFonts = (): Plugin => ({
+  name: "preload-site-fonts",
+  apply: "build",
+  transformIndexHtml: {
+    order: "post",
+    handler(_html, ctx) {
+      const files = Object.keys(ctx.bundle ?? {}).filter((f) =>
+        /atkinson-hyperlegible-next-latin-(400|700|800)-normal-[^/]*\.woff2$/.test(f));
+      return files.map((f) => ({
+        tag: "link",
+        attrs: { rel: "preload", as: "font", type: "font/woff2", href: `/${f}`, crossorigin: "" },
+        injectTo: "head" as const,
+      }));
+    },
+  },
+});
+
 export default defineConfig({
   define: {
     __APK_AVAILABLE__: JSON.stringify(apkAvailable),
@@ -22,6 +43,7 @@ export default defineConfig({
     // page just to show the first screen.
     TanStackRouterVite({ routesDirectory: "./src/routes", generatedRouteTree: "./src/routeTree.gen.ts", autoCodeSplitting: true }),
     react(),
+    preloadFonts(),
   ],
   resolve: {
     alias: {

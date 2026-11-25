@@ -1,12 +1,14 @@
 import { createFileRoute, Outlet } from "@tanstack/react-router";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { useAuthStore } from "@/stores/authStore";
+import { useAuth } from "@/hooks/useAuth";
 
 export const Route = createFileRoute("/dashboard")({
   component: DashboardLayout,
 });
 
 function DashboardLayout() {
+  useAuth(); // auth listener (not global, so public pages skip Firebase)
   const { user, isLoading } = useAuthStore();
 
   if (isLoading) {

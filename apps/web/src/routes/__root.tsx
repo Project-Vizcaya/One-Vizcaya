@@ -1,9 +1,9 @@
 import { createRootRoute, Outlet } from "@tanstack/react-router";
 import { Toaster } from "@/components/ui/toaster";
-import { useAuth } from "@/hooks/useAuth";
 
+// The Firebase auth listener is NOT started here: it runs in the /login and
+// /dashboard routes, so the public pages (/, /privacy) don't download Firebase.
 function RootLayout() {
-  useAuth(); // global auth listener — must run on every page
   return (
     <>
       <Outlet />
