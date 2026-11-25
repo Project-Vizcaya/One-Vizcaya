@@ -13,7 +13,7 @@ export function Phone({ label, children }: { label: string; children: ReactNode 
       aria-label={label}
       className="mx-auto w-[260px] max-w-full shrink-0 rounded-[2rem] border-[8px] border-slate-900 bg-slate-900"
     >
-      <div className="relative h-[520px] overflow-hidden rounded-[1.5rem] bg-white" aria-hidden="true">
+      <div className="relative h-[480px] overflow-hidden rounded-[1.5rem] bg-white" aria-hidden="true">
         <div className="absolute left-1/2 top-2 z-10 h-5 w-20 -translate-x-1/2 rounded-full bg-slate-900" />
         <div className="flex h-9 items-end justify-between px-5 pb-1 text-[10px] font-semibold text-slate-700">
           <span>9:41</span>
@@ -76,25 +76,26 @@ export function MapScreen() {
       <AppBar title="Reports map · LGU staff" />
       <div className="p-3">
         <div className="flex gap-1.5 text-[10px] font-semibold">
-          <span className="rounded-full bg-amber-100 px-2 py-0.5 text-amber-900">Under review</span>
-          <span className="rounded-full bg-sky-100 px-2 py-0.5 text-sky-900">In progress</span>
-          <span className="rounded-full bg-green-100 px-2 py-0.5 text-green-900">Resolved</span>
+          {/* Pin colours follow the console map: priority, not status (MapView.tsx PRIORITY_COLORS). */}
+          <span className="rounded-full bg-red-100 px-2 py-0.5 text-red-900">Critical</span>
+          <span className="rounded-full bg-orange-100 px-2 py-0.5 text-orange-900">High</span>
+          <span className="rounded-full bg-amber-100 px-2 py-0.5 text-amber-900">Medium</span>
         </div>
         <div className="relative mt-2 rounded-xl bg-[var(--site-paper)] p-2">
-          <MunicipalityMap className="h-[300px] w-full" />
+          <MunicipalityMap className="h-[240px] w-full" />
           {[
-            ["38%", "45%", "bg-amber-500"],
-            ["52%", "30%", "bg-sky-600"],
-            ["30%", "62%", "bg-green-600"],
-            ["60%", "55%", "bg-amber-500"],
-            ["45%", "75%", "bg-green-600"],
+            ["38%", "45%", "bg-[#F59E0B]"],
+            ["52%", "30%", "bg-[#F97316]"],
+            ["30%", "62%", "bg-[#DC2626]"],
+            ["60%", "55%", "bg-[#F59E0B]"],
+            ["45%", "75%", "bg-[#F97316]"],
           ].map(([l, t, c], i) => (
             <span key={i} className={`absolute h-3 w-3 rounded-full border-2 border-white ${c}`} style={{ left: l, top: t }} />
           ))}
         </div>
         <div className="mt-2 rounded-xl border p-2 text-[11px]">
-          <p className="font-semibold">Bayombong</p>
-          <p className="text-slate-500">4 under review · 2 in progress · 11 resolved</p>
+          <p className="font-semibold">Nueva Vizcaya · open reports</p>
+          <p className="text-slate-500">1 critical · 2 high · 2 medium</p>
         </div>
       </div>
     </>
@@ -103,7 +104,7 @@ export function MapScreen() {
 
 export function AlertsScreen() {
   const items = [
-    { icon: CloudRain, t: "Heavy rainfall advisory", s: "Provincial advisory · Kasibu, Quezon, Dupax del Norte", tone: "bg-amber-50 border-amber-200" },
+    { icon: CloudRain, t: "Heavy rainfall advisory", s: "Provincial advisory · Kasibu", tone: "bg-amber-50 border-amber-200" },
     { icon: Bell, t: "Road closure advisory", s: "Provincial advisory · 2 h ago", tone: "bg-slate-50" },
     { icon: Check, t: "Your report is In Progress", s: "Municipal Engineering · Bayombong", tone: "bg-green-50 border-green-200" },
   ];
@@ -128,7 +129,7 @@ export function AlertsScreen() {
 export function SosScreen() {
   return (
     <>
-      <AppBar title="Emergency" />
+      <AppBar title="Emergency active" />
       <div className="flex flex-col items-center p-5 text-center text-[12px]">
         <div className="mt-6 flex h-36 w-36 items-center justify-center rounded-full bg-red-700 text-white ring-8 ring-red-100">
           <div>
@@ -136,9 +137,10 @@ export function SosScreen() {
             <p className="mt-1 text-base font-extrabold">SOS</p>
           </div>
         </div>
-        <p className="mt-5 font-semibold text-slate-900">Your live location is being shared with responders</p>
+        <p className="mt-5 font-semibold text-slate-900">Help is on the way</p>
+        <p className="mt-1 text-slate-600">Your location is shared with responders while this screen is open</p>
         <div className="mt-5 w-full space-y-2 text-left">
-          <div className="rounded-xl bg-red-700 px-3 py-2 text-center font-semibold text-white">Call PDRRMO · 0917 122 7150</div>
+          <div className="rounded-xl bg-red-700 px-3 py-2 text-center font-semibold text-white">Call PDRRMO Nueva Vizcaya</div>
           <div className="rounded-xl border px-3 py-2 text-center">I'm safe now — end emergency</div>
         </div>
       </div>

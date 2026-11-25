@@ -1,4 +1,4 @@
-import { useEffect, type ReactNode } from "react";
+import { Fragment, useEffect, type ReactNode } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowLeft } from "lucide-react";
 import { SiteFooter, SiteHeader } from "@/components/landing/SiteChrome";
@@ -85,7 +85,8 @@ function renderMarkdown(md: string): ReactNode[] {
         para.push(lines[i]);
         i++;
       }
-      out.push(<p key={key}>{inline(para.join(" "))}</p>);
+      // Keep the notice's own line breaks (address blocks, date lines).
+      out.push(<p key={key}>{para.map((l, j) => <Fragment key={j}>{j > 0 && <br />}{inline(l)}</Fragment>)}</p>);
     }
   }
   return out;

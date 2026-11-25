@@ -101,9 +101,11 @@ export function SiteFooter() {
           </ul>
         </div>
       </div>
-      <div className="mx-auto max-w-6xl border-t border-[var(--site-line)] px-4 py-6 text-sm text-[var(--site-muted)]">
-        <p>Developed by Aaron Anthony A. Gano II, Sean Godric Reyes and Darius Acosta (Project: Vizcaya Team).</p>
-        <p className="mt-1">© 2026 One Vizcaya · Made for the people of Nueva Vizcaya.</p>
+      <div className="mx-auto max-w-6xl px-4">
+        <div className="border-t border-[var(--site-line)] py-6 text-sm text-[var(--site-muted)]">
+          <p>Developed by Aaron Anthony A. Gano II, Sean Godric Reyes and Darius Acosta (Project: Vizcaya Team).</p>
+          <p className="mt-1">© 2026 One Vizcaya · Made for the people of Nueva Vizcaya.</p>
+        </div>
       </div>
     </footer>
   );
