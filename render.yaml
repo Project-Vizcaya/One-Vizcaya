@@ -1,0 +1,34 @@
+# Render Blueprint: the Command Hub demo (command-hub/), so PDRRMO can open it
+# on any phone or office PC with nothing installed. Setup steps:
+# docs/command-hub.md, "Hosting the demo on Render".
+#
+# Free plan: no card needed, HTTPS included (phones need HTTPS for location).
+# It sleeps after 15 minutes without visitors and takes about a minute to wake,
+# so open the link a couple of minutes before presenting. Data is the built-in
+# mock data, kept in memory: it resets when the service sleeps or redeploys.
+services:
+  - type: web
+    name: one-vizcaya-command-hub
+    runtime: node
+    plan: free
+    region: singapore # closest region to the Philippines
+    rootDir: command-hub
+    buildCommand: npm ci && npm run build
+    # Render routes traffic to $PORT; the package's own start script pins 3100.
+    startCommand: npx next start -p $PORT -H 0.0.0.0
+    healthCheckPath: /login
+    envVars:
+      - key: NODE_VERSION
+        value: "22" # same as CI
+      - key: HUB_SESSION_SECRET # signs the demo sign-in cookie
+        generateValue: true
+      - key: HUB_SIMULATOR_TOKEN # for scripts/replay.mjs against the demo
+        generateValue: true
+      - key: FEATURE_RESPONDER_TRACKING
+        value: "1"
+      - key: FEATURE_HOTLINE_INTAKE
+        value: "1"
+      - key: FEATURE_CITIZEN_ETA_UPDATES
+        value: "1"
+      # Not set on purpose: HUB_BRIDGE_SECRET and FIREBASE_STATUS_URL (the demo
+      # stays disconnected from One Vizcaya) and HUB_DEVICE_TOKEN (no trackers).

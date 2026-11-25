@@ -66,8 +66,12 @@ export function useAuth() {
     });
 
     const events = ["mousedown", "keydown", "touchstart", "scroll"];
+    // Read the store, not `user`: this listener is created once, when `user`
+    // was still null, so checking the closure never reset the timer and staff
+    // were signed out 30 minutes after sign-in even while working.
     const handleActivity = () => {
-      if (user) resetTimer();
+      const { user: current, sessionExpired: expired } = useAuthStore.getState();
+      if (current && !expired) resetTimer();
     };
     events.forEach((e) => window.addEventListener(e, handleActivity, { passive: true }));
 
