@@ -2,150 +2,119 @@ import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import type { LucideIcon } from "lucide-react";
 import {
-  Download, Phone as PhoneIcon, ShieldCheck, MapPin, Menu, X, ArrowRight,
-  EyeOff, Shuffle, Timer, UserCheck, Archive, Users, FileText, Mail,
+  Download, Phone as PhoneIcon, ShieldCheck, ArrowRight, EyeOff, Shuffle, Timer, UserCheck, Archive, Users,
+  WifiOff, Languages,
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MUNICIPALITIES } from "@/data/municipalities";
 import { Phone, ReportScreen, MapScreen, AlertsScreen, SosScreen } from "./Phone";
-import { MunicipalityMap } from "./MunicipalityMap";
+import { MunicipalityMap, townLabel } from "./MunicipalityMap";
+import { APK_AVAILABLE, APK_SIZE_MB, APK_URL, PDRRMO_HOTLINE, PDRRMO_TEL, SiteFooter, SiteHeader } from "./SiteChrome";
 
-// Drop the built APK at apps/web/public/downloads/One-Vizcaya.apk to make this
-// live (see public/downloads/README.md).
-const APK_URL = "/downloads/One-Vizcaya.apk";
-
-// 911 is the national emergency hotline. The PDRRMO direct line is still a
-// placeholder (docs/hotline-verification.md) — never put an unverified number
-// behind a tel: link.
-const EMERGENCY_TEL = "tel:911";
-const PDRRMO_HOTLINE = "[PDRRMO hotline]";
-const CONTACT_EMAIL = "[team email]";
+// Design contract: docs/design-system.md. Provincial green, gold as the one
+// accent (the approval step, the capital on the map, the download button on
+// green, the active nav link), red only for emergency calls.
 
 // Pilot LGUs: list names exactly as in src/data/municipalities.ts once
 // confirmed. Leave empty until then — don't invent partners.
 const PILOT_LGUS: string[] = [];
 
 const NAV = [
-  { label: "How it works", href: "#flow" },
+  { label: "How it works", href: "#how" },
   { label: "Features", href: "#features" },
   { label: "Coverage", href: "#coverage" },
   { label: "Privacy", href: "#privacy" },
 ];
 
-const SECTIONS = ["problem", "flow", "features", "coverage", "privacy", "endorsement"];
-
 const PROBLEMS = [
   { icon: EyeOff, title: "Hazards go unreported", body: "A blocked drainage canal or a cracked slope is easy to walk past. Without a simple way to report it, the barangay finds out only after it becomes an emergency." },
-  { icon: Shuffle, title: "Reports get lost between offices", body: "A concern raised at the barangay hall has to travel to the municipality and then the Province — by phone, paper or chat. Details and photos drop off along the way." },
+  { icon: Shuffle, title: "Reports get lost between offices", body: "A concern raised at the barangay hall travels to the municipality and then the Province by phone, paper or chat. Details and photos drop off along the way." },
   { icon: Timer, title: "Emergency handoffs are slow", body: "When responders have to ask “where exactly?” and “what happened?”, minutes are lost before anyone is dispatched." },
 ];
 
 const STEPS = [
-  { title: "Resident submits", body: "A verified resident files a report with a photo, GPS location and category." },
-  { title: "Municipal review & approval", body: "The municipal LGU checks the report and acts on it, or approves it for escalation." },
-  { title: "Provincial / PDRRMO action", body: "Only municipally-approved escalations reach the Province and PDRRMO." },
-  { title: "Resident gets updates", body: "The resident is notified at each status change, from Reported to Resolved." },
+  { who: "You", title: "You send a report", body: "With a photo, your location and the type of problem. Your account is verified, so the LGU knows the report is real." },
+  { who: "Your municipality", title: "Your town hall checks it", body: "The municipal LGU reviews every report first. It acts on it, or forwards it to the Province when provincial help is needed.", gate: true },
+  { who: "Province · PDRRMO", title: "The Province steps in if needed", body: "The Provincial Government and the PDRRMO (Provincial Disaster Risk Reduction and Management Office) receive only the reports your municipality forwards." },
+  { who: "You", title: "You get updates", body: "A notification each time the status changes, from Reported to Resolved." },
 ];
 
 const FEATURES = [
-  { id: "report", label: "Report", title: "Report in under a minute", body: "Pick a category, take a live photo and let GPS fill in the location. Reports are tied to your verified account, so LGUs can act on them with confidence.", points: ["Live-camera photos are GPS-stamped", "Categories set the priority (e.g. Disaster & Risk Management)", "Saved offline and sent when you're back online"], screen: <ReportScreen /> },
-  { id: "map", label: "Live map", title: "See reports across the province", body: "LGU staff see reports on one map, filtered by municipality and status, so the busiest areas stand out.", points: ["Filter by municipality and status", "Each report has one accountable office", "Exportable records for after-action reports"], screen: <MapScreen /> },
-  { id: "alerts", label: "Alerts", title: "Provincial advisories, pushed to you", body: "Approved advisories from the Province — rainfall warnings, road closures — arrive as push notifications for the municipalities they affect.", points: ["Scoped to the affected municipalities", "Alerts are approved before they are sent", "Status updates on your own reports"], screen: <AlertsScreen /> },
-  { id: "sos", label: "One-tap PDRRMO", title: "One tap to the Provincial Disaster office", body: "During an emergency, a single button on the home screen reaches PDRRMO and shares your location with responders.", points: ["Reachable from the home screen", "Location shared with the responder", "Local BFP and DRRMO contacts listed"], screen: <SosScreen /> },
+  {
+    id: "alerts", label: "Alerts", title: "Advisories for your town, pushed to you",
+    body: "Approved advisories from the Province, like rainfall warnings and road closures, arrive as notifications for the municipalities they affect.",
+    points: ["Only for the towns an advisory covers", "Every alert is approved before it is sent", "Status updates on your own reports"],
+    screen: <AlertsScreen />,
+  },
+  {
+    id: "sos", label: "Emergency SOS", title: "One tap to call PDRRMO",
+    body: `Press the red SOS button on the app's home screen. Your phone calls the PDRRMO hotline (${PDRRMO_HOTLINE}) and shares your live location with responders until you turn SOS off.`,
+    points: ["It is a normal phone call, so you need signal and load", "Your live location is shared only while SOS is on", "Other emergency hotlines are listed in the app"],
+    note: "One Vizcaya does not replace 911, the PDRRMO hotline, radio, or your barangay officials. In a real emergency, still call them.",
+    screen: <SosScreen />,
+  },
+  {
+    id: "map", label: "For LGU staff", title: "One map of reports for LGU staff",
+    body: "Municipal and provincial staff see the reports in their area on one map, by status, so the busiest places stand out and nothing waits unseen.",
+    points: ["Each report has one accountable office", "Filter by municipality and status", "Records for after-action reports"],
+    screen: <MapScreen />,
+  },
 ];
 
 const ROLES = [
-  { role: "Resident", sees: "Your own reports and their status, plus public advisories." },
-  { role: "Barangay / Municipal LGU", sees: "Reports filed in their own barangay or municipality only." },
-  { role: "Provincial (PA, PDRRMO)", sees: "Only reports the municipality has approved for escalation." },
+  { role: "You (resident)", sees: "Your own reports and their status, plus public advisories." },
+  { role: "Your barangay or municipal LGU", sees: "Reports filed in their own barangay or municipality only." },
+  { role: "Provincial Government (Provincial Administrator's Office, PDRRMO)", sees: "Only reports your municipality has forwarded to the Province." },
 ];
 
 export function LandingPage() {
-  const [menuOpen, setMenuOpen] = useState(false);
-  const active = useActiveSection(SECTIONS);
+  const active = useActiveSection(NAV.map((n) => n.href.slice(1)));
+  const [tab, setTab] = useState(FEATURES[0].id);
+  const current = FEATURES.find((f) => f.id === tab) ?? FEATURES[0];
+  const towns = [...MUNICIPALITIES].map((m) => townLabel(m.name)).sort((a, b) => a.localeCompare(b));
 
   return (
-    <div className="min-h-screen bg-white text-slate-900">
-      <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-50 focus:rounded focus:bg-white focus:px-3 focus:py-2 focus:shadow">
+    <div className="site min-h-screen bg-white">
+      <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-50 focus:rounded-md focus:bg-white focus:px-3 focus:py-2 focus:font-bold">
         Skip to content
       </a>
-
-      {/* ── Header ── */}
-      <header className="sticky top-0 z-40 border-b bg-white/90 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
-          <a href="#top" className="rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#166534]">
-            <Wordmark />
-          </a>
-          <nav aria-label="Main" className="hidden items-center gap-6 lg:flex">
-            {NAV.map((n) => (
-              <a key={n.href} href={n.href} className="text-sm font-medium text-slate-600 hover:text-[#166534]">{n.label}</a>
-            ))}
-          </nav>
-          <div className="flex items-center gap-2">
-            <a href={APK_URL} className="btn-primary hidden sm:inline-flex"><Download className="h-4 w-4" aria-hidden="true" /> Download app</a>
-            <a href={EMERGENCY_TEL} className="btn-emergency"><PhoneIcon className="h-4 w-4" aria-hidden="true" /> Emergency</a>
-            <button
-              type="button"
-              className="rounded p-1.5 lg:hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#166534]"
-              aria-label={menuOpen ? "Close menu" : "Open menu"}
-              aria-expanded={menuOpen}
-              aria-controls="mobile-nav"
-              onClick={() => setMenuOpen((v) => !v)}
-            >
-              {menuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-            </button>
-          </div>
-        </div>
-        {menuOpen && (
-          <nav id="mobile-nav" aria-label="Main" className="border-t bg-white px-4 py-3 lg:hidden">
-            <ul className="flex flex-col gap-1">
-              {NAV.map((n) => (
-                <li key={n.href}>
-                  <a href={n.href} onClick={() => setMenuOpen(false)} className="block rounded px-2 py-2 font-medium text-slate-700 hover:bg-slate-50">{n.label}</a>
-                </li>
-              ))}
-              <li className="pt-2 sm:hidden">
-                <a href={APK_URL} className="btn-primary w-full justify-center"><Download className="h-4 w-4" aria-hidden="true" /> Download app</a>
-              </li>
-            </ul>
-          </nav>
-        )}
-      </header>
-
-      {/* ── Section indicator (desktop) ── */}
-      <div aria-hidden="true" className="fixed right-6 top-1/2 z-30 hidden -translate-y-1/2 flex-col items-center gap-3 xl:flex">
-        <span className="text-xs font-bold tabular-nums text-[#166534]">
-          {active >= 0 ? `${pad(active + 1)} / ${pad(SECTIONS.length)}` : `— / ${pad(SECTIONS.length)}`}
-        </span>
-        <div className="flex flex-col gap-1.5">
-          {SECTIONS.map((s, i) => (
-            <span key={s} className={`h-6 w-1 rounded-full transition-colors ${i === active ? "bg-[#166534]" : "bg-slate-200"}`} />
-          ))}
-        </div>
-      </div>
+      <SiteHeader nav={NAV} active={active} />
 
       <main id="main">
         {/* ── Hero ── */}
-        <section id="top" className="relative overflow-hidden bg-gradient-to-b from-[#f0fdf4] to-white">
-          <div className="mx-auto grid max-w-6xl items-center gap-12 px-4 py-14 md:grid-cols-[1.1fr_1fr] md:py-20">
+        <section id="top" className="border-b border-[var(--site-line)]">
+          <div className="mx-auto grid max-w-6xl items-center gap-12 px-4 py-10 md:grid-cols-[1.15fr_1fr] md:py-16">
             <div>
-              <p className="text-sm font-semibold text-[#166534]">Para sa bawat barangay ng Nueva Vizcaya</p>
-              <h1 className="mt-3 text-[2.6rem] font-extrabold leading-[1.05] tracking-tight sm:text-6xl">
-                <span className="block sm:inline">Report.</span>{" "}
-                <span className="block sm:inline">Respond.</span>{" "}
-                <span className="block text-[#166534] sm:inline">Recover.</span>
+              <p lang="fil" className="text-[15px] font-bold text-[var(--site-green-600)]">Para sa bawat barangay ng Nueva Vizcaya</p>
+              <h1 className="mt-3 text-balance text-[2.5rem] font-extrabold leading-[1.08] text-[var(--site-ink)] sm:text-[3.4rem]">
+                See a hazard? <span className="text-[var(--site-green)]">Report it to your municipality.</span>
               </h1>
-              <p className="mt-5 max-w-lg text-lg text-slate-600">
-                One Vizcaya connects every barangay to the Province — so hazards get reported, verified and acted on faster.
+              <p className="mt-5 max-w-xl text-pretty text-lg leading-relaxed text-[var(--site-muted)]">
+                Take a photo of a clogged canal, a landslide or a damaged road anywhere from Kasibu to Kayapa. One Vizcaya adds the
+                location, sends it to your town hall, and tells you each time its status changes.
               </p>
-              <div className="mt-8 flex flex-wrap gap-3">
-                <a href={APK_URL} className="btn-primary btn-lg"><Download className="h-5 w-5" aria-hidden="true" /> Download the app</a>
-                <a href={EMERGENCY_TEL} className="btn-emergency-outline btn-lg"><PhoneIcon className="h-5 w-5" aria-hidden="true" /> Emergency hotline</a>
+              <div className="mt-7 flex flex-wrap gap-3">
+                <a href="#download" className="btn-primary btn-lg"><Download className="h-5 w-5" aria-hidden="true" /> Get the app</a>
+                <a href="#how" className="btn-ghost btn-lg">How it works <ArrowRight className="h-4 w-4" aria-hidden="true" /></a>
               </div>
-              <ul className="mt-8 flex flex-wrap gap-2 text-xs font-semibold text-slate-700">
-                <li className="inline-flex items-center gap-1.5 rounded-full border bg-white px-3 py-1.5"><MapPin className="h-3.5 w-3.5 text-[#166534]" aria-hidden="true" /> Built in Nueva Vizcaya</li>
-                <li className="inline-flex items-center gap-1.5 rounded-full border bg-white px-3 py-1.5"><ShieldCheck className="h-3.5 w-3.5 text-[#166534]" aria-hidden="true" /> RA 10173 compliant</li>
-              </ul>
+              <p className="mt-4 text-[15px] text-[var(--site-muted)]">For residents of Nueva Vizcaya · Android · English, Tagalog, Ilocano</p>
+
+              <div role="note" aria-labelledby="call-first" className="mt-7 max-w-xl rounded-md border border-red-200 bg-red-50 p-4">
+                <p id="call-first" className="text-[17px] font-extrabold text-red-800">Emergency? Call first.</p>
+                <p className="mt-1 text-[15px] text-[var(--site-ink)]">
+                  If a life or property is in danger right now, call. You can report in the app afterwards.
+                  <span className="text-[var(--site-muted)]"> <span lang="fil">Tumawag muna.</span> · <span lang="ilo">Umuna ti agtawag.</span></span>
+                </p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <a href="tel:911" className="btn-emergency"><PhoneIcon className="h-4 w-4" aria-hidden="true" /> Call 911</a>
+                  <a href={PDRRMO_TEL} className="btn-emergency-outline"><PhoneIcon className="h-4 w-4" aria-hidden="true" /> PDRRMO {PDRRMO_HOTLINE}</a>
+                </div>
+              </div>
+
+              <p className="mt-6 max-w-xl border-l-4 border-[var(--site-gold)] pl-3 text-[15px] text-[var(--site-ink)]">
+                Endorsed by the Office of the Provincial Administrator, Nueva Vizcaya
+                <span className="text-[var(--site-muted)]"> · Ref. No. G-373 · June 11, 2026</span>
+              </p>
             </div>
             <Phone label="One Vizcaya app: the Report a problem screen with category, photo, GPS location and description fields">
               <ReportScreen />
@@ -153,207 +122,201 @@ export function LandingPage() {
           </div>
         </section>
 
-        {/* ── 01 Problem ── */}
-        <Section id="problem" n={1} eyebrow="The problem" title="Concerns get stuck between the barangay and the Province">
-          <div className="mt-10 grid gap-4 md:grid-cols-3">
+        {/* ── The problem ── */}
+        <Section id="problem" eyebrow="Why it matters" title="Concerns get stuck between the barangay and the Province">
+          <ul className="mt-8 divide-y divide-[var(--site-line)] border-y border-[var(--site-line)]">
             {PROBLEMS.map((p) => (
-              <div key={p.title} className="rounded-2xl border bg-white p-6">
-                <p.icon className="h-6 w-6 text-[#166534]" aria-hidden="true" />
-                <h3 className="mt-4 text-lg font-bold">{p.title}</h3>
-                <p className="mt-2 text-slate-600">{p.body}</p>
-              </div>
-            ))}
-          </div>
-        </Section>
-
-        {/* ── 02 Flow ── */}
-        <Section id="flow" n={2} eyebrow="How a report flows" title="Every report has one clear path — and one accountable office" tinted>
-          <ol className="mt-10 grid gap-4 md:grid-cols-4">
-            {STEPS.map((s, i) => (
-              <li key={s.title} className="relative flex gap-4 md:flex-col">
-                <div className="flex flex-col items-center md:flex-row">
-                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#166534] font-bold text-white">{i + 1}</span>
-                  {i < STEPS.length - 1 && <span aria-hidden="true" className="w-0.5 flex-1 bg-[#166534]/25 md:h-0.5 md:w-auto md:flex-1 md:ml-3" />}
-                </div>
-                <div className={`pb-6 md:pb-0 ${i === 1 ? "rounded-xl border-2 border-[#166534]/30 bg-white p-4 -mt-2 md:mt-0" : ""}`}>
-                  <h3 className="font-bold">{s.title}</h3>
-                  <p className="mt-1 text-sm text-slate-600">{s.body}</p>
-                  {i === 1 && <p className="mt-2 text-xs font-semibold text-[#166534]">Approval gate: nothing reaches the Province without it.</p>}
-                </div>
+              <li key={p.title} className="grid gap-2 py-5 md:grid-cols-[20rem_1fr] md:gap-10">
+                <h3 className="flex items-center gap-2.5 text-lg font-bold">
+                  <p.icon className="h-5 w-5 shrink-0 text-[var(--site-green-600)]" aria-hidden="true" /> {p.title}
+                </h3>
+                <p className="max-w-2xl text-[17px] leading-relaxed text-[var(--site-muted)]">{p.body}</p>
               </li>
             ))}
-          </ol>
+          </ul>
         </Section>
 
-        {/* ── 03 Features ── */}
-        <Section id="features" n={3} eyebrow="Features" title="What the app does">
-          <Tabs defaultValue="report" className="mt-10">
-            <TabsList className="flex h-auto w-full flex-wrap justify-start gap-1 bg-slate-100 p-1 sm:w-fit">
-              {FEATURES.map((f) => (
-                <TabsTrigger key={f.id} value={f.id} className="px-4 py-2 text-sm data-[state=active]:text-[#166534]">{f.label}</TabsTrigger>
+        {/* ── How it works: the page's one tinted band ── */}
+        <section id="how" aria-labelledby="how-title" className="scroll-mt-16 bg-[var(--site-green-50)]">
+          <div className="mx-auto max-w-6xl px-4 py-14 md:py-20">
+            <SectionHead id="how" eyebrow="How it works" title="Every report has one clear path, and one office that answers for it" />
+            <ol className="mt-10 grid gap-x-6 gap-y-2 md:grid-cols-4">
+              {STEPS.map((s, i) => (
+                <li key={s.title} className="flex gap-4 md:flex-col md:gap-3">
+                  <div className="flex flex-col items-center md:flex-row">
+                    <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-lg font-extrabold ${
+                      s.gate ? "bg-[var(--site-gold)] text-[#1F1600]" : "bg-[var(--site-green)] text-white"}`}>{i + 1}</span>
+                    {i < STEPS.length - 1 && <span aria-hidden="true" className="w-0.5 flex-1 bg-[var(--site-green)]/20 md:ml-3 md:h-0.5 md:w-auto" />}
+                  </div>
+                  <div className="pb-7 md:pb-0">
+                    <p className="text-sm font-bold uppercase tracking-wide text-[var(--site-green-600)]">{s.who}</p>
+                    <h3 className="mt-0.5 text-lg font-bold">{s.title}</h3>
+                    <p className="mt-1 text-[15px] leading-relaxed text-[var(--site-muted)]">{s.body}</p>
+                    {s.gate && (
+                      <p className="mt-2 inline-block rounded-sm bg-[var(--site-gold-soft)] px-2 py-1 text-sm font-bold text-[#5B4300]">
+                        Every report is checked by your municipality first.
+                      </p>
+                    )}
+                  </div>
+                </li>
               ))}
-            </TabsList>
-            {FEATURES.map((f) => (
-              <TabsContent key={f.id} value={f.id} className="mt-8">
-                <div className="grid items-center gap-10 md:grid-cols-2">
-                  <div>
-                    <h3 className="text-2xl font-bold">{f.title}</h3>
-                    <p className="mt-3 text-slate-600">{f.body}</p>
-                    <ul className="mt-5 space-y-2">
+            </ol>
+            <ul className="mt-10 flex flex-wrap gap-x-8 gap-y-3 text-[15px] text-[var(--site-ink)]">
+              <li className="flex items-center gap-2"><WifiOff className="h-4 w-4 text-[var(--site-green-600)]" aria-hidden="true" /> No signal? Reports are saved and sent when you're back online.</li>
+              <li className="flex items-center gap-2"><Languages className="h-4 w-4 text-[var(--site-green-600)]" aria-hidden="true" /> In English, Tagalog and Ilocano.</li>
+            </ul>
+          </div>
+        </section>
+
+        {/* ── Features ── */}
+        <Section id="features" eyebrow="Features" title="Beyond reporting">
+          <Tabs value={tab} onValueChange={setTab} className="mt-8">
+            <div className="grid items-start gap-10 md:grid-cols-[1fr_260px] lg:gap-20">
+              <div className="min-w-0">
+                <TabsList className="grid h-auto w-full grid-cols-3 gap-1 rounded-md bg-[var(--site-paper)] p-1 sm:inline-grid sm:w-auto">
+                  {FEATURES.map((f) => (
+                    <TabsTrigger key={f.id} value={f.id}
+                      className="min-h-[48px] rounded-[5px] px-3 text-[15px] font-bold text-[var(--site-muted)] data-[state=active]:bg-white data-[state=active]:text-[var(--site-green)] data-[state=active]:shadow-[0_0_0_1px_var(--site-line)] sm:px-5">
+                      {f.label}
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
+                {FEATURES.map((f) => (
+                  <TabsContent key={f.id} value={f.id} className="mt-7 focus-visible:outline-none">
+                    <h3 className="text-2xl font-extrabold">{f.title}</h3>
+                    <p className="mt-3 max-w-xl text-[17px] leading-relaxed text-[var(--site-muted)]">{f.body}</p>
+                    <ul className="mt-5 space-y-2.5">
                       {f.points.map((pt) => (
-                        <li key={pt} className="flex gap-2 text-slate-700"><span aria-hidden="true" className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[#166534]" />{pt}</li>
+                        <li key={pt} className="flex gap-2.5 text-[16px] text-[var(--site-ink)]">
+                          <span aria-hidden="true" className="mt-2 h-2 w-2 shrink-0 rounded-full bg-[var(--site-green-600)]" />{pt}
+                        </li>
                       ))}
                     </ul>
-                  </div>
-                  <Phone label={`One Vizcaya app: ${f.label} screen`}>{f.screen}</Phone>
-                </div>
-              </TabsContent>
-            ))}
+                    {f.note && <p className="mt-5 max-w-xl border-l-4 border-red-700 pl-3 text-[15px] text-[var(--site-ink)]">{f.note}</p>}
+                    <div className="mt-8 md:hidden"><Phone label={`One Vizcaya app: ${f.label} screen`}>{f.screen}</Phone></div>
+                  </TabsContent>
+                ))}
+              </div>
+              <div className="hidden md:block">
+                <Phone label={`One Vizcaya app: ${current.label} screen`}>{current.screen}</Phone>
+              </div>
+            </div>
           </Tabs>
         </Section>
 
-        {/* ── 04 Coverage ── */}
-        <Section id="coverage" n={4} eyebrow="Coverage" title="All 15 municipalities of Nueva Vizcaya" tinted>
-          <div className="mt-10 grid items-start gap-10 md:grid-cols-2">
-            <div className="rounded-2xl border bg-white p-4">
-              <MunicipalityMap titled highlight={PILOT_LGUS} className="mx-auto h-auto max-h-[420px] w-full max-w-md" />
-              <p className="mt-3 flex items-center gap-2 text-xs text-slate-600">
-                <span aria-hidden="true" className="inline-block h-3 w-3 rounded-sm bg-[#166534]" /> Pilot LGU
-                {PILOT_LGUS.length === 0 && <span>— [Pilot LGU] to be announced</span>}
-              </p>
-            </div>
+        {/* ── Coverage ── */}
+        <Section id="coverage" eyebrow="Coverage" title="Made for all 15 municipalities of Nueva Vizcaya" muted>
+          <div className="mt-8 grid items-center gap-10 md:grid-cols-[1.1fr_1fr]">
+            <MunicipalityMap titled labels capitol highlight={PILOT_LGUS} className="mx-auto h-auto max-h-[520px] w-full max-w-lg" />
             <div>
-              <p className="text-slate-600">
-                One Vizcaya serves Nueva Vizcaya only. When you register, your phone's GPS confirms you are inside the province.
-                Residents can also verify with a Barangay Certificate of Residency or a government ID with an NV address.
+              <p className="text-[17px] leading-relaxed text-[var(--site-muted)]">
+                One Vizcaya serves Nueva Vizcaya only. When you register, your phone's location confirms you are inside the province.
+                You can also verify with a Barangay Certificate of Residency or a government ID with a Nueva Vizcaya address.
               </p>
-              <p className="mt-3 text-slate-600">
-                Reports are routed to the municipality and barangay where they happen, so each one lands with the office that can act on it.
+              <p className="mt-3 text-[17px] leading-relaxed text-[var(--site-muted)]">
+                Each report goes to the municipality and barangay where it happened, so it lands with the office that can act on it.
               </p>
-              <ul className="mt-6 grid grid-cols-2 gap-x-4 gap-y-1.5 text-sm sm:grid-cols-3">
-                {[...MUNICIPALITIES].map((m) => m.name).sort().map((name) => (
-                  <li key={name} className="flex items-center gap-1.5">
-                    <MapPin className="h-3.5 w-3.5 text-[#166534]" aria-hidden="true" />
-                    {name}
-                    {PILOT_LGUS.includes(name) && <span className="text-xs font-semibold text-[#166534]">(pilot)</span>}
+              <ul className="mt-6 columns-2 gap-x-6 text-base leading-8 sm:columns-3">
+                {towns.map((name) => (
+                  <li key={name} className="break-inside-avoid">
+                    {name}{PILOT_LGUS.includes(name) && <span className="ml-1 text-sm font-bold text-[var(--site-green-600)]">(pilot)</span>}
                   </li>
                 ))}
               </ul>
+              <p className="mt-5 flex items-center gap-2 text-[15px] text-[var(--site-muted)]">
+                <span aria-hidden="true" className="inline-block h-3 w-3 rounded-full border-2 border-[var(--site-green)] bg-[var(--site-gold)]" />
+                Bayombong, the Provincial Capitol
+              </p>
+              {PILOT_LGUS.length === 0 && (
+                <p className="mt-2 text-[15px] text-[var(--site-muted)]">Now in pilot. The first pilot municipality will be announced here.</p>
+              )}
             </div>
           </div>
         </Section>
 
-        {/* ── 05 Privacy ── */}
-        <Section id="privacy" n={5} eyebrow="Trust & privacy" title="Accountable reporting, protected data">
-          <div className="mt-10 grid gap-4 md:grid-cols-3">
+        {/* ── Trust & privacy ── */}
+        <Section id="privacy" eyebrow="Privacy" title="Accountable reporting, protected data">
+          <div className="mt-8 grid gap-4 md:grid-cols-3">
             <Card icon={UserCheck} title="Verified, not anonymous">Every report is tied to a verified Nueva Vizcaya resident. This keeps false and prank reports out, so LGUs can act with confidence.</Card>
-            <Card icon={ShieldCheck} title="RA 10173 compliant">Built to the Data Privacy Act of 2012. Photos are stripped of hidden metadata before upload, and you can request or download your data from the app.</Card>
-            <Card icon={Archive} title="Archived, not erased">Reports are official LGU records. If you delete your account, your personal profile is removed and your reports are archived — not silently deleted.</Card>
+            <Card icon={ShieldCheck} title="Built for the Data Privacy Act">Made to follow the Data Privacy Act of 2012 (RA 10173). Photos are stripped of hidden metadata before upload, and you can request or download your data from the app.</Card>
+            <Card icon={Archive} title="Archived, not erased">Reports are official LGU records. If you delete your account, your personal profile is removed and your reports are archived, not silently deleted.</Card>
           </div>
-          <div className="mt-8 overflow-hidden rounded-2xl border">
-            <div className="flex items-center gap-2 border-b bg-slate-50 px-5 py-3">
-              <Users className="h-4 w-4 text-[#166534]" aria-hidden="true" />
-              <h3 className="font-bold">Who can see what</h3>
-            </div>
-            <dl className="divide-y">
+          <div className="mt-6 overflow-hidden rounded-md border border-[var(--site-line)]">
+            <h3 className="flex items-center gap-2 border-b border-[var(--site-line)] bg-[var(--site-paper)] px-5 py-3 font-bold">
+              <Users className="h-4 w-4 text-[var(--site-green-600)]" aria-hidden="true" /> Who can see what
+            </h3>
+            <dl className="divide-y divide-[var(--site-line)]">
               {ROLES.map((r) => (
-                <div key={r.role} className="grid gap-1 px-5 py-3 sm:grid-cols-[14rem_1fr]">
-                  <dt className="font-semibold">{r.role}</dt>
-                  <dd className="text-slate-600">{r.sees}</dd>
+                <div key={r.role} className="grid gap-1 px-5 py-3.5 sm:grid-cols-[19rem_1fr] sm:gap-6">
+                  <dt className="font-bold">{r.role}</dt>
+                  <dd className="text-[var(--site-muted)]">{r.sees}</dd>
                 </div>
               ))}
             </dl>
           </div>
-          <Link to="/privacy" className="mt-6 inline-flex items-center gap-1.5 font-semibold text-[#166534] underline-offset-4 hover:underline">
-            Read the full Data Privacy Notice <ArrowRight className="h-4 w-4" aria-hidden="true" />
-          </Link>
-        </Section>
-
-        {/* ── 06 Endorsement ── */}
-        <Section id="endorsement" n={6} eyebrow="Endorsement & partners" title="Reviewed by the Province" tinted>
-          <div className="mt-8 max-w-3xl space-y-3 text-slate-700">
-            <p>
-              One Vizcaya was presented to the Provincial Technical Review Committee on June 10, 2026, and endorsed by the
-              Office of the Provincial Administrator (Endorsement Ref. No. G-373, June 11, 2026).
-            </p>
-            <p>The committee's feedback — including PDRRMO's — shaped how reports are reviewed by the municipality before they are escalated to the Province.</p>
+          <div id="endorsement" className="mt-10 grid gap-6 border-t border-[var(--site-line)] pt-8 md:grid-cols-[20rem_1fr]">
+            <h3 className="text-lg font-bold">Reviewed by the Province</h3>
+            <div className="max-w-2xl space-y-3 text-[17px] leading-relaxed text-[var(--site-muted)]">
+              <p>
+                One Vizcaya was presented to the Provincial Technical Review Committee on June 10, 2026, and endorsed by the Office of the
+                Provincial Administrator (Endorsement Ref. No. G-373, June 11, 2026). The committee's feedback, including PDRRMO's, shaped how
+                every report is checked by the municipality before it goes to the Province.
+              </p>
+              <Link to="/privacy" className="inline-flex min-h-[44px] items-center gap-1.5 font-bold text-[var(--site-green)] underline-offset-4 hover:underline">
+                Read the full Data Privacy Notice <ArrowRight className="h-4 w-4" aria-hidden="true" />
+              </Link>
+            </div>
           </div>
-          {/*
-            Provincial seal / LGU logos go here ONLY once written permission is on file.
-            <div className="mt-8 flex flex-wrap items-center gap-6">
-              <img src="/img/seals/nueva-vizcaya.png" alt="Province of Nueva Vizcaya" className="h-16 w-16" loading="lazy" />
-            </div>
-          */}
         </Section>
 
-        {/* ── Closing CTA ── */}
-        <section className="px-4 py-16 md:py-20">
-          <div className="mx-auto max-w-6xl rounded-3xl bg-[#166534] px-6 py-14 text-center text-white md:px-16">
-            <h2 className="text-3xl font-extrabold md:text-4xl">Is your barangay ready?</h2>
-            <p className="mx-auto mt-3 max-w-xl text-white/85">Download the app to start reporting, or contact the team to bring One Vizcaya to your LGU.</p>
-            <div className="mt-8 flex flex-wrap justify-center gap-3">
-              <a href={APK_URL} className="btn-lg inline-flex items-center gap-2 rounded-lg bg-white px-5 font-semibold text-[#166534] hover:bg-white/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#166534]">
-                <Download className="h-5 w-5" aria-hidden="true" /> Download app
-              </a>
-              <a href="#contact" className="btn-lg inline-flex items-center gap-2 rounded-lg border border-white/60 px-5 font-semibold text-white hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#166534]">
-                <Mail className="h-5 w-5" aria-hidden="true" /> Contact the team
-              </a>
+        {/* ── Download ── */}
+        <section id="download" aria-labelledby="download-title" className="on-dark scroll-mt-16 bg-[var(--site-green)] text-white">
+          <div className="mx-auto grid max-w-6xl gap-10 px-4 py-14 md:grid-cols-[1fr_auto] md:items-center md:py-20">
+            <div>
+              <p className="inline-block rounded-sm bg-[var(--site-gold)] px-2 py-0.5 text-sm font-bold text-[#1F1600]">Pilot</p>
+              <h2 id="download-title" className="mt-3 text-balance text-3xl font-extrabold md:text-[2.5rem] md:leading-tight">Get One Vizcaya on your Android phone</h2>
+              <p className="mt-3 max-w-xl text-[17px] text-white/85">
+                Free, in English, Tagalog and Ilocano. Not yet on Google Play or the iPhone App Store.
+              </p>
+              <ol className="mt-6 max-w-xl list-decimal space-y-2 pl-5 text-[16px] text-white/90 marker:font-bold marker:text-[var(--site-gold)]">
+                <li>Download the app file (APK){APK_SIZE_MB ? `, about ${APK_SIZE_MB} MB; use Wi-Fi if your data is limited` : ""}.</li>
+                <li>Open the downloaded file. If your phone asks, allow your browser to install unknown apps. This is normal for apps that are not on Google Play.</li>
+                <li>Open One Vizcaya and sign in with your mobile number.</li>
+              </ol>
             </div>
-            <p className="mt-5 text-xs text-white/75">Android app, currently in pilot. Google Play and iOS to follow.</p>
+            <div className="flex flex-col items-start gap-3 md:items-center">
+              {APK_AVAILABLE ? (
+                <a href={APK_URL} download className="btn-gold btn-lg text-[17px]"><Download className="h-5 w-5" aria-hidden="true" /> Download for Android</a>
+              ) : (
+                <p className="rounded-md border border-white/40 px-5 py-3 text-[17px] font-bold">Android app: download opens soon</p>
+              )}
+              <Link to="/login" className="inline-flex min-h-[44px] items-center text-[15px] font-semibold text-white/85 underline-offset-4 hover:text-white hover:underline">LGU staff? Sign in here</Link>
+            </div>
           </div>
         </section>
       </main>
 
-      {/* ── Footer ── */}
-      <footer className="border-t bg-slate-50">
-        <div className="mx-auto grid max-w-6xl gap-10 px-4 py-12 md:grid-cols-3">
-          <div>
-            <Wordmark />
-            <p className="mt-3 text-sm text-slate-600">Civic reporting for Nueva Vizcaya — from the barangay to the Provincial Capitol.</p>
-          </div>
-          <div>
-            <h2 className="text-xs font-bold uppercase tracking-wide text-slate-600">Emergency hotlines</h2>
-            <ul className="mt-3 space-y-2 text-sm">
-              <li><a href={EMERGENCY_TEL} className="font-semibold text-red-700 hover:underline">National emergency: 911</a></li>
-              <li className="text-slate-700">PDRRMO Nueva Vizcaya: {PDRRMO_HOTLINE}</li>
-            </ul>
-          </div>
-          <div id="contact">
-            <h2 className="text-xs font-bold uppercase tracking-wide text-slate-600">About</h2>
-            <ul className="mt-3 space-y-2 text-sm text-slate-700">
-              <li><Link to="/privacy" className="hover:text-[#166534] hover:underline">Data Privacy Notice</Link></li>
-              <li><span>Terms of Use [coming soon]</span></li>
-              <li className="flex items-center gap-1.5"><Mail className="h-3.5 w-3.5" aria-hidden="true" /> {CONTACT_EMAIL}</li>
-              <li><Link to="/login" className="hover:text-[#166534] hover:underline">LGU staff sign-in</Link></li>
-            </ul>
-          </div>
-        </div>
-        <div className="mx-auto max-w-6xl border-t px-4 py-6 text-xs text-slate-600">
-          <p className="flex items-start gap-1.5"><FileText className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" /> Developed by Aaron Anthony A. Gano II, Sean Godric Reyes and Darius Acosta (Project: Vizcaya Team).</p>
-          <p className="mt-2">© 2026 One Vizcaya · Made for the people of Nueva Vizcaya.</p>
-        </div>
-      </footer>
+      <SiteFooter />
     </div>
   );
 }
 
-function Wordmark() {
+function SectionHead({ id, eyebrow, title }: { id: string; eyebrow: string; title: string }) {
   return (
-    <span className="flex items-center gap-2">
-      <span aria-hidden="true" className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#166534] text-white">
-        <MapPin className="h-4 w-4" />
-      </span>
-      <span className="text-lg font-extrabold tracking-tight text-[#166534]">One Vizcaya</span>
-    </span>
+    <>
+      <p className="flex items-center gap-2 text-[15px] font-bold text-[var(--site-green-600)]">
+        <span aria-hidden="true" className="h-[3px] w-6 rounded bg-[var(--site-gold)]" />{eyebrow}
+      </p>
+      <h2 id={`${id}-title`} className="mt-2 max-w-3xl text-balance text-3xl font-extrabold leading-tight md:text-[2.4rem]">{title}</h2>
+    </>
   );
 }
 
-function Section({ id, n, eyebrow, title, tinted = false, children }: { id: string; n: number; eyebrow: string; title: string; tinted?: boolean; children: React.ReactNode }) {
+function Section({ id, eyebrow, title, muted = false, children }: { id: string; eyebrow: string; title: string; muted?: boolean; children: React.ReactNode }) {
   return (
-    <section id={id} aria-labelledby={`${id}-title`} className={`scroll-mt-16 ${tinted ? "border-y bg-[#f0fdf4]/60" : ""}`}>
-      <div className="mx-auto max-w-6xl px-4 py-16 md:py-24">
-        <p className="text-sm font-bold text-[#166534]"><span className="tabular-nums">{pad(n)}</span> — {eyebrow}</p>
-        <h2 id={`${id}-title`} className="mt-2 max-w-3xl text-3xl font-extrabold tracking-tight md:text-4xl">{title}</h2>
+    <section id={id} aria-labelledby={`${id}-title`} className={`scroll-mt-16 ${muted ? "bg-[var(--site-paper)]" : ""}`}>
+      <div className="mx-auto max-w-6xl px-4 py-14 md:py-20">
+        <SectionHead id={id} eyebrow={eyebrow} title={title} />
         {children}
       </div>
     </section>
@@ -362,33 +325,28 @@ function Section({ id, n, eyebrow, title, tinted = false, children }: { id: stri
 
 function Card({ icon: Icon, title, children }: { icon: LucideIcon; title: string; children: React.ReactNode }) {
   return (
-    <div className="rounded-2xl border bg-white p-6">
-      <Icon className="h-6 w-6 text-[#166534]" aria-hidden="true" />
-      <h3 className="mt-4 text-lg font-bold">{title}</h3>
-      <p className="mt-2 text-slate-600">{children}</p>
+    <div className="rounded-md border border-[var(--site-line)] bg-white p-5">
+      <Icon className="h-6 w-6 text-[var(--site-green-600)]" aria-hidden="true" />
+      <h3 className="mt-3 text-lg font-bold">{title}</h3>
+      <p className="mt-1.5 text-[15px] leading-relaxed text-[var(--site-muted)]">{children}</p>
     </div>
   );
 }
 
-function pad(n: number) {
-  return String(n).padStart(2, "0");
-}
-
-// Index of the section currently in the middle of the viewport (-1 = hero).
+// The section in the middle of the viewport, for the header's active link.
 function useActiveSection(ids: string[]) {
-  const [active, setActive] = useState(-1);
+  const [active, setActive] = useState<string | null>(null);
+  const key = ids.join(",");
   useEffect(() => {
-    const els = ids.map((id) => document.getElementById(id)).filter((e): e is HTMLElement => !!e);
+    const els = key.split(",").map((id) => document.getElementById(id)).filter((e): e is HTMLElement => !!e);
     const obs = new IntersectionObserver(
-      (entries) => {
-        for (const e of entries) if (e.isIntersecting) setActive(ids.indexOf(e.target.id));
-      },
-      { rootMargin: "-50% 0px -50% 0px" },
+      (entries) => { for (const e of entries) if (e.isIntersecting) setActive(e.target.id); },
+      { rootMargin: "-45% 0px -50% 0px" },
     );
     els.forEach((el) => obs.observe(el));
-    const onScroll = () => { if (window.scrollY < 200) setActive(-1); };
+    const onScroll = () => { if (window.scrollY < 300) setActive(null); };
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => { obs.disconnect(); window.removeEventListener("scroll", onScroll); };
-  }, [ids]);
+  }, [key]);
   return active;
 }

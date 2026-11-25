@@ -172,7 +172,9 @@
   .btn-ghost,
   .btn-emergency,
   .btn-emergency-outline {
-    @apply inline-flex h-11 cursor-pointer items-center justify-center gap-2 rounded-md px-4 text-[15px] font-bold transition-colors duration-150 focus-visible:outline-none;
+    /* Sizes in px, not rem: the console sets a 15px root, which would shrink
+       44px touch targets to 41px on the public pages. */
+    @apply inline-flex min-h-[46px] cursor-pointer items-center justify-center gap-2 rounded-md px-4 text-[15px] font-bold transition-colors duration-150 focus-visible:outline-none;
   }
   .btn-primary { background: var(--site-green); color: #fff; }
   .btn-primary:hover { background: var(--site-green-700); }
@@ -184,5 +186,5 @@
   /* Red is reserved for emergency actions only. */
   .btn-emergency { @apply bg-red-700 text-white hover:bg-red-800; }
   .btn-emergency-outline { @apply border-2 border-red-700 bg-white text-red-700 hover:bg-red-50; }
-  .btn-lg { @apply h-[52px] px-6 text-base; }
+  .btn-lg { @apply min-h-[52px] px-6 text-[16px]; }
 }

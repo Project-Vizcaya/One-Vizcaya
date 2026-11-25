@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowLeft } from "lucide-react";
+import { SiteFooter, SiteHeader } from "@/components/landing/SiteChrome";
 // Single source of truth: the repo-root PRIVACY.md.
 import notice from "../../../../PRIVACY.md?raw";
 
@@ -10,13 +11,18 @@ export const Route = createFileRoute("/privacy")({
 
 function PrivacyPage() {
   return (
-    <div className="min-h-screen bg-white text-slate-900">
-      <div className="mx-auto max-w-3xl px-4 py-10">
-        <Link to="/" className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#166534] hover:underline">
+    <div className="site min-h-screen bg-white">
+      <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-50 focus:rounded-md focus:bg-white focus:px-3 focus:py-2 focus:font-bold">
+        Skip to content
+      </a>
+      <SiteHeader />
+      <main id="main" className="mx-auto max-w-3xl px-4 py-10 md:py-14">
+        <Link to="/" className="inline-flex min-h-[44px] items-center gap-1.5 text-[15px] font-bold text-[var(--site-green)] underline-offset-4 hover:underline">
           <ArrowLeft className="h-4 w-4" aria-hidden="true" /> Back to One Vizcaya
         </Link>
-        <main className="mt-6 space-y-4 leading-relaxed text-slate-700">{renderMarkdown(notice)}</main>
-      </div>
+        <article className="mt-4 max-w-[68ch] space-y-4 text-[17px] leading-7 text-[var(--site-muted)]">{renderMarkdown(notice)}</article>
+      </main>
+      <SiteFooter />
     </div>
   );
 }
@@ -35,13 +41,13 @@ function renderMarkdown(md: string): ReactNode[] {
     if (h) {
       const text = inline(h[2]);
       out.push(
-        h[1].length === 1 ? <h1 key={key} className="text-3xl font-extrabold text-slate-900">{text}</h1>
-        : h[1].length === 2 ? <h2 key={key} className="pt-4 text-xl font-bold text-slate-900">{text}</h2>
-        : <h3 key={key} className="font-bold text-slate-900">{text}</h3>,
+        h[1].length === 1 ? <h1 key={key} className="text-balance text-3xl font-extrabold text-[var(--site-ink)] md:text-4xl">{text}</h1>
+        : h[1].length === 2 ? <h2 key={key} className="pt-6 text-xl font-extrabold text-[var(--site-ink)]">{text}</h2>
+        : <h3 key={key} className="font-bold text-[var(--site-ink)]">{text}</h3>,
       );
       i++;
     } else if (/^---+\s*$/.test(line)) {
-      out.push(<hr key={key} />);
+      out.push(<hr key={key} className="border-[var(--site-line)]" />);
       i++;
     } else if (line.startsWith("|")) {
       const rows: string[][] = [];
@@ -52,9 +58,9 @@ function renderMarkdown(md: string): ReactNode[] {
       const [head, ...body] = rows;
       out.push(
         <div key={key} className="overflow-x-auto">
-          <table className="w-full border text-left text-sm">
-            <thead className="bg-slate-50"><tr>{head.map((c, j) => <th key={j} className="border px-3 py-2">{inline(c)}</th>)}</tr></thead>
-            <tbody>{body.map((r, ri) => <tr key={ri}>{r.map((c, j) => <td key={j} className="border px-3 py-2 align-top">{inline(c)}</td>)}</tr>)}</tbody>
+          <table className="w-full border border-[var(--site-line)] text-left text-[15px]">
+            <thead className="bg-[var(--site-paper)] text-[var(--site-ink)]"><tr>{head.map((c, j) => <th key={j} scope="col" className="border border-[var(--site-line)] px-3 py-2">{inline(c)}</th>)}</tr></thead>
+            <tbody>{body.map((r, ri) => <tr key={ri}>{r.map((c, j) => <td key={j} className="border border-[var(--site-line)] px-3 py-2 align-top">{inline(c)}</td>)}</tr>)}</tbody>
           </table>
         </div>,
       );
@@ -82,7 +88,7 @@ function renderMarkdown(md: string): ReactNode[] {
 
 function inline(text: string): ReactNode[] {
   return text.split(/(\*\*[^*]+\*\*|\*[^*]+\*)/g).map((part, j) =>
-    part.startsWith("**") ? <strong key={j} className="text-slate-900">{part.slice(2, -2)}</strong>
+    part.startsWith("**") ? <strong key={j} className="text-[var(--site-ink)]">{part.slice(2, -2)}</strong>
     : part.startsWith("*") && part.length > 2 ? <em key={j}>{part.slice(1, -1)}</em>
     : part,
   );

@@ -1,4 +1,4 @@
-# Privacy Policy — One Vizcaya
+# Data Privacy Notice — One Vizcaya
 
 **Effective Date:** May 27, 2026
 **App Version:** 1.1.10
@@ -7,9 +7,9 @@
 
 ## 1. Introduction
 
-One Vizcaya ("the App") is a civic reporting platform developed for the citizens and Local Government Units (LGUs) of Nueva Vizcaya, Philippines. This Privacy Policy explains how we collect, use, store, and protect your personal data in accordance with the **Data Privacy Act of 2012 (Republic Act No. 10173)** and its Implementing Rules and Regulations.
+One Vizcaya ("the App") is a civic reporting platform developed for the citizens and Local Government Units (LGUs) of Nueva Vizcaya, Philippines. This Data Privacy Notice explains how we collect, use, store, and protect your personal data in accordance with the **Data Privacy Act of 2012 (Republic Act No. 10173)** and its Implementing Rules and Regulations.
 
-By using One Vizcaya and completing the setup screen, you explicitly consent to this policy.
+By using One Vizcaya and completing the setup screen, you explicitly consent to this notice.
 
 ---
 
@@ -17,7 +17,7 @@ By using One Vizcaya and completing the setup screen, you explicitly consent to 
 
 **Provincial Government of Nueva Vizcaya**
 Capitol Compound, Bayombong, Nueva Vizcaya, Philippines
-Contact: *[official LGU email — fill in before production launch]*
+Contact: send a Data Privacy Request in the app (Settings → Location & Privacy → Data Privacy Request).
 
 ---
 
@@ -32,14 +32,15 @@ Contact: *[official LGU email — fill in before production launch]*
 | Device FCM Token | Push notifications | Consent |
 | Privacy Consent Timestamp | Legal compliance | Legal obligation |
 | Usage analytics (anonymised) | App improvement | Legitimate interest |
+| Proof of residency (photo of a Barangay Certificate of Residency or a government ID), only if you choose this way to verify | Confirm that you live in Nueva Vizcaya | Consent |
 
-We do **not** collect national ID numbers, financial information, or biometric data.
+We do **not** record national ID numbers as data, and we do not collect financial information or biometric data. A residency photo you choose to upload is seen only by the LGU staff who review residency.
 
 ---
 
-## 4. Anonymous Reporting
+## 4. Verified, Identified Reporting
 
-You may submit reports anonymously. Anonymous reports exclude your name, phone number, and user ID from the report document. You will not receive status update notifications for anonymous reports.
+Every report is tied to your verified account (name, phone number, and user ID). Anonymous reporting is not available. This keeps civic data accountable and lets the LGU follow up with you on your report. Your identity is shared only with the authorised LGU staff handling your report, as described below.
 
 ---
 
@@ -123,7 +124,7 @@ For privacy concerns or data subject requests:
 **Data Protection Officer**
 Provincial Government of Nueva Vizcaya
 Capitol Compound, Bayombong, 3700 Nueva Vizcaya
-*[dpo@nueva-vizcaya.gov.ph — update before production launch]*
+Send a Data Privacy Request in the app (Settings → Location & Privacy → Data Privacy Request).
 
 **National Privacy Commission (NPC)**
 5th Floor Delegation Building, PICC Complex, Pasay City
