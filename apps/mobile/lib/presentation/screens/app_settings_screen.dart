@@ -327,7 +327,8 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
                         ),
                       );
                     },
-                    activeColor: oneVizcayaState.activeTheme['appBarColor'] as Color,
+                    activeColor: ColorUtils.readableAccentOf(context,
+                        oneVizcayaState.activeTheme['appBarColor'] as Color),
                   ),
                   contentPadding:
                       const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
@@ -400,14 +401,14 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
               children: [
                 _InfoTile(
                   icon: Icons.info_outline,
-                  iconColor: _lguColor,
+                  iconColor: ColorUtils.readableAccentOf(context, _lguColor),
                   title: 'App Version',
                   value: AppConstants.appVersionDisplay,
                 ),
                 _DividerLine(),
                 _NavigationTile(
                   icon: Icons.groups_outlined,
-                  iconColor: _lguColor,
+                  iconColor: ColorUtils.readableAccentOf(context, _lguColor),
                   title: 'Developers',
                   subtitle: 'Aaron Anthony A. Gano II — Lead Developer',
                   onTap: () => Navigator.of(context).pushNamed('/developers'),
@@ -415,7 +416,7 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
                 _DividerLine(),
                 _InfoTile(
                   icon: Icons.favorite_outline,
-                  iconColor: _lguColor,
+                  iconColor: ColorUtils.readableAccentOf(context, _lguColor),
                   title: 'Made For',
                   value: 'The People of Nueva Vizcaya',
                 ),
@@ -479,7 +480,9 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
               if (ctx.mounted) Navigator.pop(ctx);
               ToastUtils.showSuccess('Cache cleared successfully');
             },
-            style: ElevatedButton.styleFrom(backgroundColor: _lguColor),
+            style: ElevatedButton.styleFrom(
+                backgroundColor:
+                    ColorUtils.readableAccent(_lguColor, Brightness.light)),
             child: Text(AppStrings.get('clearCacheButton'), style: const TextStyle(color: Colors.white)),
           ),
         ],
@@ -749,7 +752,9 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
               _loadSettings();
               ToastUtils.showSuccess('Settings reset to defaults');
             },
-            style: ElevatedButton.styleFrom(backgroundColor: _lguColor),
+            style: ElevatedButton.styleFrom(
+                backgroundColor:
+                    ColorUtils.readableAccent(_lguColor, Brightness.light)),
             child: Text(AppStrings.get('resetButton'), style: const TextStyle(color: Colors.white)),
           ),
         ],
@@ -907,7 +912,8 @@ class _ToggleTile extends StatelessWidget {
       trailing: Switch(
         value: value,
         onChanged: onChanged,
-        activeColor: oneVizcayaState.activeTheme['appBarColor'] as Color,
+        activeColor: ColorUtils.readableAccentOf(
+            context, oneVizcayaState.activeTheme['appBarColor'] as Color),
       ),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
     );
@@ -1049,7 +1055,7 @@ class _DropdownTile extends StatelessWidget {
         underline: const SizedBox(),
         style: TextStyle(
           fontSize: 12,
-          color: lguColor,
+          color: ColorUtils.readableAccentOf(context, lguColor),
           fontWeight: FontWeight.w600,
         ),
         items: options

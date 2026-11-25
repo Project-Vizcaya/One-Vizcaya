@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/constants/app_constants.dart';
 import '../../core/constants/whats_new.dart';
+import '../../core/theme/app_colors.dart';
+import '../../core/utils/color_utils.dart';
 
 /// A mandatory "What's New" dialog shown once on the home page the first time a
 /// citizen opens the app after updating to a new build. It lists what was added,
@@ -51,11 +53,11 @@ class WhatsNewDialog extends StatelessWidget {
   ({IconData icon, Color color, String label}) _style(ChangeType t) {
     switch (t) {
       case ChangeType.added:
-        return (icon: Icons.add_circle, color: const Color(0xFF2E7D32), label: 'New');
+        return (icon: Icons.add_circle, color: AppColors.success, label: 'New');
       case ChangeType.improved:
-        return (icon: Icons.trending_up, color: const Color(0xFF1565C0), label: 'Improved');
+        return (icon: Icons.trending_up, color: AppColors.info, label: 'Improved');
       case ChangeType.fixed:
-        return (icon: Icons.build_circle, color: const Color(0xFFE65100), label: 'Fixed');
+        return (icon: Icons.build_circle, color: AppColors.warning, label: 'Fixed');
     }
   }
 
@@ -75,7 +77,8 @@ class WhatsNewDialog extends StatelessWidget {
               width: double.infinity,
               padding: const EdgeInsets.fromLTRB(22, 22, 22, 18),
               decoration: BoxDecoration(
-                color: color,
+                // A shade of the town colour the white text passes on.
+                color: ColorUtils.readableAccent(color, Brightness.light),
                 borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
               ),
               child: Column(
@@ -99,7 +102,7 @@ class WhatsNewDialog extends StatelessWidget {
                   Text(
                     'Version ${note.version} · ${note.date}',
                     style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.85),
+                      color: Colors.white,
                       fontSize: 12,
                       fontWeight: FontWeight.w500,
                     ),

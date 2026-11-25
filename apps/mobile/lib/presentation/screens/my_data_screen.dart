@@ -200,7 +200,7 @@ class _MyDataScreenState extends State<MyDataScreen> {
                         icon: const Icon(Icons.code),
                         label: Text(AppStrings.get('copyAsJson')),
                         style: OutlinedButton.styleFrom(
-                          foregroundColor: _lguColor,
+                          foregroundColor: ColorUtils.readableAccentOf(context, _lguColor),
                           side: BorderSide(color: _lguColor),
                           padding: const EdgeInsets.symmetric(vertical: 14),
                         ),
@@ -221,7 +221,7 @@ class _MyDataScreenState extends State<MyDataScreen> {
                         label: Text(AppStrings.get('exportAsPdf')),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: _lguColor,
-                          foregroundColor: Colors.white,
+                          foregroundColor: ColorUtils.readableTextOn(_lguColor),
                           padding: const EdgeInsets.symmetric(vertical: 14),
                         ),
                       ),
@@ -251,7 +251,7 @@ class _MyDataScreenState extends State<MyDataScreen> {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(Icons.shield_outlined, color: _lguColor, size: 20),
+              Icon(Icons.shield_outlined, color: ColorUtils.readableAccentOf(context, _lguColor), size: 20),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(AppStrings.get('myDataIntro'),
@@ -317,7 +317,7 @@ class _MyDataScreenState extends State<MyDataScreen> {
         children: [
           Row(
             children: [
-              Icon(icon, size: 18, color: _lguColor),
+              Icon(icon, size: 18, color: ColorUtils.readableAccentOf(context, _lguColor)),
               const SizedBox(width: 8),
               Text(title,
                   style: const TextStyle(

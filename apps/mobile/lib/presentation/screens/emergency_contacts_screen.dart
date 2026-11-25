@@ -558,7 +558,10 @@ class EmergencyContactsScreen extends StatelessWidget {
     final name = data['name'] ?? 'Emergency';
     final number = data['number'] ?? '';
     final type = data['type'] ?? 'general';
-    final iconColor = _getColorForType(type, lguColor);
+    // Readable on the card in light and dark mode (the town-colour default
+    // was 2.1:1 for Villaverde).
+    final iconColor =
+        ColorUtils.readableAccentOf(context, _getColorForType(type, lguColor));
     // A '#'-suffixed number is a placeholder pending LGU verification (N10):
     // show a clear label instead of a fake number, and dim the call button.
     final isPlaceholder = number.contains('#');

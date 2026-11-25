@@ -10,6 +10,7 @@ import 'package:flutter_image_compress/flutter_image_compress.dart';
 import '../../core/constants/app_constants.dart';
 import '../../core/utils/toast_utils.dart';
 import '../state/municipality_state.dart';
+import '../../core/theme/app_colors.dart';
 
 /// Certified-resident path (Option 3): a citizen who could not be auto-verified
 /// by GPS (e.g. they registered from outside the province) submits a residency
@@ -186,7 +187,7 @@ class _ResidencyVerificationScreenState
                 _StatusBanner(
                     status: _status ?? 'unverified',
                     requestStatus: _requestStatus,
-                    color: lguColor),
+                    color: ColorUtils.readableAccentOf(context, lguColor)),
                 if (!certified) ...[
                   const SizedBox(height: 20),
                   const Text(
@@ -245,8 +246,10 @@ class _ResidencyVerificationScreenState
                         ? 'Attach document photo'
                         : 'Document attached ✓'),
                     style: OutlinedButton.styleFrom(
-                      foregroundColor:
-                          _proof == null ? lguColor : Colors.green,
+                      foregroundColor: _proof == null
+                          ? ColorUtils.readableAccentOf(context, lguColor)
+                          : ColorUtils.readableAccentOf(
+                              context, AppColors.success),
                       side: BorderSide(
                           color: _proof == null ? lguColor : Colors.green),
                       padding: const EdgeInsets.symmetric(vertical: 14),
@@ -271,7 +274,9 @@ class _ResidencyVerificationScreenState
                               ? null
                               : _submit,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: lguColor,
+                        // A shade of the town colour white text passes on.
+                        backgroundColor: ColorUtils.readableAccent(
+                            lguColor, Brightness.light),
                         foregroundColor: Colors.white,
                         shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12)),
@@ -312,7 +317,7 @@ class _StatusBanner extends StatelessWidget {
     late final String sub;
     if (status == 'certified') {
       icon = Icons.verified;
-      c = Colors.green.shade700;
+      c = ColorUtils.readableAccentOf(context, AppColors.success);
       title = 'Certified Resident';
       sub = 'Your residency is verified. You can use One Vizcaya from anywhere.';
     } else if (status == 'gps_verified') {
@@ -323,7 +328,7 @@ class _StatusBanner extends StatelessWidget {
           'You were verified by GPS inside Nueva Vizcaya. Submit a document below to become a Certified Resident (works from anywhere).';
     } else if (requestStatus == 'pending') {
       icon = Icons.hourglass_top;
-      c = Colors.orange.shade800;
+      c = ColorUtils.readableAccentOf(context, AppColors.warning);
       title = 'Under review';
       sub = 'Your Barangay/Municipal LGU is reviewing your request.';
     } else if (requestStatus == 'rejected') {

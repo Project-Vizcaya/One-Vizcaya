@@ -791,7 +791,9 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
                     child: ElevatedButton(
                       onPressed: _isSubmitting ? null : _submitReport,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: rawLguColor,
+                        // A shade of the town colour white text passes on.
+                        backgroundColor: ColorUtils.readableAccent(
+                            rawLguColor, Brightness.light),
                         foregroundColor: Colors.white,
                       ),
                       child: _isSubmitting

@@ -259,7 +259,7 @@ class _ReportStatusScreenState extends State<ReportStatusScreen> {
 
                 // FEATURE 5: Pull-to-refresh wraps the ListView
                 return RefreshIndicator(
-                  color: activeLguColor,
+                  color: ColorUtils.readableAccentOf(context, activeLguColor),
                   onRefresh: () async {
                     setState(() {});
                   },

@@ -123,7 +123,8 @@ class _SupportScreenState extends State<SupportScreen> {
           children: [
             // ── Header Banner ──
             Container(
-              color: lguColor,
+              // A shade of the town colour the white text passes on.
+              color: ColorUtils.readableAccent(lguColor, Brightness.light),
               padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -158,8 +159,8 @@ class _SupportScreenState extends State<SupportScreen> {
                   const SizedBox(height: 4),
                   Text(
                     AppStrings.get('findAnswers'),
-                    style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.8),
+                    style: const TextStyle(
+                      color: Colors.white,
                       fontSize: 13,
                     ),
                   ),
@@ -309,7 +310,8 @@ class _SupportScreenState extends State<SupportScreen> {
                                 height: 24,
                                 decoration: BoxDecoration(
                                   color: isExpanded
-                                      ? lguColor
+                                      ? ColorUtils.readableAccent(
+                                          lguColor, Brightness.light)
                                       : lguColor.withValues(alpha: 0.1),
                                   shape: BoxShape.circle,
                                 ),
@@ -317,7 +319,10 @@ class _SupportScreenState extends State<SupportScreen> {
                                   child: Icon(
                                     isExpanded ? Icons.remove : Icons.add,
                                     size: 14,
-                                    color: isExpanded ? Colors.white : lguColor,
+                                    color: isExpanded
+                                        ? Colors.white
+                                        : ColorUtils.readableAccentOf(
+                                            context, lguColor),
                                   ),
                                 ),
                               ),

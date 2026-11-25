@@ -58,6 +58,7 @@ class DevelopersScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final lguColor = oneVizcayaState.activeTheme['appBarColor'] as Color;
+    final accent = ColorUtils.readableAccentOf(context, lguColor);
     final muted =
         Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7);
     return Scaffold(
@@ -75,7 +76,7 @@ class DevelopersScreen extends StatelessWidget {
           Text(
             'Meet the Team',
             style: TextStyle(
-                fontSize: 22, fontWeight: FontWeight.bold, color: lguColor),
+                fontSize: 22, fontWeight: FontWeight.bold, color: accent),
           ),
           const SizedBox(height: 6),
           Text(
@@ -111,8 +112,8 @@ class DevelopersScreen extends StatelessWidget {
                       backgroundColor: lguColor,
                       child: Text(
                         initials(_leadName),
-                        style: const TextStyle(
-                            color: Colors.white,
+                        style: TextStyle(
+                            color: ColorUtils.readableTextOn(lguColor),
                             fontSize: 22,
                             fontWeight: FontWeight.bold),
                       ),
@@ -124,7 +125,7 @@ class DevelopersScreen extends StatelessWidget {
                         children: [
                           Row(
                             children: [
-                              Icon(Icons.star, size: 16, color: lguColor),
+                              Icon(Icons.star, size: 16, color: accent),
                               const SizedBox(width: 4),
                               Expanded(
                                 child: Text(
@@ -133,7 +134,7 @@ class DevelopersScreen extends StatelessWidget {
                                       fontSize: 12,
                                       fontWeight: FontWeight.bold,
                                       letterSpacing: 0.6,
-                                      color: lguColor),
+                                      color: accent),
                                 ),
                               ),
                             ],
@@ -227,7 +228,7 @@ class _AreaChips extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
-                    color: color,
+                    color: ColorUtils.readableAccentOf(context, color),
                   ),
                 ),
               ))
@@ -274,7 +275,7 @@ class _TeamTile extends StatelessWidget {
                 child: Text(
                   initials,
                   style: TextStyle(
-                      color: color,
+                      color: ColorUtils.readableAccentOf(context, color),
                       fontWeight: FontWeight.bold,
                       fontSize: 14),
                 ),

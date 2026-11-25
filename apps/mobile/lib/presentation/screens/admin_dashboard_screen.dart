@@ -22,6 +22,7 @@ import 'sos_alerts_screen.dart';
 import '../../features/auth/domain/entities/app_user.dart';
 import '../../core/utils/toast_utils.dart';
 import '../../core/utils/color_utils.dart';
+import '../../core/theme/app_colors.dart';
 import '../../core/services/link_metadata_service.dart';
 import '../../core/constants/app_constants.dart';
 import '../../core/l10n/app_strings.dart';
@@ -342,17 +343,17 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                 height: 50,
                 child: ElevatedButton.icon(
                   icon: isSearching
-                      ? const SizedBox(
+                      ? SizedBox(
                           width: 18,
                           height: 18,
                           child: CircularProgressIndicator(
-                              strokeWidth: 2, color: Colors.white),
+                              strokeWidth: 2, color: ColorUtils.readableTextOn(_activeLguColor)),
                         )
                       : const Icon(Icons.search),
                   label: const Text('Find User'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: _activeLguColor,
-                    foregroundColor: Colors.white,
+                    foregroundColor: ColorUtils.readableTextOn(_activeLguColor),
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(14)),
                     elevation: 0,
@@ -704,7 +705,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
             return FloatingActionButton.extended(
               onPressed: _showAddAnnouncementSheet,
               backgroundColor: lguColor,
-              foregroundColor: Colors.white,
+              foregroundColor: ColorUtils.readableTextOn(lguColor),
               icon: const Icon(Icons.add),
               label: const Text('Post Announcement'),
             );
@@ -716,7 +717,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
             return FloatingActionButton(
               onPressed: _showAddUserByPhoneSheet,
               backgroundColor: lguColor,
-              foregroundColor: Colors.white,
+              foregroundColor: ColorUtils.readableTextOn(lguColor),
               child: const Icon(Icons.person_add),
             );
           }
@@ -1138,7 +1139,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
               style: const TextStyle(fontSize: 12),
             ),
             style: TextButton.styleFrom(
-              foregroundColor: lguColor,
+              foregroundColor: ColorUtils.readableAccent(lguColor, Brightness.light),
               padding: const EdgeInsets.symmetric(horizontal: 8),
             ),
           ),
@@ -1165,7 +1166,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(Icons.holiday_village_outlined,
-                        size: 14, color: lguColor),
+                        size: 14, color: ColorUtils.readableAccent(lguColor, Brightness.light)),
                     const SizedBox(width: 3),
                     ConstrainedBox(
                       constraints: const BoxConstraints(maxWidth: 92),
@@ -1174,11 +1175,11 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                             fontSize: 12,
-                            color: lguColor,
+                            color: ColorUtils.readableAccent(lguColor, Brightness.light),
                             fontWeight: FontWeight.w600),
                       ),
                     ),
-                    Icon(Icons.arrow_drop_down, size: 16, color: lguColor),
+                    Icon(Icons.arrow_drop_down, size: 16, color: ColorUtils.readableAccent(lguColor, Brightness.light)),
                   ],
                 ),
               );
@@ -1204,7 +1205,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
               if (reports.isEmpty) return const SizedBox.shrink();
               return IconButton(
                 icon: Icon(Icons.picture_as_pdf,
-                    size: 20, color: lguColor),
+                    size: 20, color: ColorUtils.readableAccent(lguColor, Brightness.light)),
                 tooltip: 'Export to PDF',
                 padding: const EdgeInsets.symmetric(horizontal: 4),
                 onPressed: () => _exportReportsToPdf(
@@ -1310,7 +1311,7 @@ class _OfflineBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      color: Colors.orange.shade700,
+      color: AppColors.warning,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       child: const Row(
         children: [
@@ -1581,7 +1582,7 @@ class _ReportDetailSheet extends StatelessWidget {
                 style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 18,
-                    color: lguColor),
+                    color: ColorUtils.readableAccentOf(context, lguColor)),
               ),
               const SizedBox(height: 4),
               Text(
@@ -1729,7 +1730,7 @@ class _ReportDetailSheet extends StatelessWidget {
               }
             },
             style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red,
+                backgroundColor: AppColors.emergency,
                 foregroundColor: Colors.white),
             child: const Text('Delete'),
           ),
@@ -1803,7 +1804,7 @@ class _ReportDetailSheet extends StatelessWidget {
                     child: Text(
                       _statusLabel(report.status),
                       style: TextStyle(
-                          color: statusColor,
+                          color: ColorUtils.readableAccent(statusColor, Brightness.light),
                           fontWeight: FontWeight.bold,
                           fontSize: 12),
                     ),
@@ -1871,7 +1872,7 @@ class _ReportDetailSheet extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
-                      color: lguColor,
+                      color: ColorUtils.readableAccent(lguColor, Brightness.light),
                     ),
                   ),
                   if (isProvincialView) ...[
@@ -2018,7 +2019,7 @@ class _ReportDetailSheet extends StatelessWidget {
                       style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 13,
-                          color: lguColor),
+                          color: ColorUtils.readableAccent(lguColor, Brightness.light)),
                     ),
                     const SizedBox(height: 8),
                     GestureDetector(
@@ -2111,7 +2112,7 @@ class _ReportDetailSheet extends StatelessWidget {
                             'Captured: ${_formatFullTimestamp(report.photoTimestamp!)}',
                             style: TextStyle(
                                 fontSize: 12,
-                                color: Colors.green.shade700),
+                                color: Colors.green.shade800),
                           ),
                           if (report.photoLatitude != null) ...[
                             const SizedBox(height: 2),
@@ -2120,7 +2121,7 @@ class _ReportDetailSheet extends StatelessWidget {
                               '${report.photoLongitude!.toStringAsFixed(5)}',
                               style: TextStyle(
                                   fontSize: 12,
-                                  color: Colors.green.shade700),
+                                  color: Colors.green.shade800),
                             ),
                           ],
                         ],
@@ -2198,7 +2199,7 @@ class _ReportDetailSheet extends StatelessWidget {
                     'Update Status',
                     style: TextStyle(
                         fontWeight: FontWeight.bold,
-                        color: lguColor,
+                        color: ColorUtils.readableAccent(lguColor, Brightness.light),
                         fontSize: 13),
                   ),
                   const SizedBox(height: 8),
@@ -2249,7 +2250,7 @@ class _ReportDetailSheet extends StatelessWidget {
                       if (report.status == ReportStatus.ongoing)
                         _ActionButton(
                           label: 'Mark Solved',
-                          color: Colors.green,
+                          color: AppColors.success,
                           icon: Icons.check_circle,
                           onTap: () async {
                             if (report.userId == null) return;
@@ -2278,7 +2279,7 @@ class _ReportDetailSheet extends StatelessWidget {
                           label: report.isFlagged
                               ? 'Remove Flag'
                               : 'Flag Suspicious',
-                          color: Colors.red,
+                          color: AppColors.emergency,
                           icon: report.isFlagged
                               ? Icons.flag
                               : Icons.flag_outlined,
@@ -2336,7 +2337,7 @@ class _ReportDetailSheet extends StatelessWidget {
                         label: const Text('Transfer / Route Report'),
                         onPressed: () => _showTransferSheet(context),
                         style: OutlinedButton.styleFrom(
-                          foregroundColor: lguColor,
+                          foregroundColor: ColorUtils.readableAccent(lguColor, Brightness.light),
                           side: BorderSide(
                               color: lguColor.withValues(alpha: 0.6)),
                           padding: const EdgeInsets.symmetric(vertical: 12),
@@ -2406,7 +2407,7 @@ class _ReportDetailSheet extends StatelessWidget {
       case ReportStatus.ongoing:
         return Colors.orange.shade700;
       case ReportStatus.solved:
-        return Colors.green.shade700;
+        return AppColors.success;
       case ReportStatus.archived:
         return Colors.grey.shade600;
       case ReportStatus.closed:
@@ -2494,10 +2495,10 @@ class _CitizenFeedbackSection extends StatelessWidget {
         final rating = (data['rating'] as num?)?.toInt() ?? 0;
         final comment = (data['comment'] as String?)?.trim() ?? '';
         final ratingColor = rating <= 2
-            ? Colors.orange.shade700
+            ? AppColors.warning
             : rating == 3
-                ? Colors.amber.shade800
-                : Colors.green.shade700;
+                ? ColorUtils.readableAccent(Colors.amber.shade800, Brightness.light)
+                : AppColors.success;
 
         return Container(
           padding: const EdgeInsets.all(12),
@@ -2526,7 +2527,7 @@ class _CitizenFeedbackSection extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
-                        color: Colors.orange.shade700,
+                        color: AppColors.warning,
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: const Text('Low rating',
@@ -2594,14 +2595,14 @@ class _DetailSection extends StatelessWidget {
       children: [
         Row(
           children: [
-            Icon(icon, size: 14, color: lguColor),
+            Icon(icon, size: 14, color: ColorUtils.readableAccent(lguColor, Brightness.light)),
             const SizedBox(width: 6),
             Text(
               label,
               style: TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 12,
-                  color: lguColor),
+                  color: ColorUtils.readableAccent(lguColor, Brightness.light)),
             ),
           ],
         ),
@@ -2665,7 +2666,7 @@ class _ActionButton extends StatelessWidget {
       label: Text(label, style: const TextStyle(fontSize: 13)),
       style: ElevatedButton.styleFrom(
         backgroundColor: color,
-        foregroundColor: Colors.white,
+        foregroundColor: ColorUtils.readableTextOn(color),
         padding:
             const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         shape: RoundedRectangleBorder(
@@ -2716,7 +2717,7 @@ class _AdminReportCard extends StatelessWidget {
       case ReportStatus.ongoing:
         return Colors.orange.shade700;
       case ReportStatus.solved:
-        return Colors.green.shade700;
+        return AppColors.success;
       case ReportStatus.archived:
         return Colors.grey.shade600;
       case ReportStatus.closed:
@@ -2804,12 +2805,12 @@ class _AdminReportCard extends StatelessWidget {
                 ),
                 const Spacer(),
                 if (report.isFlagged) ...[
-                  const Icon(Icons.flag, size: 11, color: Colors.red),
+                  Icon(Icons.flag, size: 11, color: ColorUtils.readableAccentOf(context, AppColors.emergency)),
                   const SizedBox(width: 3),
-                  const Text(
+                  Text(
                     'FLAGGED',
                     style: TextStyle(
-                        color: Colors.red,
+                        color: ColorUtils.readableAccentOf(context, AppColors.emergency),
                         fontSize: 12,
                         fontWeight: FontWeight.bold),
                   ),
@@ -2862,7 +2863,7 @@ class _AdminReportCard extends StatelessWidget {
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 15,
-                          color: lguColor,
+                          color: ColorUtils.readableAccentOf(context, lguColor),
                         ),
                       ),
                     ),
@@ -2877,12 +2878,12 @@ class _AdminReportCard extends StatelessWidget {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Icon(_statusIcon(report.status),
-                              color: statusColor, size: 12),
+                              color: ColorUtils.readableAccentOf(context, statusColor), size: 12),
                           const SizedBox(width: 4),
                           Text(
                             _statusLabel(report.status),
                             style: TextStyle(
-                                color: statusColor,
+                                color: ColorUtils.readableAccentOf(context, statusColor),
                                 fontWeight: FontWeight.bold,
                                 fontSize: 12),
                           ),
@@ -3015,7 +3016,7 @@ class _AdminReportCard extends StatelessWidget {
                     if (report.status == ReportStatus.ongoing)
                       _SmallStatusButton(
                         label: 'Solved',
-                        color: Colors.green,
+                        color: AppColors.success,
                         onTap: () async {
                           if (report.userId != null) {
                             final note = await askResolutionNote(context);
@@ -3072,7 +3073,7 @@ class _SmallStatusButton extends StatelessWidget {
         onPressed: onTap,
         style: ElevatedButton.styleFrom(
           backgroundColor: color,
-          foregroundColor: Colors.white,
+          foregroundColor: ColorUtils.readableTextOn(color),
           padding: const EdgeInsets.symmetric(horizontal: 10),
           textStyle: const TextStyle(
               fontSize: 12, fontWeight: FontWeight.bold),
@@ -3118,7 +3119,7 @@ class _AnnouncementsTab extends StatelessWidget {
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red,
+                backgroundColor: AppColors.emergency,
                 foregroundColor: Colors.white),
             child: const Text('Delete'),
           ),
@@ -3158,7 +3159,7 @@ class _AnnouncementsTab extends StatelessWidget {
                 size: 14,
                 color: isProvincialAdmin
                     ? const Color(0xFF4A148C)
-                    : lguColor,
+                    : ColorUtils.readableAccentOf(context, lguColor),
               ),
               const SizedBox(width: 8),
               Text(
@@ -3169,7 +3170,7 @@ class _AnnouncementsTab extends StatelessWidget {
                   fontSize: 12,
                   color: isProvincialAdmin
                       ? const Color(0xFF4A148C)
-                      : lguColor,
+                      : ColorUtils.readableAccentOf(context, lguColor),
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -3297,7 +3298,7 @@ class _AnnouncementsTab extends StatelessWidget {
                               ? Colors.red
                               : isProvinceWide
                                   ? const Color(0xFF4A148C)
-                                  : lguColor,
+                                  : ColorUtils.readableAccent(lguColor, Brightness.light),
                           size: 22,
                         ),
                       ),
@@ -3340,7 +3341,7 @@ class _AnnouncementsTab extends StatelessWidget {
                                       fontSize: 12,
                                       color: isProvinceWide
                                           ? const Color(0xFF4A148C)
-                                          : lguColor,
+                                          : ColorUtils.readableAccent(lguColor, Brightness.light),
                                       fontWeight: FontWeight.w600),
                                 ),
                               ),
@@ -3361,7 +3362,7 @@ class _AnnouncementsTab extends StatelessWidget {
                                     '⚠ URGENT',
                                     style: TextStyle(
                                         fontSize: 12,
-                                        color: Colors.red,
+                                        color: AppColors.emergency,
                                         fontWeight: FontWeight.w700),
                                   ),
                                 ),
@@ -3393,16 +3394,16 @@ class _AnnouncementsTab extends StatelessWidget {
                           }
                         },
                         itemBuilder: (_) => [
-                          const PopupMenuItem(
+                          PopupMenuItem(
                             value: 'delete',
                             child: Row(
                               children: [
-                                Icon(Icons.delete,
+                                const Icon(Icons.delete,
                                     color: Colors.red, size: 18),
-                                SizedBox(width: 8),
+                                const SizedBox(width: 8),
                                 Text('Delete',
                                     style:
-                                        TextStyle(color: Colors.red)),
+                                        TextStyle(color: ColorUtils.readableAccentOf(context, AppColors.emergency))),
                               ],
                             ),
                           ),
@@ -3583,7 +3584,7 @@ class _AddAnnouncementSheetState
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Icon(Icons.campaign,
-                        color: widget.lguColor, size: 22),
+                        color: ColorUtils.readableAccent(widget.lguColor, Brightness.light), size: 22),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -3594,7 +3595,7 @@ class _AddAnnouncementSheetState
                             style: TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
-                                color: widget.lguColor)),
+                                color: ColorUtils.readableAccent(widget.lguColor, Brightness.light))),
                         Text(
                           widget.isProvincialAdmin
                               ? 'Province-wide or per municipality'
@@ -3647,7 +3648,7 @@ class _AddAnnouncementSheetState
                   decoration: InputDecoration(
                     labelText: 'Target Audience',
                     prefixIcon: Icon(Icons.public,
-                        color: widget.lguColor),
+                        color: ColorUtils.readableAccent(widget.lguColor, Brightness.light)),
                     focusedBorder: OutlineInputBorder(
                       borderSide: BorderSide(
                           color: widget.lguColor, width: 2),
@@ -3685,7 +3686,7 @@ class _AddAnnouncementSheetState
                   child: Row(
                     children: [
                       Icon(Icons.location_city,
-                          size: 18, color: widget.lguColor),
+                          size: 18, color: ColorUtils.readableAccent(widget.lguColor, Brightness.light)),
                       const SizedBox(width: 12),
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -3698,7 +3699,7 @@ class _AddAnnouncementSheetState
                               style: TextStyle(
                                   fontSize: 15,
                                   fontWeight: FontWeight.w600,
-                                  color: widget.lguColor)),
+                                  color: ColorUtils.readableAccent(widget.lguColor, Brightness.light))),
                         ],
                       ),
                       const Spacer(),
@@ -3733,7 +3734,7 @@ class _AddAnnouncementSheetState
                       ? 'Reading link…'
                       : 'Auto-fill title & message from link'),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: widget.lguColor,
+                    foregroundColor: ColorUtils.readableAccent(widget.lguColor, Brightness.light),
                     side:
                         BorderSide(color: widget.lguColor.withValues(alpha: 0.5)),
                     padding: const EdgeInsets.symmetric(vertical: 12),
@@ -3778,7 +3779,7 @@ class _AddAnnouncementSheetState
                           style: TextStyle(
                               fontWeight: FontWeight.w600,
                               color: _isUrgent
-                                  ? Colors.red
+                                  ? AppColors.emergency
                                   : Colors.black87)),
                     ],
                   ),
@@ -3800,18 +3801,18 @@ class _AddAnnouncementSheetState
                   onPressed:
                       _isPosting ? null : _postAnnouncement,
                   icon: _isPosting
-                      ? const SizedBox(
+                      ? SizedBox(
                           width: 18,
                           height: 18,
                           child: CircularProgressIndicator(
                               strokeWidth: 2,
-                              color: Colors.white))
+                              color: ColorUtils.readableTextOn(widget.lguColor)))
                       : const Icon(Icons.send),
                   label: Text(
                       _isPosting ? 'Posting…' : 'Post Announcement'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: widget.lguColor,
-                    foregroundColor: Colors.white,
+                    foregroundColor: ColorUtils.readableTextOn(widget.lguColor),
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(14)),
                     elevation: 0,
@@ -3860,7 +3861,7 @@ class _AddAnnouncementSheetState
         labelText: label,
         hintText: hint,
         helperText: helperText,
-        prefixIcon: Icon(prefixIcon, color: color),
+        prefixIcon: Icon(prefixIcon, color: ColorUtils.readableAccent(color, Brightness.light)),
         focusedBorder: OutlineInputBorder(
             borderSide: BorderSide(color: color, width: 2),
             borderRadius: BorderRadius.circular(12)),
@@ -3931,9 +3932,9 @@ class _AddAnnouncementSheetState
       decoration: InputDecoration(
         labelText: label,
         hintText: hint,
-        prefixIcon: Icon(prefixIcon, color: color),
+        prefixIcon: Icon(prefixIcon, color: ColorUtils.readableAccent(color, Brightness.light)),
         suffixIcon: IconButton(
-          icon: Icon(Icons.list_alt_rounded, color: color),
+          icon: Icon(Icons.list_alt_rounded, color: ColorUtils.readableAccent(color, Brightness.light)),
           tooltip: 'Browse catalog',
           onPressed: () => _showCatalogPicker(controller, color),
         ),
@@ -4002,13 +4003,13 @@ class _AddAnnouncementSheetState
                   child: Row(
                     children: [
                       Icon(Icons.list_alt_rounded,
-                          color: accentColor, size: 20),
+                          color: ColorUtils.readableAccent(accentColor, Brightness.light), size: 20),
                       const SizedBox(width: 8),
                       Text('Select Source',
                           style: TextStyle(
                               fontSize: 17,
                               fontWeight: FontWeight.bold,
-                              color: accentColor)),
+                              color: ColorUtils.readableAccent(accentColor, Brightness.light))),
                       const Spacer(),
                       IconButton(
                         tooltip: 'Close',
@@ -4072,7 +4073,7 @@ class _AddAnnouncementSheetState
                                       style: TextStyle(
                                         fontSize: 12,
                                         fontWeight: FontWeight.w700,
-                                        color: accentColor,
+                                        color: ColorUtils.readableAccent(accentColor, Brightness.light),
                                         letterSpacing: 0.5,
                                       ),
                                     ),
@@ -4178,19 +4179,19 @@ class _AnalyticsTab extends StatelessWidget {
       padding: EdgeInsets.fromLTRB(
           16, 16, 16, MediaQuery.of(context).padding.bottom + 32),
       children: [
-        _buildKpiGrid(),
+        _buildKpiGrid(context),
         const SizedBox(height: 20),
-        _buildSatisfactionCard(),
+        _buildSatisfactionCard(context),
         const SizedBox(height: 20),
-        _buildBarangayChart(),
+        _buildBarangayChart(context),
         const SizedBox(height: 20),
-        _buildCategoryPieChart(),
+        _buildCategoryPieChart(context),
       ],
     );
   }
 
   // ── Citizen Satisfaction (from feedback collectionGroup) ───────────────────
-  Widget _buildSatisfactionCard() {
+  Widget _buildSatisfactionCard(BuildContext context) {
     // Restrict to the municipalities visible in this dashboard view so the
     // average reflects the admin's jurisdiction.
     final munis = reports.map((r) => r.municipality).toSet();
@@ -4206,13 +4207,13 @@ class _AnalyticsTab extends StatelessWidget {
           children: [
             Row(
               children: [
-                Icon(Icons.reviews_outlined, size: 16, color: lguColor),
+                Icon(Icons.reviews_outlined, size: 16, color: ColorUtils.readableAccentOf(context, lguColor)),
                 const SizedBox(width: 6),
                 Text('Citizen Satisfaction',
                     style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 13,
-                        color: lguColor)),
+                        color: ColorUtils.readableAccentOf(context, lguColor))),
               ],
             ),
             const SizedBox(height: 12),
@@ -4267,7 +4268,7 @@ class _AnalyticsTab extends StatelessWidget {
                         style: TextStyle(
                             fontSize: 32,
                             fontWeight: FontWeight.bold,
-                            color: lguColor)),
+                            color: ColorUtils.readableAccentOf(context, lguColor))),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Column(
@@ -4289,7 +4290,7 @@ class _AnalyticsTab extends StatelessWidget {
                             style: TextStyle(
                                 fontSize: 12,
                                 color: lowCount > 0
-                                    ? Colors.orange.shade800
+                                    ? ColorUtils.readableAccentOf(context, AppColors.warning)
                                     : Colors.grey.shade600),
                           ),
                         ],
@@ -4307,7 +4308,7 @@ class _AnalyticsTab extends StatelessWidget {
 
   // ── KPI Tiles ──────────────────────────────────────────────────────────────
 
-  Widget _buildKpiGrid() {
+  Widget _buildKpiGrid(BuildContext context) {
     final total = reports.length;
     final resolved = reports.where((r) => r.status == ReportStatus.solved).length;
     final open = reports.where((r) => r.status != ReportStatus.solved).length;
@@ -4339,14 +4340,14 @@ class _AnalyticsTab extends StatelessWidget {
           children: [
             Row(
               children: [
-                Icon(Icons.dashboard_outlined, size: 16, color: lguColor),
+                Icon(Icons.dashboard_outlined, size: 16, color: ColorUtils.readableAccentOf(context, lguColor)),
                 const SizedBox(width: 6),
                 Text(
                   'Key Performance Indicators',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 13,
-                    color: lguColor,
+                    color: ColorUtils.readableAccentOf(context, lguColor),
                   ),
                 ),
               ],
@@ -4368,7 +4369,7 @@ class _AnalyticsTab extends StatelessWidget {
                     label: 'Resolved',
                     value: '$resolved',
                     icon: Icons.check_circle_outline,
-                    color: Colors.green.shade700,
+                    color: AppColors.success,
                   ),
                 ),
               ],
@@ -4403,7 +4404,7 @@ class _AnalyticsTab extends StatelessWidget {
 
   // ── Bar Chart: Reports per Barangay ────────────────────────────────────────
 
-  Widget _buildBarangayChart() {
+  Widget _buildBarangayChart(BuildContext context) {
     // Aggregate by barangay
     final Map<String, int> counts = {};
     for (final r in reports) {
@@ -4437,14 +4438,14 @@ class _AnalyticsTab extends StatelessWidget {
           children: [
             Row(
               children: [
-                Icon(Icons.location_on_outlined, size: 16, color: lguColor),
+                Icon(Icons.location_on_outlined, size: 16, color: ColorUtils.readableAccentOf(context, lguColor)),
                 const SizedBox(width: 6),
                 Text(
                   'Reports per Barangay (Top ${top.length})',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 13,
-                    color: lguColor,
+                    color: ColorUtils.readableAccentOf(context, lguColor),
                   ),
                 ),
               ],
@@ -4567,7 +4568,7 @@ class _AnalyticsTab extends StatelessWidget {
 
   // ── Pie Chart: Reports by Category ─────────────────────────────────────────
 
-  Widget _buildCategoryPieChart() {
+  Widget _buildCategoryPieChart(BuildContext context) {
     final Map<String, int> counts = {};
     for (final r in reports) {
       final key = r.category.displayName;
@@ -4610,14 +4611,14 @@ class _AnalyticsTab extends StatelessWidget {
           children: [
             Row(
               children: [
-                Icon(Icons.pie_chart_outline, size: 16, color: lguColor),
+                Icon(Icons.pie_chart_outline, size: 16, color: ColorUtils.readableAccentOf(context, lguColor)),
                 const SizedBox(width: 6),
                 Text(
                   'Reports by Category',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 13,
-                    color: lguColor,
+                    color: ColorUtils.readableAccentOf(context, lguColor),
                   ),
                 ),
               ],
@@ -4702,14 +4703,14 @@ class _KpiTile extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 20, color: color),
+          Icon(icon, size: 20, color: ColorUtils.readableAccentOf(context, color)),
           const SizedBox(height: 8),
           Text(
             value,
             style: TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.bold,
-              color: color,
+              color: ColorUtils.readableAccentOf(context, color),
             ),
           ),
           const SizedBox(height: 2),
@@ -4717,7 +4718,7 @@ class _KpiTile extends StatelessWidget {
             label,
             style: TextStyle(
               fontSize: 12,
-              color: color.withValues(alpha: 0.75),
+              color: ColorUtils.readableAccentOf(context, color),
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -5094,7 +5095,7 @@ class _RoleAssignDialogState extends State<_RoleAssignDialog> {
             children: [
               ...UserRole.values.map((role) => RadioListTile<UserRole>(
                     dense: true,
-                    activeColor: widget.accent,
+                    activeColor: ColorUtils.readableAccentOf(context, widget.accent),
                     title: Text(role.displayName,
                         style: const TextStyle(fontSize: 14)),
                     subtitle: widget.subtitleBuilder(role),
@@ -5158,13 +5159,13 @@ class _RoleAssignDialogState extends State<_RoleAssignDialog> {
         ElevatedButton(
           onPressed: _saving ? null : _save,
           style: ElevatedButton.styleFrom(
-              backgroundColor: widget.accent, foregroundColor: Colors.white),
+              backgroundColor: widget.accent, foregroundColor: ColorUtils.readableTextOn(widget.accent)),
           child: _saving
-              ? const SizedBox(
+              ? SizedBox(
                   width: 16,
                   height: 16,
                   child: CircularProgressIndicator(
-                      strokeWidth: 2, color: Colors.white))
+                      strokeWidth: 2, color: ColorUtils.readableTextOn(widget.accent)))
               : const Text('Save'),
         ),
       ],
@@ -5215,7 +5216,7 @@ class _ReferralPanelState extends State<_ReferralPanel> {
       children: [
         Text('Refer to Office',
             style: TextStyle(
-                fontWeight: FontWeight.bold, color: widget.lguColor, fontSize: 13)),
+                fontWeight: FontWeight.bold, color: ColorUtils.readableAccent(widget.lguColor, Brightness.light), fontSize: 13)),
         const SizedBox(height: 8),
         if (r != null)
           Container(

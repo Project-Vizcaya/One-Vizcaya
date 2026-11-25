@@ -620,7 +620,8 @@ class _AnnouncementCardState extends State<_AnnouncementCard> {
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
-                          color: widget.lguColor,
+                          color: ColorUtils.readableAccentOf(
+                              context, widget.lguColor),
                         ),
                       ),
                     ),
@@ -688,7 +689,10 @@ class _AnnouncementCardState extends State<_AnnouncementCard> {
                     CircleAvatar(
                       radius: 14,
                       backgroundColor: widget.lguColor.withValues(alpha: 0.15),
-                      child: Icon(Icons.person, size: 16, color: widget.lguColor),
+                      child: Icon(Icons.person,
+                          size: 16,
+                          color: ColorUtils.readableAccentOf(
+                              context, widget.lguColor)),
                     ),
                     const SizedBox(width: 8),
                     Expanded(

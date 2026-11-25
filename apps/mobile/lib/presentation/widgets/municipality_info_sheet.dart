@@ -5,6 +5,7 @@ import '../../core/services/municipality_info_service.dart';
 import '../../core/l10n/app_strings.dart';
 import '../../core/utils/toast_utils.dart';
 import '../../features/transparency/presentation/flood_control_section.dart';
+import '../../core/utils/color_utils.dart';
 
 /// Opens the municipality information sheet from the home header. Shows curated
 /// offline facts immediately and enriches them with a live Wikipedia summary.
@@ -65,7 +66,10 @@ class _MunicipalityInfoSheetState extends State<_MunicipalityInfoSheet> {
   Widget build(BuildContext context) {
     final theme = AppConstants.municipalityThemes[widget.municipality] ??
         AppConstants.municipalityThemes['Generic']!;
-    final primary = theme['appBarColor'] as Color;
+    final rawPrimary = theme['appBarColor'] as Color;
+    // The town colour as text and icons on this sheet: readable in light and
+    // dark mode (its dark shade for light towns such as Villaverde).
+    final primary = ColorUtils.readableAccentOf(context, rawPrimary);
     final tertiary = (theme['tertiaryColor'] as Color?) ??
         Theme.of(context).cardColor;
     final title = (theme['title'] as String?) ?? 'Nueva Vizcaya';
@@ -184,7 +188,12 @@ class _MunicipalityInfoSheetState extends State<_MunicipalityInfoSheet> {
                                   padding: const EdgeInsets.symmetric(
                                       horizontal: 10, vertical: 5),
                                   decoration: BoxDecoration(
-                                    color: tertiary,
+                                    // The light tint carries default text, so
+                                    // it is a light-mode surface only.
+                                    color: Theme.of(context).brightness ==
+                                            Brightness.dark
+                                        ? rawPrimary.withValues(alpha: 0.18)
+                                        : tertiary,
                                     borderRadius: BorderRadius.circular(20),
                                     border: Border.all(
                                         color:

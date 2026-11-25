@@ -113,7 +113,7 @@ class _DataRequestScreenState extends State<DataRequestScreen> {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(Icons.gavel_outlined, color: _lguColor, size: 20),
+                Icon(Icons.gavel_outlined, color: ColorUtils.readableAccentOf(context, _lguColor), size: 20),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(AppStrings.get('dataRequestIntro'),
@@ -129,7 +129,7 @@ class _DataRequestScreenState extends State<DataRequestScreen> {
           ..._typeKeys.map((key) => RadioListTile<String>(
                 value: key,
                 groupValue: _selectedType,
-                activeColor: _lguColor,
+                activeColor: ColorUtils.readableAccentOf(context, _lguColor),
                 contentPadding: EdgeInsets.zero,
                 title: Text(AppStrings.get(key)),
                 onChanged: (v) => setState(() => _selectedType = v!),
@@ -168,7 +168,7 @@ class _DataRequestScreenState extends State<DataRequestScreen> {
                   : AppStrings.get('dataRequestSubmit')),
               style: ElevatedButton.styleFrom(
                 backgroundColor: _lguColor,
-                foregroundColor: Colors.white,
+                foregroundColor: ColorUtils.readableTextOn(_lguColor),
                 padding: const EdgeInsets.symmetric(vertical: 14),
               ),
             ),
@@ -217,7 +217,7 @@ class _DataRequestScreenState extends State<DataRequestScreen> {
       ),
       child: ListTile(
         onTap: onTap,
-        leading: Icon(icon, color: _lguColor),
+        leading: Icon(icon, color: ColorUtils.readableAccentOf(context, _lguColor)),
         title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
         subtitle: Text(lines.join('\n'),
             style: const TextStyle(fontSize: 12, height: 1.4)),

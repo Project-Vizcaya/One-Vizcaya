@@ -4,6 +4,7 @@ import '../../core/utils/color_utils.dart';
 import '../../core/utils/toast_utils.dart';
 import '../../data/services/sos_service.dart';
 import '../../domain/models/sos_alert.dart';
+import '../../core/theme/app_colors.dart';
 
 /// Admin live-emergencies list. Streams open SOS beacons in the admin's scope
 /// and lets them navigate to the caller and mark dispatched / resolved.
@@ -132,7 +133,7 @@ class _SosCard extends StatelessWidget {
     final accent = alert.flagged
         ? Colors.blueGrey
         : dispatched
-            ? Colors.orange.shade800
+            ? AppColors.warning // white text on orange.shade800 was 3.3:1
             : const Color(0xFFC62828);
     final hasFix = alert.lat != null && alert.lng != null;
     return Card(

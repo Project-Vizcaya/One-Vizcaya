@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../theme/app_colors.dart';
+import '../utils/color_utils.dart';
 import '../utils/toast_utils.dart';
 import '../../presentation/state/municipality_state.dart';
 
@@ -23,6 +25,8 @@ class ProfileQrSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
     final lguColor = oneVizcayaState.activeTheme['appBarColor'] as Color;
+    // The sheet is always white, so use the light-surface shade in both themes.
+    final accent = ColorUtils.readableAccent(lguColor, Brightness.light);
     final municipality = oneVizcayaState.selectedMunicipality.value;
     final uid = user?.uid ?? 'unknown';
     final phone = user?.phoneNumber ?? 'Unknown';
@@ -74,14 +78,14 @@ class ProfileQrSheet extends StatelessWidget {
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
-                color: lguColor,
+                color: accent,
               ),
             ),
             const SizedBox(height: 4),
             Text(
               'Scan to verify citizen identity',
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onSurfaceVariant),
+              style: const TextStyle(fontSize: 13, color: AppColors.muted),
             ),
             const SizedBox(height: 20),
 
@@ -109,7 +113,7 @@ class ProfileQrSheet extends StatelessWidget {
                 size: 180, // ← Slightly smaller to fit better
                 eyeStyle: QrEyeStyle(
                   eyeShape: QrEyeShape.square,
-                  color: lguColor,
+                  color: accent,
                 ),
                 dataModuleStyle: QrDataModuleStyle(
                   dataModuleShape: QrDataModuleShape.square,
@@ -134,21 +138,21 @@ class ProfileQrSheet extends StatelessWidget {
                     label: 'Municipality',
                     value: municipality,
                     icon: Icons.location_on,
-                    color: lguColor,
+                    color: accent,
                   ),
                   const SizedBox(height: 6),
                   _InfoRow(
                     label: 'Phone',
                     value: maskedPhone,
                     icon: Icons.phone,
-                    color: lguColor,
+                    color: accent,
                   ),
                   const SizedBox(height: 6),
                   _InfoRow(
                     label: 'Citizen ID',
                     value: uid.length > 8 ? uid.substring(0, 8) : uid,
                     icon: Icons.badge,
-                    color: lguColor,
+                    color: accent,
                   ),
                 ],
               ),
@@ -168,7 +172,7 @@ class ProfileQrSheet extends StatelessWidget {
                     icon: const Icon(Icons.copy, size: 16),
                     label: const Text('Copy ID'),
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: lguColor,
+                      foregroundColor: accent,
                       side: BorderSide(color: lguColor),
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       shape: RoundedRectangleBorder(
@@ -185,7 +189,7 @@ class ProfileQrSheet extends StatelessWidget {
                     label: const Text('Done'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: lguColor,
-                      foregroundColor: Colors.white,
+                      foregroundColor: ColorUtils.readableTextOn(lguColor),
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       elevation: 0,
                       shape: RoundedRectangleBorder(
@@ -208,7 +212,7 @@ class ProfileQrSheet extends StatelessWidget {
                 Flexible(
                   child: Text(
                     'Issued by $municipality LGU · One Vizcaya v1',
-                    style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                    style: const TextStyle(fontSize: 12, color: AppColors.muted),
                     textAlign: TextAlign.center,
                   ),
                 ),
