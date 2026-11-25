@@ -83,10 +83,10 @@ export function LandingPage() {
       <main id="main">
         {/* ── Hero ── */}
         <section id="top" className="border-b border-[var(--site-line)]">
-          <div className="mx-auto grid max-w-6xl items-center gap-12 px-4 py-10 md:grid-cols-[1.15fr_1fr] md:py-16">
-            <div>
+          <div className="mx-auto grid max-w-6xl grid-cols-1 items-center gap-12 px-4 py-10 md:grid-cols-[1.15fr_1fr] md:py-16">
+            <div className="min-w-0">
               <p lang="fil" className="text-[15px] font-bold text-[var(--site-green-600)]">Para sa bawat barangay ng Nueva Vizcaya</p>
-              <h1 className="mt-3 text-balance text-[2.5rem] font-extrabold leading-[1.08] text-[var(--site-ink)] sm:text-[3.4rem]">
+              <h1 className="mt-3 text-balance break-words text-[clamp(1.9rem,9.5vw,2.5rem)] font-extrabold leading-[1.08] text-[var(--site-ink)] sm:text-[3.4rem]">
                 See a hazard? <span className="text-[var(--site-green)]">Report it to your municipality.</span>
               </h1>
               <p className="mt-5 max-w-xl text-pretty text-lg leading-relaxed text-[var(--site-muted)]">
@@ -176,7 +176,7 @@ export function LandingPage() {
                 <TabsList className="grid h-auto w-full grid-cols-3 gap-1 rounded-md bg-[var(--site-paper)] p-1 sm:inline-grid sm:w-auto">
                   {FEATURES.map((f) => (
                     <TabsTrigger key={f.id} value={f.id}
-                      className="min-h-[48px] rounded-[5px] px-3 text-[15px] font-bold text-[var(--site-muted)] data-[state=active]:bg-white data-[state=active]:text-[var(--site-green)] data-[state=active]:shadow-[0_0_0_1px_var(--site-line)] sm:px-5">
+                      className="min-h-[48px] rounded-[5px] px-3 text-[15px] font-bold text-[var(--site-muted)] data-[state=active]:bg-[var(--site-green)] data-[state=active]:text-white sm:px-5">
                       {f.label}
                     </TabsTrigger>
                   ))}
@@ -286,9 +286,11 @@ export function LandingPage() {
             </div>
             <div className="flex flex-col items-start gap-3 md:items-center">
               {APK_AVAILABLE ? (
-                <a href={APK_URL} download className="btn-gold btn-lg text-[17px]"><Download className="h-5 w-5" aria-hidden="true" /> Download for Android</a>
+                <a href={APK_URL} download className="btn-gold btn-lg text-[17px]">
+                  <Download className="h-5 w-5" aria-hidden="true" /> Download for Android{APK_SIZE_MB ? ` (${APK_SIZE_MB} MB)` : ""}
+                </a>
               ) : (
-                <p className="rounded-md border border-white/40 px-5 py-3 text-[17px] font-bold">Android app: download opens soon</p>
+                <p className="max-w-xs text-[17px] font-bold text-white">The Android download will open here when the pilot starts.</p>
               )}
               <Link to="/login" className="inline-flex min-h-[44px] items-center text-[15px] font-semibold text-white/85 underline-offset-4 hover:text-white hover:underline">LGU staff? Sign in here</Link>
             </div>

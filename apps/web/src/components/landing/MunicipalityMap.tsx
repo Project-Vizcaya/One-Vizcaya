@@ -27,6 +27,8 @@ export const PATHS = MUNICIPALITIES.map((m) => ({
 }));
 export const MAP_VIEWBOX = `0 0 ${W} ${H}`;
 const CAPITOL = PATHS.find((p) => p.name === "Bayombong")?.center ?? null;
+// Nudges for labels that would collide in the small northern towns.
+const LABEL_SHIFT: Record<string, [number, number]> = { Villaverde: [-14, -4], Bagabag: [14, 6], Ambaguio: [-6, 2], Solano: [4, 2] };
 
 export function MunicipalityMap({
   className = "",
@@ -51,8 +53,8 @@ export function MunicipalityMap({
           key={p.name}
           d={p.d}
           fill={highlight.includes(p.name) ? "var(--site-green, #0B4B2E)" : "var(--site-green-50, #EEF6F1)"}
-          stroke="rgba(11, 75, 46, 0.45)"
-          strokeWidth={1.2}
+          stroke="var(--site-green-600, #15803D)"
+          strokeWidth={1}
           strokeLinejoin="round"
         >
           {titled && <title>{townLabel(p.name)}</title>}
@@ -60,23 +62,20 @@ export function MunicipalityMap({
       ))}
       {labels && (
         <g className="hidden sm:inline" aria-hidden="true">
-          {PATHS.filter((p) => p.center).map((p) => (
-            <text
-              key={p.name}
-              x={p.center!.x}
-              y={p.center!.y + (p.name === "Bayombong" && capitol ? 16 : 4)}
-              textAnchor="middle"
-              fontSize={p.name.length > 12 ? 9.5 : 11}
-              fontWeight={700}
-              fill="#13202B"
-              stroke="#fff"
-              strokeWidth={3}
-              paintOrder="stroke"
-              style={{ fontFamily: "inherit" }}
-            >
-              {townLabel(p.name)}
-            </text>
-          ))}
+          {PATHS.filter((p) => p.center).map((p) => {
+            // Long names on two lines so every label stays at 12px or more.
+            const words = townLabel(p.name).split(" ");
+            const lines = words.length > 1 && p.name.length > 9 ? [words[0], words.slice(1).join(" ")] : [words.join(" ")];
+            const [dx, dy] = LABEL_SHIFT[p.name] ?? [0, 0];
+            const cx = p.center!.x + dx;
+            const y0 = p.center!.y + dy + (p.name === "Bayombong" && capitol ? 18 : 4) - (lines.length - 1) * 6.5;
+            return (
+              <text key={p.name} x={cx} y={y0} textAnchor="middle" fontSize={13} fontWeight={700}
+                fill="#13202B" stroke="#fff" strokeWidth={3} paintOrder="stroke" style={{ fontFamily: "inherit" }}>
+                {lines.map((l, i) => <tspan key={l} x={cx} dy={i === 0 ? 0 : 13}>{l}</tspan>)}
+              </text>
+            );
+          })}
         </g>
       )}
       {capitol && CAPITOL && (

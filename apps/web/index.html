@@ -27,7 +27,9 @@
     <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Mono:wght@500;700&family=Atkinson+Hyperlegible+Next:wght@400..800&display=swap" rel="stylesheet" />
   </head>
   <body>
-    <div id="root"></div>
+    <!-- Shown until the app loads (or if JavaScript fails on a weak connection):
+         the emergency numbers must never depend on the app. React replaces it. -->
+    <div id="root"><div style="font:17px/1.5 system-ui,sans-serif;max-width:40rem;margin:0 auto;padding:16px;color:#13202B"><p style="margin:0;font-weight:800;color:#0B4B2E;font-size:20px">One Vizcaya</p><p style="margin:12px 0 0;font-weight:700">Emergency? Call <a href="tel:911" style="color:#B91C1C">911</a> or PDRRMO <a href="tel:+639171227150" style="color:#B91C1C">0917 122 7150</a>.</p><p style="margin:8px 0 0;color:#4A5866">Loading…</p></div></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
