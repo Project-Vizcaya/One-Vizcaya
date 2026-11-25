@@ -8,7 +8,7 @@ What you are testing: **branch `claude/test-build-combined`**, which is everythi
 | PR #137 | Privacy fix, Hazard Watch, Post Maker, PAGASA source, earthquakes, DPWH data, **incident IDs**, **"Call first" on Report a Problem** | Draft PR, not on `main` yet |
 | UI/UX | Experimental redesign of Nov 4 (typeface, bottom bar, SOS layout, console contrast) **plus** the Nov 25 home redesign and municipal colour guide (§5.2) | Only on this branch |
 | Console | **Privacy Requests** page for the Data Protection Officer (§6.9) | PR #137 |
-| Command Hub | PDRRMO Command Hub + responder site prototype (`command-hub/`, mock data) | Runs on your laptop only (§8) |
+| Command Hub | PDRRMO Command Hub + responder site prototype (`command-hub/`, mock data) | Runs on the PC you work on (§8) |
 
 After your feedback: PR #137 is merged to `main`, then the redesign goes to `main` as its own PR.
 
@@ -120,14 +120,14 @@ Approvals take several steps, so finish them now.
 - [ ] Pick a **test town**: ________. Real users in it: ____. If any, **never approve an
       alert** for it tomorrow.
 
-### 1.6 Phones and laptop
+### 1.6 Phones and PC
 
 - [ ] Two Android phones (one small screen if possible), **charged**, cables/charger packed.
 - [ ] On each: Settings → allow installing apps from your file manager or Chrome
       ("Install unknown apps"); Location **on**; Chrome up to date.
 - [ ] Write down each phone's model and Android version (for the report, §10):
       ______________________
-- [ ] Laptop with Chrome, on the same Wi-Fi as the phones.
+- [ ] The PC with Chrome, on the same Wi-Fi as the phones.
 - [ ] Optional, for the Command Hub on a phone (§8): install `cloudflared`
       (`winget install Cloudflare.cloudflared`). Not needed for the main test.
 
@@ -421,10 +421,12 @@ international forecast as before.
 
 ---
 
-## 8. Command Hub prototype (laptop, optional, about 30 min)
+## 8. Command Hub prototype (any PC, optional, about 30 min)
 
-Runs on your laptop with **invented data**; it is **not** connected to One Vizcaya on
-Wednesday (the link stays off). Nothing you do here reaches real residents.
+Runs on any Windows PC with Node.js (the computer-shop PC is fine; nothing is tied to one
+machine) with **invented data**. It is **not** connected to One Vizcaya (the link stays off).
+Nothing you do here reaches real residents. On a shop PC that resets when restarted, redo
+`npm install` in `command-hub` and recreate `.env.local` each session.
 
 Create a file `command-hub/.env.local` (Notepad is fine; no `.txt` at the end) with:
 ```
@@ -436,7 +438,7 @@ Then, in Git Bash:
 cd command-hub
 npm run build && npm start        # leave it running; open http://localhost:3100
 ```
-- [ ] Laptop browser: sign in as **PDRRMO EOC operator**. Live map shows 5 units on duty and
+- [ ] PC browser: sign in as **PDRRMO EOC operator**. Live map shows 5 units on duty and
       the incident list; status colours have icons and labels.
 - [ ] Second browser window (or a private window): sign in as **BAM-AMB-01** → the responder
       screen. Allow location. (Phones need HTTPS for location: for a phone test, run a tunnel
