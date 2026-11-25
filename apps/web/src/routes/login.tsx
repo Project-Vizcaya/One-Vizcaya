@@ -2,12 +2,14 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { LoginForm } from "@/components/auth/LoginForm";
 import { useAuthStore } from "@/stores/authStore";
+import { useAuth } from "@/hooks/useAuth";
 
 export const Route = createFileRoute("/login")({
   component: LoginPage,
 });
 
 function LoginPage() {
+  useAuth(); // auth listener (not global, so public pages skip Firebase)
   const { user, isLoading } = useAuthStore();
   const navigate = useNavigate();
 
