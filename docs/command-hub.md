@@ -149,6 +149,38 @@ per 5 minutes per operator.
 **Feature flags** (`.env.local`): `FEATURE_RESPONDER_TRACKING`,
 `FEATURE_HOTLINE_INTAKE`, `FEATURE_CITIZEN_ETA_UPDATES` (`0` = off).
 
+## Hosting the demo on Render
+
+For presentations: a public HTTPS link that opens on any phone or office PC,
+with nothing installed. `render.yaml` (repo root) describes the service.
+
+1. Create a free account at render.com (sign in with GitHub). No card is needed.
+2. **New → Blueprint**, pick `Project-Vizcaya/One-Vizcaya`, and choose the branch
+   that has `command-hub/`: `claude/one-vizcaya-general-updates-QhJAr` until
+   PR #137 is merged, then `main` (Settings → Branch).
+3. Render reads `render.yaml`, shows the `one-vizcaya-command-hub` web service
+   (free plan, Singapore) and generates the two secrets. Click **Apply**. The
+   first build takes a few minutes.
+4. Open the `https://one-vizcaya-command-hub….onrender.com` link it shows and
+   sign in with a demo button.
+
+Good to know:
+- **It sleeps** after 15 minutes without visitors; the next visit takes about a
+  minute. Open it a couple of minutes before presenting.
+- **The data is the mock data**, in memory. It resets when the service sleeps
+  or redeploys, so a demo always starts clean. Never type real resident data:
+  the link is public and the demo sign-in buttons need no password.
+- **It is not connected to One Vizcaya** (no bridge secret, no status URL).
+- **Moving units without driving:** copy `HUB_SIMULATOR_TOKEN` from Render
+  (service → Environment), then on any PC with the repo:
+  `HUB_SIMULATOR_TOKEN=<token> npm run replay -- --unit u-nv-amb-01 --speed 10 --hub https://<your-link>.onrender.com`
+- **Every push to the chosen branch redeploys it.**
+- **Always on** (no sleep): change the plan to Starter in Render (about
+  US$7/month at the time of writing).
+- Checked before committing: a clean `npm ci && npm run build` and
+  `next start -p $PORT` serve every Hub page; the running server used about
+  230 MB with three operators signed in (the free plan allows 512 MB).
+
 ## Handoff checklist (January demo)
 
 | Item | State |
