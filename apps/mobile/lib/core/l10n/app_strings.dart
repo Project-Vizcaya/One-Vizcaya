@@ -186,6 +186,9 @@ class AppStrings {
       'noAnnouncementsSubtitle': 'Check back later for updates from your local government.',
       'viewOriginalPost': 'View original post',
       'urgentBadge': 'URGENT',
+      'annNew': 'NEW',
+      'annOfficial': 'OFFICIAL ANNOUNCEMENT',
+      'annProvincial': 'PROVINCIAL ANNOUNCEMENT',
       // Bookmark filter
       'filterBookmarked': 'Bookmarked',
       'noBookmarks': 'No bookmarked announcements',
@@ -497,6 +500,9 @@ class AppStrings {
       'noAnnouncementsSubtitle': 'Bumalik mamaya para sa mga update mula sa iyong lokal na pamahalaan.',
       'viewOriginalPost': 'Tingnan ang orihinal na post',
       'urgentBadge': 'URGENT',
+      'annNew': 'BAGO',
+      'annOfficial': 'OPISYAL NA ANUNSYO',
+      'annProvincial': 'ANUNSYO NG LALAWIGAN',
       // Bookmark filter
       'filterBookmarked': 'Naka-bookmark',
       'noBookmarks': 'Walang mga naka-bookmark na anunsyo',
@@ -808,6 +814,9 @@ class AppStrings {
       'noAnnouncementsSubtitle': 'Agsubli iti sumaganad para iti dagiti update manipud iti lokal a gobierno.',
       'viewOriginalPost': 'Kitaen ti orihinal a post',
       'urgentBadge': 'URUHENTE',
+      'annNew': 'BARO',
+      'annOfficial': 'OPISIAL NGA ANUNSYO',
+      'annProvincial': 'ANUNSYO TI PROBINSIA',
       // Bookmark filter
       'filterBookmarked': 'Naka-bookmark',
       'noBookmarks': 'Awan dagiti naka-bookmark a anunsyo',

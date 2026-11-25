@@ -48,4 +48,40 @@ class ColorUtils {
   /// Convenience: [readableAccent] resolved from a [BuildContext]'s theme.
   static Color readableAccentOf(BuildContext context, Color accent) =>
       readableAccent(accent, Theme.of(context).brightness);
+
+  /// WCAG contrast ratio between two colours (1–21).
+  static double contrast(Color a, Color b) {
+    final la = a.computeLuminance(), lb = b.computeLuminance();
+    return (la > lb ? la + 0.05 : lb + 0.05) /
+        (la > lb ? lb + 0.05 : la + 0.05);
+  }
+
+  /// [accent] darkened (on a light [surface]) or lightened (on a dark one),
+  /// keeping its hue, until small text in it reaches [minRatio] (WCAG AA).
+  /// Light town colours such as Villaverde lime or Kasibu orange need this;
+  /// the heuristic in [readableAccent] lets them through.
+  ///
+  /// On a dark surface the lifted shade is also softened (saturation capped at
+  /// [darkSaturation]) so a maroon town reads as rose, not as alarm red.
+  static Color textSafeAccent(
+    Color accent,
+    Color surface, {
+    double minRatio = 4.5,
+    double darkSaturation = 0.6,
+  }) {
+    final darken = surface.computeLuminance() > 0.5;
+    var hsl = HSLColor.fromColor(accent);
+    if (!darken && contrast(accent, surface) < minRatio) {
+      hsl = hsl.withSaturation(hsl.saturation.clamp(0.0, darkSaturation));
+    }
+    for (
+      var i = 0;
+      i < 40 && contrast(hsl.toColor(), surface) < minRatio;
+      i++
+    ) {
+      final l = hsl.lightness + (darken ? -0.02 : 0.02);
+      hsl = hsl.withLightness(l.clamp(0.0, 1.0));
+    }
+    return hsl.toColor();
+  }
 }

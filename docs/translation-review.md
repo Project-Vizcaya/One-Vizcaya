@@ -120,6 +120,14 @@ Shown when a resident or official files a report for a person without a phone.
 | `hubAgency` | Responding agency | Tumutugong ahensya | Ahensia a sumungbat | ☐ | |
 | `hubPrivacyNote` | For the responders' safety, their exact location is not shown. | Para sa kaligtasan ng mga responder, hindi ipinapakita ang eksaktong lokasyon nila. | Para iti talged dagiti responder, saan a maipakita ti eksakto a lokasionda. | ☐ | |
 
+### A10. Announcement card labels (home screen)
+
+| Key | English (source) | Tagalog | Ilocano | OK | Correction |
+|---|---|---|---|:-:|---|
+| `annNew` | NEW | BAGO | BARO | ☐ | |
+| `annOfficial` | OFFICIAL ANNOUNCEMENT | OPISYAL NA ANUNSYO | OPISIAL NGA ANUNSYO | ☐ | |
+| `annProvincial` | PROVINCIAL ANNOUNCEMENT | ANUNSYO NG LALAWIGAN | ANUNSYO TI PROBINSIA | ☐ | |
+
 ---
 
 ## B. English only — needs translating
