@@ -32,7 +32,7 @@ class _WeatherDetailScreenState extends State<WeatherDetailScreen> {
   bool _loading = true;
   String? _error;
 
-  // Official (PAGASA) + international, combined by mode: docs/weather.md.
+  // Official (PAGASA) + international, combined by mode: docs/4-app-and-website/weather.md.
   final _repository = WeatherRepository<WeatherData>(
     pagasa: FirebasePagasaSource(),
     international: const OpenWeatherSource(),

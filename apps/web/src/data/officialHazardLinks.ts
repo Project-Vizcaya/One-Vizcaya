@@ -1,4 +1,4 @@
-// Official disaster and hazard services (docs/flood-control.md). Links go to
+// Official disaster and hazard services (docs/4-app-and-website/flood-control.md). Links go to
 // the agencies themselves. The app has the same list in
 // apps/mobile/lib/core/constants/official_hazard_links.dart.
 

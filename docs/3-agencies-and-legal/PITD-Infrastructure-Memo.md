@@ -55,7 +55,7 @@ capabilities that the app relies on.
 ### 2.3 Cost (Blaze pay-as-you-go, conservative estimates)
 
 Infrastructure cost is driven by *activity*, not population (reads/writes/storage).
-Figures below are from our detailed `COST.md` analysis.
+Figures below are from our detailed `Cost-Analysis.md` analysis.
 
 | Scale | Active reporters/mo | Est. infra cost / month |
 | :--- | :--- | :--- |

@@ -4,7 +4,7 @@ import '../domain/weather_models.dart';
 import 'weather_source.dart';
 
 /// Combines the official (PAGASA) and international sources according to the
-/// mode (docs/weather.md §modes). Screens use only this, never a source.
+/// mode (docs/4-app-and-website/weather.md §modes). Screens use only this, never a source.
 ///
 /// Rules it enforces:
 ///  - The kill switch wins: when the server says `internationalOnly` (PAGASA

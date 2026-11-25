@@ -2,7 +2,7 @@
 
 // HTTP client for the DOST-PAGASA mobile API.
 //
-// HARD RULES (docs/weather.md):
+// HARD RULES (docs/4-app-and-website/weather.md):
 //  - Only the public GET endpoints in ALLOWED are ever called. The /auth/*
 //    endpoints create device records on PAGASA's server and are never called.
 //  - The app does not imitate PAGASA's app: the only headers sent are

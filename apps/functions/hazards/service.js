@@ -1,6 +1,6 @@
 "use strict";
 
-// Hazard Watch feed refresh (docs/hazards.md). Run by the hazardWatch
+// Hazard Watch feed refresh (docs/4-app-and-website/hazards.md). Run by the hazardWatch
 // schedule every 10 minutes. Writes earthquakes near Nueva Vizcaya to
 // hazard_signals/{id} and each feed's state to hazard_feed_status/{source}.
 // Signals older than the 7-day window are removed.

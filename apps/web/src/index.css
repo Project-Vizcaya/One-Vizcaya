@@ -137,7 +137,7 @@
 }
 
 /* Public pages: landing (/) and privacy (/privacy). Design contract:
-   docs/design-system.md — provincial green, a gold accent used sparingly, red
+   docs/4-app-and-website/design-system.md — provincial green, a gold accent used sparingly, red
    only for emergencies, Atkinson Hyperlegible Next. Scoped to .site so the
    console is unaffected. */
 @media (prefers-reduced-motion: no-preference) {

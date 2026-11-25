@@ -36,7 +36,7 @@ class IncidentIdLine extends StatelessWidget {
 
 /// The PDRRMO Command Hub's progress, for the reporter: the stage, a rounded
 /// arrival time while on the way, and the agency. Never the responder's
-/// position (docs/command-hub.md).
+/// position (docs/4-app-and-website/command-hub.md).
 class HubProgressView extends StatelessWidget {
   final HubProgress hub;
   final Color accent;

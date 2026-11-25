@@ -8,7 +8,7 @@ import 'package:intl/intl.dart';
 import '../../../core/l10n/app_strings.dart';
 
 /// One DPWH flood-control project (assets/data/flood_control.json, made by
-/// scripts/import-dpwh-flood-control.mjs). See docs/flood-control.md.
+/// scripts/import-dpwh-flood-control.mjs). See docs/4-app-and-website/flood-control.md.
 class FloodProject {
   final String id;
   final String description;

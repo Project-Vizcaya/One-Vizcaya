@@ -3,7 +3,7 @@ import type { PagasaProduct } from "@/lib/pagasa";
 import { isOpenReport } from "@/lib/utils";
 import { REPORT_CATEGORIES } from "@/data/reportCategories";
 
-// Hazard Watch (docs/hazards.md): one list of everything that needs the
+// Hazard Watch (docs/4-app-and-website/hazards.md): one list of everything that needs the
 // PDRRMO's attention, from every source, ranked so the PROVINCE'S OWN
 // information comes first:
 //   tier 0  One Vizcaya: open SOS and open disaster-type reports

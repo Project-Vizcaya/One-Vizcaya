@@ -1,6 +1,6 @@
 "use strict";
 
-// Incident IDs (docs/command-hub.md). Every report gets two, set server-side
+// Incident IDs (docs/4-app-and-website/command-hub.md). Every report gets two, set server-side
 // when it is created:
 //
 //   incidentUuid  the shared key with the PDRRMO Command Hub. A UUID derived

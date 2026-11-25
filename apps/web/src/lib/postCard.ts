@@ -1,4 +1,4 @@
-// Post Maker card renderer (docs/post-maker.md). Draws a branded post image
+// Post Maker card renderer (docs/4-app-and-website/post-maker.md). Draws a branded post image
 // for an LGU announcement on a <canvas>, entirely in the browser: nothing is
 // uploaded, and no AI is involved in the picture.
 

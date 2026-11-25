@@ -2,7 +2,7 @@
 
 // Parsers for the DOST-PAGASA mobile API (api.mobile.panahon.gov.ph/api/v1),
 // used with PAGASA's permission on condition that the app discloses it is not
-// an official PAGASA app. See docs/weather.md.
+// an official PAGASA app. See docs/4-app-and-website/weather.md.
 //
 // The API returns display strings ("28 °C", "89.2%", "0.11 mm", "-", "", null)
 // and several date formats. Everything here is defensive: a bad field becomes

@@ -17,7 +17,7 @@ admin downloads the image and copies the caption into the LGU's own page.
 - **Caption** in English, Tagalog or Ilocano, built from fixed phrases (no AI):
   headline, details, contact, hotline, source, the LGU's name and hashtags.
   It can be edited freely. Only the fixed phrases are translated; they are
-  in `docs/translation-review.md` section C for a native speaker to check.
+  in `docs/2-fill-in/translation-review.md` section C for a native speaker to check.
 - **Alt text** for screen-reader users, ready to copy.
 - Text never overflows the image: long headlines shrink, and long details are
   shortened with "…" rather than printed too small to read.

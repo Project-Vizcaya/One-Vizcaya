@@ -2,7 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Design contract: docs/design-system.md. Same brand tokens as the admin
+/* Design contract: docs/4-app-and-website/design-system.md. Same brand tokens as the admin
    console (apps/web/src/index.css). */
 @layer base {
   :root {
@@ -90,7 +90,7 @@
   .notice-warning { @apply rounded-lg border p-3; background: hsl(var(--warning-bg)); border-color: hsl(var(--warning-border)); color: hsl(var(--warning-foreground)); }
 }
 
-/* Map markers (Leaflet divIcons). Status colours: docs/design-system.md. */
+/* Map markers (Leaflet divIcons). Status colours: docs/4-app-and-website/design-system.md. */
 .unit-marker { display: flex; flex-direction: column; align-items: center; pointer-events: auto; }
 .unit-marker .dot {
   width: 26px; height: 26px; border-radius: 9999px; border: 2.5px solid #fff; display: grid; place-items: center;

@@ -6,12 +6,12 @@ One Vizcaya platform.*
 **Working draft v0.1** — prepared in response to the Technical Review Committee
 (PA, PDRRMO, PPDO, PITD), June 2026.
 
-> **Companion documents:** [`Governance-Architecture.md`](./Governance-Architecture.md)
+> **Companion documents:** [`Governance-Architecture.md`](Governance-Architecture.md)
 > (the condensed Barangay → Region II reference) and
-> [`PITD-Infrastructure-Memo.md`](./PITD-Infrastructure-Memo.md) (Blaze
+> [`PITD-Infrastructure-Memo.md`](PITD-Infrastructure-Memo.md) (Blaze
 > hardening). The enforcement claims here are realised in the repository's
-> [`firestore.rules`](../firestore.rules), [`storage.rules`](../storage.rules),
-> and [`apps/functions/index.js`](../apps/functions/index.js).
+> [`firestore.rules`](../../firestore.rules), [`storage.rules`](../../storage.rules),
+> and [`apps/functions/index.js`](../../apps/functions/index.js).
 
 ---
 

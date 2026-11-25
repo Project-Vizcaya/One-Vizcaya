@@ -1,5 +1,5 @@
 /// The PDRRMO Command Hub's progress on a report, as the reporter may see it
-/// (docs/command-hub.md). Written only by the incidentStatusUpdate function.
+/// (docs/4-app-and-website/command-hub.md). Written only by the incidentStatusUpdate function.
 /// It holds the stage, a ROUNDED arrival time and the agency's name, never
 /// the responder's position or identity.
 class HubProgress {

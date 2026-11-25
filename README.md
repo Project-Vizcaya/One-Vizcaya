@@ -64,7 +64,17 @@ One-Vizcaya/
 ├── firebase.json          # Firebase project config (hosting, functions, rules)
 ├── turbo.json             # Turborepo task pipeline
 ├── package.json           # Workspace root (build/dev/deploy scripts)
-└── docs/                  # Governance, integration briefs, runbooks
+├── command-hub/           # PDRRMO Command Hub + responder site prototype (Next.js, mock data)
+├── tests/                 # Emulator rules/function tests and load tests
+├── PRIVACY.md             # Data Privacy Notice (also shown at /privacy)
+├── render.yaml            # Render hosting for the Command Hub demo
+├── vercel.json            # Vercel hosting for the website
+└── docs/                  # Start at docs/README.md
+    ├── 1-build-and-test/      # Build, install and test guides
+    ├── 2-fill-in/             # What to fill in and where; sheets for others to complete
+    ├── 3-agencies-and-legal/  # Documents for PDRRMO, PA, PITD, PPDO and the legal office
+    ├── 4-app-and-website/     # How the app, console, website and Command Hub work
+    └── archive/               # Older documents kept for history
 ```
 
 ---
@@ -126,7 +136,7 @@ One Vizcaya is a unified, bidirectional data ecosystem with three runtime compon
 
 ## 🏛️ Governance & Authority Architecture (Government Hierarchy)
 
-One Vizcaya is deliberately modelled on the **real chain of governance** under the Local Government Code — **Barangay → City/Municipality → Province → Region II** — so authority, accountability, and data ownership line up one-to-one with how the Provincial Government of Nueva Vizcaya operates. Full treatment in **[`docs/Architecture-Governance-Design.md`](docs/Architecture-Governance-Design.md)** and **[`docs/Governance-Architecture.md`](docs/Governance-Architecture.md)**.
+One Vizcaya is deliberately modelled on the **real chain of governance** under the Local Government Code — **Barangay → City/Municipality → Province → Region II** — so authority, accountability, and data ownership line up one-to-one with how the Provincial Government of Nueva Vizcaya operates. Full treatment in **[`docs/3-agencies-and-legal/Architecture-Governance-Design.md`](docs/3-agencies-and-legal/Architecture-Governance-Design.md)** and **[`docs/3-agencies-and-legal/Governance-Architecture.md`](docs/3-agencies-and-legal/Governance-Architecture.md)**.
 
 ### The four-tier hierarchy
 
@@ -332,7 +342,7 @@ firebase deploy --only functions   # from the repo root
 | Web console (build + hosting) | `npm run build:web && firebase deploy --only hosting` |
 | Mobile | `cd apps/mobile && flutter build apk --release` (then distribute / Play) |
 
-Some administrative one-shots run as callable functions by a super admin (e.g. `seedResponders`, `migrateLegacyAdmins`). Full build/deploy/phone-auth steps — including the Google Play Internal Testing route that fixes real-number login — are in [`docs/Computer-Shop-Runbook.md`](docs/Computer-Shop-Runbook.md). Day-to-day use of the admin console (alerts and approvals, referrals, SLA targets, the health check) is in [`docs/Operator-Guide.md`](docs/Operator-Guide.md).
+Some administrative one-shots run as callable functions by a super admin (e.g. `seedResponders`, `migrateLegacyAdmins`). Full build/deploy/phone-auth steps — including the Google Play Internal Testing route that fixes real-number login — are in [`docs/1-build-and-test/Computer-Shop-Runbook.md`](docs/1-build-and-test/Computer-Shop-Runbook.md). Day-to-day use of the admin console (alerts and approvals, referrals, SLA targets, the health check) is in [`docs/4-app-and-website/Operator-Guide.md`](docs/4-app-and-website/Operator-Guide.md).
 
 ---
 
@@ -391,7 +401,7 @@ does today rather than on intent. Each item is tracked for the pre-pilot work.
 
 **Positioning**
 - The "supplements rather than replaces 911 / hotlines / radio" notice is shown on the report screen but **not yet on the SOS screen**.
-- Its Tagalog and Ilocano wording, and several newer citizen messages, **await native-speaker review** — see `docs/translation-review.md`.
+- Its Tagalog and Ilocano wording, and several newer citizen messages, **await native-speaker review** — see `docs/2-fill-in/translation-review.md`.
 - **Proxy reporting** exists: barangay and municipal officials (in their own area), provincial admins (anywhere) and residents with **certified** residency (for example for a family member) can file for a resident without a smartphone. The report is filed under the filer's account, so status updates go to the filer to pass on; the resident gets no notification of their own.
 
 **Measurement**
@@ -414,7 +424,7 @@ Planned enhancements beyond the current build:
 - **Two-way SOS chat** — operator ↔ citizen text thread on an active beacon for callers who can type but not speak.
 - **Reverse-geocoded street address** on the photo stamp and SOS card (Google Geocoding API) and an optional **static-map thumbnail** on the stamp.
 - **Responder mobile app / role** — field responders receive assignments and update status from their own device; ETA + arrival confirmation.
-- **DPWH / PDRRMO system integration** — a direct pipeline into provincial emergency systems (see [`docs/PDRRMO-Integration-Brief.md`](docs/PDRRMO-Integration-Brief.md)).
+- **DPWH / PDRRMO system integration** — a direct pipeline into provincial emergency systems (see [`docs/3-agencies-and-legal/PDRRMO-Integration-Brief.md`](docs/3-agencies-and-legal/PDRRMO-Integration-Brief.md)).
 
 ### Trust, security & access
 - **Admin 2FA (TOTP)** — authenticator second factor for admin accounts via Firebase Identity Platform.

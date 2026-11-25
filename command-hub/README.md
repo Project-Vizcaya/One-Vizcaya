@@ -4,7 +4,7 @@ The operators' Command Hub and the responders' site for Nueva Vizcaya, built
 from `ONE-VIZCAYA-COMMAND-HUB-TRACKING-HANDOFF.md` (Phase 1, software only).
 **Mock data only. Demo sign-in. Not for real emergencies.**
 
-Full design notes: [`docs/command-hub.md`](../docs/command-hub.md).
+Full design notes: [`docs/4-app-and-website/command-hub.md`](../docs/4-app-and-website/command-hub.md).
 
 | Who | Opens | Does |
 |---|---|---|

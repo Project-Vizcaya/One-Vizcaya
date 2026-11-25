@@ -1,6 +1,6 @@
 "use strict";
 
-// Server-side DOST-PAGASA source for One Vizcaya (docs/weather.md).
+// Server-side DOST-PAGASA source for One Vizcaya (docs/4-app-and-website/weather.md).
 //
 // All PAGASA traffic goes through here, never from phones:
 //   - refreshAll(): run by the pagasaMobileWatch schedule. Fetches alerts,

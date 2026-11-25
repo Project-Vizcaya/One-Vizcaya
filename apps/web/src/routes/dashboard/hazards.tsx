@@ -24,7 +24,7 @@ import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/dashboard/hazards")({ component: HazardWatchPage });
 
-// Hazard Watch (docs/hazards.md): everything that needs the PDRRMO's
+// Hazard Watch (docs/4-app-and-website/hazards.md): everything that needs the PDRRMO's
 // attention on one map and one list, the province's own information first.
 
 const FILTERS: { key: string; label: string; match: (i: HazardItem) => boolean }[] = [
@@ -72,7 +72,7 @@ function HazardWatchPage() {
   const [showStructures, setShowStructures] = useState(false);
   const { floodControlPublic } = useTransparencySettings();
   const [savingSwitch, setSavingSwitch] = useState(false);
-  // DPWH flood-control structures (docs/flood-control.md). Contractor and cost
+  // DPWH flood-control structures (docs/4-app-and-website/flood-control.md). Contractor and cost
   // are left out here; they are for the resident list once it is switched on.
   const structures = FLOOD_CONTROL_PROJECTS.filter((p) => !municipality || p.town === municipality);
   const project = structures.find((p) => `dpwh_${p.id}` === selected) ?? null;

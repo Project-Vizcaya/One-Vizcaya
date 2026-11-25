@@ -401,7 +401,7 @@ exports.trackSubReportRate = onDocumentCreated(
   }
 );
 
-// ── Incident IDs and the Command Hub bridge (docs/command-hub.md) ──────────
+// ── Incident IDs and the Command Hub bridge (docs/4-app-and-website/command-hub.md) ──────────
 // Every new report gets its incident ID (NV-<TOWN>-<YYYYMMDD>-<hex>) and the
 // shared UUID, here and only here, so all apps and versions get the same
 // format. If config/hub.forwardReports is on, the report is then sent to the
@@ -1572,14 +1572,14 @@ const { parseNlprsd, SOURCE_URL: NLPRSD_URL } = require("./pagasa-public/regiona
 // Used with PAGASA's permission, on condition that the app discloses it is
 // not an official PAGASA app. All calls are made here, server-side, at fixed
 // intervals; phones read our stored copy. Off unless
-// config/weather.pagasaMobileEnabled is true. See docs/weather.md and
+// config/weather.pagasaMobileEnabled is true. See docs/4-app-and-website/weather.md and
 // ./pagasa-mobile/service.js.
 const { PagasaService } = require("./pagasa-mobile/service");
 const pagasaService = () => new PagasaService(admin.firestore(), {
   ts: (ms) => admin.firestore.Timestamp.fromMillis(ms),
 });
 
-// ── Post Maker AI helper (optional; docs/post-maker.md) ─────────────────────
+// ── Post Maker AI helper (optional; docs/4-app-and-website/post-maker.md) ─────────────────────
 // Drafts a headline and caption with Claude from what the admin wrote. Off
 // unless the ANTHROPIC_API_KEY secret exists (read at call time) and
 // config/ai.postAssistEnabled is not false. Admin-only, 30 drafts per admin
@@ -1614,7 +1614,7 @@ exports.draftPostText = onCall({ timeoutSeconds: 120 }, async (request) => {
   }
 });
 
-// ── Hazard Watch: earthquakes near Nueva Vizcaya (docs/hazards.md) ───────────
+// ── Hazard Watch: earthquakes near Nueva Vizcaya (docs/4-app-and-website/hazards.md) ───────────
 // USGS public feed (on by default) and PHIVOLCS (off until permission is in
 // hand: config/hazards.phivolcsEnabled). Stored in hazard_signals for the
 // console's Hazard Watch page, which puts the province's own reports, SOS and

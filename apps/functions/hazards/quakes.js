@@ -1,6 +1,6 @@
 "use strict";
 
-// Earthquake feeds for Hazard Watch (docs/hazards.md).
+// Earthquake feeds for Hazard Watch (docs/4-app-and-website/hazards.md).
 //
 //   USGS   — the U.S. Geological Survey's public FDSN event API (free, no key).
 //            On by default. Labelled "USGS", never presented as PHIVOLCS.
