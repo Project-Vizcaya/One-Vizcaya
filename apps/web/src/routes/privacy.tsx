@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowLeft } from "lucide-react";
 import { SiteFooter, SiteHeader } from "@/components/landing/SiteChrome";
@@ -10,6 +10,11 @@ export const Route = createFileRoute("/privacy")({
 });
 
 function PrivacyPage() {
+  useEffect(() => {
+    const prev = document.title;
+    document.title = "Data Privacy Notice · One Vizcaya";
+    return () => { document.title = prev; };
+  }, []);
   return (
     <div className="site min-h-screen bg-white">
       <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-50 focus:rounded-md focus:bg-white focus:px-3 focus:py-2 focus:font-bold">

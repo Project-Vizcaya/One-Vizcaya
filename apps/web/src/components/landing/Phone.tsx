@@ -11,7 +11,7 @@ export function Phone({ label, children }: { label: string; children: ReactNode 
     <figure
       role="img"
       aria-label={label}
-      className="mx-auto w-[260px] shrink-0 rounded-[2rem] border-[8px] border-slate-900 bg-slate-900"
+      className="mx-auto w-[260px] max-w-full shrink-0 rounded-[2rem] border-[8px] border-slate-900 bg-slate-900"
     >
       <div className="relative h-[520px] overflow-hidden rounded-[1.5rem] bg-white" aria-hidden="true">
         <div className="absolute left-1/2 top-2 z-10 h-5 w-20 -translate-x-1/2 rounded-full bg-slate-900" />

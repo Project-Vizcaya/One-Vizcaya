@@ -13,11 +13,11 @@ export const APK_SIZE_MB = __APK_SIZE_MB__;
 
 export function Wordmark({ onDark = false }: { onDark?: boolean }) {
   return (
-    <span className="flex items-center gap-2.5">
+    <span className="flex min-w-0 items-center gap-2.5">
       <span aria-hidden="true" className={`flex h-9 w-9 items-center justify-center rounded-md ${onDark ? "bg-white" : "bg-[var(--site-green)]"}`}>
         <ProvinceMark className={`h-7 w-7 ${onDark ? "text-[var(--site-green)]" : "text-white"}`} />
       </span>
-      <span className={`text-[19px] font-extrabold tracking-tight ${onDark ? "text-white" : "text-[var(--site-green)]"}`}>One Vizcaya</span>
+      <span className={`text-[19px] font-extrabold leading-tight tracking-tight ${onDark ? "text-white" : "text-[var(--site-green)]"}`}>One Vizcaya</span>
     </span>
   );
 }
@@ -26,10 +26,10 @@ export function SiteHeader({ nav = [], active }: { nav?: { label: string; href: 
   const [open, setOpen] = useState(false);
   return (
     <header className="sticky top-0 z-40 border-b border-[var(--site-line)] bg-white/95 backdrop-blur">
-      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4">
+      <div className="mx-auto flex min-h-16 max-w-6xl items-center justify-between gap-4 px-4 py-2">
         <Link to="/" className="flex min-h-[48px] items-center rounded-md" aria-label="One Vizcaya home"><Wordmark /></Link>
         {nav.length > 0 && (
-          <nav aria-label="Main" className="hidden h-full items-center gap-7 lg:flex">
+          <nav aria-label="Main" className="hidden self-stretch items-center gap-7 lg:flex">
             {nav.map((n) => {
               const on = active === n.href.slice(1);
               return (
