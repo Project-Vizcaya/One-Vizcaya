@@ -128,6 +128,18 @@ Shown when a resident or official files a report for a person without a phone.
 | `annOfficial` | OFFICIAL ANNOUNCEMENT | OPISYAL NA ANUNSYO | OPISIAL NGA ANUNSYO | ☐ | |
 | `annProvincial` | PROVINCIAL ANNOUNCEMENT | ANUNSYO NG LALAWIGAN | ANUNSYO TI PROBINSIA | ☐ | |
 
+### A11. Delete account (Settings) — reports are kept as archived LGU records
+
+| Key | English (source) | Tagalog | Ilocano | OK | Correction |
+|---|---|---|---|:-:|---|
+| `deleteAccountSubtitle` | Delete your profile and sign-in | Burahin ang iyong profile at pag-sign in | Ikkaten ti profile ken panag-sign in mo | ☐ | |
+| `deleteItem1` | Your profile and contact information | Ang iyong profile at impormasyon sa pakikipag-ugnayan | Ti profile ken impormasyon mo | ☐ | |
+| `deleteItem2` | Your sign-in to One Vizcaya | Ang iyong pag-sign in sa One Vizcaya | Ti panag-sign in mo iti One Vizcaya | ☐ | |
+| `deleteKeptTitle` | Your reports are kept | Mananatili ang iyong mga ulat | Maidulin dagiti report mo | ☐ | |
+| `deleteKeptBody` | Reports you sent, with their photos and your name, stay with your LGU as archived official records. They are deleted 24 months after they were filed. | Ang mga ulat na ipinadala mo, kasama ang mga larawan at iyong pangalan, ay mananatili sa iyong LGU bilang naka-archive na opisyal na rekord. Buburahin ang mga ito 24 na buwan matapos maipadala. | Dagiti report nga impatulodmo, agraman dagiti ladawan ken ti naganmo, ket agtalinaed iti LGU-m kas naka-archive nga opisial a rekord. Maikkatto dagitoy 24 a bulan kalpasan ti pannakaipatulodda. | ☐ | |
+| `deletingReports` | Archiving your reports... | Ina-archive ang iyong mga ulat... | Mai-archive dagiti report mo... | ☐ | |
+| `accountDeleted` | Your account has been deleted. Your reports are kept as archived LGU records. | Nabura na ang iyong account. Ang iyong mga ulat ay naka-archive bilang rekord ng LGU. | Naikkaten ti account mo. Dagiti report mo ket naka-archive kas rekord ti LGU. | ☐ | |
+
 ---
 
 ## B. English only — needs translating

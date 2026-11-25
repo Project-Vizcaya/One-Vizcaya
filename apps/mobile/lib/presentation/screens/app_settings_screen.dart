@@ -509,7 +509,6 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
             ...[
               AppStrings.get('deleteItem1'),
               AppStrings.get('deleteItem2'),
-              AppStrings.get('deleteItem3'),
             ].map((item) => Padding(
                   padding: const EdgeInsets.symmetric(vertical: 2),
                   child: Row(children: [
@@ -518,6 +517,36 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
                     Flexible(child: Text(item)),
                   ]),
                 )),
+            const SizedBox(height: 12),
+            // Reports are not deleted: the LGU keeps them as archived records
+            // (PPDO requirement), so say so instead of listing them above.
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Theme.of(ctx).colorScheme.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Icon(Icons.inventory_2_outlined, size: 18),
+                  const SizedBox(width: 8),
+                  Flexible(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(AppStrings.get('deleteKeptTitle'),
+                            style:
+                                const TextStyle(fontWeight: FontWeight.w600)),
+                        const SizedBox(height: 2),
+                        Text(AppStrings.get('deleteKeptBody'),
+                            style: const TextStyle(fontSize: 13)),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
             const SizedBox(height: 12),
             Text(AppStrings.get('deleteCannotUndo'),
                 style: TextStyle(
