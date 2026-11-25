@@ -1,4 +1,4 @@
-# Wednesday Test Build — Step-by-Step Guide
+# Test Build (Friday and Sunday) — Step-by-Step Guide
 
 What you are testing: **branch `claude/test-build-combined`**, which is everything:
 
@@ -6,7 +6,8 @@ What you are testing: **branch `claude/test-build-combined`**, which is everythi
 |---|---|---|
 | P1–P3 | PDRRMO response work (alerts approval, lifecycle, proxy reporting, offline delivery…) | On `main` (PR #135) |
 | PR #137 | Privacy fix, Hazard Watch, Post Maker, PAGASA source, earthquakes, DPWH data, **incident IDs**, **"Call first" on Report a Problem** | Draft PR, not on `main` yet |
-| UI/UX | Experimental redesign (typeface, bottom bar, SOS layout, console contrast) | Only on this branch |
+| UI/UX | Experimental redesign of Nov 4 (typeface, bottom bar, SOS layout, console contrast) **plus** the Nov 25 home redesign and municipal colour guide (§5.2) | Only on this branch |
+| Console | **Privacy Requests** page for the Data Protection Officer (§6.9) | PR #137 |
 | Command Hub | PDRRMO Command Hub + responder site prototype (`command-hub/`, mock data) | Runs on your laptop only (§8) |
 
 After your feedback: PR #137 is merged to `main`, then the redesign goes to `main` as its own PR.
@@ -262,6 +263,29 @@ Follow **`docs/experimental-uiux-test-checklist.md`**. The most important checks
 - [ ] Bottom bar labels and tap targets; My Reports card on the small phone.
 - [ ] Web (preview link): visible keyboard focus, readable text.
 
+### 5.2 Home screen and colours (new, Nov 25)
+Switch the municipality (tap the town name at the top) through **Bambang** (maroon),
+**Villaverde** (lime), **Kasibu** (orange) and **Solano** (navy). In each one:
+- [ ] The page background is the same light neutral grey for every town (not tinted).
+- [ ] Headings ("Announcements", "Citizen Services"…), "See all" and the town name are easy to
+      read. Before, they were faint in Villaverde, Kasibu, Bagabag and Aritao.
+- [ ] **Report Problem** is the only solid town-coloured tile; **Emergency Contacts** is soft
+      red; the other five are white with a town-coloured icon.
+- [ ] Press and hold a tile: it sinks and fills with a soft tint. Let go: it springs back
+      with a small bounce and a light vibration. A quick tap still shows it.
+- [ ] Bottom bar: the selected item's label is readable (white on the town colour, or on its
+      darker shade in light towns).
+- [ ] Announcement card: white with a thin bar in the town colour and a label. Post a
+      "TEST –" announcement for the town: it shows a **NEW** tag whose dot pulses a few times,
+      a tinted outline, and a coloured dot under the cards. Urgent ones are labelled URGENT in red.
+- [ ] Dark mode (phone settings): headings in Bambang read as rose, not alarm red; nothing is
+      too faint.
+- [ ] Phone setting **Remove animations** on (Settings → Accessibility): tiles only change
+      tint, no movement; the NEW dot does not pulse.
+- [ ] Also look at: Support & FAQs header, What's New dialog, Settings switches, Residency
+      screen, Emergency Contacts icons, the town info sheet. Text on town colours should be
+      readable in all four towns.
+
 ---
 
 ## 6. Test — PR #137 (new since Saturday's plan)
@@ -279,8 +303,10 @@ Follow **`docs/experimental-uiux-test-checklist.md`**. The most important checks
       from the escalation job; skip if none arrives.)
 
 ### 6.3 Account deletion
-- [ ] Resident D files one "TEST –" report, then Settings → Delete account. It completes,
-      and the report shows as **archived** in the console.
+- [ ] Resident D files one "TEST –" report, then Settings → Delete account. The dialog lists
+      **profile and sign-in** as deleted and a box says **"Your reports are kept"** (archived
+      LGU records, deleted 24 months after filing). It completes, the final message says the
+      reports are kept, and the report shows as **archived** in the console.
 
 ### 6.4 Hazard Watch (preview console → Operations → Hazard Watch)
 - [ ] Page loads; counts and filters work. Your area's open SOS and hazard reports come **first**.
@@ -336,6 +362,15 @@ international forecast as before.
       don't call.** Tap SOS: the "Send Emergency SOS?" dialog appears. **Press Cancel.**
 - [ ] Small phone with large text: the three buttons fit, nothing is cut off.
 - [ ] Tagalog and Ilocano: the box is translated.
+
+### 6.9 Privacy Requests (console → Administration → Privacy Requests; provincial login)
+- [ ] Resident C: Settings → Location & Privacy → Data Privacy Request → "Access my data",
+      details "TEST – privacy request". Send.
+- [ ] The request appears on the page as **New** with the resident's name and phone.
+- [ ] Set it to **In review** with a note → Save. Then **Completed** → Save. "Last updated by"
+      shows your name. "Open" no longer counts it; "All" still shows it.
+
+---
 
 ## 7. Test — P1 to P3 (never tested on a device yet)
 
