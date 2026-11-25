@@ -419,11 +419,22 @@ exports.onReportCreated = onDocumentCreated(
     if (!snap) return;
     const data = snap.data();
     // Always derived from the path, never taken from the document: a client
-    // (or the super-admin rules bypass) can't choose its own IDs.
+    // (or the super-admin rules bypass) can't choose its own IDs. Decided on
+    // the LIVE document: a retry or duplicate delivery re-runs with the same
+    // creation snapshot, and must not wipe the Hub progress written since.
+    // incidentStatusUpdate only writes `hub` once the IDs match, so a `hub`
+    // present while they don't can only have come from a client.
     const ids = idsForReport(snap.ref.path, data);
-    if (data.incidentUuid !== ids.incidentUuid || data.incidentId !== ids.incidentId || data.hub !== undefined) {
-      await snap.ref.update({ ...ids, hub: admin.firestore.FieldValue.delete() });
-    }
+    const exists = await admin.firestore().runTransaction(async (tx) => {
+      const cur = await tx.get(snap.ref);
+      if (!cur.exists) return false; // deleted meanwhile: nothing to stamp or forward
+      const c = cur.data();
+      if (c.incidentUuid !== ids.incidentUuid || c.incidentId !== ids.incidentId) {
+        tx.update(snap.ref, { ...ids, hub: admin.firestore.FieldValue.delete() });
+      }
+      return true;
+    });
+    if (!exists) return;
 
     const cfg = (await admin.firestore().doc("config/hub").get()).data() || {};
     if (cfg.forwardReports !== true || typeof cfg.hubUrl !== "string" || !cfg.hubUrl.startsWith("https://")) return;

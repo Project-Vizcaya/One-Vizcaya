@@ -318,6 +318,16 @@ describe("review fixes (Nov 24)", () => {
     expect(updates.length).toBe(n);
   });
 
+  it("reopening a closed incident lets the reporter hear about the new response", async () => {
+    const inc = await appReport();
+    await store.setIncidentStatus(EOC, inc.id, "closed");
+    expect(updates.at(-1)?.stage).toBe("resolved");
+    await store.setIncidentStatus(EOC, inc.id, "validated");
+    await store.assign(EOC, inc.id, "u-bam-amb-01");
+    await store.setStatus(BAM_AMB, "u-bam-amb-01", "en_route");
+    expect(updates.map((u) => u.stage).slice(-3)).toEqual(["validated", "dispatched", "en_route"]);
+  });
+
   it("can't merge into a closed incident; a merged reporter catches up with the survivor", async () => {
     const app = await appReport();
     const { incident: call } = await store.createCall(EOC, { nature: "Flood", municipality: "Bambang", lat: 16.3905, lng: 121.0805 });
